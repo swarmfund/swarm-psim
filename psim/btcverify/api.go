@@ -2,15 +2,12 @@ package btcverify
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/piotrnar/gocoin/lib/btc"
-	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
-	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 func (s *Service) serveAPI() {
@@ -50,33 +47,33 @@ func (s *Service) verifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	op := horizonTX.Operations[0]
-	if op.Body.Type != xdr.OperationTypeManageCoinsEmissionRequest {
-		ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf(
-			"Expected Operation of type ManageCoinEmissionRequest(%d), but got (%d).",
-			xdr.OperationTypeManageCoinsEmissionRequest, op.Body.Type)))
-		return
-	}
-
-	opBody := horizonTX.Operations[0].Body.ManageCoinsEmissionRequestOp
-
-	if opBody.Asset != bitcoin.Asset {
-		ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf("Expected asset to be '%s', but got '%s'.",
-			bitcoin.Asset, opBody.Asset)))
-		return
-	}
-
-	if opBody.Action != xdr.ManageCoinsEmissionRequestActionManageCoinsEmissionRequestCreate {
-		ape.RenderErr(w, r, problems.BadRequest("Expected Action to be CER create."))
-		return
-	}
-
-	reference := bitcoin.BuildCoinEmissionRequestReference(payload.TXHash, payload.OutIndex)
-	if string(opBody.Reference) != reference {
-		ape.RenderErr(w, r, problems.Conflict(fmt.Sprintf("Expected reference to be '%s', but got '%s'.",
-			reference, string(opBody.Reference))))
-		return
-	}
+	//op := horizonTX.Operations[0]
+	//if op.Body.Type != xdr.OperationTypeManageCoinsEmissionRequest {
+	//	ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf(
+	//		"Expected Operation of type ManageCoinEmissionRequest(%d), but got (%d).",
+	//		xdr.OperationTypeManageCoinsEmissionRequest, op.Body.Type)))
+	//	return
+	//}
+	//
+	//opBody := horizonTX.Operations[0].Body.ManageCoinsEmissionRequestOp
+	//
+	//if opBody.Asset != bitcoin.Asset {
+	//	ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf("Expected asset to be '%s', but got '%s'.",
+	//		bitcoin.Asset, opBody.Asset)))
+	//	return
+	//}
+	//
+	//if opBody.Action != xdr.ManageCoinsEmissionRequestActionManageCoinsEmissionRequestCreate {
+	//	ape.RenderErr(w, r, problems.BadRequest("Expected Action to be CER create."))
+	//	return
+	//}
+	//
+	//reference := bitcoin.BuildCoinEmissionRequestReference(payload.TXHash, payload.OutIndex)
+	//if string(opBody.Reference) != reference {
+	//	ape.RenderErr(w, r, problems.Conflict(fmt.Sprintf("Expected reference to be '%s', but got '%s'.",
+	//		reference, string(opBody.Reference))))
+	//	return
+	//}
 
 	block, err := s.btcClient.GetBlockByHash(payload.BlockHash)
 	if err != nil {
@@ -89,7 +86,7 @@ func (s *Service) verifyHandler(w http.ResponseWriter, r *http.Request) {
 		if tx.Hash.String() == payload.TXHash {
 			for i, _ := range tx.TxOut {
 				if i == payload.OutIndex {
-					s.verifyTxOUT(w, r, tx.TxOut[i], opBody, horizonTX)
+					//s.verifyTxOUT(w, r, tx.TxOut[i], opBody, horizonTX)
 					return
 				}
 			}
@@ -109,29 +106,29 @@ func (s *Service) verifyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) verifyTxOUT(w http.ResponseWriter, r *http.Request, txOut *btc.TxOut,
-	opBody *xdr.ManageCoinsEmissionRequestOp, horizonTX *horizon.TransactionBuilder) {
-
-	// TODO Make sure amount is valid (maybe need to * or / by 10^N)
-	if int64(opBody.Amount) != int64(txOut.Value) {
-		ape.RenderErr(w, r, problems.Conflict(fmt.Sprintf("Got %d satoshi in the TXOut, but CoinEmissionRequest Amount is %d",
-			int64(txOut.Value), int64(opBody.Amount))))
-		return
-	}
-
-	receiver := opBody.Receiver.AsString()
-	account, err := s.horizon.AccountSigned(s.config.Signer, receiver)
-	if err != nil {
-		s.log.WithField("account_id", receiver).WithError(err).Error("Failed to get Account from Horizon")
-		ape.RenderErr(w, r, problems.ServerError(err))
-		return
-	}
-	if account == nil {
-		s.log.WithField("account_id", receiver).Warn("Account from CoinEmissionRequest was not found in Horizon.")
-		p := problems.NotFound("Account was not found in Horizon.")
-		(*p.Meta)["account_id"] = receiver
-		ape.RenderErr(w, r, p)
-		return
-	}
+	/*opBody *xdr.ManageCoinsEmissionRequestOp,*/ horizonTX *horizon.TransactionBuilder) {
+	//
+	//// TODO Make sure amount is valid (maybe need to * or / by 10^N)
+	//if int64(opBody.Amount) != int64(txOut.Value) {
+	//	ape.RenderErr(w, r, problems.Conflict(fmt.Sprintf("Got %d satoshi in the TXOut, but CoinEmissionRequest Amount is %d",
+	//		int64(txOut.Value), int64(opBody.Amount))))
+	//	return
+	//}
+	//
+	//receiver := opBody.Receiver.AsString()
+	//account, err := s.horizon.AccountSigned(s.config.Signer, receiver)
+	//if err != nil {
+	//	s.log.WithField("account_id", receiver).WithError(err).Error("Failed to get Account from Horizon")
+	//	ape.RenderErr(w, r, problems.ServerError(err))
+	//	return
+	//}
+	//if account == nil {
+	//	s.log.WithField("account_id", receiver).Warn("Account from CoinEmissionRequest was not found in Horizon.")
+	//	p := problems.NotFound("Account was not found in Horizon.")
+	//	(*p.Meta)["account_id"] = receiver
+	//	ape.RenderErr(w, r, p)
+	//	return
+	//}
 
 	// TODO after changing of xdr
 	//outAddr := btc.NewAddrFromPkScript(txOut.Pk_script, s.btcClient.IsTestnet())
@@ -142,7 +139,7 @@ func (s *Service) verifyTxOUT(w http.ResponseWriter, r *http.Request, txOut *btc
 	//	return
 	//}
 
-	err = horizonTX.Sign(s.config.Signer).Submit()
+	err := horizonTX.Sign(s.config.Signer).Submit()
 	if err != nil {
 		entry := s.log.WithError(err)
 

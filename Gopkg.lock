@@ -296,10 +296,16 @@
   version = "v1"
 
 [[projects]]
-  name = "gitlab.com/tokend/go"
+  branch = "master"
+  name = "gitlab.com/swarmfund/go"
   packages = ["amount","crc16","hash","keypair","network","strkey","xdr"]
-  revision = "f70190acd2fef496ffb0da94d6d072a3f702efaf"
-  version = "v1.2.2"
+  revision = "95e69eeb677a27801d28c908aca1826cd0d795d7"
+
+[[projects]]
+  branch = "master"
+  name = "gitlab.com/swarmfund/horizon-connector"
+  packages = [".","internal/resources"]
+  revision = "82effe63b3cb7a4b95a52c90883d8274d72e2617"
 
 [[projects]]
   branch = "master"
@@ -358,6 +364,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2faebde987353078abd56ed184e3a7aa33f701ab2b62d4648387c2dc7909fd97"
+  inputs-digest = "f3ae93a9dd0b26ff73207d1a822bc60ec81c170149bb782332c6f19f616ebd49"
   solver-name = "gps-cdcl"
   solver-version = 1

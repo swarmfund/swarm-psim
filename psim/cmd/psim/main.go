@@ -10,13 +10,10 @@ import (
 	// supervisors
 	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
-	_ "gitlab.com/swarmfund/psim/psim/stripesupervisor"
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"
-	_ "gitlab.com/swarmfund/psim/psim/stripeverify"
-	_ "gitlab.com/swarmfund/psim/psim/taxman"
 )
 
 var (
