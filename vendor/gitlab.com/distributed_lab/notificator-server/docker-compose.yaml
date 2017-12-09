@@ -1,0 +1,27 @@
+version: '2'
+
+volumes:
+   pgdb:
+
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - pgdb:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+  notificator:
+    image: ${NOTIFICATOR_IMAGE}
+    restart: unless-stopped
+    # environment:
+    #   - BIN=/app/bin/notificator
+    #   - CONFIG=/app/conf.yaml
+    #   - MIGRATIONS_DIR=/app/migrations
+    ports:
+      - ${NOTIFICATOR_PORT}:9009
+    volumes:
+      - ${NOTIFICATOR_CONF}:/app/conf.yaml
+#      - ./conf.yaml:/app/conf.yaml
+    depends_on:
+      - postgres
+    command: "/app/run notificator"

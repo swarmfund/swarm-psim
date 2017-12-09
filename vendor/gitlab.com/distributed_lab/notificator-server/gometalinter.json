@@ -1,0 +1,8 @@
+{
+  "Vendor": true,
+  "Exclude": ["vendor"],
+  "Cyclo": 10,
+  "LineLength": 200,
+  "Deadline": "2m",
+  "Enable": ["gofmt", "staticcheck", "gosimple"]
+}

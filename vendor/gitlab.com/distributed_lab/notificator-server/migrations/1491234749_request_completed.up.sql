@@ -1,0 +1,1 @@
+alter table requests add column completed_at timestamp without time zone;

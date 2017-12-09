@@ -1,0 +1,56 @@
+#!/usr/bin/env sh
+
+if [ -z "$BIN" ]; then
+      BIN=./bin/notificator
+fi
+
+if [ -z "$CONFIG" ]; then
+      CONFIG=./conf.yaml
+fi
+
+if [ -z "$MIGRATIONS_DIR" ]; then
+      MIGRATIONS_DIR=./migrations
+fi
+
+build() {
+    echo "Building notificator-server ..."
+    go build -o $BIN -a gitlab.com/distributed_lab/notificator-server
+    echo "Done. Can be run from $BIN"
+}
+
+install() {
+    go install gitlab.com/distributed_lab/notificator-server
+    cp ./run /usr/bin/notificator
+}
+
+migrate () {
+    $BIN --config $CONFIG  --migrations $MIGRATIONS_DIR migrate
+}
+
+run() {
+    $BIN --config $CONFIG run
+}
+
+tokens() {
+    $BIN --config $CONFIG tokens
+}
+
+run_with_migration () {
+    migrate
+    run
+}
+
+case "$1" in
+    "build")   build   ;;
+    "install") install ;;
+    "migrate") migrate ;;
+    "tokens")  tokens ;;
+    "notificator")
+        echo "Waiting for postgres to get up..."
+        sleep 5
+        run_with_migration
+        ;;
+    *)
+        run
+        ;;
+esac

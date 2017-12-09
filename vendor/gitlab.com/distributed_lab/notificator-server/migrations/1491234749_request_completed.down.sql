@@ -1,0 +1,1 @@
+alter table requests drop column completed_at;

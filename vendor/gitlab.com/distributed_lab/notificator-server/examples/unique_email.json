@@ -1,0 +1,9 @@
+{
+  "type": 3,
+  "token": "user_token",
+  "payload": {
+    "destination": "comrad.awsum@gmail.com",
+    "subject": "subject",
+    "message": "test email text"
+  }
+}

@@ -1,0 +1,57 @@
+before_script:
+  # Run ssh-agent (inside the build environment)
+  - eval $(ssh-agent -s)
+  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
+  - echo "$SSH_PRIVATE_KEY" | ssh-add -
+  - mkdir -p ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  - 'echo -e "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config'
+  -  git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/
+
+stages:
+  - prebuild
+  - build
+  - delivery
+  - deploy
+  - postdeploy
+
+build:
+  stage: build
+  image: golang:1.8
+  variables:
+    APP_PATH: gitlab.com/tokend/psim
+  script:
+    - mkdir -p $GOPATH/src/$APP_PATH
+    - cp -rf ./* $GOPATH/src/$APP_PATH
+    - cd $GOPATH/src/$APP_PATH
+    - go build -o bin/psim -a gitlab.com/tokend/psim/cmd/psim
+    - cp -rf ./bin/ /builds/tokend/psim/bin/
+  artifacts:
+      expire_in: 1 week
+      paths:
+        - bin/psim
+  only:
+    - master
+    - staging
+    - dev
+
+delivery:dev:
+  image: shebgregor/alpine-rsync-git
+  stage: delivery
+  script:
+    - rsync bin/psim ubuntu@$HOST_DEV:artifacts/psim/${CI_COMMIT_SHA:0:8}/
+  only:
+    - master
+    - staging
+    - dev
+
+deploy:dev:
+  image: shebgregor/alpine-rsync-git
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+  only:
+    - dev
