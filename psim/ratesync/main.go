@@ -8,18 +8,18 @@ import (
 
 	"reflect"
 
-	"gitlab.com/distributed_lab/discovery-go"
-	horizon "gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/conf"
-	"gitlab.com/tokend/psim/psim/ratesync/noor"
-	"gitlab.com/tokend/psim/psim/ratesync/providers"
-	"gitlab.com/tokend/psim/psim/utils"
 	"github.com/mitchellh/mapstructure"
+	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	horizon "gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/ratesync/noor"
+	"gitlab.com/swarmfund/psim/psim/ratesync/providers"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {

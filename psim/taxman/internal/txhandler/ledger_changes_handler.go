@@ -3,11 +3,11 @@ package txhandler
 import (
 	"fmt"
 
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 type ledgerChangeHandler func(change xdr.LedgerEntryData) error

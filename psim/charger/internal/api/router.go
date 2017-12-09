@@ -3,11 +3,11 @@ package api
 import (
 	"net/http"
 
-	"gitlab.com/tokend/psim/psim/charger/internal/api/handlers"
 	"github.com/go-chi/chi"
 	"github.com/stripe/stripe-go/client"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/charger/internal/api/handlers"
 )
 
 // TODO Add horizon connector

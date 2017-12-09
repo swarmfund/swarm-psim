@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LINK="<https://gitlab.com/tokend/psim/pipelines|PSIM>"
+LINK="<https://gitlab.com/swarmfund/psim/pipelines|PSIM>"
 COMMIT_SHA=$(git rev-parse --short HEAD)
 COMMIT_MESSAGE=$(git log -1 --pretty=%B)
 

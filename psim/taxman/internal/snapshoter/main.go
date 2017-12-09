@@ -1,6 +1,6 @@
 package snapshoter
 
-import "gitlab.com/tokend/psim/psim/taxman/internal/state"
+import "gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 
 // OperationSync - helper structure to form core's payment operation
 type OperationSync struct {

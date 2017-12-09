@@ -1,9 +1,10 @@
 package snapshoter
 
 import (
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"fmt"
+
 	"github.com/pkg/errors"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 //go:generate mockery -case underscore -testonly -inpkg -name payoutBuilder

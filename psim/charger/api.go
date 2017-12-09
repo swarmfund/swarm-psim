@@ -3,9 +3,9 @@ package charger
 import (
 	"net/http"
 
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/psim/charger/internal/api"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/psim/charger/internal/api"
 )
 
 func (s *Service) Run() {

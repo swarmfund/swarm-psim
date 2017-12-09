@@ -5,8 +5,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 var (

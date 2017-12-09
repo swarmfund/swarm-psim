@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"gitlab.com/tokend/go/hash"
+	"gitlab.com/swarmfund/go/hash"
 )
 
 const TimeLayout = "2006-01-02 15:04:05"

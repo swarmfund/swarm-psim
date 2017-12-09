@@ -99,7 +99,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "gitlab.com/tokend/horizon-connector"
+  name = "gitlab.com/swarmfund/horizon-connector"
 
 [[constraint]]
   branch = "master"

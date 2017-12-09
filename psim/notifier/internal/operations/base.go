@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
 )
 
 const (

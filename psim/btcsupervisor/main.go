@@ -5,16 +5,17 @@ import (
 
 	"fmt"
 
+	"time"
+
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/conf"
-	"gitlab.com/tokend/psim/psim/supervisor"
-	"gitlab.com/tokend/psim/psim/utils"
-	"gitlab.com/tokend/psim/psim/create_account_streamer"
-	"time"
-	"gitlab.com/tokend/psim/psim/btcsupervisor/internal"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/btcsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/create_account_streamer"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
@@ -50,7 +51,7 @@ func init() {
 		}
 
 		createAccountStreamer := create_account_streamer.New(app.Log(ctx), config.Supervisor.SignerKP, horizonConnector,
-			5 * time.Second)
+			5*time.Second)
 		addressQ := internal.NewAddressQ(ctx, createAccountStreamer)
 
 		return New(commonSupervisor, config, btcClient, addressQ), nil

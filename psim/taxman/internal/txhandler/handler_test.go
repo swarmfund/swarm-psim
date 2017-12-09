@@ -4,11 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/txhandler/mocks"
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/txhandler/mocks"
 )
 
 func TestHandler(t *testing.T) {

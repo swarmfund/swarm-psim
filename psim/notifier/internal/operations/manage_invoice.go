@@ -6,7 +6,7 @@ import (
 
 	"strings"
 
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
 )
 
 type ManageInvoice struct {

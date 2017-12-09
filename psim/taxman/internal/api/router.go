@@ -4,12 +4,12 @@ import (
 	"context"
 	"net/http"
 
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/api/handlers"
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/api/handlers"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 func Router(

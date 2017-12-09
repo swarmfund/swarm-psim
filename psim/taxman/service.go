@@ -12,11 +12,11 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	sse "gitlab.com/distributed_lab/sse-go"
-	horizon "gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
-	"gitlab.com/tokend/psim/psim/taxman/internal/txhandler"
-	"gitlab.com/tokend/psim/psim/utils"
+	horizon "gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/txhandler"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 type Service struct {

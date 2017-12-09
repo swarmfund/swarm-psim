@@ -8,9 +8,9 @@ import (
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/bitcoin"
-	"gitlab.com/tokend/psim/psim/btcverify"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"gitlab.com/swarmfund/psim/psim/btcverify"
 )
 
 const (

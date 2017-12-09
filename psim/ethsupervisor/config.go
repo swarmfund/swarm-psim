@@ -1,7 +1,7 @@
 package ethsupervisor
 
 import (
-	"gitlab.com/tokend/psim/psim/supervisor"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 )
 
 type Config struct {

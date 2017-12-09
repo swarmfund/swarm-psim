@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/distributed_lab/discovery-go"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/payout"
-	"gitlab.com/tokend/psim/psim/taxman/internal/resource"
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
-	"gitlab.com/tokend/psim/psim/utils"
-	"gitlab.com/distributed_lab/sse-go"
 	"github.com/pkg/errors"
+	"gitlab.com/distributed_lab/discovery-go"
+	"gitlab.com/distributed_lab/sse-go"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/payout"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/resource"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"golang.org/x/net/context"
 )
 

@@ -3,8 +3,8 @@ package taxman
 import (
 	"context"
 
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"github.com/pkg/errors"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 func (s *Service) SetUpListener() {

@@ -4,9 +4,9 @@ import (
 	"reflect"
 
 	"github.com/mitchellh/mapstructure"
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/notifier/internal/types"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/types"
 )
 
 type Config struct {

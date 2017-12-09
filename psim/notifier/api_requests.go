@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/psim/notifier/internal/operations"
-	"gitlab.com/tokend/psim/psim/notifier/internal/types"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/operations"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/types"
 )
 
 const (

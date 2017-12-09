@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 const (

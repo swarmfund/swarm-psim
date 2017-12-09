@@ -6,9 +6,9 @@ import (
 	"reflect"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/utils"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 type Config struct {

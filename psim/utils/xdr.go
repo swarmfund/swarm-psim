@@ -3,8 +3,8 @@ package utils
 import (
 	"errors"
 
-	"gitlab.com/tokend/go/strkey"
-	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/swarmfund/go/strkey"
+	"gitlab.com/swarmfund/go/xdr"
 )
 
 var (

@@ -3,8 +3,8 @@ package resource
 import (
 	"encoding/json"
 
-	"gitlab.com/tokend/go/amount"
 	. "github.com/go-ozzo/ozzo-validation"
+	"gitlab.com/swarmfund/go/amount"
 )
 
 const minStripeAmountValue = 5000 // 50 cents

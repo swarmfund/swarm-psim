@@ -4,7 +4,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
 )
 
 // sendEmail send email payload to notificator-server.

@@ -1,9 +1,10 @@
 package snapshoter
 
 import (
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 func TestTokensShareProvider(t *testing.T) {

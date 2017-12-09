@@ -8,10 +8,10 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/ratesync/providers"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/ratesync/providers"
 )
 
 var isProviderRunning = false

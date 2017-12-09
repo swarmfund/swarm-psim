@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
 )
 
 type ManageCoinsEmissionRequest struct {

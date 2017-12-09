@@ -7,8 +7,8 @@ import (
 
 	"github.com/stripe/stripe-go"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/stripeverify"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/stripeverify"
 )
 
 // TODO Listen to context and close Errors

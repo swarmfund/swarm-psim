@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
-	"gitlab.com/tokend/psim/psim/notifier/internal/types"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/types"
 )
 
 type BasePayment struct {

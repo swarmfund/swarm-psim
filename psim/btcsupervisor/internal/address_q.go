@@ -5,8 +5,8 @@ import (
 
 	"sync"
 
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/create_account_streamer"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/create_account_streamer"
 )
 
 // CreatedAccountsStreamer describes the interface an CreatedAccountOps streamer

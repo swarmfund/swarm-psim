@@ -1,10 +1,11 @@
 package snapshoter
 
 import (
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 	"math/rand"
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 func TestPayoutBuilder(t *testing.T) {
@@ -21,7 +22,7 @@ func TestPayoutBuilder(t *testing.T) {
 			Address: state.AccountID("commission_id"),
 			Balances: []*state.Balance{
 				{
-					Asset: state.AssetCode("XAAU"),
+					Asset:      state.AssetCode("XAAU"),
 					ExchangeID: masterAccountID,
 				},
 			},
@@ -67,8 +68,8 @@ func TestPayoutBuilder(t *testing.T) {
 			statable.On("GetAccount", state.AccountID("")).Return(&state.Account{
 				Balances: []*state.Balance{
 					{
-						Address: balanceID,
-						Asset: "XAAU",
+						Address:    balanceID,
+						Asset:      "XAAU",
 						ExchangeID: masterAccountID,
 					},
 					{

@@ -3,7 +3,7 @@ package ratesync
 import (
 	"net/http"
 
-	api "gitlab.com/tokend/psim/ape"
+	api "gitlab.com/swarmfund/psim/ape"
 )
 
 func (s *Service) API() {

@@ -10,8 +10,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/psim/psim/app"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 const (

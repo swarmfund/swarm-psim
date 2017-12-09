@@ -1,8 +1,8 @@
 package ratesync
 
 import (
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/psim/psim/ratesync/noor"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/psim/psim/ratesync/noor"
 )
 
 type Config struct {

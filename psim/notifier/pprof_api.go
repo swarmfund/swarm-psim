@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/ape"
+	"gitlab.com/swarmfund/psim/ape"
 )
 
 func (s *Service) servePProfAPI(ctx context.Context) {

@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/psim/taxman/internal/resource"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/resource"
 )
 
 func GetSnapshots(w http.ResponseWriter, r *http.Request) {

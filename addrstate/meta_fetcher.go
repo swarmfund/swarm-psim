@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/swarmfund/go/xdr"
 )
 
 type Request func(method, endpoint string, dest interface{}) error

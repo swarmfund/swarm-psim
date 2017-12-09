@@ -1,7 +1,7 @@
 package ratesync
 
 import (
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector"
 )
 
 type SyncResults struct {

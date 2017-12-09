@@ -1,9 +1,9 @@
 package conf
 
 import (
-	"gitlab.com/tokend/psim/psim/bitcoin"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/figure"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 var (

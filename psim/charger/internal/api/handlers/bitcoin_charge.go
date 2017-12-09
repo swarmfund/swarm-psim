@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/ape/problems"
 	"net/http"
-	"gitlab.com/tokend/psim/psim/charger/internal/resource"
-)
 
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/psim/charger/internal/resource"
+)
 
 func BitcoinChargeHandler(w http.ResponseWriter, r *http.Request) {
 	body := resource.BitcoinChargeRequest{}

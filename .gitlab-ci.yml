@@ -21,12 +21,12 @@ build:
   stage: build
   image: golang:1.8
   variables:
-    APP_PATH: gitlab.com/tokend/psim
+    APP_PATH: gitlab.com/swarmfund/psim
   script:
     - mkdir -p $GOPATH/src/$APP_PATH
     - cp -rf ./* $GOPATH/src/$APP_PATH
     - cd $GOPATH/src/$APP_PATH
-    - go build -o bin/psim -a gitlab.com/tokend/psim/cmd/psim
+    - go build -o bin/psim -a gitlab.com/swarmfund/psim/cmd/psim
     - cp -rf ./bin/ /builds/tokend/psim/bin/
   artifacts:
       expire_in: 1 week

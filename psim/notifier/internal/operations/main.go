@@ -2,8 +2,8 @@ package operations
 
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
 )
 
 var ErrorUnsupportedOpType = errors.New("unknown operation type")

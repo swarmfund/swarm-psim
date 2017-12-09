@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/pkg/errors"
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/psim/figure"
 	"net/url"
+
+	"github.com/pkg/errors"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/psim/figure"
 )
 
 var (

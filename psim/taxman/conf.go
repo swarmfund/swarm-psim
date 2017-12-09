@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/psim/figure"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/psim/figure"
 )
 
 type Config struct {

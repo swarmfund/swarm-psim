@@ -8,9 +8,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/txhandler/mocks"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/txhandler/mocks"
 )
 
 func TestTxHandler(t *testing.T) {

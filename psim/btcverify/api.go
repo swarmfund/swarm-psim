@@ -1,15 +1,16 @@
 package btcverify
 
 import (
-	"gitlab.com/tokend/psim/ape"
 	"encoding/json"
-	"gitlab.com/tokend/psim/ape/problems"
 	"fmt"
-	"gitlab.com/tokend/psim/psim/bitcoin"
-	"github.com/piotrnar/gocoin/lib/btc"
 	"net/http"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/go/xdr"
+
+	"github.com/piotrnar/gocoin/lib/btc"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 func (s *Service) serveAPI() {

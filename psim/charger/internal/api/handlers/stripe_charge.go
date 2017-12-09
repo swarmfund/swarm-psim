@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/ape/problems"
-	"gitlab.com/tokend/psim/psim/charger/internal/resource"
 	"github.com/stripe/stripe-go"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/psim/charger/internal/resource"
 )
 
 func StripeChargeHandler(w http.ResponseWriter, r *http.Request) {

@@ -7,9 +7,9 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/psim/notifier/internal/emails"
-	"gitlab.com/tokend/psim/psim/notifier/internal/types"
-	"gitlab.com/tokend/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/types"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {

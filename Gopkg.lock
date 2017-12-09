@@ -303,12 +303,6 @@
 
 [[projects]]
   branch = "master"
-  name = "gitlab.com/tokend/horizon-connector"
-  packages = [".","internal/resources"]
-  revision = "441c3927e534fc0e43fb3573b671ce3de62111f8"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ripemd160","ssh/terminal"]
   revision = "b080dc9a8c480b08e698fb1219160d598526310f"

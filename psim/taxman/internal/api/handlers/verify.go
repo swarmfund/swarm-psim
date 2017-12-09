@@ -3,13 +3,13 @@ package handlers
 import (
 	"net/http"
 
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/ape/problems"
-	"gitlab.com/tokend/psim/psim/taxman/internal/resource"
 	"github.com/pkg/errors"
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/resource"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
 )
 
 func Verify(w http.ResponseWriter, r *http.Request) {

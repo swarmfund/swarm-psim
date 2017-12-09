@@ -1,10 +1,11 @@
 package snapshoter
 
 import (
-	"gitlab.com/tokend/go/hash"
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"encoding/base64"
 	"fmt"
+
+	"gitlab.com/swarmfund/go/hash"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 type payoutType int

@@ -11,7 +11,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	sse "gitlab.com/distributed_lab/sse-go"
-	"gitlab.com/tokend/psim/psim/notifier/internal/operations"
+	"gitlab.com/swarmfund/psim/psim/notifier/internal/operations"
 )
 
 func (s *Service) listenOperations(ctx context.Context) {

@@ -5,7 +5,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 type referenceInput struct {

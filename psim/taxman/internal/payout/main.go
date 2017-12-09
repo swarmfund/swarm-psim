@@ -5,13 +5,13 @@ import (
 
 	"encoding/json"
 
-	"gitlab.com/distributed_lab/discovery-go"
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/taxman/internal/resource"
-	"gitlab.com/tokend/psim/psim/utils"
 	"github.com/pkg/errors"
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/distributed_lab/discovery-go"
+	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/resource"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 const (

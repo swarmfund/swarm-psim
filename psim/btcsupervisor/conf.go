@@ -1,6 +1,6 @@
 package btcsupervisor
 
-import "gitlab.com/tokend/psim/psim/supervisor"
+import "gitlab.com/swarmfund/psim/psim/supervisor"
 
 type Config struct {
 	Supervisor supervisor.Config `fig:"supervisor"`

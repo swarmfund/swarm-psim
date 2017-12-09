@@ -3,7 +3,7 @@ package addrstate
 import (
 	"time"
 
-	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/swarmfund/go/xdr"
 )
 
 type Requester func(method, endpoint string, target interface{}) error

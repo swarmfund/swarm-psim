@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
+	"gitlab.com/swarmfund/go/amount"
 )
 
 type Amount int64

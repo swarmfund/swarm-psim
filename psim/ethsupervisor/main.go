@@ -12,13 +12,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	"gitlab.com/tokend/psim/addrstate"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/conf"
-	"gitlab.com/tokend/psim/psim/ethsupervisor/internal"
-	"gitlab.com/tokend/psim/psim/supervisor"
-	"gitlab.com/tokend/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/addrstate"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {

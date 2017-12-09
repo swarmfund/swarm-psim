@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/psim/psim/ethsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 )
 
 // TODO defer

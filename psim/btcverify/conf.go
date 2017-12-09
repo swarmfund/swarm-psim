@@ -1,6 +1,6 @@
 package btcverify
 
-import "gitlab.com/tokend/go/keypair"
+import "gitlab.com/swarmfund/go/keypair"
 
 type Config struct {
 	Host        string

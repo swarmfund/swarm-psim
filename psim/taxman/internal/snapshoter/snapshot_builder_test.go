@@ -4,10 +4,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/tokend/psim/psim/taxman/internal/state"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/state"
 )
 
 func TestSnapshotBuilder(t *testing.T) {

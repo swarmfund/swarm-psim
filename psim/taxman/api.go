@@ -3,10 +3,10 @@ package taxman
 import (
 	"context"
 
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/psim/taxman/internal/api"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/api"
 )
 
 func (s *Service) API(ctx context.Context) {

@@ -3,20 +3,20 @@ package main
 import (
 	"github.com/spf13/cobra"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
 
 	// import services for side effects
 	// supervisors
-	_ "gitlab.com/tokend/psim/psim/btcsupervisor"
-	_ "gitlab.com/tokend/psim/psim/ethsupervisor"
-	_ "gitlab.com/tokend/psim/psim/stripesupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/stripesupervisor"
 	// other folks
-	_ "gitlab.com/tokend/psim/psim/charger"
-	_ "gitlab.com/tokend/psim/psim/ratesync"
-	_ "gitlab.com/tokend/psim/psim/stripeverify"
-	_ "gitlab.com/tokend/psim/psim/taxman"
-	_ "gitlab.com/tokend/psim/psim/notifier"
+	_ "gitlab.com/swarmfund/psim/psim/charger"
+	_ "gitlab.com/swarmfund/psim/psim/notifier"
+	_ "gitlab.com/swarmfund/psim/psim/ratesync"
+	_ "gitlab.com/swarmfund/psim/psim/stripeverify"
+	_ "gitlab.com/swarmfund/psim/psim/taxman"
 )
 
 var (

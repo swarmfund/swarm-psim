@@ -8,18 +8,18 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/distributed_lab/discovery-go"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/ape/problems"
-	"gitlab.com/tokend/psim/figure"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/conf"
-	"gitlab.com/tokend/psim/psim/utils"
 	"github.com/stripe/stripe-go/client"
+	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {

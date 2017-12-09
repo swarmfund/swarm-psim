@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/psim/addrstate"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/psim/addrstate"
 )
 
 func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {

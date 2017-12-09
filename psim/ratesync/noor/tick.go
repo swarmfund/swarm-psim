@@ -1,6 +1,6 @@
 package noor
 
-import "gitlab.com/tokend/horizon-connector"
+import "gitlab.com/swarmfund/horizon-connector"
 
 type Tick struct {
 	ops []horizon.SetRateOp

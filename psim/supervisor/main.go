@@ -12,9 +12,9 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/ape"
-	"gitlab.com/tokend/psim/psim/app"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 // TODO Add comment

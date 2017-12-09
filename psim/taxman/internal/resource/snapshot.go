@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"gitlab.com/tokend/psim/psim/taxman/internal/snapshoter"
+	"gitlab.com/swarmfund/psim/psim/taxman/internal/snapshoter"
 )
 
 type Snapshots []*Snapshot

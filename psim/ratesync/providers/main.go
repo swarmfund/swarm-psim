@@ -1,6 +1,6 @@
 package providers
 
-import horizon "gitlab.com/tokend/horizon-connector"
+import horizon "gitlab.com/swarmfund/horizon-connector"
 
 type Tick interface {
 	Ops() []horizon.SetRateOp

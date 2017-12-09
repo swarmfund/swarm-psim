@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/discovery-go"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/psim/psim/app"
-	"gitlab.com/tokend/psim/psim/conf"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
 // PrepareCEREnvelope uses HorizonConnector - prepares Transaction with a CoinEmissionRequest operation,

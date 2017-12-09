@@ -2,7 +2,7 @@ package conf
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector"
 )
 
 var (
