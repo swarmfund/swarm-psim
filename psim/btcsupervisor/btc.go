@@ -129,7 +129,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	s.Log.WithField("reference", reference).WithField("receiver", receiver).Info("Sending CoinEmissionRequest")
 
 	// TODO
-	envelope, err := s.PrepareCEREnvelope(reference, receiver, bitcoin.Asset, amount)
+	envelope, err := s.PrepareIREnvelope(reference, receiver, bitcoin.Asset, amount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to craft CoinEmissionRequests envelope")
 	}

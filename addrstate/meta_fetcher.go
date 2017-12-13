@@ -15,7 +15,7 @@ type MetaFetcher struct {
 	log       *logan.Entry
 }
 
-func NewChangesProvider(log *logan.Entry, requester Requester) func(ledgerID string) <-chan xdr.LedgerEntryChange {
+func NewChangesProvider(log *logan.Entry, requester Requester) ChangesProvider {
 	return MetaFetcher{
 		requester: requester,
 		log:       log,
@@ -32,12 +32,12 @@ type Transaction struct {
 	ResultMetaXDR string `json:"result_meta_xdr"`
 }
 
-func (f MetaFetcher) process(ledgerID string) <-chan xdr.LedgerEntryChange {
+func (f MetaFetcher) process(ledgerSeq int64) <-chan xdr.LedgerEntryChange {
 	result := make(chan xdr.LedgerEntryChange)
 
 	go func() {
 		for {
-			metas, err := f.fetch(ledgerID)
+			metas, err := f.fetch(ledgerSeq)
 			if err != nil {
 				f.log.WithError(err).Error("fetch failed")
 				continue
@@ -57,15 +57,15 @@ func (f MetaFetcher) process(ledgerID string) <-chan xdr.LedgerEntryChange {
 	return result
 }
 
-func (f MetaFetcher) fetch(ledgerID string) (metas []xdr.TransactionMeta, err error) {
+func (f MetaFetcher) fetch(ledgerSeq int64) (metas []xdr.TransactionMeta, err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			err = errors.FromPanic(rvr)
 		}
 	}()
-	endpoint := "/ledgers/%s/transactions"
+	endpoint := "/ledgers/%d/transactions"
 	var txsResponse TransactionsResponse
-	err = f.requester("GET", fmt.Sprintf(endpoint, ledgerID), &txsResponse)
+	err = f.requester("GET", fmt.Sprintf(endpoint, ledgerSeq), &txsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
 	}

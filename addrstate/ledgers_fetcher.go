@@ -17,6 +17,7 @@ type LedgersResponse struct {
 
 type Ledger struct {
 	ID       string    `json:"paging_token"`
+	Sequence int64     `json:"sequence"`
 	ClosedAt time.Time `json:"closed_at"`
 	TXCount  int64     `json:"transaction_count"`
 }

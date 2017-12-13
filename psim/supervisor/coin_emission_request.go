@@ -18,13 +18,13 @@ import (
 // signs it using SignerKP and returns marshaled Transaction.
 //
 // Specific supervisors use this method to create Transaction to be sent to a verifier.
-func (s *Service) PrepareCEREnvelope(reference, receiver, asset string, amount uint64) (*string, error) {
+func (s *Service) PrepareIREnvelope(reference, receiver, asset string, amount uint64) (*string, error) {
 	return s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.ExchangeKP}).
-		Op(&horizon.CoinsEmissionRequestOp{
+		Op(&horizon.CreateIssuanceRequestOp{
 			Reference: reference,
 			Receiver:  receiver,
 			Asset:     asset,
-			Amount:    int64(amount),
+			Amount:    amount,
 		}).
 		Sign(s.config.SignerKP).
 		Marshal64()
