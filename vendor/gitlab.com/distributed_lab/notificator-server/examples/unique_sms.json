@@ -1,0 +1,8 @@
+{
+  "type": 5,
+  "token": "user_token",
+  "payload": {
+    "destination": "+380999349383",
+    "message": "ohai"
+  }
+}

@@ -1,0 +1,5 @@
+.idea/
+pkg/
+bin/
+vendor.orig
+local-config.yaml

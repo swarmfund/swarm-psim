@@ -1,0 +1,9 @@
+.DS_Store
+vendor/*
+vendor/*
+vendor/*
+pkg/*
+bin/*
+dist/*
+.idea/*
+linter.log
