@@ -164,33 +164,32 @@ func (op SetRateOp) XDR() (*xdr.Operation, error) {
 	}, nil
 }
 
-type CoinsEmissionRequestOp struct {
+type CreateIssuanceRequestOp struct {
 	Reference string
 	Receiver  string
 	Asset     string
-	Amount    int64
+	Amount    uint64
 }
 
-func (op CoinsEmissionRequestOp) XDR() (*xdr.Operation, error) {
-	panic("not implemented")
-	//balanceID, err := ParseBalanceID(op.Receiver)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//return &xdr.Operation{
-	//	Body: xdr.OperationBody{
-	//		Type: xdr.OperationTypeManageCoinsEmissionRequest,
-	//		ManageCoinsEmissionRequestOp: &xdr.ManageCoinsEmissionRequestOp{
-	//			Action:    xdr.ManageCoinsEmissionRequestActionCreate,
-	//			RequestId: 0,
-	//			Receiver:  balanceID,
-	//			Asset:     xdr.AssetCode(op.Asset),
-	//			Amount:    xdr.Int64(op.Amount),
-	//			Reference: xdr.String64(op.Reference),
-	//		},
-	//	},
-	//}, nil
+func (op CreateIssuanceRequestOp) XDR() (*xdr.Operation, error) {
+	balanceID, err := ParseBalanceID(op.Receiver)
+	if err != nil {
+		return nil, err
+	}
+
+	return &xdr.Operation{
+		Body: xdr.OperationBody{
+			Type: xdr.OperationTypeCreateIssuanceRequest,
+			CreateIssuanceRequestOp: &xdr.CreateIssuanceRequestOp{
+				Reference: xdr.String64(op.Reference),
+				Request: xdr.IssuanceRequest{
+					Asset:    xdr.AssetCode(op.Asset),
+					Amount:   xdr.Uint64(op.Amount),
+					Receiver: balanceID,
+				},
+			},
+		},
+	}, nil
 }
 
 type ReviewPaymentRequestOp struct {
