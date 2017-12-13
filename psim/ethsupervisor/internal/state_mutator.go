@@ -17,7 +17,7 @@ func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 				update.Address = &addrstate.StateAddressUpdate{
 					// TODO unhardcode
 					// TODO ensure 0x
-					Offchain: "0xBDf4fdB5B70B65791C0A97527796f607Cf846f18",
+					Offchain: "0xd96c70a7DC0BBEdB9dAb293a7b6a3557B073394e",
 					Tokend:   data.AccountId.Address(),
 				}
 			}

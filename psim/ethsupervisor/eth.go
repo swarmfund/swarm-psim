@@ -7,7 +7,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
-	"fmt"
 )
 
 // TODO defer
@@ -69,7 +68,7 @@ func (s *Service) processTXs() {
 }
 
 func (s *Service) processTX(tx internal.Transaction) {
-	if tx.Value().Cmp(&s.depositThreshold) == -1 {
+	if tx.Value().Cmp(s.depositThreshold) != 1 {
 		return
 	}
 
@@ -92,9 +91,14 @@ func (s *Service) processTX(tx internal.Transaction) {
 
 	s.Log.Info("submitting issuance request")
 
+	reference := tx.Hash().Hex()
+	// yoba eth hex trimming
+	if len(reference) > 64 {
+		reference = reference[len(reference)-64:]
+	}
 	err := s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.Supervisor.ExchangeKP}).
 		Op(&horizon.CreateIssuanceRequestOp{
-			Reference: tx.Hash().String(),
+			Reference: reference,
 			Amount:    amount,
 			Asset: "SUN",
 			Receiver: balanceID,
@@ -102,13 +106,12 @@ func (s *Service) processTX(tx internal.Transaction) {
 		Sign(s.config.Supervisor.SignerKP).
 		Submit()
 	if err != nil {
-		if serr, ok := errors.Cause(err).(horizon.SubmitError); ok {
-			fmt.Println(string(serr.ResponseBody()))
-		}
 		s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).
 			WithError(err).
 			Error("failed to submit issuance request")
 	}
+
+	s.Log.Info("issuance request submitted")
 }

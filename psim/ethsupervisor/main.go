@@ -70,7 +70,7 @@ type Service struct {
 	blocksCh chan uint64
 
 	// config
-	depositThreshold big.Int
+	depositThreshold *big.Int
 }
 
 func New(
@@ -86,6 +86,8 @@ func New(
 		// could be buffered to increase throughput
 		txCh:     make(chan internal.Transaction),
 		blocksCh: make(chan uint64),
+		// FIXME
+		depositThreshold: big.NewInt(1000000000000),
 	}
 
 	s.AddRunner(s.watchHeight)
