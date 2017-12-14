@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -17,6 +16,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/horizonreq"
 )
 
 func init() {
@@ -41,20 +41,20 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizon, err := app.Config(ctx).Horizon()
+		horizonConnector, err := app.Config(ctx).Horizon()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init horizon")
 		}
 
-		requester := internal.NewHorizonRequester(horizon, config.Supervisor.SignerKP)
-
-		state := addrstate.New(
-			internal.StateMutator,
-			addrstate.NewLedgersProvider(app.Log(ctx).WithField("service", "eth-ledger-provider"), requester),
-			addrstate.NewChangesProvider(app.Log(ctx).WithField("service", "eth-changes-provider"), requester),
+		requester := horizonreq.NewHorizonRequester(horizonConnector, config.Supervisor.SignerKP)
+		log := app.Log(ctx)
+		state := addrstate.New(log, internal.StateMutator,
+			addrstate.NewLedgersProvider(log.WithField("service", "eth-ledger-provider"), requester),
+			addrstate.NewChangesProvider(log.WithField("service", "eth-changes-provider"), requester),
+			requester,
 		)
 
-		return New(commonSupervisor, ethClient, state, horizon, config), nil
+		return New(commonSupervisor, ethClient, state, config), nil
 	})
 }
 
@@ -62,7 +62,6 @@ type Service struct {
 	*supervisor.Service
 	eth     *ethclient.Client
 	state   State
-	horizon *horizon.Connector
 	config  Config
 
 	// internal state
@@ -73,15 +72,12 @@ type Service struct {
 	depositThreshold *big.Int
 }
 
-func New(
-	supervisor *supervisor.Service, eth *ethclient.Client, state State, horizon *horizon.Connector,
-	config Config,
-) *Service {
+func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, config Config) *Service {
+
 	s := &Service{
 		Service: supervisor,
 		eth:     eth,
 		state:   state,
-		horizon: horizon,
 		config:  config,
 		// could be buffered to increase throughput
 		txCh:     make(chan internal.Transaction),

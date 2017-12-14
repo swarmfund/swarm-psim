@@ -1,7 +1,10 @@
 package ethsupervisor
 
-import "time"
+import (
+	"time"
+	"context"
+)
 
 type State interface {
-	AddressAt(time.Time, string) *string
+	AddressAt(context.Context, time.Time, string) *string
 }
