@@ -69,7 +69,8 @@ func (s *Streamer) Run(ctx context.Context) {
 	app.RunOverIncrementalTimer(ctx, s.log, runnerName, s.fetchOnce, s.runPeriod)
 }
 
-func (s *Streamer) fetchOnce() error {
+// TODO Use the ctx.
+func (s *Streamer) fetchOnce(ctx context.Context) error {
 	next, err := s.fetchPage()
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch single page")

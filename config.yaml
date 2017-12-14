@@ -60,6 +60,7 @@ stripe_supervisor:
 
 bitcoin_supervisor:
   last_processed_block: 1248831
+  last_blocks_not_watch: 5
   supervisor:
     pprof: true
     # Keys should probably differ between stripe and bitcoin

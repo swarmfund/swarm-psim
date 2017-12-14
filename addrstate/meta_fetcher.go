@@ -6,9 +6,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
+	"context"
 )
-
-type Request func(method, endpoint string, dest interface{}) error
 
 type MetaFetcher struct {
 	requester Requester
@@ -32,12 +31,12 @@ type Transaction struct {
 	ResultMetaXDR string `json:"result_meta_xdr"`
 }
 
-func (f MetaFetcher) process(ledgerSeq int64) <-chan xdr.LedgerEntryChange {
+func (f MetaFetcher) process(ctx context.Context, ledgerSeq int64) <-chan xdr.LedgerEntryChange {
 	result := make(chan xdr.LedgerEntryChange)
 
 	go func() {
 		for {
-			metas, err := f.fetch(ledgerSeq)
+			metas, err := f.fetch(ctx, ledgerSeq)
 			if err != nil {
 				f.log.WithError(err).Error("fetch failed")
 				continue
@@ -57,18 +56,20 @@ func (f MetaFetcher) process(ledgerSeq int64) <-chan xdr.LedgerEntryChange {
 	return result
 }
 
-func (f MetaFetcher) fetch(ledgerSeq int64) (metas []xdr.TransactionMeta, err error) {
+func (f MetaFetcher) fetch(ctx context.Context, ledgerSeq int64) (metas []xdr.TransactionMeta, err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			err = errors.FromPanic(rvr)
 		}
 	}()
+
 	endpoint := "/ledgers/%d/transactions"
 	var txsResponse TransactionsResponse
-	err = f.requester("GET", fmt.Sprintf(endpoint, ledgerSeq), &txsResponse)
+	err = f.requester(ctx, "GET", fmt.Sprintf(endpoint, ledgerSeq), &txsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
 	}
+
 	for _, tx := range txsResponse.Embedded.Records {
 		var meta xdr.TransactionMeta
 		if err := xdr.SafeUnmarshalBase64(tx.ResultMetaXDR, &meta); err != nil {
@@ -76,5 +77,6 @@ func (f MetaFetcher) fetch(ledgerSeq int64) (metas []xdr.TransactionMeta, err er
 		}
 		metas = append(metas, meta)
 	}
+
 	return metas, nil
 }

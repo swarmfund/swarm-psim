@@ -7,15 +7,17 @@ import (
 
 func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 	update := addrstate.StateUpdate{}
+
 	switch change.Type {
 	case xdr.LedgerEntryChangeTypeCreated:
 		switch change.Created.Data.Type {
 		case xdr.LedgerEntryTypeExternalSystemAccountId:
 			data := change.Created.Data.ExternalSystemAccountId
+
 			switch data.ExternalSystemType {
-			case xdr.ExternalSystemTypeEthereum:
+			case xdr.ExternalSystemTypeBitcoin:
 				update.Address = &addrstate.StateAddressUpdate{
-					Offchain: "0xd96c70a7DC0BBEdB9dAb293a7b6a3557B073394e",
+					Offchain: string(data.Data),
 					Tokend:   data.AccountId.Address(),
 				}
 			}

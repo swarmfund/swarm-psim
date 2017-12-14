@@ -17,7 +17,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
-// TODO Add comment
+// Service is common Supervisor for using in different specific Supervisors.
 type Service struct {
 	Ctx    context.Context
 	Log    *logan.Entry
@@ -33,7 +33,7 @@ type Service struct {
 	runners   []func()
 }
 
-// TODO Add comment
+// InitNew prepares new Service (Supervisor), initializing it with all necessary helpers, got from ctx.
 func InitNew(ctx context.Context, serviceName string, config Config) (*Service, error) {
 	log := app.Log(ctx).WithField("service", serviceName)
 
@@ -41,12 +41,12 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 
 	discoveryClient, err := globalConfig.Discovery()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get discovery client")
+		return nil, errors.Wrap(err, "Failed to get DiscoveryClient")
 	}
 
 	horizonConnector, err := globalConfig.Horizon()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get horizon client")
+		return nil, errors.Wrap(err, "Failed to get HorizonClient")
 	}
 
 	listener, err := ape.Listener(config.Host, config.Port)
@@ -63,7 +63,9 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 func New(ctx context.Context, log *logan.Entry, horizon *horizon.Connector, discovery *discovery.Client, config Config, listener net.Listener) *Service {
 
 	return &Service{
+		// TODO Avoid ctx from in struct
 		Ctx:    ctx,
+
 		Log:    log,
 		Errors: make(chan error),
 
@@ -83,6 +85,7 @@ func (s *Service) initCommonRunners() {
 
 // AddRunner adds a runner to be run in separate goroutine each.
 // Runner must be blocking, once runner returned - it won't be called again.
+// TODO runner func must receive ctx
 func (s *Service) AddRunner(runner func()) {
 	s.runners = append(s.runners, runner)
 }
@@ -99,6 +102,7 @@ func (s *Service) Run() chan error {
 			wg.Add(1)
 
 			go func() {
+				// TODO runner func must receive ctx
 				ohigo()
 				wg.Done()
 			}()
@@ -111,6 +115,7 @@ func (s *Service) Run() chan error {
 	return s.Errors
 }
 
+// TODO runner func must receive ctx
 func (s *Service) debugAPI() {
 	s.Log.Info("enabling debug endpoints")
 
@@ -126,6 +131,7 @@ func (s *Service) debugAPI() {
 	return
 }
 
+// TODO runner func must receive ctx
 func (s *Service) acquireLeadership() {
 	var session *discovery.Session
 	var err error

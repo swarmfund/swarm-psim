@@ -14,20 +14,23 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
-// PrepareCEREnvelope uses HorizonConnector - prepares Transaction with a CoinEmissionRequest operation,
+const (
+	sunAsset = "SUN"
+)
+
+// PrepareCERTx uses HorizonConnector - prepares Transaction with a CoinEmissionRequest operation,
 // signs it using SignerKP and returns marshaled Transaction.
 //
 // Specific supervisors use this method to create Transaction to be sent to a verifier.
-func (s *Service) PrepareIREnvelope(reference, receiver, asset string, amount uint64) (*string, error) {
+func (s *Service) PrepareCERTx(reference, receiver string, amount uint64) *horizon.TransactionBuilder {
 	return s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.ExchangeKP}).
 		Op(&horizon.CreateIssuanceRequestOp{
 			Reference: reference,
 			Receiver:  receiver,
-			Asset:     asset,
+			Asset:     sunAsset,
 			Amount:    amount,
 		}).
-		Sign(s.config.SignerKP).
-		Marshal64()
+		Sign(s.config.SignerKP)
 }
 
 // CheckCoinEmissionRequestExistence returns true if CER with such `reference` already exists.
@@ -49,7 +52,7 @@ func (s *Service) CheckCoinEmissionRequestExistence(reference string) (bool, err
 }
 
 // SendCoinEmissionRequest only returns if success or ctx canceled.
-func (s *Service) SendCoinEmissionRequest(ctx context.Context, verifyRequest []byte) {
+func (s *Service) SendCoinEmissionRequestForVerify(ctx context.Context, verifyRequest []byte) {
 	ticker := time.NewTicker(5 * time.Second)
 
 	for ; true; <-ticker.C {
@@ -57,6 +60,7 @@ func (s *Service) SendCoinEmissionRequest(ctx context.Context, verifyRequest []b
 			return
 		}
 
+		// FIXME STRIPE
 		neighbors, err := s.discovery.DiscoverService(conf.ServiceStripeVerify)
 		if err != nil {
 			s.Log.WithField("service_to_discover", conf.ServiceStripeVerify).WithError(err).Error("Failed to discover neighbors.")
