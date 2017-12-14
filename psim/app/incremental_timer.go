@@ -43,7 +43,7 @@ func (t *incrementalTimer) next() <-chan time.Time {
 // errors returned from runner will be logged with stack.
 //
 // RunOverIncrementalTimer returns only returns if ctx is canceled.
-func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName string, runner func() error, normalPeriod time.Duration) {
+func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, normalPeriod time.Duration) {
 	log = log.WithField("runner", runnerName)
 	normalTicker := time.NewTicker(normalPeriod)
 
@@ -58,7 +58,8 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 				return
 			}
 
-			err := runner()
+			// TODO runner func must receive ctx
+			err := runner(ctx)
 
 			if err != nil {
 				log.WithStack(err).WithError(err).Error("Runner returned error.")
@@ -74,7 +75,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 }
 
 // Only returns if runner returned nil error or ctx was canceled.
-func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func() error, initialPeriod time.Duration) {
+func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func(context.Context) error, initialPeriod time.Duration) {
 	incrementalTimer := newIncrementalTimer(initialPeriod, 2)
 
 	for {
@@ -86,7 +87,8 @@ func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func() e
 				return
 			}
 
-			err := runner()
+			// TODO runner func must receive ctx
+			err := runner(ctx)
 			if err == nil {
 				log.Info("Runner is returning to normal execution.")
 				return

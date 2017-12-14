@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 )
 
@@ -76,7 +75,7 @@ func (s *Service) processTX(tx internal.Transaction) {
 		return
 	}
 
-	address := s.state.AddressAt(tx.Timestamp, tx.To().String())
+	address := s.state.AddressAt(s.Ctx, tx.Timestamp, tx.To().String())
 	if address == nil {
 		return
 	}
@@ -96,15 +95,8 @@ func (s *Service) processTX(tx internal.Transaction) {
 	if len(reference) > 64 {
 		reference = reference[len(reference)-64:]
 	}
-	err := s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.Supervisor.ExchangeKP}).
-		Op(&horizon.CreateIssuanceRequestOp{
-			Reference: reference,
-			Amount:    amount,
-			Asset: "SUN",
-			Receiver: balanceID,
-		}).
-		Sign(s.config.Supervisor.SignerKP).
-		Submit()
+
+	err := s.PrepareCERTx(reference, balanceID, amount).Submit()
 	if err != nil {
 		s.Log.
 			WithField("tx", tx.Hash().String()).
