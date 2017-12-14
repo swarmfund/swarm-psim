@@ -1,12 +1,9 @@
 package horizon
 
-import "gitlab.com/swarmfund/go/xdr"
-
 type Account struct {
 	AccountID    string           `json:"account_id"`
-	AccountType  xdr.AccountType  `json:"account_type_i"`
+	AccountType  int32            `json:"account_type_i"`
 	Sequence     string           `json:"sequence"`
-	BlockReasons int32  	      `json:"block_reasons"`
 	Balances     []Balance        `json:"balances"`
 	Signers      []Signer         `json:"signers"`
 	Policies     AccountPolicies  `json:"policies"`

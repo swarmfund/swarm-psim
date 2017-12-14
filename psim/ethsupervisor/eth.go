@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 )
 
 // TODO defer
 func (s *Service) processBlocks() {
 	for blockNumber := range s.blocksCh {
+		s.Log.WithField("number", blockNumber).Debug("processing block")
 		block, err := s.eth.BlockByNumber(s.Ctx, big.NewInt(int64(blockNumber)))
 		if err != nil {
 			s.Log.WithField("block_number", blockNumber).Error("failed to get block")
@@ -82,26 +84,32 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 
 	// tx amount exceeds deposit threshold
 	if tx.Value().Cmp(s.depositThreshold) != 1 {
-		return
+		return nil
 	}
 
 	// tx has destination
 	if tx.To() == nil {
-		return
+		return nil
 	}
 
 	// address is watched
 	address := s.state.AddressAt(s.Ctx, tx.Timestamp, tx.To().String())
 	if address == nil {
-		return
+		return nil
 	}
 
-	balances, err := s.horizon.BalanceIDs(*address)
+	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, *address)
 	if err != nil {
 		return err
 	}
+
+	if account == nil {
+		// account not found probably due to a bug, who cares
+		return nil
+	}
+
 	receiver := ""
-	for _, b := range balances.Balances {
+	for _, b := range account.Balances {
 		if b.Asset == "SUN" {
 			receiver = b.BalanceID
 		}
@@ -121,14 +129,28 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	}
 
 	if err = s.PrepareCERTx(reference, receiver, amount).Submit(); err != nil {
-		s.Log.
+		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).
-			WithError(err).
-			Error("failed to submit issuance request")
+			WithError(err)
+
+		if serr, ok := errors.Cause(err).(horizon.SubmitError); ok {
+			opCodes := serr.OperationCodes()
+			if len(opCodes) == 1 {
+				switch opCodes[0] {
+				// safe to move on
+				case "You cannot make two issuances with the same reference":
+					entry.Info("tx failed")
+					return nil
+				}
+			}
+		}
+
+		entry.Error("failed to submit issuance request")
+		return err
 	}
 
 	s.Log.Info("issuance request submitted")
 
-	return
+	return nil
 }
