@@ -15,8 +15,6 @@ func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 			switch data.ExternalSystemType {
 			case xdr.ExternalSystemTypeEthereum:
 				update.Address = &addrstate.StateAddressUpdate{
-					// TODO unhardcode
-					// TODO ensure 0x
 					Offchain: "0xd96c70a7DC0BBEdB9dAb293a7b6a3557B073394e",
 					Tokend:   data.AccountId.Address(),
 				}

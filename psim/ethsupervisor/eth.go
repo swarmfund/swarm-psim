@@ -41,7 +41,7 @@ func (s *Service) watchHeight() {
 	cursor := *big.NewInt(2258360)
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
-		for ;; <-ticker.C{
+		for ; ; <-ticker.C {
 			head, err := s.eth.BlockByNumber(s.Ctx, nil)
 			if err != nil {
 				s.Service.Errors <- errors.Wrap(err, "failed to get block count")
@@ -62,26 +62,50 @@ func (s *Service) watchHeight() {
 
 func (s *Service) processTXs() {
 	for tx := range s.txCh {
-		s.processTX(tx)
+		for {
+			if err := s.processTX(tx); err != nil {
+				s.Log.WithError(err).Error("failed to process tx")
+				continue
+			}
+			break
+		}
+
 	}
 }
 
-func (s *Service) processTX(tx internal.Transaction) {
+func (s *Service) processTX(tx internal.Transaction) (err error) {
+	defer func() {
+		if rvr := recover(); rvr != nil {
+			err = errors.FromPanic(rvr)
+		}
+	}()
+
+	// tx amount exceeds deposit threshold
 	if tx.Value().Cmp(s.depositThreshold) != 1 {
 		return
 	}
 
+	// tx has destination
 	if tx.To() == nil {
 		return
 	}
 
+	// address is watched
 	address := s.state.AddressAt(s.Ctx, tx.Timestamp, tx.To().String())
 	if address == nil {
 		return
 	}
 
-	// TODO get balance by address
-	balanceID := "BBS5KRCNZZR2MRKXMJU2SAAXYFBTSJARCKNZVKTDWSIA62SQIERJP2GX"
+	balances, err := s.horizon.BalanceIDs(*address)
+	if err != nil {
+		return err
+	}
+	receiver := ""
+	for _, b := range balances.Balances {
+		if b.Asset == "SUN" {
+			receiver = b.BalanceID
+		}
+	}
 
 	// TODO convert based on ONE and asset pair rate
 	// 10^18/10^6
@@ -96,8 +120,7 @@ func (s *Service) processTX(tx internal.Transaction) {
 		reference = reference[len(reference)-64:]
 	}
 
-	err := s.PrepareCERTx(reference, balanceID, amount).Submit()
-	if err != nil {
+	if err = s.PrepareCERTx(reference, receiver, amount).Submit(); err != nil {
 		s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).
@@ -106,4 +129,6 @@ func (s *Service) processTX(tx internal.Transaction) {
 	}
 
 	s.Log.Info("issuance request submitted")
+
+	return
 }
