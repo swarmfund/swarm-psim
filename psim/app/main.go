@@ -23,7 +23,7 @@ const (
 	CtxLog                 = "log"
 	ctxLog                 = CtxLog
 	ctxConfig              = CtxConfig
-	forceKillPeriodSeconds = 30
+	forceKillPeriodSeconds = 1
 )
 
 var (
