@@ -9,14 +9,14 @@ import (
 
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/btcsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/horizonreq"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/horizonreq"
-	"gitlab.com/swarmfund/psim/addrstate"
 )
 
 func init() {
@@ -76,6 +76,7 @@ type BTCClient interface {
 type AccountDataProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
 	BalanceID(ctx context.Context, tokendAddress string) (balanceID *string, err error)
+	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
 // Service implements utils.Service interface, it supervises Stripe transactions

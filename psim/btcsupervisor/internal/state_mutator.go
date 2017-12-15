@@ -9,8 +9,25 @@ func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 	update := addrstate.StateUpdate{}
 
 	switch change.Type {
+	case xdr.LedgerEntryChangeTypeUpdated:
+		switch change.Updated.Data.Type {
+		case xdr.LedgerEntryTypeAssetPair:
+			data := change.Updated.Data.AssetPair
+			if data.Base != "ETH" || data.Quote != "BTC" {
+				break
+			}
+			price := int64(data.PhysicalPrice)
+			update.AssetPrice = &price
+		}
 	case xdr.LedgerEntryChangeTypeCreated:
 		switch change.Created.Data.Type {
+		case xdr.LedgerEntryTypeAssetPair:
+			data := change.Created.Data.AssetPair
+			if data.Base != "ETH" || data.Quote != "BTC" {
+				break
+			}
+			price := int64(data.PhysicalPrice)
+			update.AssetPrice = &price
 		case xdr.LedgerEntryTypeExternalSystemAccountId:
 			data := change.Created.Data.ExternalSystemAccountId
 
