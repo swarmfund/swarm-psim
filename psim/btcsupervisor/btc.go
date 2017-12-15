@@ -195,8 +195,8 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 
 	err = s.PrepareCERTx(reference, receiver, amount).Submit()
 	if err != nil {
-		return errors.Wrap(err, "Failed to submit CoinEmissionRequest", logan.Field("reference", reference).
-			Add("balance_id", receiver))
+		s.Log.WithError(err).Error("failed submit tx")
+		return nil
 	}
 
 	s.Log.WithFields(fields).Info("CoinEmissionRequest was sent successfully.")
