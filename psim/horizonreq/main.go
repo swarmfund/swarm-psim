@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/swarmfund/go/keypair"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"context"
+
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/keypair"
 )
 
 type HorizonRequester struct {
@@ -24,7 +25,7 @@ type HorizonRequestSigner interface {
 
 func NewHorizonRequester(horizon HorizonRequestSigner, signer keypair.KP) func(ctx context.Context, method, url string, target interface{}) error {
 	return HorizonRequester{
-		ticker:  time.NewTicker(1 * time.Second),
+		ticker:  time.NewTicker(1),
 		horizon: horizon,
 		signer:  signer,
 	}.do

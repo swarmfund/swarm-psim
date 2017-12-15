@@ -20,10 +20,10 @@ func newState() *State {
 
 func (s *State) Mutate(ts time.Time, update StateUpdate) {
 	if update.AssetPrice != nil {
-		s.prices = append(s.prices, Price{
+		s.prices = append([]Price{{
 			UpdatedAt: ts,
 			Value:     *update.AssetPrice,
-		})
+		}}, s.prices...)
 	}
 	if update.Address != nil {
 		s.addrs[update.Address.Offchain] = update.Address.Tokend
