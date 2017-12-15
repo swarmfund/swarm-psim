@@ -120,12 +120,12 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 			receiver = b.BalanceID
 		}
 	}
-
-	div := big.NewInt(1000000000000)
+	// amount = value * price / 10^18
+	div := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
 	bigPrice := big.NewInt(*price)
-	// amount = value / (10^18/10^6) * price
-	amount := new(big.Int).Div(tx.Value(), div)
-	amount = amount.Mul(amount, bigPrice)
+
+	amount := new(big.Int).Mul(tx.Value(), bigPrice)
+	amount = amount.Div(amount, div)
 	if !amount.IsUint64() {
 		s.Log.WithField("tx", tx.Hash().String()).Error("amount overflow, skipping tx")
 		return nil
