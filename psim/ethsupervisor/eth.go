@@ -40,7 +40,7 @@ func (s *Service) processBlocks() {
 
 func (s *Service) watchHeight() {
 	// TODO config
-	cursor := *big.NewInt(2258360)
+	cursor := *big.NewInt(2271294)
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
 		for ; ; <-ticker.C {
@@ -52,8 +52,8 @@ func (s *Service) watchHeight() {
 
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
-			// FIXME Magic 12 number
-			for head.NumberU64()-12 > cursor.Uint64() {
+			// FIXME Magic number
+			for head.NumberU64()-2 > cursor.Uint64() {
 				s.blocksCh <- cursor.Uint64()
 				cursor.Add(&cursor, big.NewInt(1))
 				//s.Log.WithField("cursor", cursor.Uint64()).Debug("cursor bumped")
@@ -83,7 +83,7 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	}()
 
 	// tx amount exceeds deposit threshold
-	if tx.Value().Cmp(s.depositThreshold) != 1 {
+	if tx.Value().Cmp(s.depositThreshold) == -1 {
 		return nil
 	}
 
@@ -98,13 +98,19 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 		return nil
 	}
 
+	price := s.state.PriceAt(s.Ctx, tx.Timestamp)
+	if price == nil {
+		s.Log.WithField("tx", tx.Hash().String()).Error("price is not set, skipping tx")
+		return nil
+	}
+
 	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, *address)
 	if err != nil {
 		return err
 	}
 
 	if account == nil {
-		// account not found probably due to a bug, who cares
+		s.Log.WithField("tx", tx.Hash().String()).Error("account expected to exist, skipping tx")
 		return nil
 	}
 
@@ -115,10 +121,15 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 		}
 	}
 
-	// TODO convert based on ONE and asset pair rate
-	// 10^18/10^6
-	var div int64 = 1000000000000
-	amount := new(big.Int).Div(tx.Value(), big.NewInt(div)).Uint64()
+	div := big.NewInt(1000000000000)
+	bigPrice := big.NewInt(*price)
+	// amount = value / (10^18/10^6) * price
+	amount := new(big.Int).Div(tx.Value(), div)
+	amount = amount.Mul(amount, bigPrice)
+	if !amount.IsUint64() {
+		s.Log.WithField("tx", tx.Hash().String()).Error("amount overflow, skipping tx")
+		return nil
+	}
 
 	s.Log.Info("submitting issuance request")
 
@@ -128,7 +139,7 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 		reference = reference[len(reference)-64:]
 	}
 
-	if err = s.PrepareCERTx(reference, receiver, amount).Submit(); err != nil {
+	if err = s.PrepareCERTx(reference, receiver, amount.Uint64()).Submit(); err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).

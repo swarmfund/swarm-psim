@@ -3,11 +3,14 @@ package addrstate
 import (
 	"time"
 
-	"gitlab.com/swarmfund/go/xdr"
 	"context"
 	"fmt"
-	"gitlab.com/swarmfund/horizon-connector"
+
+	"strings"
+
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector"
 )
 
 const (
@@ -62,11 +65,29 @@ func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *str
 
 	// Head is not before the `ts` anymore - can respond.
 
-	addr, ok := w.state.addrs[addr]
+	addr, ok := w.state.addrs[strings.ToLower(addr)]
 	if !ok {
 		return nil
 	}
 	return &addr
+}
+
+func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
+	for w.head.Before(ts) {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-w.headUpdate:
+			// Make the for check again
+			continue
+		}
+	}
+	for _, price := range w.state.prices {
+		if ts.After(price.UpdatedAt) {
+			return &price.Value
+		}
+	}
+	return nil
 }
 
 func (w *Watcher) BalanceID(ctx context.Context, accountAddress string) (balanceID *string, err error) {
