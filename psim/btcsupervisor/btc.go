@@ -175,21 +175,28 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 	fields := logan.Field("account_address", accountAddress).Add("reference", reference).
 		Add("block_hash", blockHash).Add("tx_hash", txHash).Add("out_index", outIndex)
 
-	balanceID, err := s.addressProvider.BalanceID(ctx, accountAddress)
+	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, accountAddress)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get BalanceID by AccountAddress", logan.Field("reference", reference))
+		return err
 	}
-	if balanceID == nil {
-		s.Log.WithFields(fields).Error("BalanceID is empty.")
-		return nil
+
+	if account == nil {
+		return errors.New("account expected to exist")
+	}
+
+	receiver := ""
+	for _, b := range account.Balances {
+		if b.Asset == "SUN" {
+			receiver = b.BalanceID
+		}
 	}
 
 	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
 
-	err = s.PrepareCERTx(reference, *balanceID, amount).Submit()
+	err = s.PrepareCERTx(reference, receiver, amount).Submit()
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit CoinEmissionRequest", logan.Field("reference", reference).
-			Add("balance_id", balanceID))
+			Add("balance_id", receiver))
 	}
 
 	s.Log.WithFields(fields).Info("CoinEmissionRequest was sent successfully.")
