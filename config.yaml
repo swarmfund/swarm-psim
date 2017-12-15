@@ -69,6 +69,7 @@ bitcoin_supervisor:
 
 eth_supervisor:
   supervisor:
+    leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 

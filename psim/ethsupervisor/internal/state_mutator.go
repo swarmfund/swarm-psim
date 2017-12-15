@@ -1,6 +1,10 @@
 package internal
 
 import (
+	"fmt"
+
+	"strings"
+
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/psim/addrstate"
 )
@@ -8,16 +12,31 @@ import (
 func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 	update := addrstate.StateUpdate{}
 	switch change.Type {
+	case xdr.LedgerEntryChangeTypeUpdated:
+		switch change.Updated.Data.Type {
+		case xdr.LedgerEntryTypeAssetPair:
+			data := change.Updated.Data.AssetPair
+			if data.Base != "ETH" || data.Quote != "SUN" {
+				break
+			}
+			price := int64(data.PhysicalPrice)
+			update.AssetPrice = &price
+		}
 	case xdr.LedgerEntryChangeTypeCreated:
 		switch change.Created.Data.Type {
+		case xdr.LedgerEntryTypeAssetPair:
+			data := change.Created.Data.AssetPair
+			if data.Base != "ETH" || data.Quote != "SUN" {
+				break
+			}
+			price := int64(data.PhysicalPrice)
+			update.AssetPrice = &price
 		case xdr.LedgerEntryTypeExternalSystemAccountId:
 			data := change.Created.Data.ExternalSystemAccountId
 			switch data.ExternalSystemType {
 			case xdr.ExternalSystemTypeEthereum:
 				update.Address = &addrstate.StateAddressUpdate{
-					// TODO unhardcode
-					// TODO ensure 0x
-					Offchain: "0xd96c70a7DC0BBEdB9dAb293a7b6a3557B073394e",
+					Offchain: strings.ToLower(fmt.Sprint("0x", data.Data)),
 					Tokend:   data.AccountId.Address(),
 				}
 			}
