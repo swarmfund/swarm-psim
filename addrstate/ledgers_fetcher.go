@@ -5,9 +5,10 @@ import (
 
 	"fmt"
 
+	"context"
+
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/logan/v3"
-	"context"
 )
 
 type LedgersResponse struct {
@@ -39,7 +40,7 @@ func NewLedgersProvider(log *logan.Entry, requester Requester) func(ctx context.
 func (f *LedgersFetcher) Run(ctx context.Context) <-chan Ledger {
 	result := make(chan Ledger)
 	go func() {
-		next := "/ledgers"
+		next := "/ledgers?limit=200"
 		for {
 			next = f.fetch(ctx, result, next)
 		}
@@ -64,7 +65,7 @@ func (f *LedgersFetcher) fetch(ctx context.Context, ledgers chan<- Ledger, endpo
 
 	for _, ledger := range response.Embedded.Records {
 		ledgers <- ledger
-		next = fmt.Sprintf("/ledgers?cursor=%s", ledger.ID)
+		next = fmt.Sprintf("/ledgers?cursor=%s&limit=200", ledger.ID)
 	}
 
 	return next
