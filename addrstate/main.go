@@ -6,8 +6,6 @@ import (
 	"context"
 	"fmt"
 
-	"strings"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector"
@@ -65,7 +63,7 @@ func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *str
 
 	// Head is not before the `ts` anymore - can respond.
 
-	addr, ok := w.state.addrs[strings.ToLower(addr)]
+	addr, ok := w.state.addrs[addr]
 	if !ok {
 		return nil
 	}
