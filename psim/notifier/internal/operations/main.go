@@ -22,8 +22,6 @@ func ParseOperation(base *Base, rawOperation []byte) (OperationI, error) {
 		op = &Payment{}
 	case xdr.OperationTypeManageInvoice:
 		op = &ManageInvoice{}
-	case xdr.OperationTypeManageForfeitRequest:
-		op = &ManageForfeitRequest{}
 	case xdr.OperationTypeManageOffer:
 		op = &Offer{}
 	default:

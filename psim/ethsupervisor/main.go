@@ -5,18 +5,17 @@ import (
 
 	"fmt"
 
-	"encoding/json"
-	"net/http"
-
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
+	horizon "gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/horizonreq"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
@@ -43,56 +42,50 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizon, err := app.Config(ctx).Horizon()
+		horizonConnector, err := app.Config(ctx).Horizon()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init horizon")
 		}
 
-		horizonRequest := func(method, endpoint string, target interface{}) error {
-			r, err := horizon.SignedRequest(method, endpoint, config.Supervisor.SignerKP)
-			if err != nil {
-				return errors.Wrap(err, "failed to init request")
-			}
-			response, err := http.DefaultClient.Do(r)
-			if err != nil {
-				return errors.Wrap(err, "request failed")
-			}
-			defer response.Body.Close()
-			if err := json.NewDecoder(response.Body).Decode(&target); err != nil {
-				return errors.Wrap(err, "failed to unmarshal")
-			}
-			return nil
-		}
-
-		state := addrstate.New(
-			internal.StateMutator,
-			addrstate.NewLedgersProvider(app.Log(ctx).WithField("service", "eth-ledger-provider"), horizonRequest),
-			addrstate.NewChangesProvider(app.Log(ctx).WithField("service", "eth-changes-provider"), horizonRequest),
+		requester := horizonreq.NewHorizonRequester(horizonConnector, config.Supervisor.SignerKP)
+		log := app.Log(ctx)
+		state := addrstate.New(log, internal.StateMutator,
+			addrstate.NewLedgersProvider(log.WithField("service", "eth-ledger-provider"), requester),
+			addrstate.NewChangesProvider(log.WithField("service", "eth-changes-provider"), requester),
+			requester,
 		)
 
-		return New(commonSupervisor, ethClient, state), nil
+		return New(commonSupervisor, ethClient, state, config, horizonConnector), nil
 	})
 }
 
 type Service struct {
 	*supervisor.Service
-	eth   *ethclient.Client
-	state State
+	eth     *ethclient.Client
+	state   State
+	config  Config
+	horizon *horizon.Connector
 
 	// internal state
 	txCh     chan internal.Transaction
 	blocksCh chan uint64
+
 	// config
-	depositTreshold big.Int
+	depositThreshold *big.Int
 }
 
-func New(supervisor *supervisor.Service, eth *ethclient.Client, state State) *Service {
+func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, config Config, horizon *horizon.Connector) *Service {
 	s := &Service{
-		Service:  supervisor,
-		eth:      eth,
-		state:    state,
+		Service: supervisor,
+		eth:     eth,
+		state:   state,
+		config:  config,
+		horizon: horizon,
+		// could be buffered to increase throughput
 		txCh:     make(chan internal.Transaction),
 		blocksCh: make(chan uint64),
+		// FIXME
+		depositThreshold: big.NewInt(1000000000000),
 	}
 
 	s.AddRunner(s.watchHeight)

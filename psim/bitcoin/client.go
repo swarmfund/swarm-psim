@@ -8,8 +8,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-const Asset = "BTC"
-
 // Client uses Connector to request blockchain info from some Bitcoin Node
 // and transforms raw requests to gocoin structures
 type Client struct {

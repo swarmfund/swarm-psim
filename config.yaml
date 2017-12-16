@@ -1,7 +1,7 @@
 # common
 
 log:
-  level: debug
+  level: info
   #slack_webhook: "https://hooks.slack.com/services/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"
   #slack_channel: "#reports"
   #slack_level: error
@@ -9,7 +9,7 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  addr: http://swarm.dev:8000
+  addr: http://dev.swarm:8000
 #  addr: http://128.199.229.140:8011
 #  addr: https://api.bullioncoin.io
 #  addr: http://localhost:8000
@@ -25,9 +25,9 @@ stripe:
 
 bitcoin:
   # move node to separate object?
-  node_host: 127.0.0.1
+  node_host: 18.195.18.3
   node_port: 8332
-  node_auth_key: your_awesome_auth_key
+  node_auth_key: dTAwM2IwNGVmOTUwMWJiZjA2YjpwMDA2NWUyN2MxNWY1NTBiOTJh
   testnet: true
   request_timeout_s: 30
   min_deposit_value: 1000000 # 0.01 BTC
@@ -47,8 +47,8 @@ services:
   #- notifier
   #- charger
   #- stripe_supervisor
-  #- bitcoin_supervisor
-  - eth_supervisor
+  - bitcoin_supervisor
+  #- eth_supervisor
   #- stripe_verify
   #- taxman
   #- rate_sync
@@ -60,7 +60,9 @@ stripe_supervisor:
 
 bitcoin_supervisor:
   last_processed_block: 1248831
+  last_blocks_not_watch: 0
   supervisor:
+    leadership_key: btc_supervisor
     pprof: true
     # Keys should probably differ between stripe and bitcoin
     exchange: GDFI3OE5XRDYZIGPR75V4FNFNVRXP4PBDO6PXXCIG2UJYBUVXHBH2XVR
@@ -68,6 +70,8 @@ bitcoin_supervisor:
 
 eth_supervisor:
   supervisor:
+    leadership_key: eth_supervisor
+    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 
 forfeit_listener:

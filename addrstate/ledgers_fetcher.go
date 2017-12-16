@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"context"
+
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/logan/v3"
 )
@@ -17,6 +19,7 @@ type LedgersResponse struct {
 
 type Ledger struct {
 	ID       string    `json:"paging_token"`
+	Sequence int64     `json:"sequence"`
 	ClosedAt time.Time `json:"closed_at"`
 	TXCount  int64     `json:"transaction_count"`
 }
@@ -26,7 +29,7 @@ type LedgersFetcher struct {
 	log       *logan.Entry
 }
 
-func NewLedgersProvider(log *logan.Entry, requester Requester) func() <-chan Ledger {
+func NewLedgersProvider(log *logan.Entry, requester Requester) func(ctx context.Context) <-chan Ledger {
 	fetcher := LedgersFetcher{
 		requester: requester,
 		log:       log,
@@ -34,18 +37,18 @@ func NewLedgersProvider(log *logan.Entry, requester Requester) func() <-chan Led
 	return fetcher.Run
 }
 
-func (f *LedgersFetcher) Run() <-chan Ledger {
+func (f *LedgersFetcher) Run(ctx context.Context) <-chan Ledger {
 	result := make(chan Ledger)
 	go func() {
-		next := "/ledgers"
+		next := "/ledgers?limit=200"
 		for {
-			next = f.fetch(result, next)
+			next = f.fetch(ctx, result, next)
 		}
 	}()
 	return result
 }
 
-func (f *LedgersFetcher) fetch(ledgers chan<- Ledger, endpoint string) (next string) {
+func (f *LedgersFetcher) fetch(ctx context.Context, ledgers chan<- Ledger, endpoint string) (next string) {
 	defer func() {
 		if next == "" {
 			next = endpoint
@@ -54,14 +57,15 @@ func (f *LedgersFetcher) fetch(ledgers chan<- Ledger, endpoint string) (next str
 			f.log.WithRecover(rvr).Error("panicked")
 		}
 	}()
+
 	var response LedgersResponse
-	if err := f.requester("GET", endpoint, &response); err != nil {
+	if err := f.requester(ctx, "GET", endpoint, &response); err != nil {
 		panic(errors.Wrap(err, "failed to perform request"))
 	}
 
 	for _, ledger := range response.Embedded.Records {
 		ledgers <- ledger
-		next = fmt.Sprintf("/ledgers?cursor=%s", ledger.ID)
+		next = fmt.Sprintf("/ledgers?cursor=%s&limit=200", ledger.ID)
 	}
 
 	return next

@@ -1,47 +1,42 @@
 package btcsupervisor
 
 import (
-	"encoding/json"
-
 	"time"
+
+	"context"
+	"math/big"
 
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
-	"gitlab.com/swarmfund/psim/psim/btcverify"
 )
 
 const (
-	// TODO Move to config
-	lastBlocksNotWatch = 5 // We only consider transactions, which have 6+ confirmations
-	runnerName         = "btc_supervisor"
+	runnerName = "btc_supervisor"
 )
 
 var (
-	lastProcessedBlock uint64
+	lastProcessedBlock uint64 = 1255032
 )
 
+// TODO runner func must receive ctx
 func (s *Service) processBTCBlocksInfinitely() {
-	app.RunOverIncrementalTimer(s.Ctx, s.Log, runnerName, s.processNewBTCBlocks, 5*time.Second)
+	// TODO runner func must receive ctx
+	ctx := s.Ctx
+	app.RunOverIncrementalTimer(ctx, s.Log, runnerName, s.processNewBTCBlocks, 5*time.Second)
 }
 
-func (s *Service) processNewBTCBlocks() error {
-	select {
-	case <-s.Ctx.Done():
-		return nil
-	case <-s.addressQ.ReadinessWaiter():
-		// Can continue
-	}
-
-	// addressQ is now ready - can proceed.
+func (s *Service) processNewBTCBlocks(ctx context.Context) error {
+	// addressProvider is now ready - can proceed.
 	lastKnownBlock, err := s.btcClient.GetBlockCount()
 	if err != nil {
 		return errors.Wrap(err, "Failed to GetBlockCount")
 	}
 
-	lastBlockToProcess := lastKnownBlock - lastBlocksNotWatch
+	// We only consider transactions, which have at least LastBlocksNotWatch + 1 confirmations
+	lastBlockToProcess := lastKnownBlock - s.config.LastBlocksNotWatch
 
 	if lastBlockToProcess <= lastProcessedBlock {
 		// No new blocks to process
@@ -49,16 +44,16 @@ func (s *Service) processNewBTCBlocks() error {
 	}
 
 	for i := lastProcessedBlock + 1; i <= lastBlockToProcess; i++ {
-		if app.IsCanceled(s.Ctx) {
+		if app.IsCanceled(ctx) {
 			return nil
 		}
 
-		err := s.processBlock(i)
+		err := s.processBlock(ctx, i)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process Block", logan.Field("block_index", i))
 		}
 
-		if app.IsCanceled(s.Ctx) {
+		if app.IsCanceled(ctx) {
 			// Don't update lastProcessedBlock, because Block processing was probably not finished - ctx was canceled.
 			return nil
 		}
@@ -69,8 +64,8 @@ func (s *Service) processNewBTCBlocks() error {
 	return nil
 }
 
-func (s *Service) processBlock(blockIndex uint64) error {
-	s.Log.WithField("block_index", blockIndex).Debug("Processing block")
+func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
+	s.Log.WithField("block_index", blockIndex).Debug("Processing block.")
 
 	block, err := s.btcClient.GetBlock(blockIndex)
 	if err != nil {
@@ -78,16 +73,20 @@ func (s *Service) processBlock(blockIndex uint64) error {
 	}
 
 	for _, tx := range block.Txs {
-		err := s.processTX(block.Hash.String(), *tx)
+		blockHash := block.Hash.String()
+
+		// TODO Check that block.MedianPastTime is time of Block.
+		err := s.processTX(ctx, blockHash, time.Now().UTC(), *tx)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process TX", logan.Field("tx_hash", tx.Hash.String()))
+			// Tx hash is added into logs inside processTX.
+			return errors.Wrap(err, "Failed to process TX", logan.Field("block_hash", blockHash))
 		}
 	}
 
 	return nil
 }
 
-func (s *Service) processTX(blockHash string, tx btc.Tx) error {
+func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx btc.Tx) error {
 	for i, out := range tx.TxOut {
 		addr := btc.NewAddrFromPkScript(out.Pk_script, s.btcClient.IsTestnet())
 		if addr == nil {
@@ -97,51 +96,109 @@ func (s *Service) processTX(blockHash string, tx btc.Tx) error {
 
 		addr58 := addr.String()
 
-		accountID := s.addressQ.GetAccountID(addr58)
-		if accountID == "" {
+		accountAddress := s.addressProvider.AddressAt(ctx, blockTime, addr58)
+		if app.IsCanceled(ctx) {
+			return nil
+		}
+
+		if accountAddress == nil {
 			// This addr58 is not among our watch addresses - ignoring this TxOUT
 			continue
 		}
 
-		// TODO Make sure amount is valid (maybe need to * or / by 10^N)
-		err := s.sendCoinEmissionRequest(blockHash, tx.Hash.String(), i, accountID, out.Value)
+		price := s.addressProvider.PriceAt(s.Ctx, blockTime)
+		if price == nil {
+			return errors.New("price not set")
+		}
+
+		// amount = value * price / 10^8
+		div := new(big.Int).Mul(big.NewInt(100000000), big.NewInt(1))
+		bigPrice := big.NewInt(*price)
+
+		amount := new(big.Int).Mul(big.NewInt(int64(out.Value)), bigPrice)
+		amount = amount.Div(amount, div)
+		if !amount.IsUint64() {
+			return errors.New("value overflow")
+		}
+
+		// Don't take hash outside of for loop, as it's will be needed not more than once during whole processTX(), usually will not be used at all.
+		txHash := tx.Hash.String()
+		err := s.sendCoinEmissionRequest(ctx, blockHash, txHash, i, *accountAddress, amount.Uint64())
 		if err != nil {
-			errors.Wrap(err, "Failed to send CoinEmissionRequest",
-				logan.Field("tx", tx).Add("out", out).Add("account_id", accountID))
+			return errors.Wrap(err, "Failed to send CoinEmissionRequest",
+				logan.Field("account_address", *accountAddress).
+					Add("tx_hash", txHash).
+					Add("out_index", out.VoutCount).
+					Add("out_value", out.Value).
+					Add("out_addr_58", addr58).
+					Add("converted_amount", amount.Uint64()),
+			)
 		}
 	}
 
 	return nil
 }
 
-func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int, receiver string, amount uint64) error {
+func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash string, outIndex int, accountAddress string, amount uint64) error {
 	reference := bitcoin.BuildCoinEmissionRequestReference(txHash, outIndex)
-
-	cerExists, err := s.CheckCoinEmissionRequestExistence(reference)
-	if err != nil {
-		return errors.Wrap(err, "Failed to check CoinEmissionRequest existence")
+	// Just in case. Reference must not be longer than 64.
+	if len(reference) > 64 {
+		reference = reference[len(reference)-64:]
 	}
 
-	if cerExists {
+	//cerExists, err := s.CheckCoinEmissionRequestExistence(reference)
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed to check CoinEmissionRequest existence")
+	//}
+	//
+	//if cerExists {
+	//	return nil
+	//}
+
+	// TODO Verify
+	//txBuilder := s.PrepareCERTx(reference, accountAddress, amount)
+	//
+	//envelope, err := txBuilder.Marshal64()
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed to craft CoinEmissionRequests envelope")
+	//}
+	//
+	//verifyPayload, err := json.Marshal(btcverify.VerifyRequest{
+	//	Envelope:  *envelope,
+	//	BlockHash: blockHash,
+	//	TXHash:    txHash,
+	//	OutIndex:  outIndex,
+	//})
+	//
+	//s.SendCoinEmissionRequestForVerify(s.Ctx, verifyPayload)
+
+	fields := logan.Field("account_address", accountAddress).Add("reference", reference).
+		Add("block_hash", blockHash).Add("tx_hash", txHash).Add("out_index", outIndex)
+
+	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, accountAddress)
+	if err != nil {
+		return err
+	}
+
+	if account == nil {
+		return errors.New("account expected to exist")
+	}
+
+	receiver := ""
+	for _, b := range account.Balances {
+		if b.Asset == "SUN" {
+			receiver = b.BalanceID
+		}
+	}
+
+	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
+
+	err = s.PrepareCERTx(reference, receiver, amount).Submit()
+	if err != nil {
+		s.Log.WithError(err).Error("failed submit tx")
 		return nil
 	}
 
-	s.Log.WithField("reference", reference).WithField("receiver", receiver).Info("Sending CoinEmissionRequest")
-
-	// TODO
-	envelope, err := s.PrepareCEREnvelope(reference, receiver, bitcoin.Asset, amount)
-	if err != nil {
-		return errors.Wrap(err, "Failed to craft CoinEmissionRequests envelope")
-	}
-
-	verifyPayload, err := json.Marshal(btcverify.VerifyRequest{
-		Envelope:  *envelope,
-		BlockHash: blockHash,
-		TXHash:    txHash,
-		OutIndex:  outIndex,
-	})
-
-	s.SendCoinEmissionRequest(s.Ctx, verifyPayload)
-
+	s.Log.WithFields(fields).Info("CoinEmissionRequest was sent successfully.")
 	return nil
 }

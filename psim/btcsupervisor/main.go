@@ -9,11 +9,13 @@ import (
 
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/btcsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/create_account_streamer"
+	"gitlab.com/swarmfund/psim/psim/horizonreq"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
@@ -32,17 +34,17 @@ func init() {
 			With(supervisor.ConfigFigureHooks).
 			Please()
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceBTCSupervisor))
+			return nil, errors.Wrap(err, fmt.Sprintf("Failed to figure out %s", conf.ServiceBTCSupervisor))
 		}
 
 		commonSupervisor, err := supervisor.InitNew(ctx, conf.ServiceBTCSupervisor, config.Supervisor)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to init common supervisor")
+			return nil, errors.Wrap(err, "Failed to init common Supervisor")
 		}
 
 		btcClient, err := globalConfig.Bitcoin()
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to get Bitcoin client")
+			return nil, errors.Wrap(err, "Failed to get Bitcoin client from global config")
 		}
 
 		horizonConnector, err := app.Config(ctx).Horizon()
@@ -50,11 +52,15 @@ func init() {
 			panic(err)
 		}
 
-		createAccountStreamer := create_account_streamer.New(app.Log(ctx), config.Supervisor.SignerKP, horizonConnector,
-			5*time.Second)
-		addressQ := internal.NewAddressQ(ctx, createAccountStreamer)
+		log := app.Log(ctx)
+		requester := horizonreq.NewHorizonRequester(horizonConnector, config.Supervisor.SignerKP)
+		addressProvider := addrstate.New(log, internal.StateMutator,
+			addrstate.NewLedgersProvider(log.WithField("service", "btc-ledger-provider"), requester),
+			addrstate.NewChangesProvider(log.WithField("service", "btc-changes-provider"), requester),
+			requester,
+		)
 
-		return New(commonSupervisor, config, btcClient, addressQ), nil
+		return New(commonSupervisor, config, btcClient, addressProvider, horizonConnector), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCSupervisor, setupFn)
@@ -68,11 +74,10 @@ type BTCClient interface {
 }
 
 // AddressQ must be implemented by WatchAddress storage to pass into Service constructor.
-type AddressQ interface {
-	// If this btc Address - "" must be returned.
-	GetAccountID(btcAddress string) string
-	ReadinessWaiter() <-chan struct{}
-	Run()
+type AccountDataProvider interface {
+	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
+	BalanceID(ctx context.Context, tokendAddress string) (balanceID *string, err error)
+	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
 // Service implements utils.Service interface, it supervises Stripe transactions
@@ -82,22 +87,24 @@ type AddressQ interface {
 type Service struct {
 	*supervisor.Service
 
-	config    Config
-	btcClient BTCClient
-	addressQ  AddressQ
+	horizon         *horizon.Connector
+	config          Config
+	btcClient       BTCClient
+	addressProvider AccountDataProvider
 }
 
 // New is constructor for the btcsupervisor Service.
-func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClient, addressQ AddressQ) *Service {
+func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClient, addressProvider AccountDataProvider, horizon *horizon.Connector) *Service {
 	result := &Service{
 		Service: commonSupervisor,
 
-		config:    config,
-		btcClient: btcClient,
-		addressQ:  addressQ,
+		horizon:         horizon,
+		config:          config,
+		btcClient:       btcClient,
+		addressProvider: addressProvider,
 	}
 
-	result.AddRunner(result.addressQ.Run)
+	// TODO runner func must receive ctx
 	result.AddRunner(result.processBTCBlocksInfinitely)
 
 	return result

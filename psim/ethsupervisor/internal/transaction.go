@@ -8,5 +8,6 @@ import (
 
 type Transaction struct {
 	types.Transaction
-	Timestamp time.Time
+	BlockNumber uint64
+	Timestamp   time.Time
 }
