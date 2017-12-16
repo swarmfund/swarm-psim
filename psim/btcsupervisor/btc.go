@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	lastProcessedBlock uint64 = 1255032
+	lastProcessedBlock uint64 = 1255110
 )
 
 // TODO runner func must receive ctx
