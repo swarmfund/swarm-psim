@@ -25,7 +25,7 @@ type HorizonRequestSigner interface {
 
 func NewHorizonRequester(horizon HorizonRequestSigner, signer keypair.KP) func(ctx context.Context, method, url string, target interface{}) error {
 	return HorizonRequester{
-		ticker:  time.NewTicker(1),
+		ticker:  time.NewTicker(1 * time.Second),
 		horizon: horizon,
 		signer:  signer,
 	}.do

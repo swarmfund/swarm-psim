@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"time"
 
+	"strings"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
@@ -93,7 +95,7 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	}
 
 	// address is watched
-	address := s.state.AddressAt(s.Ctx, tx.Timestamp, tx.To().String())
+	address := s.state.AddressAt(s.Ctx, tx.Timestamp, strings.ToLower(tx.To().String()))
 	if address == nil {
 		return nil
 	}

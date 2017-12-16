@@ -9,14 +9,15 @@ import (
 
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/btcsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/horizonreq"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/horizonreq"
-	"gitlab.com/swarmfund/psim/addrstate"
 )
 
 func init() {
@@ -59,7 +60,7 @@ func init() {
 			requester,
 		)
 
-		return New(commonSupervisor, config, btcClient, addressProvider), nil
+		return New(commonSupervisor, config, btcClient, addressProvider, horizonConnector), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCSupervisor, setupFn)
@@ -76,6 +77,7 @@ type BTCClient interface {
 type AccountDataProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
 	BalanceID(ctx context.Context, tokendAddress string) (balanceID *string, err error)
+	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
 // Service implements utils.Service interface, it supervises Stripe transactions
@@ -85,16 +87,18 @@ type AccountDataProvider interface {
 type Service struct {
 	*supervisor.Service
 
+	horizon         *horizon.Connector
 	config          Config
 	btcClient       BTCClient
 	addressProvider AccountDataProvider
 }
 
 // New is constructor for the btcsupervisor Service.
-func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClient, addressProvider AccountDataProvider) *Service {
+func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClient, addressProvider AccountDataProvider, horizon *horizon.Connector) *Service {
 	result := &Service{
 		Service: commonSupervisor,
 
+		horizon:         horizon,
 		config:          config,
 		btcClient:       btcClient,
 		addressProvider: addressProvider,
