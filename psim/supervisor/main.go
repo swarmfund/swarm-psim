@@ -76,11 +76,27 @@ func New(ctx context.Context, log *logan.Entry, horizon *horizon.Connector, disc
 	}
 }
 
+// FIXME Discovery is switched off now.
 func (s *Service) initCommonRunners() {
 	if s.config.Pprof {
 		s.AddRunner(s.debugAPI)
 	}
-	s.AddRunner(s.acquireLeadership)
+
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	//s.AddRunner(s.acquireLeadership)
 }
 
 // AddRunner adds a runner to be run in separate goroutine each.
@@ -132,6 +148,7 @@ func (s *Service) debugAPI() {
 }
 
 // TODO runner func must receive ctx
+// TODO Run over incremental timer.
 func (s *Service) acquireLeadership() {
 	var session *discovery.Session
 	var err error

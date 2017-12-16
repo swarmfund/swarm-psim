@@ -76,7 +76,6 @@ type BTCClient interface {
 // AddressQ must be implemented by WatchAddress storage to pass into Service constructor.
 type AccountDataProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
-	BalanceID(ctx context.Context, tokendAddress string) (balanceID *string, err error)
 	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
@@ -87,10 +86,10 @@ type AccountDataProvider interface {
 type Service struct {
 	*supervisor.Service
 
-	horizon         *horizon.Connector
-	config          Config
-	btcClient       BTCClient
-	addressProvider AccountDataProvider
+	horizon             *horizon.Connector
+	config              Config
+	btcClient           BTCClient
+	accountDataProvider AccountDataProvider
 }
 
 // New is constructor for the btcsupervisor Service.
@@ -98,10 +97,10 @@ func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClien
 	result := &Service{
 		Service: commonSupervisor,
 
-		horizon:         horizon,
-		config:          config,
-		btcClient:       btcClient,
-		addressProvider: addressProvider,
+		horizon:             horizon,
+		config:              config,
+		btcClient:           btcClient,
+		accountDataProvider: addressProvider,
 	}
 
 	// TODO runner func must receive ctx

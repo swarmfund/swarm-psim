@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	sunAsset = "SUN"
+	baseAsset = "SUN"
 )
 
 // PrepareCERTx uses HorizonConnector - prepares Transaction with a CoinEmissionRequest operation,
@@ -27,7 +27,7 @@ func (s *Service) PrepareCERTx(reference, receiver string, amount uint64) *horiz
 		Op(&horizon.CreateIssuanceRequestOp{
 			Reference: reference,
 			Receiver:  receiver,
-			Asset:     sunAsset,
+			Asset:     baseAsset,
 			Amount:    amount,
 		}).
 		Sign(s.config.SignerKP)
