@@ -32,7 +32,6 @@ build:
       paths:
         - bin/psim
   only:
-    - master
     - staging
     - dev
 
@@ -42,7 +41,6 @@ delivery:
   script:
     - rsync bin/psim ubuntu@$HOST_DEV:artifacts/psim/${CI_COMMIT_SHA:0:8}/
   only:
-    - master
     - staging
     - dev
 
