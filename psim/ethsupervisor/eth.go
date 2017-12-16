@@ -152,7 +152,7 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 			if len(opCodes) == 1 {
 				switch opCodes[0] {
 				// safe to move on
-				case "You cannot make two issuances with the same reference":
+				case "op_reference_duplication":
 					entry.Info("tx failed")
 					return nil
 				}
