@@ -11,6 +11,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"fmt"
 )
 
 const (
@@ -75,9 +76,7 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 		return errors.Wrap(err, "Failed to get Block from BTCClient")
 	}
 
-	// FIXME Use real time of Block.
-	// FIXME Use real time of Block.
-	blockTime := time.Now().UTC()
+	blockTime := time.Unix(int64(block.BlockTime()), 0)
 
 	for _, tx := range block.Txs {
 		blockHash := block.Hash.String()
