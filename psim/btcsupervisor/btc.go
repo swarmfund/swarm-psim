@@ -15,21 +15,24 @@ import (
 
 const (
 	runnerName = "btc_supervisor"
+	baseAsset  = "SUN"
 )
 
 var (
+	// FIXME Use context
 	lastProcessedBlock uint64 = 1255110
 )
 
 // TODO runner func must receive ctx
 func (s *Service) processBTCBlocksInfinitely() {
+	lastProcessedBlock = s.config.LastProcessedBlock
+
 	// TODO runner func must receive ctx
 	ctx := s.Ctx
 	app.RunOverIncrementalTimer(ctx, s.Log, runnerName, s.processNewBTCBlocks, 5*time.Second)
 }
 
 func (s *Service) processNewBTCBlocks(ctx context.Context) error {
-	// addressProvider is now ready - can proceed.
 	lastKnownBlock, err := s.btcClient.GetBlockCount()
 	if err != nil {
 		return errors.Wrap(err, "Failed to GetBlockCount")
@@ -72,11 +75,14 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 		return errors.Wrap(err, "Failed to get Block from BTCClient")
 	}
 
+	// FIXME Use real time of Block.
+	// FIXME Use real time of Block.
+	blockTime := time.Now().UTC()
+
 	for _, tx := range block.Txs {
 		blockHash := block.Hash.String()
 
-		// TODO Check that block.MedianPastTime is time of Block.
-		err := s.processTX(ctx, blockHash, time.Now().UTC(), *tx)
+		err := s.processTX(ctx, blockHash, blockTime, *tx)
 		if err != nil {
 			// Tx hash is added into logs inside processTX.
 			return errors.Wrap(err, "Failed to process TX", logan.Field("block_hash", blockHash))
@@ -96,7 +102,7 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 
 		addr58 := addr.String()
 
-		accountAddress := s.addressProvider.AddressAt(ctx, blockTime, addr58)
+		accountAddress := s.accountDataProvider.AddressAt(ctx, blockTime, addr58)
 		if app.IsCanceled(ctx) {
 			return nil
 		}
@@ -106,9 +112,14 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 			continue
 		}
 
-		price := s.addressProvider.PriceAt(s.Ctx, blockTime)
+		s.Log.WithField("block_hash", blockHash).WithField("btc_addr", addr58).
+			WithField("account_address", accountAddress).Debug("Found our watch BTC Address.")
+
+		price := s.accountDataProvider.PriceAt(s.Ctx, blockTime)
 		if price == nil {
-			return errors.New("price not set")
+			return errors.From(errors.New("PriceAt of accountDataProvider returned nil price."),
+				logan.Field("block_hash", blockHash).Add("btc_addr", addr58).Add("account_address", accountAddress).
+					Add("block_time", blockTime))
 		}
 
 		// amount = value * price / 10^8
@@ -175,6 +186,7 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 	fields := logan.Field("account_address", accountAddress).Add("reference", reference).
 		Add("block_hash", blockHash).Add("tx_hash", txHash).Add("out_index", outIndex)
 
+	// TODO Move getting of BalanceID into accountDataProvider.
 	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, accountAddress)
 	if err != nil {
 		return err
@@ -186,16 +198,20 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 
 	receiver := ""
 	for _, b := range account.Balances {
-		if b.Asset == "SUN" {
+		if b.Asset == baseAsset {
 			receiver = b.BalanceID
 		}
 	}
+
+	// TODO Handle if no receiver.
+
+	fields = fields.Add("receiver", receiver)
 
 	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
 
 	err = s.PrepareCERTx(reference, receiver, amount).Submit()
 	if err != nil {
-		s.Log.WithError(err).Error("failed submit tx")
+		s.Log.WithError(err).Error("Failed to submit CoinEmissionRequest Transaction.")
 		return nil
 	}
 

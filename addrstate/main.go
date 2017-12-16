@@ -123,7 +123,12 @@ type StateAddressUpdate struct {
 
 func (w *Watcher) run(ctx context.Context) {
 	for ledger := range w.ledgers(ctx) {
+		if ledger.Sequence % 1000 == 0 {
+			w.log.WithField("ledger", ledger).Debug("Found N*1000-th Ledger.")
+		}
+
 		if ledger.TXCount > 0 {
+
 			for change := range w.changes(ctx, ledger.Sequence) {
 				w.state.Mutate(ledger.ClosedAt, w.mutator(change))
 			}
