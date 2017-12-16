@@ -1,5 +1,4 @@
 .idea/
-pkg/
-bin/
+./bin/
 vendor.orig
 local-config.yaml
