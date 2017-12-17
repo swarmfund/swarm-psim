@@ -37,7 +37,7 @@ func (c *ViperConfig) Log() (*logan.Entry, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse level")
 	}
-	entry.Level(lvl)
+	entry = entry.Level(lvl)
 
 	// horizon submitter hook
 	// FIXME Make horizon-connector use logrus Hooks, not logan and then ei will work and can be uncommented.

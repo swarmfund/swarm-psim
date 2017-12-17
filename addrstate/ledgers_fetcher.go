@@ -24,6 +24,14 @@ type Ledger struct {
 	TXCount  int64     `json:"transaction_count"`
 }
 
+func (l Ledger) GetLoganFields() map[string]interface{} {
+	return map[string]interface{} {
+		"id": l.ID,
+		"sequence": l.Sequence,
+		"tx_count": l.TXCount,
+	}
+}
+
 type LedgersFetcher struct {
 	requester Requester
 	log       *logan.Entry
@@ -40,6 +48,7 @@ func NewLedgersProvider(log *logan.Entry, requester Requester) func(ctx context.
 func (f *LedgersFetcher) Run(ctx context.Context) <-chan Ledger {
 	result := make(chan Ledger)
 	go func() {
+		// TODO Move limit=200 to some config.
 		next := "/ledgers?limit=200"
 		for {
 			next = f.fetch(ctx, result, next)
@@ -65,6 +74,7 @@ func (f *LedgersFetcher) fetch(ctx context.Context, ledgers chan<- Ledger, endpo
 
 	for _, ledger := range response.Embedded.Records {
 		ledgers <- ledger
+		// TODO Move limit=200 to some config.
 		next = fmt.Sprintf("/ledgers?cursor=%s&limit=200", ledger.ID)
 	}
 
