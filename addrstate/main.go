@@ -4,57 +4,41 @@ import (
 	"time"
 
 	"context"
-	"fmt"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/horizon-connector"
+	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
-
-const (
-	sunAsset = "SUN"
-)
-
-type Requester func(ctx context.Context, method, endpoint string, target interface{}) error
-type LedgerProvider func(ctx context.Context) <-chan Ledger
-type ChangesProvider func(ctx context.Context, ledgerSeq int64) <-chan xdr.LedgerEntryChange
-type StateMutator func(change xdr.LedgerEntryChange) StateUpdate
 
 type Watcher struct {
-	log       *logan.Entry
-	mutator   StateMutator
-	ledgers   LedgerProvider
-	changes   ChangesProvider
-	requester Requester
+	log     *logan.Entry
+	mutator StateMutator
+	txQ     TransactionQ
+	ctx     context.Context
 
+	// internal state
 	head       time.Time
 	headUpdate chan struct{}
 	state      *State
 }
 
-func New(log *logan.Entry, mutator StateMutator, ledgers LedgerProvider, changes ChangesProvider, requester Requester) *Watcher {
-
+func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ TransactionQ) *Watcher {
 	w := &Watcher{
-		log:       log.WithField("worker", "address_state_watcher"),
-		mutator:   mutator,
-		ledgers:   ledgers,
-		changes:   changes,
-		requester: requester,
+		log:     log,
+		mutator: mutator,
+		txQ:     txQ,
 
 		state:      newState(),
 		headUpdate: make(chan struct{}),
 	}
 
-	go w.run(context.TODO())
+	go w.run(ctx)
 
 	return w
 }
 
-func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
+func (w *Watcher) AddressAt(ts time.Time, addr string) *string {
 	for w.head.Before(ts) {
 		select {
-		case <-ctx.Done():
-			return nil
 		case <-w.headUpdate:
 			// Make the for check again
 			continue
@@ -70,11 +54,9 @@ func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *str
 	return &addr
 }
 
-func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
+func (w *Watcher) PriceAt(ts time.Time) *int64 {
 	for w.head.Before(ts) {
 		select {
-		case <-ctx.Done():
-			return nil
 		case <-w.headUpdate:
 			// Make the for check again
 			continue
@@ -88,32 +70,32 @@ func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
 	return nil
 }
 
-func (w *Watcher) BalanceID(ctx context.Context, accountAddress string) (balanceID *string, err error) {
-	var response horizon.BalanceIDResponse
-
-	err = w.requester(ctx, "GET", fmt.Sprintf("/accounts/%s/balances", accountAddress), &response)
-	if err != nil {
-		w.log.WithField("account_address", accountAddress).WithError(err).Error("Failed to request Balances of Account via requester.")
-		return nil, err
+func (w *Watcher) Balance(address string) *string {
+	balance, ok := w.state.balances[address]
+	if ok {
+		return &balance
 	}
-
-	if len(response.Balances) == 0 {
-		return nil, nil
-	}
-
-	for _, b := range response.Balances {
-		if b.Asset == sunAsset {
-			return &b.BalanceID, nil
+	// if we don't have balance already, let's wait for latest ledger
+	now := time.Now()
+	for w.head.Before(now) {
+		select {
+		case <-w.headUpdate:
+			continue
 		}
 	}
-
-	return nil, nil
+	// now check again
+	balance, ok = w.state.balances[address]
+	if !ok {
+		return nil
+	}
+	return &balance
 }
 
 // WatcherState is a connector between LedgerEntryChange and Watcher state for specific consumers
 type StateUpdate struct {
 	AssetPrice *int64
 	Address    *StateAddressUpdate
+	Balance    *StateBalanceUpdate
 }
 
 type StateAddressUpdate struct {
@@ -121,20 +103,25 @@ type StateAddressUpdate struct {
 	Tokend   string
 }
 
+type StateBalanceUpdate struct {
+	Address string
+	Balance string
+}
+
 func (w *Watcher) run(ctx context.Context) {
-	for ledger := range w.ledgers(ctx) {
-		if ledger.Sequence % 1000 == 0 {
-			w.log.WithField("ledger", ledger).Debug("Found N*1000-th Ledger.")
-		}
-
-		if ledger.TXCount > 0 {
-
-			for change := range w.changes(ctx, ledger.Sequence) {
-				w.state.Mutate(ledger.ClosedAt, w.mutator(change))
+	// there is intentionally no defer, it should just die in case of persistent error
+	transactions := make(chan horizon.Transaction)
+	errs := w.txQ.Transactions(transactions)
+	for {
+		select {
+		case tx := <-transactions:
+			for _, change := range tx.LedgerChanges() {
+				w.state.Mutate(tx.CreatedAt, w.mutator(change))
 			}
+			w.head = tx.CreatedAt
+			w.headUpdate <- struct{}{}
+		case err := <-errs:
+			w.log.WithError(err).Warn("failed to get transaction")
 		}
-		// ledger has been processed bump head
-		w.head = ledger.ClosedAt
-		w.headUpdate <- struct{}{}
 	}
 }

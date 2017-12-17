@@ -8,13 +8,15 @@ type Price struct {
 }
 
 type State struct {
-	prices []Price
-	addrs  map[string]string
+	prices   []Price
+	addrs    map[string]string
+	balances map[string]string
 }
 
 func newState() *State {
 	return &State{
-		addrs: map[string]string{},
+		addrs:    map[string]string{},
+		balances: map[string]string{},
 	}
 }
 
@@ -27,5 +29,8 @@ func (s *State) Mutate(ts time.Time, update StateUpdate) {
 	}
 	if update.Address != nil {
 		s.addrs[update.Address.Offchain] = update.Address.Tokend
+	}
+	if update.Balance != nil {
+		s.balances[update.Balance.Address] = update.Balance.Balance
 	}
 }

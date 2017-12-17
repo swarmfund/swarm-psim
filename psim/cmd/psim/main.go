@@ -8,7 +8,7 @@ import (
 
 	// import services for side effects
 	// supervisors
-	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	//_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 	// other folks
 

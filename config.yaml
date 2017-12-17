@@ -47,8 +47,8 @@ services:
   #- notifier
   #- charger
   #- stripe_supervisor
-  - bitcoin_supervisor
-  #- eth_supervisor
+  #- bitcoin_supervisor
+  - eth_supervisor
   #- stripe_verify
   #- taxman
   #- rate_sync
