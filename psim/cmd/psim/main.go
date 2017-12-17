@@ -7,11 +7,12 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 
 	// import services for side effects
-	// supervisors
-	//_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	// eth
+	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
+	// btc
+	//_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	// other folks
-
 	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"

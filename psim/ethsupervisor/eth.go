@@ -41,6 +41,7 @@ func (s *Service) processBlocks() {
 }
 
 func (s *Service) watchHeight() {
+	// TODO eth.SubcribeNewHead
 	// TODO config
 	cursor := *big.NewInt(2271294)
 	go func() {
