@@ -118,6 +118,7 @@ func (s *Service) Run() chan error {
 
 		for ; ; time.Sleep(10 * time.Second) {
 			head := s.currentHeight()
+			fmt.Println("head is", head)
 			for new(big.Int).Sub(head, confirmations).Cmp(cursor) == 1 {
 				fmt.Println("adding block")
 				s.blocksCh <- cursor.Uint64()
@@ -206,7 +207,7 @@ func (s *Service) processTransfer(transfer Transfer) error {
 		},
 		types.NewTransaction(
 			nonce,
-			common.StringToAddress(s.config.Destination),
+			common.HexToAddress(s.config.Destination),
 			new(big.Int).Sub(transfer.Value, new(big.Int).Mul(txgas, s.config.GasPrice)),
 			txgas,
 			s.config.GasPrice,
