@@ -103,7 +103,6 @@ func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClien
 		accountDataProvider: addressProvider,
 	}
 
-	// TODO runner func must receive ctx
 	result.AddRunner(result.processBTCBlocksInfinitely)
 
 	return result

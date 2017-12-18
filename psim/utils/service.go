@@ -5,5 +5,5 @@ import "context"
 type ServiceFn func(context.Context)
 
 type Service interface {
-	Run() chan error
+	Run(ctx context.Context) chan error
 }
