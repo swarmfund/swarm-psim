@@ -10,6 +10,8 @@ import (
 	// supervisors
 	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
+	// funnels
+	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
 	// other folks
 
 	_ "gitlab.com/swarmfund/psim/psim/charger"

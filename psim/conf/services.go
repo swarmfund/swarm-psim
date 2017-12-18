@@ -11,6 +11,10 @@ const (
 	ServiceStripeVerify = "stripe_verify"
 	ServiceBTCVerify    = "btc_verify"
 
+	// Funnel
+	ServiceBTCFunnel = "btc_funnel"
+	ServiceETHFunnel = "etc_funnel"
+
 	ServiceRateSync          = "rate_sync"
 	ServiceTaxman            = "taxman"
 	ServiceCharger           = "charger"

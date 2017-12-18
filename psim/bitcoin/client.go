@@ -80,6 +80,27 @@ func (c Client) TransferAllWalletMoney(goalAddress string) (resultTXHash string,
 	return resultTXHash, nil
 }
 
+// GetWalletBalance returns current confirmed balance of the Wallet.
+func (c Client) GetWalletBalance() (float64, error) {
+	balance, err := c.connector.GetBalance()
+	if err != nil {
+		return 0, err
+	}
+
+	return balance, nil
+}
+
+// SendToAddress sends provided amount of BTC to the provided goalAddress.
+// Amount in BTC.
+func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error) {
+	resultTXHash, err = c.connector.SendToAddress(goalAddress, amount)
+	if err != nil {
+		return "", err
+	}
+
+	return resultTXHash, nil
+}
+
 func (c Client) parseBlock(blockHex string) (*btc.Block, error) {
 	bb, err := hex.DecodeString(blockHex)
 	if err != nil {
