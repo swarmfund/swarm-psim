@@ -3,23 +3,45 @@ package horizon
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 	"gitlab.com/tokend/keypair"
 )
 
+func throttle() chan time.Time {
+	burst := 2 << 10
+	ch := make(chan time.Time, burst)
+	go func() {
+		tick := time.Tick(3 * time.Second)
+		// prefill buffer
+		for i := 0; i < burst; i++ {
+			ch <- time.Now()
+		}
+		for {
+			select {
+			case ch <- <-tick:
+			default:
+			}
+		}
+	}()
+	return ch
+}
+
 type Client struct {
-	base   *url.URL
-	signer keypair.Full
+	base     *url.URL
+	signer   keypair.Full
+	throttle chan time.Time
 }
 
 func NewClient(base *url.URL) *Client {
 	return &Client{
-		base, nil,
+		base, nil, throttle(),
 	}
 }
 
 func (c *Client) Do(request *http.Request) (*http.Response, error) {
+	<-c.throttle
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to perform request")
@@ -53,6 +75,6 @@ func (c *Client) Get(endpoint string) (*http.Response, error) {
 
 func (c *Client) WithSigner(kp keypair.Full) *Client {
 	return &Client{
-		c.base, kp,
+		c.base, kp, c.throttle,
 	}
 }

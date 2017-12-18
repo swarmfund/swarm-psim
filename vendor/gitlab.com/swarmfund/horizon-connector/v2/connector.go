@@ -6,6 +6,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/account"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/asset"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/listener"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/operation"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/transaction"
 	"gitlab.com/tokend/keypair"
 )
@@ -40,5 +41,9 @@ func (c *Connector) Transactions() *transaction.Q {
 }
 
 func (c *Connector) Listener() *listener.Q {
-	return listener.NewQ(c.Transactions())
+	return listener.NewQ(c.Transactions(), c.Operations())
+}
+
+func (c *Connector) Operations() *operation.Q {
+	return operation.NewQ(c.client)
 }

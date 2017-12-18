@@ -5,6 +5,7 @@ const (
 	// eth
 	ServiceETHSupervisor = "eth_supervisor"
 	ServiceETHFunnel     = "eth_funnel"
+	ServiceETHWithdraw   = "eth_withdraw"
 
 	// btc
 	ServiceBTCSupervisor = "bitcoin_supervisor"

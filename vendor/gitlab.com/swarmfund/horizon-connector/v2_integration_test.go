@@ -9,13 +9,15 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
-	base, _ := url.Parse("http://localhost:8000")
+	base, _ := url.Parse("http://dev.swarm:8000")
 	connector := horizon.NewConnector(base)
-	asset, err := connector.Assets().ByCode("SUN")
-	if err != nil {
-		t.Fatal(err)
+	for {
+		asset, err := connector.Assets().ByCode("SUN")
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Println(asset)
 	}
-	fmt.Println(asset)
 
 	address := "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636"
 	account, err := connector.Accounts().ByAddress(address)
@@ -37,4 +39,10 @@ func TestIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(balances)
+
+	requests, err := connector.Operations().Requests("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(requests)
 }
