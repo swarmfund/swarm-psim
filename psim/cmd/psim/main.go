@@ -12,7 +12,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
 	// btc
-	//_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
 	// other folks
 
