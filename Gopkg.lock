@@ -9,6 +9,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/aristanetworks/goarista"
+  packages = ["monotime"]
+  revision = "18a2f1dd52bb9abbc1e898439df06c74f28f63a4"
+
+[[projects]]
+  branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   revision = "2e60448ffcc6bf78332d1fe590260095f554dd78"
@@ -27,7 +33,7 @@
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
-  packages = [".","common","common/hexutil","common/math","core/types","crypto","crypto/secp256k1","crypto/sha3","ethclient","log","params","rlp","rpc","trie"]
+  packages = [".","accounts","accounts/keystore","common","common/hexutil","common/math","common/mclock","core/types","crypto","crypto/randentropy","crypto/secp256k1","crypto/sha3","ethclient","event","log","params","rlp","rpc","trie"]
   revision = "4bb3c89d44e372e6a9ab85a8be0c9345265c763a"
   version = "v1.7.3"
 
@@ -146,6 +152,12 @@
   revision = "a875e7c9fa2388ce03279f6b5ba1c2ccd1f9e917"
 
 [[projects]]
+  name = "github.com/pborman/uuid"
+  packages = ["."]
+  revision = "e790cca94e6cc75c7064b1332e63811d4aae1a53"
+  version = "v1.1"
+
+[[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
   revision = "16398bac157da96aa88f98a2df640c7f32af1da2"
@@ -180,6 +192,12 @@
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
   revision = "e181e095bae94582363434144c61a9653aff6e50"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/rjeczalik/notify"
+  packages = ["."]
+  revision = "e1801ee34d54c4bf45126ef51fe9750b4e42bee8"
 
 [[projects]]
   name = "github.com/rs/cors"
@@ -230,14 +248,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/stretchr/objx"
-  packages = ["."]
-  revision = "1a9d0bb9f541897e62256577b352fdbc1fb4fd94"
-
-[[projects]]
   name = "github.com/stretchr/testify"
-  packages = ["assert","mock"]
+  packages = ["assert"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
@@ -252,6 +264,12 @@
   name = "gitlab.com/distributed_lab/discovery-go"
   packages = ["."]
   revision = "e69e2ec9bca34e913339896c87ce94b86e2fb3cd"
+
+[[projects]]
+  branch = "master"
+  name = "gitlab.com/distributed_lab/figure"
+  packages = ["."]
+  revision = "a02d226a1f2467982746bdeb284c58a53f4557aa"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -278,15 +296,21 @@
   revision = "17d5ed7a4e0f2c070498f6ad6ec7bda3b0d36d94"
 
 [[projects]]
-  branch = "master"
+  branch = "feature/v2"
   name = "gitlab.com/swarmfund/horizon-connector"
-  packages = [".","internal/resources"]
-  revision = "7b31107445466be4ec4d244569276821a42eb8df"
+  packages = [".","internal/resources","v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/transaction","v2/types"]
+  revision = "2b1e22e433eb29ef8cad5f63d531cffd3d8607f9"
+
+[[projects]]
+  branch = "master"
+  name = "gitlab.com/tokend/keypair"
+  packages = [".","internal","internal/crc16","internal/strkey"]
+  revision = "c148f15306edac6a1ad994d8b218e8ae61a0b2c1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["ripemd160","ssh/terminal"]
+  packages = ["ed25519","ed25519/internal/edwards25519","pbkdf2","ripemd160","scrypt","ssh/terminal"]
   revision = "b080dc9a8c480b08e698fb1219160d598526310f"
 
 [[projects]]
@@ -340,6 +364,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "63947c3e54aebb7a83c09bd399a629042164e612cbcdd6e81d08965ed58cff70"
+  inputs-digest = "67888593dfdb438e6e870d3a04c65b8c3dc8b4ad858c1b009caa88fbb1ea442c"
   solver-name = "gps-cdcl"
   solver-version = 1

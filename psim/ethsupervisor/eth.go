@@ -41,6 +41,7 @@ func (s *Service) processBlocks() {
 }
 
 func (s *Service) watchHeight() {
+	// TODO eth.SubcribeNewHead
 	// TODO config
 	cursor := *big.NewInt(2271294)
 	go func() {
@@ -95,33 +96,23 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	}
 
 	// address is watched
-	address := s.state.AddressAt(s.Ctx, tx.Timestamp, strings.ToLower(tx.To().String()))
+	address := s.state.AddressAt(tx.Timestamp, strings.ToLower(tx.To().String()))
 	if address == nil {
 		return nil
 	}
 
-	price := s.state.PriceAt(s.Ctx, tx.Timestamp)
+	price := s.state.PriceAt(tx.Timestamp)
 	if price == nil {
 		s.Log.WithField("tx", tx.Hash().String()).Error("price is not set, skipping tx")
 		return nil
 	}
 
-	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, *address)
-	if err != nil {
-		return err
-	}
-
-	if account == nil {
-		s.Log.WithField("tx", tx.Hash().String()).Error("account expected to exist, skipping tx")
+	receiver := s.state.Balance(*address)
+	if receiver == nil {
+		s.Log.WithField("tx", tx.Hash().String()).Error("balance not found, skipping tx")
 		return nil
 	}
 
-	receiver := ""
-	for _, b := range account.Balances {
-		if b.Asset == "SUN" {
-			receiver = b.BalanceID
-		}
-	}
 	// amount = value * price / 10^18
 	div := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
 	bigPrice := big.NewInt(*price)
@@ -141,7 +132,7 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 		reference = reference[len(reference)-64:]
 	}
 
-	if err = s.PrepareCERTx(reference, receiver, amount.Uint64()).Submit(); err != nil {
+	if err = s.PrepareCERTx(reference, *receiver, amount.Uint64()).Submit(); err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).

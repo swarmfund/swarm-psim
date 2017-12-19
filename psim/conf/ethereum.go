@@ -10,11 +10,13 @@ import (
 
 func (c *ViperConfig) Ethereum() *ethclient.Client {
 	config := struct {
-		Host string
-		Port int
+		Proto string
+		Host  string
+		Port  int
 	}{
-		Host: "localhost",
-		Port: 8545,
+		Proto: "http",
+		Host:  "localhost",
+		Port:  8545,
 	}
 	err := figure.
 		Out(&config).
@@ -25,7 +27,7 @@ func (c *ViperConfig) Ethereum() *ethclient.Client {
 		panic("failed to figure out ethereum")
 	}
 
-	client, err := ethclient.Dial(fmt.Sprintf("http://%s:%d", config.Host, config.Port))
+	client, err := ethclient.Dial(fmt.Sprintf("%s://%s:%d", config.Proto, config.Host, config.Port))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to dial eth"))
 	}

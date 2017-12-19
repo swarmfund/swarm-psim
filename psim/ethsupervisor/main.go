@@ -15,7 +15,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
-	"gitlab.com/swarmfund/psim/psim/horizonreq"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
@@ -42,20 +41,22 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizonConnector, err := app.Config(ctx).Horizon()
+		horizon, err := app.Config(ctx).Horizon()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init horizon")
 		}
 
-		requester := horizonreq.NewHorizonRequester(horizonConnector, config.Supervisor.SignerKP)
+		horizonV2 := app.Config(ctx).HorizonV2()
+
 		log := app.Log(ctx)
-		state := addrstate.New(log, internal.StateMutator,
-			addrstate.NewLedgersProvider(log.WithField("service", "eth-ledger-provider"), requester),
-			addrstate.NewChangesProvider(log.WithField("service", "eth-changes-provider"), requester),
-			requester,
+		state := addrstate.New(
+			ctx,
+			log.WithField("service", "addrstate"),
+			internal.StateMutator,
+			horizonV2.Listener(),
 		)
 
-		return New(commonSupervisor, ethClient, state, config, horizonConnector), nil
+		return New(commonSupervisor, ethClient, state, config, horizon), nil
 	})
 }
 

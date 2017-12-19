@@ -182,6 +182,7 @@ func (app *App) Run() {
 	}
 
 	wg.Wait()
+	time.Sleep(1)
 	os.Exit(0)
 }
 
