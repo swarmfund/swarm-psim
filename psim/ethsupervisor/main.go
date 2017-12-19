@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	horizon "gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -41,11 +40,6 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizon, err := app.Config(ctx).Horizon()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to init horizon")
-		}
-
 		horizonV2 := app.Config(ctx).HorizonV2()
 
 		log := app.Log(ctx)
@@ -56,7 +50,7 @@ func init() {
 			horizonV2.Listener(),
 		)
 
-		return New(commonSupervisor, ethClient, state, config, horizon), nil
+		return New(commonSupervisor, ethClient, state, config), nil
 	})
 }
 
@@ -65,7 +59,6 @@ type Service struct {
 	eth     *ethclient.Client
 	state   State
 	config  Config
-	horizon *horizon.Connector
 
 	// internal state
 	txCh     chan internal.Transaction
@@ -75,13 +68,12 @@ type Service struct {
 	depositThreshold *big.Int
 }
 
-func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, config Config, horizon *horizon.Connector) *Service {
+func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, config Config) *Service {
 	s := &Service{
 		Service: supervisor,
 		eth:     eth,
 		state:   state,
 		config:  config,
-		horizon: horizon,
 		// could be buffered to increase throughput
 		txCh:     make(chan internal.Transaction),
 		blocksCh: make(chan uint64),

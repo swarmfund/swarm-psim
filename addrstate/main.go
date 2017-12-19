@@ -36,9 +36,11 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 	return w
 }
 
-func (w *Watcher) AddressAt(ts time.Time, addr string) *string {
+func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
 	for w.head.Before(ts) {
 		select {
+		case <-ctx.Done():
+			return nil
 		case <-w.headUpdate:
 			// Make the for check again
 			continue
@@ -54,7 +56,7 @@ func (w *Watcher) AddressAt(ts time.Time, addr string) *string {
 	return &addr
 }
 
-func (w *Watcher) PriceAt(ts time.Time) *int64 {
+func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
 	for w.head.Before(ts) {
 		select {
 		case <-w.headUpdate:
@@ -70,7 +72,7 @@ func (w *Watcher) PriceAt(ts time.Time) *int64 {
 	return nil
 }
 
-func (w *Watcher) Balance(address string) *string {
+func (w *Watcher) Balance(ctx context.Context, address string) *string {
 	balance, ok := w.state.balances[address]
 	if ok {
 		return &balance

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -17,7 +16,7 @@ func init() {
 }
 
 func setupFn(ctx context.Context) (utils.Service, error) {
-	globalConfig := ctx.Value(app.CtxConfig).(conf.Config)
+	globalConfig := app.Config(ctx)
 	cfg := &Config{}
 	err := figure.Out(cfg).
 		From(globalConfig.Get(conf.ServiceOperationNotifier)).
@@ -39,17 +38,14 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		return nil, errors.Wrap(err, "failed to get horizon connector")
 	}
 
-	logger := ctx.Value(app.CtxLog).(*logan.Entry)
+	logger := app.Log(ctx)
 	logger = logger.WithField("service", "notifier")
 	logger.Info("Starting")
 
-	ctxL, cancel := context.WithCancel(ctx)
 	return &Service{
 		Config:  cfg,
 		horizon: horizonConn,
 		logger:  logger,
 		sender:  sender,
-		ctx:     ctxL,
-		cancel:  cancel,
 	}, nil
 }

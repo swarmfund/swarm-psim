@@ -59,7 +59,7 @@ func init() {
 			return nil, errors.Wrap(err, "Failed to get Bitcoin client")
 		}
 
-		return newService(ctx, serviceConfig, log, discoveryClient, listener, horizonConnector, btcClient), nil
+		return newService(serviceConfig, log, discoveryClient, listener, horizonConnector, btcClient), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCVerify, setupFn)
@@ -74,7 +74,6 @@ type btcClient interface {
 type Service struct {
 	ServiceID string
 
-	ctx      context.Context
 	config   Config
 	log      *logan.Entry
 	errors   chan error
@@ -87,12 +86,11 @@ type Service struct {
 	btcClient btcClient
 }
 
-func newService(ctx context.Context, config Config, log *logan.Entry, discovery *discovery.Client, listener net.Listener,
+func newService(config Config, log *logan.Entry, discovery *discovery.Client, listener net.Listener,
 	horizon *horizon.Connector, btcClient btcClient) *Service {
 
 	return &Service{
 		ServiceID: utils.GenerateToken(),
-		ctx:       ctx,
 		config:    config,
 		log:       log,
 		errors:    make(chan error),
@@ -108,8 +106,8 @@ func newService(ctx context.Context, config Config, log *logan.Entry, discovery 
 //Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
 //Once all runners returned - Errors channel will be closed.
 //Implements utils.Service.
-func (s *Service) Run() chan error {
-	runners := []func(){
+func (s *Service) Run(ctx context.Context) chan error {
+	runners := []func(context.Context){
 		s.registerInDiscovery,
 		s.serveAPI,
 	}
@@ -122,7 +120,7 @@ func (s *Service) Run() chan error {
 			wg.Add(1)
 
 			go func() {
-				ohigo()
+				ohigo(ctx)
 				wg.Done()
 			}()
 		}
@@ -134,7 +132,7 @@ func (s *Service) Run() chan error {
 	return s.errors
 }
 
-func (s *Service) registerInDiscovery() {
+func (s *Service) registerInDiscovery(ctx context.Context) {
 	s.discoveryService = s.discovery.Service(&discovery.ServiceRegistration{
 		Name: s.config.ServiceName,
 		ID:   s.ServiceID,
@@ -144,7 +142,7 @@ func (s *Service) registerInDiscovery() {
 	// FIXME Select from ticker and ctx.Done() simultaneously
 	ticker := time.NewTicker(5 * time.Second)
 	for ; true; <-ticker.C {
-		if app.IsCanceled(s.ctx) {
+		if app.IsCanceled(ctx) {
 			return
 		}
 

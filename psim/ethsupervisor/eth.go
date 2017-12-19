@@ -9,13 +9,15 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	"context"
+	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 // TODO defer
-func (s *Service) processBlocks() {
+func (s *Service) processBlocks(ctx context.Context) {
 	for blockNumber := range s.blocksCh {
 		s.Log.WithField("number", blockNumber).Debug("processing block")
-		block, err := s.eth.BlockByNumber(s.Ctx, big.NewInt(int64(blockNumber)))
+		block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
 		if err != nil {
 			s.Log.WithField("block_number", blockNumber).Error("failed to get block")
 			s.blocksCh <- blockNumber
@@ -40,14 +42,15 @@ func (s *Service) processBlocks() {
 	}
 }
 
-func (s *Service) watchHeight() {
-	// TODO eth.SubcribeNewHead
+// TODO eth.SubscribeNewHead
+func (s *Service) watchHeight(ctx context.Context) {
 	// TODO config
 	cursor := *big.NewInt(2271294)
+
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
 		for ; ; <-ticker.C {
-			head, err := s.eth.BlockByNumber(s.Ctx, nil)
+			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
 				s.Service.Errors <- errors.Wrap(err, "failed to get block count")
 				continue
@@ -65,10 +68,15 @@ func (s *Service) watchHeight() {
 	}()
 }
 
-func (s *Service) processTXs() {
+func (s *Service) processTXs(ctx context.Context) {
+	// TODO Listen to ctx
 	for tx := range s.txCh {
 		for {
-			if err := s.processTX(tx); err != nil {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
+			if err := s.processTX(ctx, tx); err != nil {
 				s.Log.WithError(err).Error("failed to process tx")
 				continue
 			}
@@ -78,7 +86,7 @@ func (s *Service) processTXs() {
 	}
 }
 
-func (s *Service) processTX(tx internal.Transaction) (err error) {
+func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			err = errors.FromPanic(rvr)
@@ -96,18 +104,18 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	}
 
 	// address is watched
-	address := s.state.AddressAt(tx.Timestamp, strings.ToLower(tx.To().String()))
+	address := s.state.AddressAt(ctx, tx.Timestamp, strings.ToLower(tx.To().String()))
 	if address == nil {
 		return nil
 	}
 
-	price := s.state.PriceAt(tx.Timestamp)
+	price := s.state.PriceAt(ctx, tx.Timestamp)
 	if price == nil {
 		s.Log.WithField("tx", tx.Hash().String()).Error("price is not set, skipping tx")
 		return nil
 	}
 
-	receiver := s.state.Balance(*address)
+	receiver := s.state.Balance(ctx, *address)
 	if receiver == nil {
 		s.Log.WithField("tx", tx.Hash().String()).Error("balance not found, skipping tx")
 		return nil

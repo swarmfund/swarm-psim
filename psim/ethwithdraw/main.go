@@ -64,12 +64,11 @@ func init() {
 
 		eth := app.Config(ctx).Ethereum()
 
-		return NewService(ctx, app.Log(ctx), config, horizonV2, ks, eth, horizon), nil
+		return NewService(app.Log(ctx), config, horizonV2, ks, eth, horizon), nil
 	})
 }
 
 type Service struct {
-	ctx       context.Context
 	log       *logan.Entry
 	horizonV2 *horizonV2.Connector
 	horizon   *horizon.Connector
@@ -79,11 +78,11 @@ type Service struct {
 }
 
 func NewService(
-	ctx context.Context, log *logan.Entry, config Config, horizonV2 *horizonV2.Connector,
+	log *logan.Entry, config Config, horizonV2 *horizonV2.Connector,
 	keystore *keystore.KeyStore, eth *ethclient.Client, horizon *horizon.Connector,
 ) *Service {
+
 	return &Service{
-		ctx:       ctx,
 		log:       log,
 		config:    config,
 		horizonV2: horizonV2,
@@ -93,7 +92,7 @@ func NewService(
 	}
 }
 
-func (s *Service) Run() chan error {
+func (s *Service) Run(ctx context.Context) chan error {
 	requestCh := make(chan horizonV2.Request)
 	go func() {
 		errs := s.horizonV2.Listener().Requests(requestCh)
@@ -114,7 +113,7 @@ func (s *Service) Run() chan error {
 				// TODO check asset
 				fmt.Println("and it's pending")
 				fmt.Println("amount", int64(request.Details.Withdraw.Amount))
-				nonce, err := s.eth.NonceAt(s.ctx, common.HexToAddress(s.config.From), nil)
+				nonce, err := s.eth.NonceAt(ctx, common.HexToAddress(s.config.From), nil)
 				if err != nil {
 					s.log.WithError(err).Error("failed to get nonce")
 				}
@@ -177,7 +176,7 @@ func (s *Service) Run() chan error {
 					}
 					s.log.WithError(err).Error("failed to submit review tx")
 				}
-				if err := s.eth.SendTransaction(s.ctx, tx); err != nil {
+				if err := s.eth.SendTransaction(ctx, tx); err != nil {
 					s.log.WithError(err).Error("failed to send tx")
 					continue
 				}

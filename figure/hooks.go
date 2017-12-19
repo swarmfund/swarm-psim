@@ -37,6 +37,13 @@ var (
 			}
 			return reflect.ValueOf(result), nil
 		},
+		"float64": func(value interface{}) (reflect.Value, error) {
+			result, err := cast.ToFloat64E(value)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse float64")
+			}
+			return reflect.ValueOf(result), nil
+		},
 		"bool": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToBoolE(value)
 			if err != nil {

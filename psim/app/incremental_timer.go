@@ -43,6 +43,7 @@ func (t *incrementalTimer) next() <-chan time.Time {
 // errors returned from runner will be logged with stack.
 //
 // RunOverIncrementalTimer returns only returns if ctx is canceled.
+// TODO Think of using different values for normalPeriod and initial abnormal period.
 func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, normalPeriod time.Duration) {
 	log = log.WithField("runner", runnerName)
 	normalTicker := time.NewTicker(normalPeriod)
