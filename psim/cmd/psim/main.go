@@ -13,11 +13,9 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
 	// btc
 	//_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
 	// other folks
-	"encoding/json"
-	"fmt"
 
-	"gitlab.com/swarmfund/go/xdr"
 	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"

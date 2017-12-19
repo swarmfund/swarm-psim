@@ -47,10 +47,14 @@ discovery:
 services:
   #- notifier
   #- charger
+  #
   #- stripe_supervisor
-  #- bitcoin_supervisor
-  # - eth_supervisor
-  - eth_funnel
+#  - bitcoin_supervisor
+  #- eth_supervisor
+  #
+  - btc_funnel
+#  - eth_funnel
+#
   #- stripe_verify
   #- taxman
   #- rate_sync
@@ -79,6 +83,10 @@ eth_supervisor:
     leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+
+btc_funnel:
+  address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF
+  min_funnel_amount: 0
 
 forfeit_listener:
   pprof: true

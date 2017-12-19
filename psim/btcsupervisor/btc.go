@@ -19,16 +19,12 @@ const (
 )
 
 var (
-	// FIXME Use context
+	// FIXME Use config
 	lastProcessedBlock uint64 = 1255110
 )
 
-// TODO runner func must receive ctx
-func (s *Service) processBTCBlocksInfinitely() {
+func (s *Service) processBTCBlocksInfinitely(ctx context.Context) {
 	lastProcessedBlock = s.config.LastProcessedBlock
-
-	// TODO runner func must receive ctx
-	ctx := s.Ctx
 	app.RunOverIncrementalTimer(ctx, s.Log, runnerName, s.processNewBTCBlocks, 5*time.Second)
 }
 
@@ -113,7 +109,7 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 		s.Log.WithField("block_hash", blockHash).WithField("btc_addr", addr58).
 			WithField("account_address", accountAddress).Debug("Found our watch BTC Address.")
 
-		price := s.accountDataProvider.PriceAt(s.Ctx, blockTime)
+		price := s.accountDataProvider.PriceAt(ctx, blockTime)
 		if price == nil {
 			return errors.From(errors.New("PriceAt of accountDataProvider returned nil price."),
 				logan.Field("block_hash", blockHash).Add("btc_addr", addr58).Add("account_address", accountAddress).

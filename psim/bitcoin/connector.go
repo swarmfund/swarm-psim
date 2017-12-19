@@ -16,7 +16,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-// Connector is interface Client uses to request blockchain info from some Bitcoin node.
+// Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
 type Connector interface {
 	IsTestnet() bool
 	// GetBlockCount must return index of last known Block
@@ -24,6 +24,8 @@ type Connector interface {
 	GetBlockHash(blockIndex uint64) (string, error)
 	// GetBlock must return hex of Block
 	GetBlock(blockHash string) (string, error)
+	GetBalance() (float64, error)
+	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -98,6 +100,41 @@ func (c *NodeConnector) GetBlock(blockHash string) (string, error) {
 	}
 	if response.Error != nil {
 		return "", errors.Wrap(response.Error, "Response for Block request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) GetBalance() (float64, error) {
+	var response struct {
+		Response
+		Result float64 `json:"result"`
+	}
+
+	err := c.sendRequest("getbalance", "", &response)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to send or parse get balance request")
+	}
+	if response.Error != nil {
+		return 0, errors.Wrap(response.Error, "Response for get balance request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error) {
+	var response struct {
+		Response
+		Result string `json:"result"`
+	}
+
+	// Empty strings in parameters stands for comments, `true` - is the subtract fee flag.
+	err = c.sendRequest("sendtoaddress", fmt.Sprintf(`"%s", %f, "", "", true`, goalAddress, amount), &response)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send or parse send to Address request")
+	}
+	if response.Error != nil {
+		return "", errors.Wrap(response.Error, "Response for send to Address request contains error")
 	}
 
 	return response.Result, nil

@@ -55,12 +55,11 @@ func init() {
 
 		eth := app.Config(ctx).Ethereum()
 
-		return NewService(ctx, app.Log(ctx), config, keystore, eth), nil
+		return NewService(app.Log(ctx), config, keystore, eth), nil
 	})
 }
 
 type Service struct {
-	ctx      context.Context
 	keystore *keystore.KeyStore
 	eth      *ethclient.Client
 	log      *logan.Entry
@@ -76,9 +75,8 @@ type Transfer struct {
 	Value *big.Int
 }
 
-func NewService(ctx context.Context, log *logan.Entry, config Config, keystore *keystore.KeyStore, eth *ethclient.Client) *Service {
+func NewService(log *logan.Entry, config Config, keystore *keystore.KeyStore, eth *ethclient.Client) *Service {
 	return &Service{
-		ctx:        ctx,
 		log:        log,
 		config:     config,
 		keystore:   keystore,
@@ -89,23 +87,23 @@ func NewService(ctx context.Context, log *logan.Entry, config Config, keystore *
 	}
 }
 
-func (s *Service) Run() chan error {
+func (s *Service) Run(ctx context.Context) chan error {
 	// TODO config
 	confirmations := big.NewInt(1)
 
-	go s.processBlocks()
-	go s.processTXs()
-	go s.processTransfers()
+	go s.processBlocks(ctx)
+	go s.processTXs(ctx)
+	go s.processTransfers(ctx)
 
 	go func() {
-		cursor := new(big.Int).Sub(s.currentHeight(), confirmations)
+		cursor := new(big.Int).Sub(s.currentHeight(ctx), confirmations)
 
 		fmt.Println("looking at", cursor)
 
 		// go through all balances before current
 		for _, account := range s.keystore.Accounts() {
 			fmt.Println(account.Address.String())
-			balance := s.balanceAt(account.Address, cursor)
+			balance := s.balanceAt(ctx, account.Address, cursor)
 
 			if balance.Cmp(s.config.FunnelThreshold) == -1 {
 				continue
@@ -117,7 +115,7 @@ func (s *Service) Run() chan error {
 		}
 
 		for ; ; time.Sleep(10 * time.Second) {
-			head := s.currentHeight()
+			head := s.currentHeight(ctx)
 			fmt.Println("head is", head)
 			for new(big.Int).Sub(head, confirmations).Cmp(cursor) == 1 {
 				fmt.Println("adding block")
@@ -129,9 +127,9 @@ func (s *Service) Run() chan error {
 	return make(chan error)
 }
 
-func (s *Service) currentHeight() *big.Int {
+func (s *Service) currentHeight(ctx context.Context) *big.Int {
 	for {
-		head, err := s.eth.HeaderByNumber(s.ctx, nil)
+		head, err := s.eth.HeaderByNumber(ctx, nil)
 		if err != nil {
 			s.log.WithError(err).Error("failed to fetch head")
 			continue
@@ -140,9 +138,9 @@ func (s *Service) currentHeight() *big.Int {
 	}
 }
 
-func (s *Service) balanceAt(account common.Address, block *big.Int) *big.Int {
+func (s *Service) balanceAt(ctx context.Context, account common.Address, block *big.Int) *big.Int {
 	for {
-		balance, err := s.eth.BalanceAt(s.ctx, account, block)
+		balance, err := s.eth.BalanceAt(ctx, account, block)
 		if err != nil {
 			s.log.WithError(err).Error("failed to get balance")
 			continue
@@ -151,11 +149,11 @@ func (s *Service) balanceAt(account common.Address, block *big.Int) *big.Int {
 	}
 }
 
-func (s *Service) processBlocks() {
+func (s *Service) processBlocks(ctx context.Context) {
 	for blockNumber := range s.blocksCh {
 		entry := s.log.WithField("number", blockNumber)
 		entry.Debug("processing block")
-		block, err := s.eth.BlockByNumber(s.ctx, big.NewInt(int64(blockNumber)))
+		block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
 		if err != nil {
 			entry.Error("failed to get block")
 			s.blocksCh <- blockNumber
@@ -184,9 +182,9 @@ type Transaction struct {
 	TX          types.Transaction
 }
 
-func (s *Service) processTransfers() {
+func (s *Service) processTransfers(ctx context.Context) {
 	for transfer := range s.transferCh {
-		if err := s.processTransfer(transfer); err != nil {
+		if err := s.processTransfer(ctx, transfer); err != nil {
 			s.log.WithError(err).Error("failed to process transfer")
 			continue
 		}
@@ -194,9 +192,9 @@ func (s *Service) processTransfers() {
 	}
 }
 
-func (s *Service) processTransfer(transfer Transfer) error {
+func (s *Service) processTransfer(ctx context.Context, transfer Transfer) error {
 	s.log.Info("processing transfer")
-	nonce, err := s.eth.NonceAt(s.ctx, transfer.From, nil)
+	nonce, err := s.eth.NonceAt(ctx, transfer.From, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to get nonce")
 	}
@@ -217,17 +215,18 @@ func (s *Service) processTransfer(transfer Transfer) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to sign tx")
 	}
-	if err := s.eth.SendTransaction(s.ctx, tx); err != nil {
+	if err := s.eth.SendTransaction(ctx, tx); err != nil {
 		return errors.Wrap(err, "failed to submit tx")
 	}
 	s.log.Info("transfer processed")
 	return nil
 }
 
-func (s *Service) processTXs() {
+func (s *Service) processTXs(ctx context.Context) {
+	// TODO Listen to ctx.
 	for tx := range s.txCh {
 		for {
-			if err := s.processTX(tx); err != nil {
+			if err := s.processTX(ctx, tx); err != nil {
 				s.log.WithError(err).Error("failed to process tx")
 				continue
 			}
@@ -236,7 +235,7 @@ func (s *Service) processTXs() {
 	}
 }
 
-func (s *Service) processTX(tx Transaction) (err error) {
+func (s *Service) processTX(ctx context.Context, tx Transaction) (err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			err = errors.FromPanic(rvr)
@@ -254,7 +253,7 @@ func (s *Service) processTX(tx Transaction) (err error) {
 		return nil
 	}
 
-	balance := s.balanceAt(*to, tx.BlockNumber)
+	balance := s.balanceAt(ctx, *to, tx.BlockNumber)
 	if balance.Cmp(s.config.FunnelThreshold) == -1 {
 		return nil
 	}

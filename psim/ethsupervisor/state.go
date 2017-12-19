@@ -2,10 +2,11 @@ package ethsupervisor
 
 import (
 	"time"
+	"context"
 )
 
 type State interface {
-	AddressAt(time.Time, string) *string
-	PriceAt(time.Time) *int64
-	Balance(string) *string
+	AddressAt(context.Context, time.Time, string) *string
+	PriceAt(context.Context, time.Time) *int64
+	Balance(context.Context, string) *string
 }
