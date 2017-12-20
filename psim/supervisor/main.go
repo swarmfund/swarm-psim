@@ -131,13 +131,15 @@ func (s *Service) debugAPI(ctx context.Context) {
 
 	r := ape.DefaultRouter()
 	ape.InjectPprof(r)
-	s.Log.WithField("address", s.listener.Addr().String()).Info("listening")
+	s.Log.WithField("address", s.listener.Addr().String()).Info("Starting debug API listening.")
 
 	err := ape.ListenAndServe(ctx, s.listener, r)
 	if err != nil {
-		s.Errors <- err
+		s.Log.WithError(err).Error("ListenAndServe of debug API has been stopped.")
 		return
 	}
+
+	// Yes, ape.ListenAndServe can return nil error (in case of successful shutdown).
 	return
 }
 
