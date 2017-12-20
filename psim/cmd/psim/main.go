@@ -14,6 +14,7 @@ import (
 	// btc
 	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	// other folks
 
 	_ "gitlab.com/swarmfund/psim/psim/charger"

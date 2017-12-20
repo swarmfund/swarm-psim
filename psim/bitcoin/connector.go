@@ -24,8 +24,12 @@ type Connector interface {
 	GetBlockHash(blockIndex uint64) (string, error)
 	// GetBlock must return hex of Block
 	GetBlock(blockHash string) (string, error)
-	GetBalance() (float64, error)
+	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
+	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
+	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex, privateKey string) (resultTXHex string, err error)
+	SendRawTX(txHex string) (txHash string, err error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -105,13 +109,13 @@ func (c *NodeConnector) GetBlock(blockHash string) (string, error) {
 	return response.Result, nil
 }
 
-func (c *NodeConnector) GetBalance() (float64, error) {
+func (c *NodeConnector) GetBalance(includeWatchOnly bool) (float64, error) {
 	var response struct {
 		Response
 		Result float64 `json:"result"`
 	}
 
-	err := c.sendRequest("getbalance", "", &response)
+	err := c.sendRequest("getbalance", fmt.Sprintf(`"", 1, %t`, includeWatchOnly), &response)
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to send or parse get balance request")
 	}
@@ -197,7 +201,7 @@ func (c *NodeConnector) SignRawTX(initialTXHex, privateKey string) (resultTXHex 
 	return response.Result, nil
 }
 
-func (c *NodeConnector) SendRawTX(txHex string) (resultTXHex string, err error) {
+func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 	var response struct {
 		Response
 		Result string `json:"result"`

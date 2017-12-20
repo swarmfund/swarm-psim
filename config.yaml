@@ -49,12 +49,14 @@ services:
   #- charger
   #
   #- stripe_supervisor
+
 #  - bitcoin_supervisor
+#  - btc_funnel
+  - btc_withdraw
+
   #- eth_supervisor
-  #
-  - btc_funnel
 #  - eth_funnel
-#
+
   #- stripe_verify
   #- taxman
   #- rate_sync
