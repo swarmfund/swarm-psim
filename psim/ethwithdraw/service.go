@@ -29,7 +29,6 @@ type Service struct {
 	keystore   *keystore.KeyStore
 	eth        *ethclient.Client
 	withdrawCh chan Withdraw
-	lastNonce  uint64
 }
 
 func NewService(
@@ -117,6 +116,9 @@ func (s *Service) processRequests() {
 		// submit eth tx
 		s.submitETH(withdraw.ETH)
 
+		// wait while tx is mined
+		s.ensureMined(withdraw.ETH.Hash())
+
 		return nil
 	}
 
@@ -129,6 +131,33 @@ func (s *Service) processRequests() {
 			continue
 		}
 		entry.Info("processed")
+	}
+}
+
+func (s *Service) ensureMined(hash common.Hash) {
+	do := func(hash common.Hash) (ok bool, err error) {
+		defer func() {
+			if rvr := recover(); rvr != nil {
+				err = errors.FromPanic(rvr)
+			}
+		}()
+		tx, pending, err := s.eth.TransactionByHash(s.ctx, hash)
+		if err != nil {
+			return false, errors.Wrap(err, "failed to get tx")
+		}
+		return tx != nil && !pending, nil
+	}
+	entry := s.log.WithField("hash", hash.Hex())
+	for ; ; time.Sleep(10 * time.Second) {
+		ok, err := do(hash)
+		if err != nil {
+			entry.WithError(err).Error("failed to get tx")
+			continue
+		}
+		if ok {
+			entry.Info("mined")
+			return
+		}
 	}
 }
 
@@ -150,7 +179,6 @@ func (s *Service) submitETH(tx *types.Transaction) {
 			continue
 		}
 		entry.Info("submitted eth tx")
-		s.lastNonce = tx.Nonce()
 		return
 	}
 }
@@ -161,12 +189,6 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 	nonce, err := s.eth.PendingNonceAt(s.ctx, s.config.From)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get nonce")
-	}
-
-	nonce += 1
-
-	if nonce == s.lastNonce {
-		return nil, errors.New("same nonce")
 	}
 
 	value := new(big.Int).Sub(
@@ -228,6 +250,9 @@ func (s *Service) approveWithdraw(withdraw *Withdraw) error {
 
 func (s *Service) Run(ctx context.Context) chan error {
 	s.ctx = ctx
+
+	// TODO check there is no pending transactions in the pool
+	// TODO check all approved withdraw requests are really approved
 
 	go s.listenRequests()
 	go s.processRequests()
