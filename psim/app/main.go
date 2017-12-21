@@ -104,7 +104,7 @@ func (app *App) Run() {
 	app.log.WithField("services_count", len(app.config.Services())).Info("starting services")
 	wg := sync.WaitGroup{}
 
-	ctx := context.WithValue(app.ctx, CtxConfig, app.config)
+	ctx := context.WithValue(app.ctx, ctxConfig, app.config)
 	// <!-- DEPRECATED
 	for name, service := range registeredServices {
 		if !app.isServiceEnabled(name) {
@@ -117,7 +117,7 @@ func (app *App) Run() {
 			// TODO defer panic and die
 			defer wg.Done()
 			entry := app.log.WithField("service", ohaigoagain)
-			ctx := context.WithValue(ctx, CtxLog, entry)
+			ctx := context.WithValue(ctx, ctxLog, entry)
 			if err := ohaigo(ctx); err != nil {
 				entry.WithError(err).Error("died")
 			}
@@ -173,7 +173,9 @@ func (app *App) Run() {
 				entry.WithError(err).Error("App failed to set up service.")
 				return
 			}
-			for err := range service.Run() {
+
+			// TODO Pass another ctx here - just for cancelling.
+			for err := range service.Run(ctx) {
 				entry.WithStack(err).WithError(err).Warn("service error")
 				<-throttle.C
 			}
@@ -182,6 +184,7 @@ func (app *App) Run() {
 	}
 
 	wg.Wait()
+	time.Sleep(1)
 	os.Exit(0)
 }
 

@@ -19,15 +19,10 @@ type Service struct {
 	logger  *logan.Entry
 	errors  chan error
 	sse     *sse.Listener
-
-	// teardown
-	ctx    context.Context
-	cancel context.CancelFunc
 }
 
 // New returns new instance of the Service service.
 func New(
-	ctx context.Context,
 	config *Config,
 	sender *notificator.Connector,
 	horizonConn *horizon.Connector,
@@ -38,13 +33,12 @@ func New(
 		horizon: horizonConn,
 		logger:  logger,
 		sender:  sender,
-		ctx:     ctx,
 	}
 }
 
 // Run start service executing
 // returns chan of processing errors.
-func (s *Service) Run() chan error {
+func (s *Service) Run(ctx context.Context) chan error {
 	s.errors = make(chan error)
 
 	wg := sync.WaitGroup{}
@@ -64,7 +58,7 @@ func (s *Service) Run() chan error {
 				}
 				wg.Done()
 			}()
-			serviceRunner(s.ctx)
+			serviceRunner(ctx)
 		}()
 	}
 

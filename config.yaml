@@ -33,6 +33,7 @@ bitcoin:
   min_deposit_value: 1000000 # 0.01 BTC
 
 ethereum:
+  proto: http
   host: 18.195.18.3
   port: 8545
 
@@ -46,9 +47,14 @@ discovery:
 services:
   #- notifier
   #- charger
+  #
   #- stripe_supervisor
-  - bitcoin_supervisor
+#  - bitcoin_supervisor
   #- eth_supervisor
+  #
+  - btc_funnel
+#  - eth_funnel
+#
   #- stripe_verify
   #- taxman
   #- rate_sync
@@ -69,11 +75,18 @@ bitcoin_supervisor:
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 
+eth_funnel:
+  keystore: "/tmp/wallets"
+
 eth_supervisor:
   supervisor:
     leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+
+btc_funnel:
+  address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF
+  min_funnel_amount: 0
 
 forfeit_listener:
   pprof: true

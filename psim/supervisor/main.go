@@ -19,7 +19,6 @@ import (
 
 // Service is common Supervisor for using in different specific Supervisors.
 type Service struct {
-	Ctx    context.Context
 	Log    *logan.Entry
 	Errors chan error
 
@@ -30,7 +29,7 @@ type Service struct {
 	horizon   *horizon.Connector
 	discovery *discovery.Client
 	listener  net.Listener
-	runners   []func()
+	runners   []func(context.Context)
 }
 
 // InitNew prepares new Service (Supervisor), initializing it with all necessary helpers, got from ctx.
@@ -54,18 +53,15 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	result := New(ctx, log, horizonConnector, discoveryClient, config, listener)
+	result := New(log, horizonConnector, discoveryClient, config, listener)
 
 	result.initCommonRunners()
 	return result, nil
 }
 
-func New(ctx context.Context, log *logan.Entry, horizon *horizon.Connector, discovery *discovery.Client, config Config, listener net.Listener) *Service {
+func New(log *logan.Entry, horizon *horizon.Connector, discovery *discovery.Client, config Config, listener net.Listener) *Service {
 
 	return &Service{
-		// TODO Avoid ctx from in struct
-		Ctx:    ctx,
-
 		Log:    log,
 		Errors: make(chan error),
 
@@ -102,14 +98,14 @@ func (s *Service) initCommonRunners() {
 // AddRunner adds a runner to be run in separate goroutine each.
 // Runner must be blocking, once runner returned - it won't be called again.
 // TODO runner func must receive ctx
-func (s *Service) AddRunner(runner func()) {
+func (s *Service) AddRunner(runner func(context.Context)) {
 	s.runners = append(s.runners, runner)
 }
 
 // Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
 // Once all runners returned - Errors channel will be closed.
 // Implements utils.Service.
-func (s *Service) Run() chan error {
+func (s *Service) Run(ctx context.Context) chan error {
 	go func() {
 		wg := sync.WaitGroup{}
 
@@ -118,8 +114,7 @@ func (s *Service) Run() chan error {
 			wg.Add(1)
 
 			go func() {
-				// TODO runner func must receive ctx
-				ohigo()
+				ohigo(ctx)
 				wg.Done()
 			}()
 		}
@@ -131,15 +126,14 @@ func (s *Service) Run() chan error {
 	return s.Errors
 }
 
-// TODO runner func must receive ctx
-func (s *Service) debugAPI() {
+func (s *Service) debugAPI(ctx context.Context) {
 	s.Log.Info("enabling debug endpoints")
 
 	r := ape.DefaultRouter()
 	ape.InjectPprof(r)
 	s.Log.WithField("address", s.listener.Addr().String()).Info("listening")
 
-	err := ape.ListenAndServe(s.Ctx, s.listener, r)
+	err := ape.ListenAndServe(ctx, s.listener, r)
 	if err != nil {
 		s.Errors <- err
 		return
@@ -147,16 +141,15 @@ func (s *Service) debugAPI() {
 	return
 }
 
-// TODO runner func must receive ctx
 // TODO Run over incremental timer.
-func (s *Service) acquireLeadership() {
+func (s *Service) acquireLeadership(ctx context.Context) {
 	var session *discovery.Session
 	var err error
 
 	// FIXME Select from ticker and ctx.Done() simultaneously
 	ticker := time.NewTicker(5 * time.Second)
 	for ; true; <-ticker.C {
-		if app.IsCanceled(s.Ctx) {
+		if app.IsCanceled(ctx) {
 			return
 		}
 

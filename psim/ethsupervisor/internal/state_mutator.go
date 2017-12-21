@@ -24,6 +24,12 @@ func StateMutator(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 		}
 	case xdr.LedgerEntryChangeTypeCreated:
 		switch change.Created.Data.Type {
+		case xdr.LedgerEntryTypeBalance:
+			data := change.Created.Data.Balance
+			update.Balance = &addrstate.StateBalanceUpdate{
+				Address: data.AccountId.Address(),
+				Balance: data.BalanceId.AsString(),
+			}
 		case xdr.LedgerEntryTypeAssetPair:
 			data := change.Created.Data.AssetPair
 			if data.Base != "ETH" || data.Quote != "SUN" {

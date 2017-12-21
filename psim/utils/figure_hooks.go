@@ -28,7 +28,6 @@ var (
 			}
 		},
 
-		// ToDo: Move to psim/figure/BaseHooks
 		"*keypair.Full": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {
 			case string:
