@@ -4,52 +4,10 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 )
 
 const (
 	tag = "fig"
-)
-
-var (
-	// BaseHooks set of default hooks for common types
-	BaseHooks = Hooks{
-		"string": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToStringE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"[]string": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToStringSliceE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse []string")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"int": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToIntE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse int")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"bool": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToBoolE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse bool")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"*time.Time": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToTimeE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse time")
-			}
-			return reflect.ValueOf(&result), nil
-		},
-	}
 )
 
 // Hook signature for custom hooks.
