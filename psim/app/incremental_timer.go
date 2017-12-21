@@ -51,11 +51,11 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("Context is canceled - stopping.")
+			log.Info("Context is canceled - stopping runner.")
 			return
 		case <-normalTicker.C:
 			if IsCanceled(ctx) {
-				log.Info("Context is canceled - stopping.")
+				log.Info("Context is canceled - stopping runner.")
 				return
 			}
 
@@ -67,7 +67,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 
 				runAbnormalExecution(ctx, log, runner, normalPeriod)
 				if IsCanceled(ctx) {
-					log.Info("Context is canceled - stopping.")
+					log.Info("Context is canceled - stopping runner.")
 					return
 				}
 			}

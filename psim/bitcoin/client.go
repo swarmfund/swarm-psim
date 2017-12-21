@@ -61,7 +61,7 @@ func (c Client) GetBlockByHash(blockHash string) (*btc.Block, error) {
 // TransferAllWalletMoney gets current confirmed balance of the Wallet
 // and sends all those BTCs to the provided goalAddress.
 func (c Client) TransferAllWalletMoney(goalAddress string) (resultTXHash string, err error) {
-	balance, err := c.connector.GetBalance()
+	balance, err := c.connector.GetBalance(false)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Wallet balance")
 	}
@@ -82,7 +82,7 @@ func (c Client) TransferAllWalletMoney(goalAddress string) (resultTXHash string,
 
 // GetWalletBalance returns current confirmed balance of the Wallet.
 func (c Client) GetWalletBalance() (float64, error) {
-	balance, err := c.connector.GetBalance()
+	balance, err := c.connector.GetBalance(false)
 	if err != nil {
 		return 0, err
 	}
@@ -99,6 +99,38 @@ func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash 
 	}
 
 	return resultTXHash, nil
+}
+
+// CreateRawTX creates TX, which pays provided amount
+// to the provided goalAddress, passing change to the provided changeAddress.
+// Node decides, which UTXOs use for inputs for the TX during the FundRawTX request.
+// The returned Transaction is not submitted into the network,
+// it is not even signed yet.
+// However, UTXOs used as inputs in this TX has been locked.
+func (c Client) CreateRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
+	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to CreateRawTX")
+	}
+
+	txHex, err = c.connector.FundRawTX(txHex, changeAddress)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
+			"created_tx_hex": txHex,
+		})
+	}
+
+	return txHex, nil
+}
+
+// SignRawTX signs provided TX with the provided privateKey.
+func (c Client) SignRawTX(txHex, privateKey string) (resultTXHex string, err error) {
+	return c.connector.SignRawTX(txHex, privateKey)
+}
+
+// SendRawTX submits TX into the blockchain.
+func (c Client) SendRawTX(txHex string) (txHash string, err error) {
+	return c.connector.SendRawTX(txHex)
 }
 
 func (c Client) parseBlock(blockHex string) (*btc.Block, error) {

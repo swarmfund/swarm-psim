@@ -151,14 +151,7 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 		reference = reference[len(reference)-64:]
 	}
 
-	//cerExists, err := s.CheckCoinEmissionRequestExistence(reference)
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed to check CoinEmissionRequest existence")
-	//}
-	//
-	//if cerExists {
-	//	return nil
-	//}
+	// TODO Verify
 
 	// TODO Verify
 	//txBuilder := s.PrepareCERTx(reference, accountAddress, amount)
@@ -177,8 +170,11 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 	//
 	//s.SendCoinEmissionRequestForVerify(s.Ctx, verifyPayload)
 
-	fields := logan.Field("account_address", accountAddress).Add("reference", reference).
-		Add("block_hash", blockHash).Add("tx_hash", txHash).Add("out_index", outIndex)
+	fields := logan.F{"account_address": accountAddress,
+						"reference": reference,
+						"block_hash": blockHash,
+						"tx_hash": txHash,
+						"out_index": outIndex,}
 
 	// TODO Move getting of BalanceID into accountDataProvider.
 	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, accountAddress)
@@ -187,7 +183,7 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 	}
 
 	if account == nil {
-		return errors.New("account expected to exist")
+		return errors.New("Horizon returned nil Account.")
 	}
 
 	receiver := ""
@@ -203,7 +199,8 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 
 	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
 
-	err = s.PrepareCERTx(reference, receiver, amount).Submit()
+	err = s.PrepareCERTx(reference, receiver, amount).
+		Submit()
 	if err != nil {
 		s.Log.WithError(err).Error("Failed to submit CoinEmissionRequest Transaction.")
 		return nil
