@@ -1,12 +1,13 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/swarmfund/go/keypair"
 )
 
 var (
@@ -19,6 +20,20 @@ var (
 					return reflect.Value{}, errors.New("invalid address")
 				}
 				return reflect.ValueOf(common.HexToAddress(v)), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
+		"keypair.KP": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				kp, err := keypair.Parse(v)
+				if err != nil {
+					return reflect.Value{}, errors.Wrap(err, "failed to parse kp")
+				}
+				return reflect.ValueOf(kp), nil
+			case nil:
+				return reflect.ValueOf(nil), nil
 			default:
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}
