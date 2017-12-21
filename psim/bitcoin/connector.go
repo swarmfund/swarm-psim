@@ -24,8 +24,12 @@ type Connector interface {
 	GetBlockHash(blockIndex uint64) (string, error)
 	// GetBlock must return hex of Block
 	GetBlock(blockHash string) (string, error)
-	GetBalance() (float64, error)
+	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
+	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
+	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex, privateKey string) (resultTXHex string, err error)
+	SendRawTX(txHex string) (txHash string, err error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -105,13 +109,13 @@ func (c *NodeConnector) GetBlock(blockHash string) (string, error) {
 	return response.Result, nil
 }
 
-func (c *NodeConnector) GetBalance() (float64, error) {
+func (c *NodeConnector) GetBalance(includeWatchOnly bool) (float64, error) {
 	var response struct {
 		Response
 		Result float64 `json:"result"`
 	}
 
-	err := c.sendRequest("getbalance", "", &response)
+	err := c.sendRequest("getbalance", fmt.Sprintf(`"", 1, %t`, includeWatchOnly), &response)
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to send or parse get balance request")
 	}
@@ -135,6 +139,80 @@ func (c *NodeConnector) SendToAddress(goalAddress string, amount float64) (resul
 	}
 	if response.Error != nil {
 		return "", errors.Wrap(response.Error, "Response for send to Address request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error) {
+	var response struct {
+		Response
+		Result string `json:"result"`
+	}
+
+	err = c.sendRequest("createrawtransaction", fmt.Sprintf(`[], {"%s": %f}`, goalAddress, amount), &response)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send or parse create raw Transaction request")
+	}
+	if response.Error != nil {
+		return "", errors.Wrap(response.Error, "Response for create raw Transaction request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error) {
+	var response struct {
+		Response
+		Result string `json:"result"`
+	}
+
+	err = c.sendRequest("fundrawtransaction",
+		fmt.Sprintf(`"%s", {
+			"changeAddress": "%s",
+			"includeWatching": true,
+			"lockUnspents": true
+		}`, initialTXHex, changeAddress), &response)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
+	}
+	if response.Error != nil {
+		return "", errors.Wrap(response.Error, "Response for fund raw Transaction request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) SignRawTX(initialTXHex, privateKey string) (resultTXHex string, err error) {
+	var response struct {
+		Response
+		Result string `json:"result"`
+	}
+
+	err = c.sendRequest("signrawtransaction",
+		fmt.Sprintf(`"%s", [], ["%s"]`, initialTXHex, privateKey), &response)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send or parse sign raw Transaction request")
+	}
+	if response.Error != nil {
+		return "", errors.Wrap(response.Error, "Response for sign raw Transaction request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
+	var response struct {
+		Response
+		Result string `json:"result"`
+	}
+
+	err = c.sendRequest("sendrawtransaction", fmt.Sprintf(`"%s"`, txHex), &response)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send or parse send raw Transaction request")
+	}
+	if response.Error != nil {
+		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error")
 	}
 
 	return response.Result, nil

@@ -49,12 +49,14 @@ services:
   #- charger
   #
   #- stripe_supervisor
+
 #  - bitcoin_supervisor
+#  - btc_funnel
+  - btc_withdraw
+
   #- eth_supervisor
-  #
-  - btc_funnel
 #  - eth_funnel
-#
+
   #- stripe_verify
   #- taxman
   #- rate_sync
@@ -85,7 +87,7 @@ eth_supervisor:
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 
 btc_funnel:
-  address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF
+  address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
   min_funnel_amount: 0
 
 forfeit_listener:

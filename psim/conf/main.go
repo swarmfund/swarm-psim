@@ -18,6 +18,7 @@ import (
 type Config interface {
 	Init() error
 	Get(key string) map[string]interface{}
+	// TODO Panic instead of returning errors.
 	Discovery() (*discovery.Client, error)
 	Log() (*logan.Entry, error)
 	Horizon() (*horizon.Connector, error)

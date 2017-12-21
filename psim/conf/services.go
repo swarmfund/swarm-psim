@@ -9,8 +9,9 @@ const (
 
 	// btc
 	ServiceBTCSupervisor = "bitcoin_supervisor"
-	ServiceBTCVerify    = "btc_verify"
-	ServiceBTCFunnel = "btc_funnel"
+	ServiceBTCVerify     = "btc_verify"
+	ServiceBTCFunnel     = "btc_funnel"
+	ServiceBTCWithdraw   = "btc_withdraw"
 
 	// Verifies
 	ServiceStripeVerify = "stripe_verify"
