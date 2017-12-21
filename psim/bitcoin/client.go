@@ -104,9 +104,13 @@ func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash 
 // CreateRawTX creates TX, which pays provided amount
 // to the provided goalAddress, passing change to the provided changeAddress.
 // Node decides, which UTXOs use for inputs for the TX during the FundRawTX request.
+//
 // The returned Transaction is not submitted into the network,
 // it is not even signed yet.
 // However, UTXOs used as inputs in this TX has been locked.
+//
+// If there is not enough unlocked BTC to fulfil the TX -
+// error with cause ErrInsufficientFunds is returned.
 func (c Client) CreateRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
 	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
 	if err != nil {
@@ -124,8 +128,23 @@ func (c Client) CreateRawTX(goalAddress string, amount float64, changeAddress st
 }
 
 // SignRawTX signs provided TX with the provided privateKey.
-func (c Client) SignRawTX(txHex, privateKey string) (resultTXHex string, err error) {
-	return c.connector.SignRawTX(txHex, privateKey)
+func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error) {
+	tx, err := c.parseTX(txHex)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
+	}
+
+	var outputs []Out
+	for _, in := range tx.TxIn {
+		outputs = append(outputs, Out{
+			TXHash: hex.EncodeToString(in.Input.Hash[:]),
+			Vout:   in.Input.Vout,
+			ScriptPubKey: scriptPubKey,
+			RedeemScript: redeemScript,
+		})
+	}
+
+	return c.connector.SignRawTX(txHex, outputs, privateKey)
 }
 
 // SendRawTX submits TX into the blockchain.
@@ -145,6 +164,20 @@ func (c Client) parseBlock(blockHex string) (*btc.Block, error) {
 	}
 
 	return block, nil
+}
+
+func (c Client) parseTX(txHex string) (*btc.Tx, error) {
+	bb, err := hex.DecodeString(txHex)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to decode TX hex string to bytes")
+	}
+
+	tx, _ := btc.NewTx(bb)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build new TX from bytes")
+	}
+
+	return tx, nil
 }
 
 func (c Client) IsTestnet() bool {

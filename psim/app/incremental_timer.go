@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type incrementalTimer struct {
@@ -59,8 +60,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 				return
 			}
 
-			// TODO runner func must receive ctx
-			err := runner(ctx)
+			err := runSafely(ctx, runner)
 
 			if err != nil {
 				log.WithStack(err).WithError(err).Error("Runner returned error.")
@@ -88,8 +88,7 @@ func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func(con
 				return
 			}
 
-			// TODO runner func must receive ctx
-			err := runner(ctx)
+			err := runSafely(ctx, runner)
 			if err == nil {
 				log.Info("Runner is returning to normal execution.")
 				return
@@ -98,4 +97,14 @@ func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func(con
 				WithStack(err).WithError(err).Error("Runner returned error.")
 		}
 	}
+}
+
+func runSafely(ctx context.Context, runner func(context.Context) error) (err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			err = errors.Wrap(errors.FromPanic(rec), "Runner panicked")
+		}
+	}()
+
+	return runner(ctx)
 }

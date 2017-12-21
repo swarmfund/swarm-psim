@@ -87,7 +87,7 @@
 
 [[constraint]]
   name = "gitlab.com/distributed_lab/logan"
-  version = "3.0.0"
+  version = "3.2"
 
 [[constraint]]
   name = "gitlab.com/distributed_lab/sse-go"

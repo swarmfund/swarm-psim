@@ -11,6 +11,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
 	"fmt"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 const (
@@ -23,7 +24,7 @@ type RequestListener interface{
 
 type BTCClient interface {
 	CreateRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
-	SignRawTX(txHex, privateKey string) (resultTXHex string, err error)
+	SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
 
@@ -69,7 +70,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	case request := <- s.requests:
 		err := s.processRequest(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Request", logan.F{
+			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{
 				"request_id": request.ID,
 			})
 		}
@@ -80,7 +81,6 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	}
 }
 
-// TODO Refactor me.
 func (s *Service) processRequest(ctx context.Context, request horizonV2.Request) error {
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		// not a withdraw request
@@ -91,68 +91,114 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 		return nil
 	}
 
+	// TODO Fix Amount. Now wrong amount is used (sun)
 	// Divide by 10^8 (satoshi)
 	amount := float64(int64(request.Details.Withdraw.Amount)) / 10000000.0
 	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
+
+	err := s.processPendingWithdrawRequest(ctx, withdrawAddress, amount, request.ID, request.Hash)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) processPendingWithdrawRequest(ctx context.Context, withdrawAddress string, withdrawAmount float64,
+		requestID uint64, requestHash string) error {
+
 	fields := logan.F{
+		"request_id":       requestID,
 		"withdraw_address": withdrawAddress,
-		"withdraw_amount":           amount,
+		"withdraw_amount":  withdrawAmount,
 	}
 
-	txHex, err := s.btcClient.CreateRawTX(withdrawAddress, amount, s.config.HotWalletAddress)
+	s.log.WithFields(fields).Info("Processing pending Withdraw Request.")
+
+	signedTXHex, err := s.prepareSignedBitcoinTX(withdrawAddress, withdrawAmount)
 	if err != nil {
-		return errors.Wrap(err, "Failed to create raw TX", fields)
+		return errors.Wrap(err, "Failed to prepare signed Bitcoin TX", fields)
 	}
 
-	txHex, err = s.btcClient.SignRawTX(txHex, s.config.PrivateKey)
+	fields = fields.Add("signed_tx_hex", signedTXHex)
+
+	// TODO Add tx hash into details
+	//err = s.submitReviewRequestOp(requestID, requestHash, signedTXHex)
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
+	//}
+	//
+	//txHash, err := s.btcClient.SendRawTX(signedTXHex)
+	//if err != nil {
+	//	// This problem should be fixed manually.
+	//	// Transactions from approved requests not existing in the Bitcoin blockchain
+	//	// should be submitted once more.
+	//	// This process should probably be automated.
+	//	s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
+	//	return nil
+	//}
+	//
+	//fields = fields.Add("tx_hash", txHash)
+
+
+	s.log.WithFields(fields).Info("Sent withdraw TX to Bitcoin blockchain successfully.")
+	return nil
+
+}
+
+func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount float64) (signedTXHex string, err error) {
+	unsignedTXHex, err := s.btcClient.CreateRawTX(withdrawAddress, withdrawAmount, s.config.HotWalletAddress)
 	if err != nil {
-		return errors.Wrap(err, "Failed to sing raw TX using first PrivateKey", fields)
+		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
+			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet")
+		}
+
+		return "", errors.Wrap(err, "Failed to create raw TX")
 	}
+
+	signedOnceTXHex, err := s.btcClient.SignAllTXInputs(unsignedTXHex, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to sing raw TX using first PrivateKey", logan.F{"unsigned_tx_hex": unsignedTXHex})
+	}
+
 	// TODO Move signing by second PrivateKey to some verifier service.
-	txHex, err = s.btcClient.SignRawTX(txHex, s.config.PrivateKey2)
+	signedTXHex, err = s.btcClient.SignAllTXInputs(signedOnceTXHex, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey2)
 	if err != nil {
-		return errors.Wrap(err, "Failed to sing raw TX using second PrivateKey", fields)
+		return "", errors.Wrap(err, "Failed to sing raw TX using second PrivateKey", logan.F{"signed_once_tx_hex": signedOnceTXHex})
 	}
 
-	// Now txHex is hex of ready and signed TX.
-	fields = fields.Add("signed_tx_hex", txHex)
+	return signedTXHex, nil
+}
 
-	err = s.horizon.Transaction(&horizon.TransactionBuilder{
+// TODO Add tx hash
+func (s *Service) submitReviewRequestOp(requestID uint64, requestHash, signedTXHex string) error {
+	err := s.horizon.Transaction(&horizon.TransactionBuilder{
 		Source: s.config.SourceKP,
 	}).Op(&horizon.ReviewRequestOp{
-		ID:     request.ID,
-		Hash:   request.Hash,
+		ID:     requestID,
+		Hash:   requestHash,
 		Action: xdr.ReviewRequestOpActionApprove,
 		Details: horizon.ReviewRequestOpDetails{
 			Type: xdr.ReviewableRequestTypeWithdraw,
 			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{
 				// TODO Pass raw TX and hash in some JSON.
-				ExternalDetails: fmt.Sprintf("%x", txHex),
+				ExternalDetails: fmt.Sprintf("%x", signedTXHex),
 			},
 		},
 	}).
 		Sign(s.config.SignerKP).
 		Submit()
 	if err != nil {
+		var fields logan.F
+
 		sErr, ok := errors.Cause(err).(horizon.SubmitError)
 		if ok {
-			fields = fields.Add("horizon_submit_error_response_body", string(sErr.ResponseBody()))
+			fields = logan.F{"horizon_submit_error_response_body": string(sErr.ResponseBody())}
 		}
-		s.log.WithFields(fields).WithError(err).Error("Failed to submit ReviewRequest Operation.")
 
-		return errors.Wrap(err, "Failed to submit Transaction to Horizon")
+		return errors.Wrap(err, "Failed to submit Transaction to Horizon", fields)
 	}
 
-	txHash, err := s.btcClient.SendRawTX(txHex)
-	if err != nil {
-		// This problem should be fixed manually.
-		// Transactions from approved requests not existing in the Bitcoin blockchain
-		// should be submitted once more.
-		// This process should probably be automated.
-		s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
-		return nil
-	}
-
-	s.log.WithField("tx_hash", txHash).Info("Sent withdraw TX to Bitcoin blockchain successfully.")
 	return nil
 }
+
