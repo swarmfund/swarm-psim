@@ -10,12 +10,15 @@ import (
 	"time"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
-	"fmt"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"encoding/json"
+	"github.com/piotrnar/gocoin/lib/btc"
+	"encoding/hex"
 )
 
 const (
 	requestStatePending int32 = 1
+	btcAsset = "BTC"
 )
 
 type RequestListener interface{
@@ -91,9 +94,13 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 		return nil
 	}
 
-	// TODO Fix Amount. Now wrong amount is used (sun)
-	// Divide by 10^8 (satoshi)
-	amount := float64(int64(request.Details.Withdraw.Amount)) / 10000000.0
+	if request.Details.Withdraw.DestinationAsset != btcAsset {
+		// Withdraw not to a BTC - not interesting for this Service.
+		return nil
+	}
+
+	// Divide by 10^4 (precision of the system)
+	amount := float64(int64(request.Details.Withdraw.DestinationAmount)) / 10000.0
 	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
 
 	err := s.processPendingWithdrawRequest(ctx, withdrawAddress, amount, request.ID, request.Hash)
@@ -122,23 +129,30 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, withdrawAdd
 
 	fields = fields.Add("signed_tx_hex", signedTXHex)
 
-	// TODO Add tx hash into details
-	//err = s.submitReviewRequestOp(requestID, requestHash, signedTXHex)
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
-	//}
-	//
-	//txHash, err := s.btcClient.SendRawTX(signedTXHex)
-	//if err != nil {
-	//	// This problem should be fixed manually.
-	//	// Transactions from approved requests not existing in the Bitcoin blockchain
-	//	// should be submitted once more.
-	//	// This process should probably be automated.
-	//	s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
-	//	return nil
-	//}
-	//
-	//fields = fields.Add("tx_hash", txHash)
+	txBytes, err := hex.DecodeString(signedTXHex)
+	if err != nil {
+		return errors.Wrap(err, "Failed to decode signed TX hex into bytes", fields)
+	}
+	tx, _ := btc.NewTx(txBytes)
+	signedTXHash := tx.Hash.String()
+	fields = fields.Add("signed_tx_hash", signedTXHash)
+
+	err = s.submitReviewRequestOp(requestID, requestHash, signedTXHash, signedTXHex)
+	if err != nil {
+		return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
+	}
+
+	sentTXHash, err := s.btcClient.SendRawTX(signedTXHex)
+	if err != nil {
+		// This problem should be fixed manually.
+		// Transactions from approved requests not existing in the Bitcoin blockchain
+		// should be submitted once more.
+		// This process should probably be automated.
+		s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
+		return nil
+	}
+
+	fields = fields.Add("sent_tx_hash", sentTXHash)
 
 
 	s.log.WithFields(fields).Info("Sent withdraw TX to Bitcoin blockchain successfully.")
@@ -170,9 +184,20 @@ func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount 
 	return signedTXHex, nil
 }
 
-// TODO Add tx hash
-func (s *Service) submitReviewRequestOp(requestID uint64, requestHash, signedTXHex string) error {
-	err := s.horizon.Transaction(&horizon.TransactionBuilder{
+func (s *Service) submitReviewRequestOp(requestID uint64, requestHash, signedTXHash, signedTXHex string) error {
+	externalDetails := struct {
+		TXHash string `json:"tx_hash"`
+		TXHex  string `json:"tx_hex"`
+	}{
+		TXHash: signedTXHash,
+		TXHex:  signedTXHex,
+	}
+	detailsBytes, err := json.Marshal(externalDetails)
+	if err != nil {
+		errors.Wrap(err, "Failed to marshal ExternalDetails for OpWithdrawal (containing hex and hash of BTC TX)")
+	}
+
+	err = s.horizon.Transaction(&horizon.TransactionBuilder{
 		Source: s.config.SourceKP,
 	}).Op(&horizon.ReviewRequestOp{
 		ID:     requestID,
@@ -181,13 +206,13 @@ func (s *Service) submitReviewRequestOp(requestID uint64, requestHash, signedTXH
 		Details: horizon.ReviewRequestOpDetails{
 			Type: xdr.ReviewableRequestTypeWithdraw,
 			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{
-				// TODO Pass raw TX and hash in some JSON.
-				ExternalDetails: fmt.Sprintf("%x", signedTXHex),
+				ExternalDetails: string(detailsBytes),
 			},
 		},
 	}).
 		Sign(s.config.SignerKP).
 		Submit()
+
 	if err != nil {
 		var fields logan.F
 

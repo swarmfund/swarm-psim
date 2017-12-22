@@ -102,7 +102,7 @@ func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func(con
 func runSafely(ctx context.Context, runner func(context.Context) error) (err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			err = errors.Wrap(errors.FromPanic(rec), "Runner panicked")
+			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), "Runner panicked")
 		}
 	}()
 
