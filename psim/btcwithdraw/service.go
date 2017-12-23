@@ -17,6 +17,8 @@ import (
 )
 
 const (
+	RejectReasonInvalidAddress = "invalid_btc_address"
+
 	requestStatePending int32 = 1
 	btcAsset = "BTC"
 )
@@ -99,11 +101,28 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 		return nil
 	}
 
+	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
+	_ , err := btc.DecodePrivateAddr(withdrawAddress)
+	if err != nil {
+		s.log.WithField("withdraw_address", withdrawAddress).WithField("request_id", request.ID).WithError(err).
+			Warn("Got BTC Withdraw Request with wrong BTC Address.")
+
+		err := s.submitPermanentRejectRequest(request.ID, request.Hash, RejectReasonInvalidAddress)
+		if err != nil {
+			return errors.Wrap(err, "Failed to submit PermanentReject for Request",
+				logan.F{
+					"withdraw_address": withdrawAddress,
+					"reject_reason":    RejectReasonInvalidAddress,
+				})
+		}
+
+		return nil
+	}
+
 	// Divide by 10^4 (precision of the system)
 	amount := float64(int64(request.Details.Withdraw.DestinationAmount)) / 10000.0
-	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
 
-	err := s.processPendingWithdrawRequest(ctx, withdrawAddress, amount, request.ID, request.Hash)
+	err = s.processPendingWithdrawRequest(ctx, withdrawAddress, amount, request.ID, request.Hash)
 	if err != nil {
 		return err
 	}
@@ -137,22 +156,22 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, withdrawAdd
 	signedTXHash := tx.Hash.String()
 	fields = fields.Add("signed_tx_hash", signedTXHash)
 
-	err = s.submitReviewRequestOp(requestID, requestHash, signedTXHash, signedTXHex)
-	if err != nil {
-		return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
-	}
-
-	sentTXHash, err := s.btcClient.SendRawTX(signedTXHex)
-	if err != nil {
-		// This problem should be fixed manually.
-		// Transactions from approved requests not existing in the Bitcoin blockchain
-		// should be submitted once more.
-		// This process should probably be automated.
-		s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
-		return nil
-	}
-
-	fields = fields.Add("sent_tx_hash", sentTXHash)
+	//err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
+	//}
+	//
+	//sentTXHash, err := s.btcClient.SendRawTX(signedTXHex)
+	//if err != nil {
+	//	// This problem should be fixed manually.
+	//	// Transactions from approved requests not existing in the Bitcoin blockchain
+	//	// should be submitted once more.
+	//	// This process should probably be automated.
+	//	s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
+	//	return nil
+	//}
+	//
+	//fields = fields.Add("sent_tx_hash", sentTXHash)
 
 
 	s.log.WithFields(fields).Info("Sent withdraw TX to Bitcoin blockchain successfully.")
@@ -184,7 +203,7 @@ func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount 
 	return signedTXHex, nil
 }
 
-func (s *Service) submitReviewRequestOp(requestID uint64, requestHash, signedTXHash, signedTXHex string) error {
+func (s *Service) submitApproveRequest(requestID uint64, requestHash, signedTXHash, signedTXHex string) error {
 	externalDetails := struct {
 		TXHash string `json:"tx_hash"`
 		TXHex  string `json:"tx_hex"`
@@ -227,3 +246,32 @@ func (s *Service) submitReviewRequestOp(requestID uint64, requestHash, signedTXH
 	return nil
 }
 
+func (s *Service) submitPermanentRejectRequest(requestID uint64, requestHash, rejectReason string) error {
+	err := s.horizon.Transaction(&horizon.TransactionBuilder{
+		Source: s.config.SourceKP,
+	}).Op(&horizon.ReviewRequestOp{
+		ID:      requestID,
+		Hash:    requestHash,
+		Action:  xdr.ReviewRequestOpActionPermanentReject,
+		Reason:  rejectReason,
+		Details: horizon.ReviewRequestOpDetails{
+			Type: xdr.ReviewableRequestTypeWithdraw,
+			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{},
+		},
+	}).
+		Sign(s.config.SignerKP).
+		Submit()
+
+	if err != nil {
+		var fields logan.F
+
+		sErr, ok := errors.Cause(err).(horizon.SubmitError)
+		if ok {
+			fields = logan.F{"horizon_submit_error_response_body": string(sErr.ResponseBody())}
+		}
+
+		return errors.Wrap(err, "Failed to submit Transaction to Horizon", fields)
+	}
+
+	return nil
+}

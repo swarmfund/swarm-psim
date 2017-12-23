@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
-  version = "v1.0.3"
-
-[[projects]]
   branch = "master"
   name = "github.com/go-errors/errors"
   packages = ["."]
@@ -18,6 +12,12 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
+  version = "v1.0.3"
 
 [[projects]]
   branch = "master"
@@ -34,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d9f08d7dfa83f396788349fdb0d5f6d070417682985a371dd7a6b09565806518"
+  inputs-digest = "043cd937745127b05509d94e551f57de2f0bf79dc0c0eec733ce08b21a048080"
   solver-name = "gps-cdcl"
   solver-version = 1
