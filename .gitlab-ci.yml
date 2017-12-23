@@ -44,20 +44,114 @@ delivery:
     - staging
     - dev
 
-deploy:dev:
+# ################################# DEPLOY DEV BTC     ################################# #
+deploy:dev:btc_funnel:
   stage: deploy
   script:
     - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+    - curl -X POST -H "Content-Type: text/plain" --data "btc_funnel" http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
   when: manual
   only:
     - dev
-    
-deploy:staging:
+
+deploy:dev:btc_supervisor:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "btc_supervisor" http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - dev
+
+deploy:dev:btc_withdraw:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "btc_withdraw" http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - dev
+
+# ################################# DEPLOY DEV ETH     ################################# #
+deploy:dev:eth_funnel:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "eth_funnel" http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - dev
+
+deploy:dev:eth_supervisor:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "eth_supervisor" http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - dev
+
+deploy:dev:eth_withdraw:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "eth_withdraw" http://$HOST_DEV:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - dev
+
+# ################################# DEPLOY STAGING BTC ################################# #
+deploy:staging:btc_funnel:
   stage: deploy
   script:
     - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim staging ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
+    - curl -X POST -H "Content-Type: text/plain" --data "btc_funnel" http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - staging
+
+deploy:staging:btc_supervisor:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim staging ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "btc_supervisor" http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - staging
+
+deploy:staging:btc_withdraw:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim staging ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "btc_withdraw" http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - staging
+
+# ################################# DEPLOY STAGING ETH ################################# #
+deploy:staging:eth_funnel:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim staging ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "eth_funnel" http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - staging
+
+deploy:staging:eth_supervisor:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim staging ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "eth_supervisor" http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
+  when: manual
+  only:
+    - staging
+
+deploy:staging:eth_withdraw:
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim staging ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST -H "Content-Type: text/plain" --data "eth_withdraw" http://$HOST_STAGING:8842/931M76zvt1h_sMOFDl_usQ
   when: manual
   only:
     - staging
