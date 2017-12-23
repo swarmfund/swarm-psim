@@ -37,7 +37,7 @@ func (s *Service) Run(ctx context.Context) chan error {
 	errs := make(chan error)
 
 	go func() {
-		app.RunOverIncrementalTimer(ctx, s.log, "btc_funnel_runner", s.funnelBTC, 5 * time.Second)
+		app.RunOverIncrementalTimer(ctx, s.log, "btc_funnel_runner", s.funnelBTC, 5 * time.Second, 5 * time.Second)
 		close(errs)
 	}()
 

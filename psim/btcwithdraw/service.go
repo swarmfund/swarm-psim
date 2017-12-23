@@ -61,7 +61,7 @@ func New(log *logan.Entry, config Config, requestListener RequestListener, horiz
 func (s *Service) Run(ctx context.Context) chan error {
 	s.requestListenerErrors = s.requestListener.Requests(s.requests)
 
-	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 1 * time.Second)
+	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5 * time.Second)
 
 	errs := make(chan error)
 	close(errs)
@@ -102,7 +102,7 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 	}
 
 	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
-	_ , err := btc.DecodePrivateAddr(withdrawAddress)
+	_ , err := btc.NewAddrFromString(withdrawAddress)
 	if err != nil {
 		s.log.WithField("withdraw_address", withdrawAddress).WithField("request_id", request.ID).WithError(err).
 			Warn("Got BTC Withdraw Request with wrong BTC Address.")
@@ -152,26 +152,26 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, withdrawAdd
 	if err != nil {
 		return errors.Wrap(err, "Failed to decode signed TX hex into bytes", fields)
 	}
-	tx, _ := btc.NewTx(txBytes)
-	signedTXHash := tx.Hash.String()
+	signedTXHash := btc.NewSha2Hash(txBytes).String()
+
 	fields = fields.Add("signed_tx_hash", signedTXHash)
 
-	//err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
-	//}
-	//
-	//sentTXHash, err := s.btcClient.SendRawTX(signedTXHex)
-	//if err != nil {
-	//	// This problem should be fixed manually.
-	//	// Transactions from approved requests not existing in the Bitcoin blockchain
-	//	// should be submitted once more.
-	//	// This process should probably be automated.
-	//	s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
-	//	return nil
-	//}
-	//
-	//fields = fields.Add("sent_tx_hash", sentTXHash)
+	err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
+	if err != nil {
+		return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
+	}
+
+	sentTXHash, err := s.btcClient.SendRawTX(signedTXHex)
+	if err != nil {
+		// This problem should be fixed manually.
+		// Transactions from approved requests not existing in the Bitcoin blockchain
+		// should be submitted once more.
+		// This process should probably be automated.
+		s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
+		return nil
+	}
+
+	fields = fields.Add("sent_tx_hash", sentTXHash)
 
 
 	s.log.WithFields(fields).Info("Sent withdraw TX to Bitcoin blockchain successfully.")

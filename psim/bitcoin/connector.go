@@ -187,8 +187,10 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXH
 	err = c.sendRequest("fundrawtransaction",
 		fmt.Sprintf(`"%s", {
 			"changeAddress": "%s",
+			"changePosition": 1,
 			"includeWatching": true,
-			"lockUnspents": true
+			"lockUnspents": true,
+			"subtractFeeFromOutputs": [0]
 		}`, initialTXHex, changeAddress), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
