@@ -34,7 +34,7 @@ build:
   only:
     - staging
     - dev
-    - master
+
 
 delivery:
   image: shebgregor/alpine-rsync-git
@@ -44,7 +44,6 @@ delivery:
   only:
     - staging
     - dev
-    - master
 
 # ################################# DEPLOY DEV BTC     ################################# #
 deploy:dev:btc_funnel:
@@ -55,7 +54,6 @@ deploy:dev:btc_funnel:
   when: manual
   only:
     - dev
-    - master
 
 deploy:dev:btc_supervisor:
   stage: deploy
@@ -65,7 +63,6 @@ deploy:dev:btc_supervisor:
   when: manual
   only:
     - dev
-    - master
 
 deploy:dev:btc_withdraw:
   stage: deploy
@@ -75,7 +72,7 @@ deploy:dev:btc_withdraw:
   when: manual
   only:
     - dev
-    - master
+
 
 # ################################# DEPLOY DEV ETH     ################################# #
 deploy:dev:eth_funnel:
@@ -86,7 +83,6 @@ deploy:dev:eth_funnel:
   when: manual
   only:
     - dev
-    - master
 
 deploy:dev:eth_supervisor:
   stage: deploy
@@ -96,7 +92,6 @@ deploy:dev:eth_supervisor:
   when: manual
   only:
     - dev
-    - master
 
 deploy:dev:eth_withdraw:
   stage: deploy
@@ -106,7 +101,6 @@ deploy:dev:eth_withdraw:
   when: manual
   only:
     - dev
-    - master
 
 # ################################# DEPLOY STAGING BTC ################################# #
 deploy:staging:btc_funnel:
