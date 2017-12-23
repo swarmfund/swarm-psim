@@ -216,6 +216,7 @@ type ReviewRequestOp struct {
 	Hash    string
 	Action  xdr.ReviewRequestOpAction
 	Details ReviewRequestOpDetails
+	Reason  string
 }
 
 type ReviewRequestOpDetails struct {
@@ -235,7 +236,7 @@ func (op ReviewRequestOp) XDR() (*xdr.Operation, error) {
 	var xdrhash xdr.Hash
 	copy(xdrhash[:], hash[:32])
 
-	return &xdr.Operation{
+	xdrop := &xdr.Operation{
 		Body: xdr.OperationBody{
 			Type: xdr.OperationTypeReviewRequest,
 			ReviewRequestOp: &xdr.ReviewRequestOp{
@@ -244,13 +245,23 @@ func (op ReviewRequestOp) XDR() (*xdr.Operation, error) {
 				Action:      op.Action,
 				RequestDetails: xdr.ReviewRequestOpRequestDetails{
 					RequestType: op.Details.Type,
-					Withdrawal: &xdr.WithdrawalDetails{
-						ExternalDetails: op.Details.Withdrawal.ExternalDetails,
-					},
 				},
 			},
 		},
-	}, nil
+	}
+
+	if op.Action == xdr.ReviewRequestOpActionPermanentReject {
+		xdrop.Body.ReviewRequestOp.Reason = xdr.String256(op.Reason)
+	}
+
+	switch op.Details.Type {
+	case xdr.ReviewableRequestTypeWithdraw:
+		xdrop.Body.ReviewRequestOp.RequestDetails.Withdrawal = &xdr.WithdrawalDetails{
+			ExternalDetails: op.Details.Withdrawal.ExternalDetails,
+		}
+	}
+
+	return xdrop, nil
 }
 
 type PaymentOp struct {

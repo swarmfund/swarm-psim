@@ -2,6 +2,10 @@ package bitcoin
 
 import "fmt"
 
+const (
+	errCodeInsufficientFunds = -4
+)
+
 type Response struct {
 	ID    string `json:"id"`
 	Error *Error `json:"error"`

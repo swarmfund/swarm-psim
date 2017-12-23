@@ -16,6 +16,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+var (
+	ErrInsufficientFunds = errors.New("Insufficient funds.")
+)
+
 // Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
 type Connector interface {
 	IsTestnet() bool
@@ -28,8 +32,15 @@ type Connector interface {
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
-	SignRawTX(initialTXHex, privateKey string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
+}
+
+type Out struct {
+	TXHash       string  `json:"txid"`
+	Vout         uint32  `json:"vout"`
+	ScriptPubKey string  `json:"scriptPubKey"`
+	RedeemScript *string `json:"redeemScript,omitempty"`
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -161,36 +172,63 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 	return response.Result, nil
 }
 
+// FundRawTX runs fundrawtransaction request to the Bitcoin Node
+// using flags `includeWatching` and `lockUnspents` as true.
+// If Bitcoin Node returns -4:Insufficient funds error -
+// ErrInsufficientFunds is returned.
 func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error) {
 	var response struct {
 		Response
-		Result string `json:"result"`
+		Result struct {
+			Hex string `json:"hex"`
+		} `json:"result"`
 	}
 
 	err = c.sendRequest("fundrawtransaction",
 		fmt.Sprintf(`"%s", {
 			"changeAddress": "%s",
+			"changePosition": 1,
 			"includeWatching": true,
-			"lockUnspents": true
+			"lockUnspents": true,
+			"subtractFeeFromOutputs": [0]
 		}`, initialTXHex, changeAddress), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
 	}
 	if response.Error != nil {
+		if response.Error.Code == errCodeInsufficientFunds{
+			return "", ErrInsufficientFunds
+		}
+
 		return "", errors.Wrap(response.Error, "Response for fund raw Transaction request contains error")
 	}
 
-	return response.Result, nil
+	return response.Result.Hex, nil
 }
 
-func (c *NodeConnector) SignRawTX(initialTXHex, privateKey string) (resultTXHex string, err error) {
+func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error) {
+	var outsArray string
+	if outputsBeingSpent == nil {
+		outsArray = "[]"
+	} else {
+		bb, err := json.Marshal(outputsBeingSpent)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal outputsBeingSpent")
+		}
+
+		outsArray = string(bb)
+	}
+
 	var response struct {
 		Response
-		Result string `json:"result"`
+		Result struct {
+			Hex string `json:"hex"`
+			Complete bool `json:"complete"`
+		} `json:"result"`
 	}
 
 	err = c.sendRequest("signrawtransaction",
-		fmt.Sprintf(`"%s", [], ["%s"]`, initialTXHex, privateKey), &response)
+		fmt.Sprintf(`"%s", %s, ["%s"]`, initialTXHex, outsArray, privateKey), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse sign raw Transaction request")
 	}
@@ -198,7 +236,7 @@ func (c *NodeConnector) SignRawTX(initialTXHex, privateKey string) (resultTXHex 
 		return "", errors.Wrap(response.Error, "Response for sign raw Transaction request contains error")
 	}
 
-	return response.Result, nil
+	return response.Result.Hex, nil
 }
 
 func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
