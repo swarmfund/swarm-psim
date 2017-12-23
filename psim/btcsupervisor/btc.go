@@ -25,7 +25,7 @@ var (
 
 func (s *Service) processBTCBlocksInfinitely(ctx context.Context) {
 	lastProcessedBlock = s.config.LastProcessedBlock
-	app.RunOverIncrementalTimer(ctx, s.Log, runnerName, s.processNewBTCBlocks, 5*time.Second)
+	app.RunOverIncrementalTimer(ctx, s.Log, runnerName, s.processNewBTCBlocks, 5*time.Second, 5*time.Second)
 }
 
 func (s *Service) processNewBTCBlocks(ctx context.Context) error {

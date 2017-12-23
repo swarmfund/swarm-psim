@@ -23,7 +23,7 @@ const (
 	CtxLog                 = "log"
 	ctxLog                 = CtxLog
 	ctxConfig              = CtxConfig
-	forceKillPeriodSeconds = 1
+	forceKillPeriodSeconds = 30
 )
 
 var (
@@ -163,7 +163,8 @@ func (app *App) Run() {
 		go func() {
 			defer func() {
 				if rec := recover(); rec != nil {
-					entry.WithRecover(rec).Error("service panicked")
+					err := errors.FromPanic(rec)
+					entry.WithStack(errors.WithStack(err)).WithError(err).Error("service panicked")
 				}
 				wg.Done()
 			}()

@@ -6,7 +6,9 @@ Logan wraps [logrus](https://github.com/sirupsen/logrus/) and adds:
 * `WithStack` to log stack of an error
 * `WithRecover` to log recover objects and retrieve stack from errors passed into panic
 
-Synopsis:
+##Synopsis
+
+####Log
 
 ```go
     rootLog := logan.New().Level(loganLogLevel).WithField("application", "appName")
@@ -14,8 +16,19 @@ Synopsis:
     clildLog.WithField("key", "value").WithError(err).WithStack(err).Error("Error happened.")
 ```
 
+####Errors
 
-Fielded error usage example:
+```go
+    plainError := errors.New("Error message.")
+    
+    wrapped := errors.Wrap(plainError, "Wrapping message")
+    wrappedWithFields := errors.Wrap(plainError, "Wrapping message", logan.Field("key", "value").Add("key2", "value"))
+    
+    newErrorWithFields := errors.From(errors.New("Error message."), logan.Field("key", "value").Add("key2", "value"))
+```
+
+
+###Fielded error usage example:
 
 ```go
 package main
@@ -71,7 +84,7 @@ func startEngine(carColor string) error {
 
 Imports
 
-`"gitlab.com/distributed_lab/logan"` --> `"gitlab.com/distributed_lab/logan/v3"\n\t"gitlab.com/distributed_lab/logan/v3/errors"` (do with regex)
+`"gitlab.com/distributed_lab/logan"` --> `"gitlab.com/distributed_lab/logan/v3"\n\t"gitlab.com/distributed_lab/logan/v3/errors"` (do with regex) (Caution: this will also modify Gopkg files)
 
 Wrap
 
@@ -97,6 +110,8 @@ Remove errors import, where logan/v3/errors import exists
 `\n\s"errors"((\n.*)*)"gitlab.com\/distributed_lab\/logan\/v3\/errors"` --> `$1"gitlab.com\/distributed_lab\/logan\/v3\/errors"` 
 
 `\n\s"github.com/go-errors/errors"((\n.*)*)"gitlab.com\/distributed_lab\/logan\/v3\/errors"` --> `$1"gitlab.com\/distributed_lab\/logan\/v3\/errors"` 
+
+`\n\s"github.com/pkg/errors"((\n.*)*)"gitlab.com\/distributed_lab\/logan\/v3\/errors"` --> `$1"gitlab.com\/distributed_lab\/logan\/v3\/errors"` 
 
 Will then need to remove manually `"gitlab.com/distributed_lab/logan/v3/errors"` in some places (unused import)
 

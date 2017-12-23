@@ -9,8 +9,7 @@ type F map[string]interface{}
 // using Add method.
 func Field(key string, value interface{}) F {
 	result := make(F)
-	result.Add(key, value)
-	return result
+	return result.Add(key, value)
 }
 
 // Add tries to extract fields from `value`, if `value` implements fields.Provider interface:
@@ -21,12 +20,16 @@ func Field(key string, value interface{}) F {
 //
 // And adds these fields using AddFields.
 // If `value` does not implement Provider - a single key-value pair is added.
+//
+// Add doesn't change any of maps - only creates a new one.
 func (f F) Add(key string, value interface{}) F {
 	return f.AddFields(fields.Obtain(key, value))
 }
 
 // AddFields returns `F` map, which contains key-values from both maps.
 // If both maps has some key - the value from the `newF` will be used.
+//
+// AddFields doesn't change any of maps - only creates a new one.
 func (f F) AddFields(newF F) F {
 	return F(fields.Merge(f, newF))
 }

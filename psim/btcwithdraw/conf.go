@@ -6,8 +6,13 @@ type Config struct {
 	PrivateKey string `fig:"private_key"`
 	// TODO Remove after implementing of verifier
 	PrivateKey2      string `fig:"private_key_2"`
-	HotWalletAddress string `fig:"hot_wallet_address"`
 
-	SourceKP keypair.KP `fig:"exchange"`
+	HotWalletAddress string `fig:"hot_wallet_address"`
+	HotWalletScriptPubKey string `fig:"hot_wallet_script_pub_key"`
+	HotWalletRedeemScript string `fig:"hot_wallet_redeem_script"`
+
+	MinWithdrawAmount float64 `fig:"min_withdraw_amount"`
+
+	SourceKP keypair.KP `fig:"source"`
 	SignerKP keypair.KP `fig:"signer" mapstructure:"signer"`
 }

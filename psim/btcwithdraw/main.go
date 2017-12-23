@@ -22,7 +22,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).Get(conf.ServiceBTCWithdraw)).
-		With(figure.BaseHooks).
+		With(figure.BaseHooks, utils.CommonHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
@@ -35,5 +35,10 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		panic(err)
 	}
 
-	return New(log, config, globalConfig.HorizonV2().Listener(), horizonConnector, nil), nil
+	btcClient, err := globalConfig.Bitcoin()
+	if err != nil {
+		panic(err)
+	}
+
+	return New(log, config, globalConfig.HorizonV2().Listener(), horizonConnector, btcClient), nil
 }

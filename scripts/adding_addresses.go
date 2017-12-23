@@ -35,12 +35,10 @@ func main() {
 	url := ""
 	authKey := ""
 
-	account := ""
-
 	// TODO Read addresses from file
 
 	for address := range addresses {
-		sendRequest(url, authKey, "importaddress", fmt.Sprintf(`"%s", "%s", false`, address, account))
+		sendRequest(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, address))
 	}
 }
 
