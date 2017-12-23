@@ -17,12 +17,16 @@ import (
 )
 
 const (
+	// Here is the full list of RejectReasons, which Service can set into `reject_reason` of Request in case of validation error(s).
 	RejectReasonInvalidAddress = "invalid_btc_address"
+	RejectReasonTooLittleAmount = "too_little_amount"
 
 	requestStatePending int32 = 1
 	btcAsset = "BTC"
 )
 
+// RequestListener is the interface, which must be implemented
+// by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface{
 	Requests(result chan<- horizonV2.Request) <-chan error
 }
@@ -102,27 +106,20 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 	}
 
 	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
-	_ , err := btc.NewAddrFromString(withdrawAddress)
-	if err != nil {
-		s.log.WithField("withdraw_address", withdrawAddress).WithField("request_id", request.ID).WithError(err).
-			Warn("Got BTC Withdraw Request with wrong BTC Address.")
-
-		err := s.submitPermanentRejectRequest(request.ID, request.Hash, RejectReasonInvalidAddress)
-		if err != nil {
-			return errors.Wrap(err, "Failed to submit PermanentReject for Request",
-				logan.F{
-					"withdraw_address": withdrawAddress,
-					"reject_reason":    RejectReasonInvalidAddress,
-				})
-		}
-
-		return nil
-	}
-
 	// Divide by 10^4 (precision of the system)
 	amount := float64(int64(request.Details.Withdraw.DestinationAmount)) / 10000.0
 
-	err = s.processPendingWithdrawRequest(ctx, withdrawAddress, amount, request.ID, request.Hash)
+	// Validate
+	isValid, err := s.validateOrReject(withdrawAddress, amount, request.ID, request.Hash)
+	if err != nil {
+		return errors.Wrap(err, "Failed to validateOrReject Request")
+	}
+	if !isValid {
+		// Request is invalid, but PermanentReject was successfully submitted.
+		return nil
+	}
+
+	err = s.processValidPendingWithdraw(ctx, withdrawAddress, amount, request.ID, request.Hash)
 	if err != nil {
 		return err
 	}
@@ -130,7 +127,74 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 	return nil
 }
 
-func (s *Service) processPendingWithdrawRequest(ctx context.Context, withdrawAddress string, withdrawAmount float64,
+func (s *Service) validateOrReject(withdrawAddress string, amount float64, requestID uint64, requestHash string) (isValid bool, err error) {
+	rejectReason := s.getRejectReason(withdrawAddress, amount, requestID)
+
+	if rejectReason == "" {
+		return true, nil
+	}
+
+	err = s.submitPermanentRejectRequest(requestID, requestHash, rejectReason)
+	if err != nil {
+		return false, errors.Wrap(err, "Failed to submit PermanentReject for Request",
+			logan.F{
+				"withdraw_address": withdrawAddress,
+				"reject_reason":    rejectReason,
+			})
+	}
+
+	// Request is invalid, Reject was submitted successfully.
+	return false, nil
+}
+
+func (s *Service) getRejectReason(withdrawAddress string, amount float64, requestID uint64) string {
+	_ , err := btc.NewAddrFromString(withdrawAddress)
+	if err != nil {
+		s.log.WithField("withdraw_address", withdrawAddress).WithField("amount", amount).WithField("request_id", requestID).WithError(err).
+			Warn("Got BTC Withdraw Request with wrong BTC Address.")
+		return RejectReasonInvalidAddress
+	}
+
+	if amount < s.config.MinWithdrawAmount {
+		s.log.WithField("withdraw_address", withdrawAddress).WithField("amount", amount).WithField("request_id", requestID).
+			Warn("Got BTC Withdraw Request with too little amount.")
+		return RejectReasonTooLittleAmount
+	}
+
+	return ""
+}
+
+func (s *Service) submitPermanentRejectRequest(requestID uint64, requestHash, rejectReason string) error {
+	err := s.horizon.Transaction(&horizon.TransactionBuilder{
+		Source: s.config.SourceKP,
+	}).Op(&horizon.ReviewRequestOp{
+		ID:      requestID,
+		Hash:    requestHash,
+		Action:  xdr.ReviewRequestOpActionPermanentReject,
+		Reason:  rejectReason,
+		Details: horizon.ReviewRequestOpDetails{
+			Type: xdr.ReviewableRequestTypeWithdraw,
+			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{},
+		},
+	}).
+		Sign(s.config.SignerKP).
+		Submit()
+
+	if err != nil {
+		var fields logan.F
+
+		sErr, ok := errors.Cause(err).(horizon.SubmitError)
+		if ok {
+			fields = logan.F{"horizon_submit_error_response_body": string(sErr.ResponseBody())}
+		}
+
+		return errors.Wrap(err, "Failed to submit Transaction to Horizon", fields)
+	}
+
+	return nil
+}
+
+func (s *Service) processValidPendingWithdraw(ctx context.Context, withdrawAddress string, withdrawAmount float64,
 		requestID uint64, requestHash string) error {
 
 	fields := logan.F{
@@ -227,36 +291,6 @@ func (s *Service) submitApproveRequest(requestID uint64, requestHash, signedTXHa
 			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{
 				ExternalDetails: string(detailsBytes),
 			},
-		},
-	}).
-		Sign(s.config.SignerKP).
-		Submit()
-
-	if err != nil {
-		var fields logan.F
-
-		sErr, ok := errors.Cause(err).(horizon.SubmitError)
-		if ok {
-			fields = logan.F{"horizon_submit_error_response_body": string(sErr.ResponseBody())}
-		}
-
-		return errors.Wrap(err, "Failed to submit Transaction to Horizon", fields)
-	}
-
-	return nil
-}
-
-func (s *Service) submitPermanentRejectRequest(requestID uint64, requestHash, rejectReason string) error {
-	err := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source: s.config.SourceKP,
-	}).Op(&horizon.ReviewRequestOp{
-		ID:      requestID,
-		Hash:    requestHash,
-		Action:  xdr.ReviewRequestOpActionPermanentReject,
-		Reason:  rejectReason,
-		Details: horizon.ReviewRequestOpDetails{
-			Type: xdr.ReviewableRequestTypeWithdraw,
-			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{},
 		},
 	}).
 		Sign(s.config.SignerKP).
