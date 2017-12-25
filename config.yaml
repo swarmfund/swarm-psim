@@ -52,7 +52,7 @@ services:
 
 #  - bitcoin_supervisor
 #  - btc_funnel
-#  - btc_withdraw
+  - btc_withdraw
 
   #- eth_supervisor
 #  - eth_funnel
@@ -81,6 +81,10 @@ eth_funnel:
   keystore: "/tmp/wallets"
 
 eth_supervisor:
+  confirmations: 2
+  cursor: 2334122
+  base_asset: SUN
+  deposit_asset: ETH
   supervisor:
     leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636

@@ -8,11 +8,14 @@ import (
 	"time"
 )
 
+// BTCClient is the interface to be implemented by a
+// Bitcoin client to parametrize the Service.
 type BTCClient interface {
 	GetWalletBalance() (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 }
 
+// Service implements utils.Service to be registered in the app.
 type Service struct {
 	config Config
 	log    *logan.Entry
@@ -20,6 +23,7 @@ type Service struct {
 	btcClient BTCClient
 }
 
+// New is constructor for btcfunnel Service.
 func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 	return &Service{
 		config: config,
@@ -29,18 +33,14 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 	}
 }
 
-// Run will never send errors into the returned channel, however
-// when Service stops - it will close the channel.
+// Run will return closed channel and only when work is finished.
 func (s *Service) Run(ctx context.Context) chan error {
 	s.log.Info("Starting.")
 
+	app.RunOverIncrementalTimer(ctx, s.log, "btc_funnel_runner", s.funnelBTC, 5 * time.Second, 5 * time.Second)
+
 	errs := make(chan error)
-
-	go func() {
-		app.RunOverIncrementalTimer(ctx, s.log, "btc_funnel_runner", s.funnelBTC, 5 * time.Second, 5 * time.Second)
-		close(errs)
-	}()
-
+	close(errs)
 	return errs
 }
 
@@ -51,7 +51,7 @@ func (s *Service) funnelBTC(ctx context.Context) error {
 	}
 
 	if balance == 0 || balance < s.config.MinFunnelAmount {
-		// To less money to funnel.
+		// Too little money to funnel.
 		return nil
 	}
 

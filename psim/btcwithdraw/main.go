@@ -21,7 +21,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).Get(conf.ServiceBTCWithdraw)).
+		From(app.Config(ctx).GetRequired(conf.ServiceBTCWithdraw)).
 		With(figure.BaseHooks, utils.CommonHooks).
 		Please()
 	if err != nil {

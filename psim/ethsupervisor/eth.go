@@ -6,11 +6,11 @@ import (
 
 	"strings"
 
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
-	"context"
-	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 // TODO defer
@@ -44,8 +44,7 @@ func (s *Service) processBlocks(ctx context.Context) {
 
 // TODO eth.SubscribeNewHead
 func (s *Service) watchHeight(ctx context.Context) {
-	// TODO config
-	cursor := *big.NewInt(2271294)
+	cursor := new(big.Int).Set(s.config.Cursor)
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
@@ -59,27 +58,24 @@ func (s *Service) watchHeight(ctx context.Context) {
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
 			// FIXME Magic number
-			for head.NumberU64()-2 > cursor.Uint64() {
+			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
 				s.blocksCh <- cursor.Uint64()
-				cursor.Add(&cursor, big.NewInt(1))
-				//s.Log.WithField("cursor", cursor.Uint64()).Debug("cursor bumped")
+				cursor.Add(cursor, big.NewInt(1))
 			}
 		}
 	}()
 }
 
 func (s *Service) processTXs(ctx context.Context) {
-	// TODO Listen to ctx
 	for tx := range s.txCh {
+		entry := s.Log.WithField("tx", tx.Hash().Hex())
 		for {
-			if app.IsCanceled(ctx) {
-				return
-			}
-
+			entry.Debug("processing tx")
 			if err := s.processTX(ctx, tx); err != nil {
 				s.Log.WithError(err).Error("failed to process tx")
 				continue
 			}
+			entry.Debug("tx processed")
 			break
 		}
 

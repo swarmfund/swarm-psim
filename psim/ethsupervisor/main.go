@@ -9,8 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/swarmfund/psim/addrstate"
-	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
@@ -26,8 +26,8 @@ func init() {
 
 		err := figure.
 			Out(&config).
-			From(app.Config(ctx).Get(conf.ServiceETHSupervisor)).
-			With(supervisor.ConfigFigureHooks).
+			From(app.Config(ctx).GetRequired(conf.ServiceETHSupervisor)).
+			With(supervisor.DLFigureHooks, figure.BaseHooks, utils.ETHHooks).
 			Please()
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceETHSupervisor))
@@ -46,7 +46,7 @@ func init() {
 		state := addrstate.New(
 			ctx,
 			log.WithField("service", "addrstate"),
-			internal.StateMutator,
+			internal.StateMutator(config.BaseAsset, config.DepositAsset),
 			horizonV2.Listener(),
 		)
 
@@ -56,9 +56,9 @@ func init() {
 
 type Service struct {
 	*supervisor.Service
-	eth     *ethclient.Client
-	state   State
-	config  Config
+	eth    *ethclient.Client
+	state  State
+	config Config
 
 	// internal state
 	txCh     chan internal.Transaction
@@ -75,8 +75,8 @@ func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, con
 		state:   state,
 		config:  config,
 		// could be buffered to increase throughput
-		txCh:     make(chan internal.Transaction),
-		blocksCh: make(chan uint64),
+		txCh:     make(chan internal.Transaction, 1),
+		blocksCh: make(chan uint64, 1),
 		// FIXME
 		depositThreshold: big.NewInt(1000000000000),
 	}
