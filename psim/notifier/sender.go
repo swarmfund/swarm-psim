@@ -33,7 +33,7 @@ func (s *Service) sendEmail(letter emails.NoticeLetterI, payloadID int) error {
 		return errors.From(errors.New("letter is not sent"), logan.F{
 			"authenticated": resp.Authenticated(),
 			"header":        letter.GetHeader(),
-			"raw_response":  resp,
+			"raw_response":  *resp,
 		})
 	}
 

@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Service) listenOperations(ctx context.Context) {
-	if s.Operations == nil {
+	if s.Operations == nil || !s.Operations.Enable {
 		s.logger.Warn("operations listener is not enabled")
 		return
 	}

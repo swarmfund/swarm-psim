@@ -16,7 +16,7 @@ horizon:
 #  addr: http://139.59.113.110:8011
 
 notificator:
-  url: http://localhost:9009
+  url: http://18.195.18.3:9009
   secret: string
   public: string
 
@@ -47,12 +47,12 @@ discovery:
 services:
   #- notifier
   #- charger
-  #
+  #- notifier
   #- stripe_supervisor
 
 #  - bitcoin_supervisor
 #  - btc_funnel
-  - btc_withdraw
+#  - btc_withdraw
 
   #- eth_supervisor
 #  - eth_funnel
@@ -156,19 +156,23 @@ charger:
 
 notifier:
   signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-#  signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
   pprof: true
-  project_name: "Swarm"
+  project_name: "Swarm Fund"
+
   operations:
-    payload_id: 13
+    enable: false
+    payload_id: 9
     ignore_older_than: 48h
-    client_url: http://tokend.io
+    client_url: http://staging.app.sun.swarm.fund
     cursor: ""
+
   assets:
-    payload_id: 13
+    enable: true
+    payload_id: 9
     emission_threshold: 1000000 # should be valid: val = amount * 10000 (ONE)
-    notification_receiver: gilirivi@minex-coin.com
+#    check_period: 20s
     check_period: 24h
+    notification_receivers:
+      - rago@minex-coin.com
     codes:
       - SUN
-      - USD
