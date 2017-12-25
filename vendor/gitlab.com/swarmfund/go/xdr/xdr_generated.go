@@ -7951,8 +7951,7 @@ type CreateIssuanceRequestOp struct {
 //    	NOT_AUTHORIZED = -5,
 //    	EXCEEDS_MAX_ISSUANCE_AMOUNT = -6,
 //    	RECEIVER_FULL_LINE = -7,
-//    	INVALID_EXTERNAL_DETAILS = -8, // external details size exceeds max allowed
-//    	FEE_EXCEEDS_AMOUNT = -9 // fee more than amount to issue
+//    	FEE_EXCEEDS_AMOUNT = -8 // fee more than amount to issue
 //    };
 //
 type CreateIssuanceRequestResultCode int32
@@ -7966,8 +7965,7 @@ const (
 	CreateIssuanceRequestResultCodeNotAuthorized            CreateIssuanceRequestResultCode = -5
 	CreateIssuanceRequestResultCodeExceedsMaxIssuanceAmount CreateIssuanceRequestResultCode = -6
 	CreateIssuanceRequestResultCodeReceiverFullLine         CreateIssuanceRequestResultCode = -7
-	CreateIssuanceRequestResultCodeInvalidExternalDetails   CreateIssuanceRequestResultCode = -8
-	CreateIssuanceRequestResultCodeFeeExceedsAmount         CreateIssuanceRequestResultCode = -9
+	CreateIssuanceRequestResultCodeFeeExceedsAmount         CreateIssuanceRequestResultCode = -8
 )
 
 var CreateIssuanceRequestResultCodeAll = []CreateIssuanceRequestResultCode{
@@ -7979,7 +7977,6 @@ var CreateIssuanceRequestResultCodeAll = []CreateIssuanceRequestResultCode{
 	CreateIssuanceRequestResultCodeNotAuthorized,
 	CreateIssuanceRequestResultCodeExceedsMaxIssuanceAmount,
 	CreateIssuanceRequestResultCodeReceiverFullLine,
-	CreateIssuanceRequestResultCodeInvalidExternalDetails,
 	CreateIssuanceRequestResultCodeFeeExceedsAmount,
 }
 
@@ -7992,8 +7989,7 @@ var createIssuanceRequestResultCodeMap = map[int32]string{
 	-5: "CreateIssuanceRequestResultCodeNotAuthorized",
 	-6: "CreateIssuanceRequestResultCodeExceedsMaxIssuanceAmount",
 	-7: "CreateIssuanceRequestResultCodeReceiverFullLine",
-	-8: "CreateIssuanceRequestResultCodeInvalidExternalDetails",
-	-9: "CreateIssuanceRequestResultCodeFeeExceedsAmount",
+	-8: "CreateIssuanceRequestResultCodeFeeExceedsAmount",
 }
 
 var createIssuanceRequestResultCodeShortMap = map[int32]string{
@@ -8005,8 +8001,7 @@ var createIssuanceRequestResultCodeShortMap = map[int32]string{
 	-5: "not_authorized",
 	-6: "exceeds_max_issuance_amount",
 	-7: "receiver_full_line",
-	-8: "invalid_external_details",
-	-9: "fee_exceeds_amount",
+	-8: "fee_exceeds_amount",
 }
 
 var createIssuanceRequestResultCodeRevMap = map[string]int32{
@@ -8018,8 +8013,7 @@ var createIssuanceRequestResultCodeRevMap = map[string]int32{
 	"CreateIssuanceRequestResultCodeNotAuthorized":            -5,
 	"CreateIssuanceRequestResultCodeExceedsMaxIssuanceAmount": -6,
 	"CreateIssuanceRequestResultCodeReceiverFullLine":         -7,
-	"CreateIssuanceRequestResultCodeInvalidExternalDetails":   -8,
-	"CreateIssuanceRequestResultCodeFeeExceedsAmount":         -9,
+	"CreateIssuanceRequestResultCodeFeeExceedsAmount":         -8,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -16977,6 +16971,7 @@ func NewPreIssuanceRequestExt(v LedgerVersion, value interface{}) (result PreIss
 // PreIssuanceRequest is an XDR Struct defines as:
 //
 //   struct PreIssuanceRequest {
+//
 //    	AssetCode asset;
 //    	uint64 amount;
 //    	DecoratedSignature signature;
@@ -17043,7 +17038,6 @@ func NewIssuanceRequestExt(v LedgerVersion, value interface{}) (result IssuanceR
 //    	AssetCode asset;
 //    	uint64 amount;
 //    	BalanceID receiver;
-//    	longstring externalDetails; // details of the issuance (External system id, etc.)
 //    	Fee fee; //totalFee to be payed (calculated automatically)
 //    	// reserved for future use
 //        union switch (LedgerVersion v)
@@ -17055,12 +17049,11 @@ func NewIssuanceRequestExt(v LedgerVersion, value interface{}) (result IssuanceR
 //    };
 //
 type IssuanceRequest struct {
-	Asset           AssetCode          `json:"asset,omitempty"`
-	Amount          Uint64             `json:"amount,omitempty"`
-	Receiver        BalanceId          `json:"receiver,omitempty"`
-	ExternalDetails Longstring         `json:"externalDetails,omitempty"`
-	Fee             Fee                `json:"fee,omitempty"`
-	Ext             IssuanceRequestExt `json:"ext,omitempty"`
+	Asset    AssetCode          `json:"asset,omitempty"`
+	Amount   Uint64             `json:"amount,omitempty"`
+	Receiver BalanceId          `json:"receiver,omitempty"`
+	Fee      Fee                `json:"fee,omitempty"`
+	Ext      IssuanceRequestExt `json:"ext,omitempty"`
 }
 
 // SaleCreationRequestExt is an XDR NestedUnion defines as:
