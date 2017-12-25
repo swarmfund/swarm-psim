@@ -106,6 +106,8 @@ func (s *Service) AddRunner(runner func(context.Context)) {
 // Once all runners returned - Errors channel will be closed.
 // Implements utils.Service.
 func (s *Service) Run(ctx context.Context) chan error {
+	s.Log.Info("Started.")
+
 	go func() {
 		wg := sync.WaitGroup{}
 

@@ -26,7 +26,7 @@ func init() {
 
 		err := figure.
 			Out(&config).
-			From(app.Config(ctx).Get(conf.ServiceETHSupervisor)).
+			From(app.Config(ctx).GetRequired(conf.ServiceETHSupervisor)).
 			With(supervisor.ConfigFigureHooks).
 			Please()
 		if err != nil {

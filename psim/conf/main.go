@@ -16,8 +16,11 @@ import (
 // TODO: viper's Get* methods won't throw error if value is invalid
 
 type Config interface {
+	// TODO Panic instead of returning errors.
 	Init() error
+	// DEPRECATED Use GetRequired instead (it panics if key is missing).
 	Get(key string) map[string]interface{}
+	GetRequired(key string) map[string]interface{}
 	// TODO Panic instead of returning errors.
 	Discovery() (*discovery.Client, error)
 	Log() (*logan.Entry, error)
@@ -48,6 +51,18 @@ func (c *ViperConfig) Init() error {
 		return errors.Wrap(err, "failed to set config file")
 	}
 	return nil
+}
+
+// GetRequired panics, if key is missing.
+func (c *ViperConfig) GetRequired(key string) map[string]interface{} {
+	v := c.viper.Sub(key)
+	if v == nil {
+		panic(errors.From(errors.New("Config entry is missing."), logan.F{
+			"config_key": key,
+		}))
+	}
+
+	return c.viper.GetStringMap(key)
 }
 
 func (c *ViperConfig) Get(key string) map[string]interface{} {

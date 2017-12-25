@@ -52,7 +52,7 @@ services:
 
 #  - bitcoin_supervisor
 #  - btc_funnel
-#  - btc_withdraw
+  - btc_withdraw
 
   #- eth_supervisor
 #  - eth_funnel

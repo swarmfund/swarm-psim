@@ -29,7 +29,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 
 	err := figure.
 		Out(&config).
-		From(globalConfig.Get(conf.ServiceBTCSupervisor)).
+		From(globalConfig.GetRequired(conf.ServiceBTCSupervisor)).
 		With(supervisor.ConfigFigureHooks).
 		Please()
 	if err != nil {

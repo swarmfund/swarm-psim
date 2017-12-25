@@ -16,7 +16,7 @@ func init() {
 		config := Config{}
 		err := figure.
 			Out(&config).
-			From(app.Config(ctx).Get(conf.ServiceETHFunnel)).
+			From(app.Config(ctx).GetRequired(conf.ServiceETHFunnel)).
 			With(figure.BaseHooks, utils.ETHHooks).
 			Please()
 		if err != nil {

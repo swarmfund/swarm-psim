@@ -63,6 +63,8 @@ func New(log *logan.Entry, config Config, requestListener RequestListener, horiz
 
 // Run is a blocking method, it returns closed channel only when it's finishing.
 func (s *Service) Run(ctx context.Context) chan error {
+	s.log.Info("Starting.")
+
 	s.requestListenerErrors = s.requestListener.Requests(s.requests)
 
 	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5 * time.Second)

@@ -10,6 +10,7 @@ import (
 const (
 	tag = "fig"
 )
+
 type Figurator struct {
 	values map[string]interface{}
 	hooks  Hooks

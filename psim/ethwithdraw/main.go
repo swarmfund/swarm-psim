@@ -30,7 +30,7 @@ func init() {
 		err := figure.
 			Out(&config).
 			With(figure.BaseHooks, utils.ETHHooks).
-			From(app.Config(ctx).Get(conf.ServiceETHWithdraw)).
+			From(app.Config(ctx).GetRequired(conf.ServiceETHWithdraw)).
 			Please()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to figure out")

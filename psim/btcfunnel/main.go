@@ -22,7 +22,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 
 	err := figure.
 		Out(&config).
-		From(globalConfig.Get(conf.ServiceBTCFunnel)).
+		From(globalConfig.GetRequired(conf.ServiceBTCFunnel)).
 		With(figure.BaseHooks).
 		Please()
 	if err != nil {
