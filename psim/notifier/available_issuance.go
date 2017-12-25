@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
-	if s.Assets == nil {
+	if s.Assets == nil || !s.Assets.Enable {
 		s.logger.Warn("assets issuance checker is not enabled")
 		return
 	}
@@ -70,18 +70,25 @@ func (s *Service) processAsset(asset types.Asset) error {
 		return nil
 	}
 
-	err := s.notifyOwner(asset)
-	if err != nil {
-		return errors.Wrap(err, "Failed to send asset notice letter")
+	for _, receiver := range s.Assets.NotificationReceivers {
+		if err := s.notifyOwner(asset, receiver); err != nil {
+			return errors.Wrap(err,
+				"Failed to send asset notice letter",
+				logan.F{
+					"asset":    asset.Code,
+					"receiver": receiver,
+				})
+		}
 	}
+
 	return nil
 }
 
-func (s *Service) notifyOwner(asset types.Asset) error {
+func (s *Service) notifyOwner(asset types.Asset, receiver string) error {
 	letter := &emails.NoticeLetter{
 		ID:       utils.GenerateToken(),
 		Header:   fmt.Sprintf("%s Admin Notification", s.ProjectName),
-		Email:    s.Assets.NotificationReceiver,
+		Email:    receiver,
 		Template: emails.NoticeTemplateLowIssuance,
 		Message: fmt.Sprintf(
 			"Asset %s has low emission. Upload more presigned emissions.",
