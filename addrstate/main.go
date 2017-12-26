@@ -36,6 +36,9 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 	return w
 }
 
+// AddressAt returns the Address of Account, which is coupled with the provided offchain `addr`.
+// AddressAt can be blocking, it ensures that returning result
+// is based on all the data up to `ts`.
 func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
 	for w.head.Before(ts) {
 		select {
@@ -120,6 +123,7 @@ func (w *Watcher) run(ctx context.Context) {
 			for _, change := range tx.LedgerChanges() {
 				w.state.Mutate(tx.CreatedAt, w.mutator(change))
 			}
+
 			w.head = tx.CreatedAt
 			w.headUpdate <- struct{}{}
 		case err := <-errs:

@@ -184,6 +184,6 @@ func (c Client) IsTestnet() bool {
 	return c.connector.IsTestnet()
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
+func BuildCoinEmissionRequestReference(txHash string, outIndex uint32) string {
 	return txHash + string(outIndex)
 }
