@@ -17,7 +17,7 @@ func NewQ(tx *transaction.Q, op *operation.Q) *Q {
 	}
 }
 
-func (q *Q) Transactions(result chan<- resources.Transaction) <-chan error {
+func (q *Q) Transactions(result chan<- resources.TransactionEvent) <-chan error {
 	errs := make(chan error)
 	go func() {
 		defer func() {
@@ -25,14 +25,29 @@ func (q *Q) Transactions(result chan<- resources.Transaction) <-chan error {
 		}()
 		cursor := ""
 		for {
-			transactions, err := q.tx.Transactions(cursor)
+			transactions, meta, err := q.tx.Transactions(cursor)
 			if err != nil {
 				errs <- err
 				continue
 			}
 			for _, tx := range transactions {
-				result <- tx
+				ohaigo := tx
+				result <- resources.TransactionEvent{
+					Transaction: &ohaigo,
+					// emulating discrete transactions stream by spoofing meta
+					// to not let bump cursor too much before actually consuming all transactions
+					Meta: resources.PageMeta{
+						LatestLedger: resources.LedgerMeta{
+							ClosedAt: tx.CreatedAt,
+						},
+					},
+				}
 				cursor = tx.PagingToken
+			}
+			// letting consumer know about current ledger cursor
+			result <- resources.TransactionEvent{
+				Transaction: nil,
+				Meta:        *meta,
 			}
 		}
 	}()

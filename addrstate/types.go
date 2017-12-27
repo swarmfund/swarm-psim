@@ -8,7 +8,7 @@ import (
 )
 
 type TransactionQ interface {
-	Transactions(chan<- horizon.Transaction) <-chan error
+	Transactions(chan<- horizon.TransactionEvent) <-chan error
 }
 
 type Client interface {

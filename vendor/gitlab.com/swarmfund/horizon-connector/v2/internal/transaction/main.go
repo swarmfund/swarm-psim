@@ -21,16 +21,16 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
-func (q *Q) Transactions(cursor string) ([]resources.Transaction, error) {
+func (q *Q) Transactions(cursor string) ([]resources.Transaction, *resources.PageMeta, error) {
 	response, err := q.client.Get(fmt.Sprintf("/transactions?cursor=%s", cursor))
 	if err != nil {
-		return nil, errors.Wrap(err, "request failed")
+		return nil, nil, errors.Wrap(err, "request failed")
 	}
 	defer response.Body.Close()
 
 	var result responses.TransactionIndex
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal")
+		return nil, nil, errors.Wrap(err, "failed to unmarshal")
 	}
-	return result.Embedded.Records, nil
+	return result.Embedded.Records, &result.Embedded.Meta, nil
 }
