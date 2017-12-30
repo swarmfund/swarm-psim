@@ -30,14 +30,14 @@ func init() {
 		globalConfig := app.Config(ctx)
 		err := figure.
 			Out(&serviceConfig).
-			From(globalConfig.Get(conf.ServiceBTCVerify)).
+			From(globalConfig.GetRequired(conf.ServiceBTCVerify)).
 			With(figure.BaseHooks, utils.CommonHooks).
 			Please()
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceBTCVerify))
 		}
 
-		log := ctx.Value(app.CtxLog).(*logan.Entry).WithField("service", conf.ServiceBTCVerify)
+		log := app.Log(ctx).WithField("service", conf.ServiceBTCVerify)
 
 		discoveryClient, err := globalConfig.Discovery()
 		if err != nil {

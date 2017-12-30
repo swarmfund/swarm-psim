@@ -1,8 +1,12 @@
-package btcwithdraw
+package btcwithdveri
 
 import "gitlab.com/swarmfund/go/keypair"
 
 type Config struct {
+	Host string `fig:"host"`
+	Port int    `fig:"port"`
+	// TODO Pprof field?
+
 	PrivateKey string `fig:"private_key"`
 
 	HotWalletAddress string `fig:"hot_wallet_address"`

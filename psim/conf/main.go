@@ -29,6 +29,7 @@ type Config interface {
 	Services() []string
 	Stripe() (*client.API, error)
 	Ethereum() *ethclient.Client
+	// TODO Panic instead of returning error
 	Bitcoin() (*bitcoin.Client, error)
 	Notificator() (*notificator.Connector, error)
 }

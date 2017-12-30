@@ -54,6 +54,7 @@ services:
 #  - bitcoin_supervisor
 #  - btc_funnel
 #  - btc_withdraw
+  - btc_withdraw_verify
 
   #- eth_supervisor
 #  - eth_funnel
@@ -101,7 +102,6 @@ btc_funnel:
 
 btc_withdraw:
   private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
-  private_key_2: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
 
   hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
@@ -111,6 +111,22 @@ btc_withdraw:
 
   source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
   signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+
+btc_withdraw_verify:
+  host: localhost
+  post: 8101
+
+  private_key: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
+
+  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
+  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
+  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
+  min_withdraw_amount: 0.0001
+
+  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
+  signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+
 
 # ETH
 eth_supervisor:
