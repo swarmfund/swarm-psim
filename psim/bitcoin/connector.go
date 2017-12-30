@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/logan/v3"
 )
 
 var (
@@ -30,6 +31,7 @@ type Connector interface {
 	GetBlock(blockHash string) (string, error)
 	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
+	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
 	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
 	SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error)
@@ -144,12 +146,39 @@ func (c *NodeConnector) SendToAddress(goalAddress string, amount float64) (resul
 	}
 
 	// Empty strings in parameters stands for comments, `true` - is the subtract fee flag.
-	err = c.sendRequest("sendtoaddress", fmt.Sprintf(`"%s", %f, "", "", true`, goalAddress, amount), &response)
+	err = c.sendRequest("sendtoaddress", fmt.Sprintf(`"%s", %.8f, "", "", true`, goalAddress, amount), &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse send to Address request")
+		return "", errors.Wrap(err, "Failed to send or parse Send to Address request")
 	}
 	if response.Error != nil {
-		return "", errors.Wrap(response.Error, "Response for send to Address request contains error")
+		return "", errors.Wrap(response.Error, "Response for Send to Address request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash string, err error) {
+	var response struct {
+		Response
+		Result string `json:"result"`
+	}
+
+	var lastAddr string
+	params := `"", {`
+	for addr, amount := range addrToAmount {
+		lastAddr = addr
+		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	}
+	params = params[:len(params) - 1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
+	err = c.sendRequest("sendmany", params, &response)
+
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send or parse SendMany request")
+	}
+	if response.Error != nil {
+		return "", errors.Wrap(response.Error, "Response for SendMany request contains error", logan.F{
+			"params": params,
+		})
 	}
 
 	return response.Result, nil
@@ -161,7 +190,7 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 		Result string `json:"result"`
 	}
 
-	err = c.sendRequest("createrawtransaction", fmt.Sprintf(`[], {"%s": %f}`, goalAddress, amount), &response)
+	err = c.sendRequest("createrawtransaction", fmt.Sprintf(`[], {"%s": %.8f}`, goalAddress, amount), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse create raw Transaction request")
 	}
