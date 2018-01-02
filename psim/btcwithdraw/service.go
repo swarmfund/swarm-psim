@@ -12,7 +12,6 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"github.com/piotrnar/gocoin/lib/btc"
-	"encoding/hex"
 )
 
 const (
@@ -211,14 +210,14 @@ func (s *Service) processValidPendingWithdraw(withdrawAddress string, withdrawAm
 		return errors.Wrap(err, "Failed to prepare signed Bitcoin TX", fields)
 	}
 
-	fields = fields.Add("signed_tx_hex", signedTXHex)
+	fields["signed_tx_hex"] = signedTXHex
 
 
 	// TODO To Verify
-	err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
-	if err != nil {
-		return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
-	}
+	//err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
+	//}
 
 	return nil
 

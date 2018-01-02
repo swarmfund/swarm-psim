@@ -50,7 +50,7 @@ func (s *Service) processNewBTCBlocks(ctx context.Context) error {
 
 		err := s.processBlock(ctx, i)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Block", logan.Field("block_index", i))
+			return errors.Wrap(err, "Failed to process Block", logan.F{"block_index": i})
 		}
 
 		if app.IsCanceled(ctx) {
@@ -80,7 +80,7 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 		err := s.processTX(ctx, blockHash, blockTime, *tx)
 		if err != nil {
 			// Tx hash is added into logs inside processTX.
-			return errors.Wrap(err, "Failed to process TX", logan.Field("block_hash", blockHash))
+			return errors.Wrap(err, "Failed to process TX", logan.F{"block_hash": blockHash})
 		}
 	}
 
@@ -208,7 +208,7 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 
 	// TODO Handle if no receiver.
 
-	fields = fields.Add("receiver", receiver)
+	fields["receiver"] = receiver
 
 	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
 

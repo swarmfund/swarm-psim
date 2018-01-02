@@ -33,7 +33,7 @@ func (s *Service) verifyApprove(ctx context.Context, requestID uint64, requestHa
 	}
 	signedTXHash := btc.NewSha2Hash(txBytes).String()
 
-	fields = fields.Add("signed_tx_hash", signedTXHash)
+	fields["signed_tx_hash"] = signedTXHash
 
 	// Putting signed raw BTC TX and its hex into Horizon - Approving Request.
 	err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
@@ -54,7 +54,7 @@ func (s *Service) verifyApprove(ctx context.Context, requestID uint64, requestHa
 		return nil
 	}
 
-	fields = fields.Add("sent_tx_hash", sentTXHash)
+	fields["sent_tx_hash"] = sentTXHash
 	s.log.WithFields(fields).Info("Sent withdraw TX to Bitcoin blockchain successfully.")
 
 	return nil
