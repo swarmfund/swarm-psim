@@ -41,11 +41,6 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		return nil, errors.Wrap(err, "Failed to init common Supervisor")
 	}
 
-	btcClient, err := globalConfig.Bitcoin()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Bitcoin client from global config")
-	}
-
 	horizonConnector, err := globalConfig.Horizon()
 	if err != nil {
 		panic(err)
@@ -60,5 +55,5 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		globalConfig.HorizonV2().Listener(),
 	)
 
-	return New(commonSupervisor, config, btcClient, addressProvider, horizonConnector), nil
+	return New(commonSupervisor, config, globalConfig.Bitcoin(), addressProvider, horizonConnector), nil
 }

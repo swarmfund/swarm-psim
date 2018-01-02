@@ -10,17 +10,18 @@ var (
 	btcClient *bitcoin.Client
 )
 
-func (c *ViperConfig) Bitcoin() (*bitcoin.Client, error) {
+func (c *ViperConfig) Bitcoin() *bitcoin.Client {
 	if btcClient == nil {
 		config := bitcoin.ConnectorConfig{}
-		err := figure.Out(&config).From(c.Get("bitcoin")).With(figure.BaseHooks).Please()
+
+		err := figure.Out(&config).From(c.GetRequired("bitcoin")).With(figure.BaseHooks).Please()
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to parse bitcoin config entry")
+			panic(errors.Wrap(err, "Failed to parse bitcoin config entry"))
 		}
 
 		connector := bitcoin.NewNodeConnector(config)
 		btcClient = bitcoin.NewClient(connector)
 	}
 
-	return btcClient, nil
+	return btcClient
 }

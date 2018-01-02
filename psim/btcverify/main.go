@@ -54,12 +54,7 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init listener")
 		}
 
-		btcClient, err := globalConfig.Bitcoin()
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to get Bitcoin client")
-		}
-
-		return newService(serviceConfig, log, discoveryClient, listener, horizonConnector, btcClient), nil
+		return newService(serviceConfig, log, discoveryClient, listener, horizonConnector, globalConfig.Bitcoin()), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCVerify, setupFn)

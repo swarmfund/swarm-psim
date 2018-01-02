@@ -37,15 +37,10 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		panic(err)
 	}
 
-	btcClient, err := globalConfig.Bitcoin()
-	if err != nil {
-		panic(err)
-	}
-
 	listener, err := ape.Listener(config.Host, config.Port)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	return New(log, config, horizonConnector, btcClient, listener), nil
+	return New(log, config, horizonConnector, globalConfig.Bitcoin(), listener), nil
 }
