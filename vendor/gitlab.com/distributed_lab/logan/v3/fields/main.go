@@ -52,9 +52,27 @@ func obtain(entityName string, fieldedEntity Provider) (result fields) {
 	return result
 }
 
+// Expand substitutes the values-Providers in the map
+// by the key-value pairs returned by the value's GetLoganFields() implementation.
+//
+// Expand doesn't modify provided map anyhow - just returns a new (expanded) one.
+func Expand(fields map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, value := range fields {
+		f := Obtain(key, value)
+		result = Merge(result, f)
+	}
+
+	return result
+}
+
 // Merge merges two instances of `map[string]interface{}`.
 // You can pass here as arguments any types, which are in fact `map[string]interface{}`.
+//
 // If both maps has some key - the value from the `f2` will be used.
+//
+// Merge does not modify any of the map - it produces a new map.
 func Merge(m1 map[string]interface{}, m2 map[string]interface{}) map[string]interface{} {
 	result := make(fields, len(m1)+len(m2))
 

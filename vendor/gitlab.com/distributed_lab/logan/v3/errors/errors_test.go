@@ -130,8 +130,8 @@ func TestWithFields_Cause(t *testing.T) {
 }
 
 func TestWithFields_GetFields(t *testing.T) {
-	f1 := logan.Field("key1", "value1").Add("key2", "value2")
-	f2 := logan.Field("key3", "value3").Add("key4", "value4")
+	f1 := logan.F{"key1": "value1"}.Add("key2", "value2")
+	f2 := logan.F{"key3": "value3"}.Add("key4", "value4")
 
 	tests := []struct {
 		name string

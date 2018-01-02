@@ -292,8 +292,8 @@
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
   packages = [".","v3","v3/errors","v3/fields"]
-  revision = "4818567366b3b70678815b15e0cb2f29c661a7d3"
-  version = "v3.3"
+  revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
+  version = "v3.4"
 
 [[projects]]
   branch = "master"
