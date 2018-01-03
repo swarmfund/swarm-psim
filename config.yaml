@@ -53,8 +53,8 @@ services:
 
 #  - bitcoin_supervisor
 #  - btc_funnel
-#  - btc_withdraw
-  - btc_withdraw_verify
+  - btc_withdraw
+#  - btc_withdraw_verify
 
   #- eth_supervisor
 #  - eth_funnel

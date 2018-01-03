@@ -11,6 +11,7 @@ import (
 type BTCClient interface {
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
+	IsTestnet() bool
 }
 
 type Service struct {

@@ -35,5 +35,6 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		panic(err)
 	}
 
-	return New(log, config, globalConfig.HorizonV2().Listener(), horizonConnector, globalConfig.Bitcoin()), nil
+	return New(log, config, globalConfig.HorizonV2().Listener(), horizonConnector,
+		globalConfig.Bitcoin(), globalConfig.Discovery()), nil
 }

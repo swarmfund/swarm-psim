@@ -1,22 +1,116 @@
 package btcwithdveri
 
 import (
-	"encoding/json"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
-	"gitlab.com/swarmfund/go/xdr"
+	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/distributed_lab/logan/v3"
 	"context"
 	"encoding/hex"
 	"github.com/piotrnar/gocoin/lib/btc"
+	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
+	"encoding/json"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"fmt"
+	"net/http"
+	"gitlab.com/swarmfund/go/amount"
 )
 
-// TODO Pass the Horizon request signed by Withdraw Service.
-// TODO Verify, that everything is fine.
-func (s *Service) verifyApprove(ctx context.Context, requestID uint64, requestHash, txHexToSign string) error {
-	// TODO Verify, that everything is fine.
+func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
+	ctx := r.Context()
+	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
+	fields := logan.F{
+		"request_id": opBody.RequestId,
+		"request_hash": opBody.RequestHash,
+		"request_action_i": opBody.Action,
+		"request_action": opBody.Action.String(),
+	}
 
-	// Processing fine Approval
+	extDetails := opBody.RequestDetails.Withdrawal.ExternalDetails
+	btcDetails := btcwithdraw.ExternalDetails{}
+	err := json.Unmarshal([]byte(extDetails), &btcDetails)
+	if err != nil {
+		s.log.WithFields(fields).WithField("raw_details", extDetails).WithError(err).
+			Warn("Failed to unmarshal Withdrawal ExternalDetails of Op into btcwithdraw.ExternalDetails.")
+		ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf(
+			"Cannot unmarshal Withdrawal ExternalDetails of Op into btcwithdraw.ExternalDetails: %s", extDetails)))
+		return
+	}
+
+	fields = fields.Merge(logan.F{
+		"tx_hex": btcDetails.TXHex,
+	})
+
+	validationErr := s.validateApproval(btcDetails.TXHex, withdrawRequest)
+	if validationErr != nil {
+		s.log.WithFields(fields).WithError(validationErr).Warn("Approval Request is invalid.")
+		ape.RenderErr(w, r, problems.Forbidden(validationErr.Error()))
+		return
+	}
+
+	err = s.processValidApproval(ctx, btcDetails.TXHex, horizonTX)
+	if err != nil {
+		s.log.WithFields(fields).WithError(err).Error("Failed to process valid Approval Request.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+	}
+}
+
+var (
+	ErrNoOuts = errors.New("No Outputs in the provided Transaction.")
+	// If start withdrawing several requests in a single BTC Transaction - get rid of this Err.
+	ErrMoreThanTwoOuts = errors.New("More than 2 Outputs in the provided Transaction.")
+	ErrWrongWithdrawAddress = errors.New("Withdraw Address does not match with the one in the WithdrawRequest.")
+	ErrWrongWithdrawAmount = errors.New("Withdraw amount does not match with the one in the WithdrawRequest.")
+	ErrUnknownChangeAddress = errors.New("Transaction is sending change to an unknown Address.")
+)
+
+func (s *Service) validateApproval(txHex string, withdrawRequest *horizonV2.Request) error {
+	withdrawAddress := string(withdrawRequest.Details.Withdraw.ExternalDetails)
+	// Divide by precision of the system.
+	withdrawSatoshi := withdrawRequest.Details.Withdraw.DestinationAmount * (100000000 / amount.One)
+
+	txBytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		return errors.Wrap(err, "Failed to decode txHex into bytes")
+	}
+
+	tx, _ := btc.NewTx(txBytes)
+	if len(tx.TxOut) == 0 {
+		return ErrNoOuts
+	}
+	if len(tx.TxOut) > 2 {
+		return ErrMoreThanTwoOuts
+	}
+
+	addr := btc.NewAddrFromPkScript(tx.TxOut[0].Pk_script, s.btcClient.IsTestnet()).String()
+	if addr != withdrawAddress {
+		return errors.From(ErrWrongWithdrawAddress, logan.F{
+			"btc_address": addr,
+		})
+	}
+
+	if tx.TxOut[0].Value != uint64(withdrawSatoshi) {
+		return errors.From(ErrWrongWithdrawAmount, logan.F{
+			"btc_amount": tx.TxOut[0].Value,
+		})
+	}
+
+	if len(tx.TxOut) == 2 {
+		// Have change
+		changeAddr := btc.NewAddrFromPkScript(tx.TxOut[1].Pk_script, s.btcClient.IsTestnet()).String()
+		if changeAddr != s.config.HotWalletAddress {
+			return errors.From(ErrUnknownChangeAddress, logan.F{
+				"change_address":       changeAddr,
+				"known_change_address": s.config.HotWalletAddress,
+			})
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) processValidApproval(ctx context.Context, txHexToSign string, horizonTX *horizon.TransactionBuilder) error {
 	signedTXHex, err := s.btcClient.SignAllTXInputs(txHexToSign, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "Failed to sing raw TX")
@@ -35,8 +129,7 @@ func (s *Service) verifyApprove(ctx context.Context, requestID uint64, requestHa
 
 	fields["signed_tx_hash"] = signedTXHash
 
-	// Putting signed raw BTC TX and its hex into Horizon - Approving Request.
-	err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
+	err = s.submitApproveRequest(horizonTX)
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit Approve Request to Horizon", fields)
 	}
@@ -60,35 +153,8 @@ func (s *Service) verifyApprove(ctx context.Context, requestID uint64, requestHa
 	return nil
 }
 
-// TODO Used pre-approved data by other Service
-func (s *Service) submitApproveRequest(requestID uint64, requestHash, signedTXHash, signedTXHex string) error {
-	externalDetails := struct {
-		TXHash string `json:"tx_hash"`
-		TXHex  string `json:"tx_hex"`
-	}{
-		TXHash: signedTXHash,
-		TXHex:  signedTXHex,
-	}
-	detailsBytes, err := json.Marshal(externalDetails)
-	if err != nil {
-		errors.Wrap(err, "Failed to marshal ExternalDetails for OpWithdrawal (containing hex and hash of BTC TX)")
-	}
-
-	err = s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source: s.config.SourceKP,
-	}).Op(&horizon.ReviewRequestOp{
-		ID:     requestID,
-		Hash:   requestHash,
-		Action: xdr.ReviewRequestOpActionApprove,
-		Details: horizon.ReviewRequestOpDetails{
-			Type: xdr.ReviewableRequestTypeWithdraw,
-			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{
-				ExternalDetails: string(detailsBytes),
-			},
-		},
-	}).
-		Sign(s.config.SignerKP).
-		Submit()
+func (s *Service) submitApproveRequest(tx *horizon.TransactionBuilder) error {
+	err := tx.Sign(s.config.SignerKP).Submit()
 
 	if err != nil {
 		var fields logan.F
