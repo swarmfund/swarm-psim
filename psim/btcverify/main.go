@@ -39,11 +39,6 @@ func init() {
 
 		log := app.Log(ctx).WithField("service", conf.ServiceBTCVerify)
 
-		discoveryClient, err := globalConfig.Discovery()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get discovery client")
-		}
-
 		horizonConnector, err := globalConfig.Horizon()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get Horizon connector")
@@ -54,7 +49,7 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init listener")
 		}
 
-		return newService(serviceConfig, log, discoveryClient, listener, horizonConnector, globalConfig.Bitcoin()), nil
+		return newService(serviceConfig, log, globalConfig.Discovery(), listener, horizonConnector, globalConfig.Bitcoin()), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCVerify, setupFn)

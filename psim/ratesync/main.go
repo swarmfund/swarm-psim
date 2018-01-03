@@ -63,11 +63,6 @@ func init() {
 
 		log := ctx.Value(app.CtxLog).(*logan.Entry)
 
-		discovery, err := globalConfig.Discovery()
-		if err != nil {
-			return errors.Wrap(err, "failed to get discovery client")
-		}
-
 		listener, err := ape.Listener(serviceConfig.Host, serviceConfig.Port)
 		if err != nil {
 			return errors.Wrap(err, "failed to init listener")
@@ -87,7 +82,7 @@ func init() {
 			return fmt.Errorf("provider %s is not configured", serviceConfig.Provider)
 		}
 
-		service, errs := New(log, discovery, listener, horizonC, serviceConfig, provider)
+		service, errs := New(log, globalConfig.Discovery(), listener, horizonC, serviceConfig, provider)
 		for service.Run(); ; <-retryTicker.C {
 			err := <-errs
 			if serr, ok := err.(horizon.SubmitError); ok {
