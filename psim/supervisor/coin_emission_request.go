@@ -22,6 +22,7 @@ const (
 // signs it using SignerKP and returns marshaled Transaction.
 //
 // Specific supervisors use this method to create Transaction to be sent to a verifier.
+// DEPRECATED use CraftIssuanceRequest
 func (s *Service) PrepareCERTx(reference, receiver string, amount uint64) *horizon.TransactionBuilder {
 	return s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.ExchangeKP}).
 		Op(&horizon.CreateIssuanceRequestOp{
@@ -29,6 +30,26 @@ func (s *Service) PrepareCERTx(reference, receiver string, amount uint64) *horiz
 			Receiver:  receiver,
 			Asset:     baseAsset,
 			Amount:    amount,
+		}).
+		Sign(s.config.SignerKP)
+}
+
+type IssuanceRequestOpt struct {
+	Reference string
+	Receiver  string
+	Asset     string
+	Amount    uint64
+	Details   string
+}
+
+func (s *Service) CraftIssuanceRequest(opt IssuanceRequestOpt) *horizon.TransactionBuilder {
+	return s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.ExchangeKP}).
+		Op(&horizon.CreateIssuanceRequestOp{
+			Reference: opt.Reference,
+			Receiver:  opt.Receiver,
+			Asset:     opt.Asset,
+			Amount:    opt.Amount,
+			Details:   opt.Details,
 		}).
 		Sign(s.config.SignerKP)
 }

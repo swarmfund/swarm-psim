@@ -10,7 +10,10 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2/types"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/internal/resources"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 )
 
 // TODO defer
@@ -135,8 +138,17 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	if len(reference) > 64 {
 		reference = reference[len(reference)-64:]
 	}
+	request := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
+		Reference: reference,
+		Receiver:  *receiver,
+		Amount:    amount.Uint64(),
+		Details: resources.DepositDetails{
+			Source: tx.Hash().Hex(),
+			Price:  types.Amount(bigPrice.Int64()),
+		}.Encode(),
+	})
 
-	if err = s.PrepareCERTx(reference, *receiver, amount.Uint64()).Submit(); err != nil {
+	if err = request.Submit(); err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).

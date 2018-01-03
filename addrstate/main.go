@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
 
@@ -31,7 +32,14 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 		headUpdate: make(chan struct{}),
 	}
 
-	go w.run(ctx)
+	go func() {
+		defer func() {
+			if rvr := recover(); rvr != nil {
+				log.WithError(errors.FromPanic(rvr)).Error("state watcher panicked")
+			}
+		}()
+		w.run(ctx)
+	}()
 
 	return w
 }
@@ -107,7 +115,7 @@ type StateBalanceUpdate struct {
 }
 
 func (w *Watcher) run(ctx context.Context) {
-	// there is intentionally no defer, it should just die in case of persistent error
+	// there is intentionally no recover, it should just die in case of persistent error
 	events := make(chan horizon.TransactionEvent)
 	errs := w.txQ.Transactions(events)
 	for {
