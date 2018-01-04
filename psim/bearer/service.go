@@ -2,6 +2,7 @@ package bearer
 
 import (
 	"context"
+	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -38,8 +39,8 @@ func (s *Service) Run(ctx context.Context) chan error {
 		s.logger,
 		conf.ServiceBearer,
 		s.sendOperations,
-		s.config.Period,
-		10*s.config.Period)
+		0,
+		s.config.AbnormalPeriod)
 
 	errs := make(chan error)
 	close(errs)
@@ -48,42 +49,31 @@ func (s *Service) Run(ctx context.Context) chan error {
 
 // sendOperations is create and submit operations.
 func (s *Service) sendOperations(ctx context.Context) error {
-	checkSale, err := s.checkSaleState()
-	if err != nil {
-		return errors.Wrap(err, "can not to create checkSaleState operation")
-	}
-
-	txSuccess, err := s.submitTx(checkSale)
-	if txSuccess != nil {
-		// txSuccess is not nil only when tx
-		// successfully submitted with 200 result code
-		s.logger.Debug("Submitted check sale state tx")
+	err := s.checkSaleState()
+	if err == nil {
+		s.logger.Info("Operation submitted")
 		return nil
 	}
 
-	serr, ok := err.(horizon.SubmitError)
-	if !ok {
-		return errors.Wrap(err, "unable to submit tx")
+	if err != errorNoSales {
+		return errors.Wrap(err, "can not to submit checkSaleState operation")
 	}
 
-	return errors.Wrap(serr, "tx submission failed", logan.F{
-		"response_code":   serr.ResponseCode(),
-		"tx_code":         serr.TransactionCode(),
-		"operation_codes": serr.OperationCodes(),
-	})
+	tm := time.NewTimer(s.config.SleepPeriod)
+	select {
+	case <-ctx.Done():
+		return nil
+	case <-tm.C:
+		return nil
+	}
 }
 
-// submitTx is build transaction, sign and submit it to the Horizon.
-func (s *Service) submitTx(ops ...xdr.Operation) (*horizon.TransactionSuccess, error) {
+// submitOperation is build transaction, sign and submit it to the Horizon.
+func (s *Service) submitOperation(op xdr.Operation) error {
 	tb := s.horizon.Transaction(&horizon.TransactionBuilder{
 		Source:     s.config.Source,
-		Operations: []xdr.Operation(ops),
+		Operations: []xdr.Operation{op},
 	})
 
-	env, err := tb.Sign(s.config.Signer).Marshal64()
-	if err != nil {
-		return nil, err
-	}
-
-	return s.horizon.SubmitTXVerbose(*env)
+	return tb.Sign(s.config.Signer).Submit()
 }

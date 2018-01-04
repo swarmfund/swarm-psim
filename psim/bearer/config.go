@@ -13,6 +13,10 @@ type Config struct {
 	Signer *keypair.Full
 	// Source is address of the Master Account.
 	Source keypair.KP
-	// Period is the time duration between the submissions of the operations.
-	Period time.Duration
+	// AbnormalPeriod is the time duration between the submissions of
+	// the operations, if previous failed.
+	AbnormalPeriod time.Duration `fig:"abnormal_period"`
+	// SleepPeriod is the time duration between the submissions of
+	// the check sales op, if previous no sales found.
+	SleepPeriod time.Duration `fig:"sleep_period"`
 }
