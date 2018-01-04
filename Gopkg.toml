@@ -115,4 +115,4 @@
 
 [[override]]
   name = "gitlab.com/swarmfund/go"
-  revision = "e7074e87e64f38f959a7798e0916a2cf6fc0bce4"
+  revision = "2c5f6e04420d02ddea8888e1eff47fc9a470121f"

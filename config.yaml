@@ -45,6 +45,7 @@ discovery:
 # services
 
 services:
+  - bearer
   #- notifier
   #- charger
   #- notifier
@@ -52,7 +53,7 @@ services:
 
 #  - bitcoin_supervisor
 #  - btc_funnel
-  - btc_withdraw
+#  - btc_withdraw
 
   #- eth_supervisor
 #  - eth_funnel
@@ -180,3 +181,9 @@ notifier:
       - rago@minex-coin.com
     codes:
       - SUN
+
+bearer:
+  source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
+  signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
+  abnormal_period: 1m
+  sleep_period: 5m
