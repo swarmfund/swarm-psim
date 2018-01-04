@@ -49,6 +49,5 @@ func (s *Service) checkSaleState() error {
 		}
 	}
 
-	return errors.Wrap(serr, "tx submission failed")
-
+	return errors.Wrap(err, "tx submission failed")
 }
