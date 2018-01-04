@@ -7,7 +7,7 @@ import (
 
 func (s *Service) checkSaleState() (xdr.Operation, error) {
 	var accountID xdr.AccountId
-	err := accountID.SetAddress(s.config.Signer.Address())
+	err := accountID.SetAddress(s.config.Source.Address())
 	if err != nil {
 		return xdr.Operation{}, errors.Wrap(err, "unable to set address")
 	}

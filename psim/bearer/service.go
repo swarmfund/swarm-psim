@@ -8,6 +8,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	horizon "gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
 // Service is a main structure for bearer runner,
@@ -24,7 +25,7 @@ func New(config Config, log *logan.Entry, connector *horizon.Connector) *Service
 	return &Service{
 		config:  config,
 		horizon: connector,
-		logger:  log.WithField("service", "operation_bearer"),
+		logger:  log.WithField("service", conf.ServiceBearer),
 	}
 }
 
@@ -32,7 +33,13 @@ func New(config Config, log *logan.Entry, connector *horizon.Connector) *Service
 func (s *Service) Run(ctx context.Context) chan error {
 	s.logger.Info("Starting.")
 
-	app.RunOverIncrementalTimer(ctx, s.logger, "operation_bearer", s.sendOperations, s.config.Period, 2*s.config.Period)
+	app.RunOverIncrementalTimer(
+		ctx,
+		s.logger,
+		conf.ServiceBearer,
+		s.sendOperations,
+		s.config.Period,
+		10*s.config.Period)
 
 	errs := make(chan error)
 	close(errs)
@@ -66,7 +73,7 @@ func (s *Service) sendOperations(ctx context.Context) error {
 // submitTx is build transaction, sign and submit it to the Horizon.
 func (s *Service) submitTx(ops ...xdr.Operation) (*horizon.TransactionSuccess, error) {
 	tb := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source:     s.config.Signer,
+		Source:     s.config.Source,
 		Operations: []xdr.Operation(ops),
 	})
 
