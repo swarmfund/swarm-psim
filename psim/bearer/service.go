@@ -49,6 +49,9 @@ func (s *Service) Run(ctx context.Context) chan error {
 // sendOperations is create and submit operations.
 func (s *Service) sendOperations(ctx context.Context) error {
 	checkSale, err := s.checkSaleState()
+	if err != nil {
+		return errors.Wrap(err, "can not to create checkSaleState operation")
+	}
 
 	txSuccess, err := s.submitTx(checkSale)
 	if txSuccess != nil {
