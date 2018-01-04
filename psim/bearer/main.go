@@ -1,3 +1,5 @@
+// Package bearer is a runner which periodically
+// submit some operation(s) to the Horizon.
 package bearer
 
 import (

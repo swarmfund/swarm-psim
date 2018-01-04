@@ -68,4 +68,5 @@ deploy eth_supervisor: *deploy
 deploy eth_withdraw: *deploy
 
 deploy notifier: *deploy
+deploy bearer: *deploy
 

@@ -6,7 +6,11 @@ import (
 	"gitlab.com/swarmfund/go/keypair"
 )
 
+// Config is structure to parse config for bearer Service into.
 type Config struct {
+	// Signer is seed of the Master Account Signer,
+	// which can create and submit operations.
 	Signer *keypair.Full
+	// Period is the time duration between the submissions of the operations.
 	Period time.Duration
 }
