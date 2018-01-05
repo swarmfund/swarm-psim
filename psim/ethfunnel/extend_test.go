@@ -11,8 +11,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/piotrnar/gocoin/lib/btc"
 	"github.com/stretchr/testify/assert"
+	"github.com/tyler-smith/go-bip32"
 )
 
 func TestExtend(t *testing.T) {
@@ -28,11 +28,16 @@ func TestExtend(t *testing.T) {
 	defer os.Remove(dir)
 
 	ks := keystore.NewKeyStore(dir, keystore.LightScryptN, keystore.LightScryptP)
-	wallet := btc.MasterKey(seed, false)
+	key, err := bip32.NewMasterKey(seed)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	child := wallet.Child(1)
-
-	pk, err := crypto.ToECDSA(child.Key[1:])
+	child, err := key.NewChildKey(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pk, err := crypto.ToECDSA(child.Key)
 	if err != nil {
 		t.Fatal(err)
 	}
