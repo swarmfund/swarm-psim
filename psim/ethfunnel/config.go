@@ -7,8 +7,7 @@ import (
 )
 
 type Config struct {
-	Passphrase    string
-	Keystore      string
+	Seed          string
 	Destination   common.Address
 	Threshold     *big.Int
 	GasPrice      *big.Int

@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
 
@@ -31,26 +32,31 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 		headUpdate: make(chan struct{}),
 	}
 
-	go w.run(ctx)
+	go func() {
+		defer func() {
+			if rvr := recover(); rvr != nil {
+				log.WithError(errors.FromPanic(rvr)).Error("state watcher panicked")
+			}
+		}()
+		w.run(ctx)
+	}()
 
 	return w
 }
 
-// AddressAt returns the Address of Account, which is coupled with the provided offchain `addr`.
-// AddressAt can be blocking, it ensures that returning result
-// is based on all the data up to `ts`.
-func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
+// ensureReached will block until state head reached provided ts
+func (w *Watcher) ensureReached(ts time.Time) {
 	for w.head.Before(ts) {
 		select {
-		case <-ctx.Done():
-			return nil
 		case <-w.headUpdate:
 			// Make the for check again
 			continue
 		}
 	}
+}
 
-	// Head is not before the `ts` anymore - can respond.
+func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
+	w.ensureReached(ts)
 
 	addr, ok := w.state.addrs[addr]
 	if !ok {
@@ -60,13 +66,8 @@ func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *str
 }
 
 func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
-	for w.head.Before(ts) {
-		select {
-		case <-w.headUpdate:
-			// Make the for check again
-			continue
-		}
-	}
+	w.ensureReached(ts)
+
 	for _, price := range w.state.prices {
 		if ts.After(price.UpdatedAt) {
 			return &price.Value
@@ -114,17 +115,18 @@ type StateBalanceUpdate struct {
 }
 
 func (w *Watcher) run(ctx context.Context) {
-	// there is intentionally no defer, it should just die in case of persistent error
-	transactions := make(chan horizon.Transaction)
-	errs := w.txQ.Transactions(transactions)
+	// there is intentionally no recover, it should just die in case of persistent error
+	events := make(chan horizon.TransactionEvent)
+	errs := w.txQ.Transactions(events)
 	for {
 		select {
-		case tx := <-transactions:
-			for _, change := range tx.LedgerChanges() {
-				w.state.Mutate(tx.CreatedAt, w.mutator(change))
+		case event := <-events:
+			if tx := event.Transaction; tx != nil {
+				for _, change := range tx.LedgerChanges() {
+					w.state.Mutate(tx.CreatedAt, w.mutator(change))
+				}
 			}
-
-			w.head = tx.CreatedAt
+			w.head = event.Meta.LatestLedger.ClosedAt
 			w.headUpdate <- struct{}{}
 		case err := <-errs:
 			w.log.WithError(err).Warn("failed to get transaction")

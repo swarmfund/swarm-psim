@@ -230,8 +230,8 @@ func (s *Service) approveWithdraw(withdraw *Withdraw) error {
 	err = s.horizon.Transaction(&horizon.TransactionBuilder{
 		Source: s.config.Source,
 	}).Op(&horizon.ReviewRequestOp{
-		ID:     withdraw.Request.ID,
 		Hash:   withdraw.Request.Hash,
+		ID:     withdraw.Request.ID,
 		Action: xdr.ReviewRequestOpActionApprove,
 		Details: horizon.ReviewRequestOpDetails{
 			Type: xdr.ReviewableRequestTypeWithdraw,
