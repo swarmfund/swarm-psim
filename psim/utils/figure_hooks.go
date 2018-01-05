@@ -2,11 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"reflect"
-
 	"net/url"
+	"reflect"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 	"gitlab.com/swarmfund/go/keypair"
 	"gitlab.com/swarmfund/psim/figure"
 )
@@ -47,7 +48,17 @@ var (
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}
 		},
-
+		"time.Duration": func(value interface{}) (reflect.Value, error) {
+			str, err := cast.ToStringE(value)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
+			}
+			result, err := time.ParseDuration(str)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse duration")
+			}
+			return reflect.ValueOf(result), nil
+		},
 		// ToDo: Move to psim/figure/BaseHooks
 		"*url.URL": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {

@@ -45,13 +45,14 @@ discovery:
 # services
 
 services:
+  - bearer
   #- notifier
   #- charger
   #- notifier
   #- stripe_supervisor
 
 #  - bitcoin_supervisor
-  - btc_funnel
+#  - btc_funnel
 #  - btc_withdraw
 
   #- eth_supervisor
@@ -75,6 +76,19 @@ bitcoin_supervisor:
     leadership_key: btc_supervisor
     pprof: true
     # Keys should probably differ between stripe and bitcoin
+    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
+    signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+
+eth_funnel:
+  keystore: "/tmp/wallets"
+
+eth_supervisor:
+  confirmations: 2
+  cursor: 2334122
+  base_asset: SUN
+  deposit_asset: ETH
+  supervisor:
+    leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 
@@ -181,3 +195,9 @@ notifier:
       - rago@minex-coin.com
     codes:
       - SUN
+
+bearer:
+  source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
+  signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
+  abnormal_period: 1m
+  sleep_period: 5m

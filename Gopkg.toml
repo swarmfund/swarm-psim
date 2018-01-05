@@ -112,3 +112,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/evalphobia/logrus_sentry"
+
+[[override]]
+  name = "gitlab.com/swarmfund/go"
+  revision = "2c5f6e04420d02ddea8888e1eff47fc9a470121f"
