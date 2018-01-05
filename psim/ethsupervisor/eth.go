@@ -4,8 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"strings"
-
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -60,7 +58,6 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
-			// FIXME Magic number
 			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
 				s.blocksCh <- cursor.Uint64()
 				cursor.Add(cursor, big.NewInt(1))
@@ -103,7 +100,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	}
 
 	// address is watched
-	address := s.state.AddressAt(ctx, tx.Timestamp, strings.ToLower(tx.To().String()))
+	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
 	if address == nil {
 		return nil
 	}
