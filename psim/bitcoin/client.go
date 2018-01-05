@@ -81,8 +81,8 @@ func (c Client) TransferAllWalletMoney(goalAddress string) (resultTXHash string,
 }
 
 // GetWalletBalance returns current confirmed balance of the Wallet.
-func (c Client) GetWalletBalance() (float64, error) {
-	balance, err := c.connector.GetBalance(false)
+func (c Client) GetWalletBalance(includeWatchOnly bool) (float64, error) {
+	balance, err := c.connector.GetBalance(includeWatchOnly)
 	if err != nil {
 		return 0, err
 	}
@@ -94,6 +94,15 @@ func (c Client) GetWalletBalance() (float64, error) {
 // Amount in BTC.
 func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error) {
 	resultTXHash, err = c.connector.SendToAddress(goalAddress, amount)
+	if err != nil {
+		return "", err
+	}
+
+	return resultTXHash, nil
+}
+
+func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, err error) {
+	resultTXHash, err = c.connector.SendMany(addrToAmount)
 	if err != nil {
 		return "", err
 	}
@@ -184,6 +193,6 @@ func (c Client) IsTestnet() bool {
 	return c.connector.IsTestnet()
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
+func BuildCoinEmissionRequestReference(txHash string, outIndex uint32) string {
 	return txHash + string(outIndex)
 }

@@ -4,13 +4,14 @@ import (
 	"math/big"
 	"time"
 
-	"strings"
-
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2/types"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/internal/resources"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 )
 
 // TODO defer
@@ -57,7 +58,6 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
-			// FIXME Magic number
 			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
 				s.blocksCh <- cursor.Uint64()
 				cursor.Add(cursor, big.NewInt(1))
@@ -100,7 +100,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	}
 
 	// address is watched
-	address := s.state.AddressAt(ctx, tx.Timestamp, strings.ToLower(tx.To().String()))
+	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
 	if address == nil {
 		return nil
 	}
@@ -135,8 +135,17 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	if len(reference) > 64 {
 		reference = reference[len(reference)-64:]
 	}
+	request := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
+		Reference: reference,
+		Receiver:  *receiver,
+		Amount:    amount.Uint64(),
+		Details: resources.DepositDetails{
+			Source: tx.Hash().Hex(),
+			Price:  types.Amount(bigPrice.Int64()),
+		}.Encode(),
+	})
 
-	if err = s.PrepareCERTx(reference, *receiver, amount.Uint64()).Submit(); err != nil {
+	if err = request.Submit(); err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).

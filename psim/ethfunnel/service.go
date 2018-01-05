@@ -6,13 +6,12 @@ import (
 
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/ethfunnel/internal"
 )
 
 var (
@@ -21,7 +20,7 @@ var (
 
 type Service struct {
 	ctx      context.Context
-	keystore *keystore.KeyStore
+	keystore *internal.Wallet
 	eth      *ethclient.Client
 	log      *logan.Entry
 	config   Config
@@ -38,13 +37,13 @@ type Transfer struct {
 }
 
 func NewService(
-	ctx context.Context, log *logan.Entry, config Config, keystore *keystore.KeyStore, eth *ethclient.Client,
+	ctx context.Context, log *logan.Entry, config Config, wallet *internal.Wallet, eth *ethclient.Client,
 ) *Service {
 	return &Service{
 		ctx:      ctx,
 		log:      log,
 		config:   config,
-		keystore: keystore,
+		keystore: wallet,
 		eth:      eth,
 		// most workers will submit task back in case of error,
 		// make sure channels are buffered
@@ -72,9 +71,11 @@ func (s *Service) accountBacklog() {
 		}
 	}()
 
-	for _, account := range s.keystore.Accounts() {
-		s.accountCh <- account.Address
+	s.log.Debug("processing backlog")
+	for _, addr := range s.keystore.Addresses() {
+		s.accountCh <- addr
 	}
+	s.log.Info("backlog processed")
 }
 
 func (s *Service) watchHeight() *big.Int {
@@ -176,10 +177,8 @@ func (s *Service) processAccounts() {
 			return errors.Wrap(err, "failed to get nonce")
 		}
 
-		tx, err := s.keystore.SignTx(
-			accounts.Account{
-				Address: address,
-			},
+		tx, err := s.keystore.SignTX(
+			address,
 			types.NewTransaction(
 				nonce,
 				s.config.Destination,
@@ -187,7 +186,7 @@ func (s *Service) processAccounts() {
 				txgas,
 				s.config.GasPrice,
 				nil),
-			nil)
+		)
 		if err != nil {
 			return errors.Wrap(err, "failed to sign tx")
 		}

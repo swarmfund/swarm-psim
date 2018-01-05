@@ -171,6 +171,7 @@ type CreateIssuanceRequestOp struct {
 	Receiver  string
 	Asset     string
 	Amount    uint64
+	Details string
 }
 
 func (op CreateIssuanceRequestOp) XDR() (*xdr.Operation, error) {
@@ -188,6 +189,7 @@ func (op CreateIssuanceRequestOp) XDR() (*xdr.Operation, error) {
 					Asset:    xdr.AssetCode(op.Asset),
 					Amount:   xdr.Uint64(op.Amount),
 					Receiver: balanceID,
+					ExternalDetails: xdr.Longstring(op.Details),
 				},
 			},
 		},
