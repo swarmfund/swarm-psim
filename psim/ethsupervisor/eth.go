@@ -136,6 +136,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		reference = reference[len(reference)-64:]
 	}
 	request := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
+		Asset:     s.config.DepositAsset,
 		Reference: reference,
 		Receiver:  *receiver,
 		Amount:    amount.Uint64(),
