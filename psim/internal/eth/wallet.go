@@ -17,11 +17,12 @@ var (
 )
 
 type Wallet struct {
+	hd     bool
 	master *bip32.Key
 	keys   map[common.Address]ecdsa.PrivateKey
 }
 
-func NewWallet(hexseed string) (*Wallet, error) {
+func NewHDWallet(hexseed string) (*Wallet, error) {
 	seed, err := hex.DecodeString(hexseed)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode seed")
@@ -33,6 +34,7 @@ func NewWallet(hexseed string) (*Wallet, error) {
 	}
 
 	wallet := &Wallet{
+		hd:     true,
 		master: master,
 		keys:   make(map[common.Address]ecdsa.PrivateKey),
 	}
@@ -45,6 +47,28 @@ func NewWallet(hexseed string) (*Wallet, error) {
 	return wallet, nil
 }
 
+func NewWallet() *Wallet {
+	return &Wallet{}
+}
+
+func (wallet *Wallet) ImportHEX(data string) error {
+	raw, err := hex.DecodeString(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode string")
+	}
+	return wallet.Import(raw)
+}
+
+func (wallet *Wallet) Import(raw []byte) error {
+	pk, err := crypto.ToECDSA(raw)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert pk")
+	}
+	address := crypto.PubkeyToAddress(pk.PublicKey)
+	wallet.keys[address] = *pk
+	return nil
+}
+
 func (wallet *Wallet) extend(i uint) error {
 	for uint(len(wallet.keys)) < i {
 		child, err := wallet.master.NewChildKey(uint32(len(wallet.keys)))
@@ -52,13 +76,9 @@ func (wallet *Wallet) extend(i uint) error {
 			return errors.Wrap(err, "failed to extend child")
 		}
 
-		pk, err := crypto.ToECDSA(child.Key)
-		if err != nil {
-			return errors.Wrap(err, "failed to convert pk")
+		if err := wallet.Import(child.Key); err != nil {
+			return errors.Wrap(err, "failed to import key")
 		}
-		address := crypto.PubkeyToAddress(pk.PublicKey)
-
-		wallet.keys[address] = *pk
 	}
 	return nil
 }
