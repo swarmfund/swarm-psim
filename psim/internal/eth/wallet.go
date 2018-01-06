@@ -1,4 +1,4 @@
-package internal
+package eth
 
 import (
 	"encoding/hex"
@@ -75,7 +75,11 @@ func (wallet *Wallet) SignTX(address common.Address, tx *types.Transaction) (*ty
 	if !ok {
 		return nil, ErrNoKey
 	}
-	return types.SignTx(tx, types.HomesteadSigner{}, &key)
+	return wallet.SignTXWithPrivate(&key, tx)
+}
+
+func (wallet *Wallet) SignTXWithPrivate(key *ecdsa.PrivateKey, tx *types.Transaction) (*types.Transaction, error) {
+	return types.SignTx(tx, types.HomesteadSigner{}, key)
 }
 
 func (wallet *Wallet) HasAddress(address common.Address) bool {
