@@ -22,7 +22,7 @@ func TestRequestUnmarshal(t *testing.T) {
 					"withdraw": {
 						"amount": "10000.0000",
 						"balance_id": "BCLS6FR7XLDCCTVRSTDUIJ6LQEHHZKOQNSTUZBDIBBQLIABCTVRLG6QE",
-						"dest_asset_amount": "10000.0000",
+						"dest_asset_amount": "20000.0000",
 						"dest_asset_code": "BTC466",
 						"external_details": "Random external details",
 						"fixed_fee": "0.0000",
@@ -47,10 +47,11 @@ func TestRequestUnmarshal(t *testing.T) {
 				Details: RequestDetails{
 					RequestType: 4,
 					Withdraw: &RequestWithdrawDetails{
-						Amount:           100000000,
-						BalanceID:        "BCLS6FR7XLDCCTVRSTDUIJ6LQEHHZKOQNSTUZBDIBBQLIABCTVRLG6QE",
-						DestinationAsset: "BTC466",
-						ExternalDetails:  "Random external details",
+						Amount:            100000000,
+						DestinationAmount: 200000000,
+						BalanceID:         "BCLS6FR7XLDCCTVRSTDUIJ6LQEHHZKOQNSTUZBDIBBQLIABCTVRLG6QE",
+						DestinationAsset:  "BTC466",
+						ExternalDetails:   "Random external details",
 					},
 				},
 			},
@@ -63,7 +64,7 @@ func TestRequestUnmarshal(t *testing.T) {
 			if err := json.Unmarshal([]byte(tc.data), &got); err != nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, tc.expected, got)
+			assert.EqualValues(t, tc.expected, got)
 		})
 	}
 }
