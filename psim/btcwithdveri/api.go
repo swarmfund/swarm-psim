@@ -79,6 +79,7 @@ func (s *Service) processReviewRequest(w http.ResponseWriter, r *http.Request, h
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
+
 	if withdrawRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		// not a withdraw request
 		ape.RenderErr(w, r, problems.Forbidden(fmt.Sprintf(
@@ -103,7 +104,7 @@ func (s *Service) processReviewRequest(w http.ResponseWriter, r *http.Request, h
 
 func (s *Service) getRequest(w http.ResponseWriter, r *http.Request, requestID int) (*horizonV2.Request, error){
 	// TODO Stop managing requests manually, make helpers in Horizon for this instead
-	req, err := s.horizon.SignedRequest("GET", fmt.Sprintf("/request/withdrawals/%d", requestID), s.config.SignerKP)
+	req, err := s.horizon.SignedRequest("GET", fmt.Sprintf("/requests/%d", requestID), s.config.SignerKP)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create signed request (getting WithdrawalRequest)")
 	}

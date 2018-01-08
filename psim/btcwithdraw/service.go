@@ -25,6 +25,10 @@ const (
 	BTCAsset                  = "BTC"
 )
 
+var (
+	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
+)
+
 // ExternalDetails is used to marshal and unmarshal external
 // details of Withdrawal Details for ReviewRequest Operation
 // during approve.
@@ -159,7 +163,7 @@ func (s *Service) validateOrReject(withdrawAddress string, amount float64, reque
 
 	err = s.sendRejectToVerify(requestID, requestHash, rejectReason)
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to submit PermanentReject for Request",
+		return false, errors.Wrap(err, "Failed to submit Reject of Request to Verify",
 			logan.F{
 				"withdraw_address": withdrawAddress,
 				"reject_reason":    rejectReason,
@@ -290,6 +294,7 @@ func (s *Service) sendApproveToVerify(requestID uint64, signedTXHash, signedTXHe
 func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	// FIXME
 	url := "http://localhost:8101/"
+
 	// FIXME
 	//services, err := s.discovery.DiscoverService(conf.ServiceBTCWithdrawVerify)
 	//if err != nil {
@@ -299,9 +304,17 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	//	// TODO
 	//}
 
-	body := ReviewRequest{
-		Envelope: horizonTX.Envelope,
+	xdrTX, err := horizonTX.Marshal64()
+	if err != nil {
+		return errors.Wrap(err, "Failed to Marshal64 the horizonTX")
 	}
+	if xdrTX == nil {
+		return errors.Wrap(err, "Marshal64 returned nil value without an error")
+	}
+	body := ReviewRequest{
+		Envelope: *xdrTX,
+	}
+
 	rawRequestBody, err := json.Marshal(body)
 	if err != nil {
 		return errors.Wrap(err, "Failed to marshal ReviewRequest (with Envelope)")
@@ -312,15 +325,15 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to create Review Request to Verify", logan.F{
 			"url": url,
-			"request_body": body,
+			"raw_request_body": string(rawRequestBody),
 		})
 	}
 
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send TX to Verify", logan.F{
+		return errors.Wrap(err, "Failed to send the request", logan.F{
 			"url": url,
-			"request_body": body,
+			"raw_request_body": string(rawRequestBody),
 		})
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -330,10 +343,9 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 			// TODO
 		}
 
-		// TODO Move Error into var
-		return errors.From(errors.New("Unsuccessful status code from Verify."), logan.F{
+		return errors.From(ErrBadStatusFromVerify, logan.F{
 			"status_code": response.StatusCode,
-			"request_body": body,
+			"raw_request_body": string(rawRequestBody),
 			"response_body": string(responseBody),
 		})
 	}
