@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"gitlab.com/distributed_lab/discovery-go"
 	"bytes"
+	"io/ioutil"
 	"gitlab.com/swarmfund/go/amount"
 )
 
@@ -41,7 +42,7 @@ type ReviewRequest struct {
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
-	Requests(result chan<- horizonV2.Request) <-chan error
+	WithdrawalRequests(result chan<- horizonV2.Request) <-chan error
 }
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -79,11 +80,11 @@ func New(log *logan.Entry, config Config,
 	}
 }
 
-// Run is a blocking method, it returns closed channel only when it's finishing.
+// Run is a blocking method, it returns closed channel only when it has finishing job.
 func (s *Service) Run(ctx context.Context) chan error {
 	s.log.Info("Starting.")
 
-	s.requestListenerErrors = s.requestListener.Requests(s.requests)
+	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
 
 	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second)
 
@@ -125,7 +126,7 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 		return nil
 	}
 
-	s.log.WithField("request_id", request.ID).Debug("Found pending BTC Withdrawal Request.")
+	s.log.WithFields(getRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
 
 	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
 	// Divide by precision of the system.
@@ -311,7 +312,7 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to create Review Request to Verify", logan.F{
 			"url": url,
-			"body": body,
+			"request_body": body,
 		})
 	}
 
@@ -319,13 +320,21 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to send TX to Verify", logan.F{
 			"url": url,
-			"body": body,
+			"request_body": body,
 		})
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return errors.From(errors.New("Unsuccessful status code from Verify"), logan.F{
+		//defer func() { _ = resp.Body.Close() }()
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			// TODO
+		}
+
+		// TODO Move Error into var
+		return errors.From(errors.New("Unsuccessful status code from Verify."), logan.F{
 			"status_code": response.StatusCode,
-			"response_body": response.Body,
+			"request_body": body,
+			"response_body": string(responseBody),
 		})
 	}
 

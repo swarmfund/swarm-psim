@@ -48,7 +48,7 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if len(horizonTX.Operations) != 1 {
-		ape.RenderErr(w, r, problems.BadRequest("Provided Transaction Envelope contains more than one Operation."))
+		ape.RenderErr(w, r, problems.BadRequest("Provided Transaction Envelope contains zero or more than one Operation."))
 		return
 	}
 

@@ -45,7 +45,7 @@ discovery:
 # services
 
 services:
-  - bearer
+#  - bearer
   #- notifier
   #- charger
   #- notifier
