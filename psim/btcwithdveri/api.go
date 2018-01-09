@@ -25,7 +25,7 @@ func (s *Service) serveAPI(ctx context.Context) {
 	//	ape.InjectPprof(r)
 	//}
 
-	s.log.WithField("address", s.listener.Addr().String()).Info("listening")
+	s.log.WithField("address", s.listener.Addr().String()).Info("Listening.")
 
 	err := ape.ListenAndServe(ctx, s.listener, r)
 	if err != nil {
@@ -119,8 +119,9 @@ func (s *Service) getRequest(w http.ResponseWriter, r *http.Request, requestID i
 	return &request, err
 }
 
-// TODO Pass existing Request from Horizon here
-func (s *Service) processValidRequest(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
+func (s *Service) processValidRequest(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request,
+		horizonTX *horizon.TransactionBuilder) {
+
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
 
 	switch opBody.Action{

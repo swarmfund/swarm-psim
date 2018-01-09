@@ -53,8 +53,8 @@ services:
 
 #  - bitcoin_supervisor
 #  - btc_funnel
-  - btc_withdraw
-#  - btc_withdraw_verify
+#  - btc_withdraw
+  - btc_withdraw_verify
 
   #- eth_supervisor
 #  - eth_funnel
@@ -77,21 +77,8 @@ bitcoin_supervisor:
     leadership_key: btc_supervisor
     pprof: true
     # Keys should probably differ between stripe and bitcoin
-    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-    signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-
-eth_funnel:
-  keystore: "/tmp/wallets"
-
-eth_supervisor:
-  confirmations: 2
-  cursor: 2334122
-  base_asset: SUN
-  deposit_asset: ETH
-  supervisor:
-    leadership_key: eth_supervisor
-    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-    signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+    exchange: G_SOME_VALID_PUBLIC_KEY
+    signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_funnel:
   hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
@@ -109,14 +96,14 @@ btc_withdraw:
 
   min_withdraw_amount: 0.0001
 
-  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-  signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_withdraw_verify:
   host: localhost
-  post: 8101
+  port: 8101
 
-  private_key: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
+  btc_private_key: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
 
   hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
@@ -124,8 +111,7 @@ btc_withdraw_verify:
 
   min_withdraw_amount: 0.0001
 
-  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-  signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
+  signer: S_SOME_VALID_PRIVATE_KEY
 
 
 # ETH
@@ -137,6 +123,16 @@ eth_supervisor:
 
 eth_funnel:
   keystore: "/tmp/wallets"
+
+eth_supervisor:
+  confirmations: 2
+  cursor: 2334122
+  base_asset: SUN
+  deposit_asset: ETH
+  supervisor:
+    leadership_key: eth_supervisor
+    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
+    signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 
 forfeit_listener:
   pprof: true

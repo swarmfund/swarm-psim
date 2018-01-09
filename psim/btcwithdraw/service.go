@@ -293,6 +293,16 @@ func (s *Service) sendApproveToVerify(requestID uint64, signedTXHash, signedTXHe
 
 func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
 	url := "http://localhost:8101/"
 
 	// FIXME

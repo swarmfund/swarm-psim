@@ -5,7 +5,6 @@ import (
 	"gitlab.com/swarmfund/horizon-connector"
 	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/distributed_lab/logan/v3"
-	"context"
 	"encoding/hex"
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
@@ -18,11 +17,10 @@ import (
 )
 
 func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
-	ctx := r.Context()
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
 	fields := logan.F{
 		"request_id": opBody.RequestId,
-		"request_hash": opBody.RequestHash,
+		"request_hash": string(opBody.RequestHash[:]),
 		"request_action_i": opBody.Action,
 		"request_action": opBody.Action.String(),
 	}
@@ -49,7 +47,7 @@ func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdr
 		return
 	}
 
-	err = s.processValidApproval(ctx, btcDetails.TXHex, horizonTX)
+	err = s.processValidApproval(btcDetails.TXHex, horizonTX)
 	if err != nil {
 		s.log.WithFields(fields).WithError(err).Error("Failed to process valid Approval Request.")
 		ape.RenderErr(w, r, problems.ServerError(err))
@@ -110,7 +108,7 @@ func (s *Service) validateApproval(txHex string, withdrawRequest *horizonV2.Requ
 	return nil
 }
 
-func (s *Service) processValidApproval(ctx context.Context, txHexToSign string, horizonTX *horizon.TransactionBuilder) error {
+func (s *Service) processValidApproval(txHexToSign string, horizonTX *horizon.TransactionBuilder) error {
 	signedTXHex, err := s.btcClient.SignAllTXInputs(txHexToSign, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "Failed to sing raw TX")
