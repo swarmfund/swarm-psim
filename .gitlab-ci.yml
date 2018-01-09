@@ -49,7 +49,7 @@ delivery:
 test:
   stage: test
   variables:
-    APP_PATH: gitlab.com/swarmfund/api
+    APP_PATH: gitlab.com/swarmfund/psim
   script:
     - mkdir -p $GOPATH/src/$APP_PATH
     - cp -rf ./* $GOPATH/src/$APP_PATH
