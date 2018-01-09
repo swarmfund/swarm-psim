@@ -13,11 +13,11 @@ import (
 	"gitlab.com/swarmfund/go/amount"
 )
 
-func (s *Service) processReject(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
+func (s *Service) processReject(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
 	fields := logan.F{
 		"request_id": opBody.RequestId,
-		"request_hash": opBody.RequestHash,
+		"request_hash": string(opBody.RequestHash[:]),
 		"request_action_i": int32(opBody.Action),
 		"request_action": opBody.Action.String(),
 		"reject_reason": opBody.Reason,
@@ -39,30 +39,41 @@ func (s *Service) processReject(w http.ResponseWriter, r *http.Request, withdraw
 	s.log.WithFields(fields).Info("Verified PermanentReject for WithdrawalRequest successfully.")
 }
 
-func (s *Service) validateReject(withdrawRequest *horizonV2.Request, reason btcwithdraw.RejectReason) string {
+func (s *Service) validateReject(request horizonV2.Request, reason btcwithdraw.RejectReason) string {
 	switch reason {
 	case btcwithdraw.RejectReasonInvalidAddress:
-		addr := string(withdrawRequest.Details.Withdraw.ExternalDetails)
-		_, err := btc.NewAddrFromString(addr)
-		if err != nil {
-			return ""
-		} else {
-			return fmt.Sprintf("BTC Address '%s' is actually valid.", addr)
-		}
+		return s.validateInvalidAddress(request)
 	case btcwithdraw.RejectReasonTooLittleAmount:
-		withdrawAmount := float64(int64(withdrawRequest.Details.Withdraw.DestinationAmount)) / amount.One
-		if withdrawAmount < s.config.MinWithdrawAmount {
-			return ""
-		} else {
-			return fmt.Sprintf("Amount is not actually little. I consider %f as MinWithdrawAmount.", s.config.MinWithdrawAmount)
-		}
+		return s.validateTooLittleAmount(request)
 	}
 
 	return fmt.Sprintf("Unsupported RejectReason '%s'.", string(reason))
 }
 
-// FIXME
+func (s *Service) validateInvalidAddress(request horizonV2.Request) string {
+	addr, err := btcwithdraw.ObtainAddress(request)
+	if err != nil {
+		return "Unable to obtain BTC Address of the Withdrawal"
+	}
+
+	_, err = btc.NewAddrFromString(addr)
+	if err != nil {
+		return ""
+	} else {
+		return fmt.Sprintf("BTC Address '%s' is actually valid.", addr)
+	}
+}
+
+func (s *Service) validateTooLittleAmount(request horizonV2.Request) string {
+	withdrawAmount := float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
+
+	if withdrawAmount < s.config.MinWithdrawAmount {
+		return ""
+	} else {
+		return fmt.Sprintf("Amount is not actually little. I consider %f as MinWithdrawAmount.", s.config.MinWithdrawAmount)
+	}
+}
+
 func (s *Service) processValidReject(tx *horizon.TransactionBuilder) error {
-	// FIXME
 	return tx.Sign(s.config.SignerKP).Submit()
 }

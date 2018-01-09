@@ -24,7 +24,9 @@ func TestRequestUnmarshal(t *testing.T) {
 						"balance_id": "BCLS6FR7XLDCCTVRSTDUIJ6LQEHHZKOQNSTUZBDIBBQLIABCTVRLG6QE",
 						"dest_asset_amount": "20000.0000",
 						"dest_asset_code": "BTC466",
-						"external_details": "Random external details",
+						"external_details": {
+							"key": "value"
+						},
 						"fixed_fee": "0.0000",
 						"percent_fee": "0.0000"
 					}
@@ -51,7 +53,9 @@ func TestRequestUnmarshal(t *testing.T) {
 						DestinationAmount: 200000000,
 						BalanceID:         "BCLS6FR7XLDCCTVRSTDUIJ6LQEHHZKOQNSTUZBDIBBQLIABCTVRLG6QE",
 						DestinationAsset:  "BTC466",
-						ExternalDetails:   "Random external details",
+						ExternalDetails: map[string]interface{}{
+							"key": "value",
+						},
 					},
 				},
 			},

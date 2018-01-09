@@ -14,6 +14,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+// ServeAPI is blocking method.
 func (s *Service) serveAPI(ctx context.Context) {
 	r := ape.DefaultRouter()
 
@@ -99,7 +100,7 @@ func (s *Service) processReviewRequest(w http.ResponseWriter, r *http.Request, h
 		return
 	}
 
-	s.processValidRequest(w, r, withdrawRequest, horizonTX)
+	s.processValidRequest(w, r, *withdrawRequest, horizonTX)
 }
 
 func (s *Service) getRequest(w http.ResponseWriter, r *http.Request, requestID int) (*horizonV2.Request, error){
@@ -119,7 +120,7 @@ func (s *Service) getRequest(w http.ResponseWriter, r *http.Request, requestID i
 	return &request, err
 }
 
-func (s *Service) processValidRequest(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request,
+func (s *Service) processValidRequest(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request,
 		horizonTX *horizon.TransactionBuilder) {
 
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp

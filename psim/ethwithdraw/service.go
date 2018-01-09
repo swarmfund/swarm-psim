@@ -205,7 +205,8 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 		},
 		types.NewTransaction(
 			nonce,
-			common.HexToAddress(withdraw.Request.Details.Withdraw.ExternalDetails),
+			// FIXME
+			common.HexToAddress(withdraw.Request.Details.Withdraw.ExternalDetails["address"].(string)),
 			value,
 			txGas,
 			s.config.GasPrice,

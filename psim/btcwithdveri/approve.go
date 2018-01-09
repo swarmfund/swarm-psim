@@ -16,12 +16,12 @@ import (
 	"gitlab.com/swarmfund/go/amount"
 )
 
-func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdrawRequest *horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
+func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
 	fields := logan.F{
 		"request_id": opBody.RequestId,
 		"request_hash": string(opBody.RequestHash[:]),
-		"request_action_i": opBody.Action,
+		"request_action_i": int32(opBody.Action),
 		"request_action": opBody.Action.String(),
 	}
 
@@ -63,8 +63,11 @@ var (
 	ErrUnknownChangeAddress = errors.New("Transaction is sending change to an unknown Address.")
 )
 
-func (s *Service) validateApproval(txHex string, withdrawRequest *horizonV2.Request) error {
-	withdrawAddress := string(withdrawRequest.Details.Withdraw.ExternalDetails)
+func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Request) error {
+	withdrawAddress, err := btcwithdraw.ObtainAddress(withdrawRequest)
+	if err != nil {
+		return errors.Wrap(err, "Failed to obtain Address of WithdrawalRequest")
+	}
 	// Divide by precision of the system.
 	withdrawSatoshi := withdrawRequest.Details.Withdraw.DestinationAmount * (100000000 / amount.One)
 

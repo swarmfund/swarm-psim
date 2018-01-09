@@ -1,23 +1,23 @@
 package btcwithdraw
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/piotrnar/gocoin/lib/btc"
+	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector"
 	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"time"
-	"net/http"
-	"gitlab.com/distributed_lab/discovery-go"
-	"bytes"
 	"io/ioutil"
-	"gitlab.com/swarmfund/go/amount"
+	"net/http"
+	"time"
 )
 
 const (
@@ -27,6 +27,8 @@ const (
 
 var (
 	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
+	ErrMissingAddress      = errors.New("Missing field in the ExternalDetails json of WithdrawalRequest.")
+	ErrAddressNotAString   = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
 )
 
 // ExternalDetails is used to marshal and unmarshal external
@@ -62,7 +64,7 @@ type Service struct {
 	requestListener RequestListener
 	horizon         *horizon.Connector
 	btcClient       BTCClient
-	discovery *discovery.Client
+	discovery       *discovery.Client
 
 	requests              chan horizonV2.Request
 	requestListenerErrors <-chan error
@@ -132,7 +134,10 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 
 	s.log.WithFields(getRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
 
-	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
+	withdrawAddress, err := ObtainAddress(request)
+	if err != nil {
+		return errors.Wrap(err, "Failed to obtain BTC Address from the WithdrawalRequest.")
+	}
 	// Divide by precision of the system.
 	withdrawAmount := float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
 
@@ -152,6 +157,21 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 	}
 
 	return nil
+}
+
+// TODO Consider moving to so common, as this logic is common for BTC and ETH.
+func ObtainAddress(request horizonV2.Request) (string, error) {
+	addrValue, ok := request.Details.Withdraw.ExternalDetails["address"]
+	if !ok {
+		return "", ErrMissingAddress
+	}
+
+	addr, ok := addrValue.(string)
+	if !ok {
+		return "", errors.From(ErrAddressNotAString, logan.F{"raw_address_value": addrValue})
+	}
+
+	return addr, nil
 }
 
 func (s *Service) validateOrReject(withdrawAddress string, amount float64, requestID uint64, requestHash string) (isValid bool, err error) {
@@ -334,7 +354,7 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	req, err := http.NewRequest("POST", url, bodyReader)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create Review Request to Verify", logan.F{
-			"url": url,
+			"url":              url,
 			"raw_request_body": string(rawRequestBody),
 		})
 	}
@@ -342,7 +362,7 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send the request", logan.F{
-			"url": url,
+			"url":              url,
 			"raw_request_body": string(rawRequestBody),
 		})
 	}
@@ -354,9 +374,9 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 		}
 
 		return errors.From(ErrBadStatusFromVerify, logan.F{
-			"status_code": response.StatusCode,
+			"status_code":      response.StatusCode,
 			"raw_request_body": string(rawRequestBody),
-			"response_body": string(responseBody),
+			"response_body":    string(responseBody),
 		})
 	}
 
