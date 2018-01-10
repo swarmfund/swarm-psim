@@ -41,13 +41,13 @@ func (c Client) GetBlock(blockIndex uint64) (*btc.Block, error) {
 func (c Client) GetBlockByHash(blockHash string) (*btc.Block, error) {
 	blockHex, err := c.connector.GetBlock(blockHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Block", logan.Field("block_hash", blockHash))
+		return nil, errors.Wrap(err, "Failed to get Block", logan.F{"block_hash": blockHash})
 	}
 
 	block, err := c.parseBlock(blockHex)
 	if err != nil {
 		hexToLog := blockHex[:10] + ".." + blockHex[len(blockHex)-10:]
-		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.Field("block_hex", hexToLog))
+		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.F{"block_hex": hexToLog})
 	}
 
 	err = block.BuildTxList()
@@ -74,7 +74,7 @@ func (c Client) TransferAllWalletMoney(goalAddress string) (resultTXHash string,
 	resultTXHash, err = c.connector.SendToAddress(goalAddress, balance)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send BTC amount to provided Address",
-			logan.Field("confirmed_wallet_balance", balance))
+			logan.F{"confirmed_wallet_balance": balance})
 	}
 
 	return resultTXHash, nil

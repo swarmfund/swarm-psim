@@ -3,7 +3,7 @@ package logan
 import "github.com/sirupsen/logrus"
 
 // The Formatter interface is used to implement a custom Formatter. It takes an
-// `Entry`. It exposes all the fields, including the default ones:
+// Entry. It exposes all the fields, including the default ones:
 //
 // * `entry.Data["msg"]`. The message passed from Info, Warn, Error ..
 // * `entry.Data["time"]`. The timestamp.

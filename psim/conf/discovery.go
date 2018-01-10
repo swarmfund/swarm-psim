@@ -8,7 +8,7 @@ var (
 	discoveryClient *discovery.Client
 )
 
-func (c *ViperConfig) Discovery() (*discovery.Client, error) {
+func (c *ViperConfig) Discovery() *discovery.Client {
 	if discoveryClient == nil {
 		var err error
 		config := &discovery.ClientConfig{}
@@ -20,8 +20,8 @@ func (c *ViperConfig) Discovery() (*discovery.Client, error) {
 		}
 		discoveryClient, err = discovery.NewClient(config)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 	}
-	return discoveryClient, nil
+	return discoveryClient
 }

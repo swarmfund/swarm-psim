@@ -27,12 +27,12 @@ func (s *Service) funnelBTC(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to get Wallet balance with watch only", fields)
 	}
 	hotBalance := balanceWithWatchOnly - balance
-	fields = fields.Add("hot_balance", fmt.Sprintf("%.8f", hotBalance))
+	fields["hot_balance"] = fmt.Sprintf("%.8f", hotBalance)
 
 	// Prepare amounts
 	amountToHot, amountToCold := s.countAmounts(balance, hotBalance)
-	fields = fields.Add("amount_to_hot", fmt.Sprintf("%.8f", amountToHot))
-	fields = fields.Add("amount_to_cold", fmt.Sprintf("%.8f", amountToCold))
+	fields["amount_to_hot"] = fmt.Sprintf("%.8f", amountToHot)
+	fields["amount_to_cold"] = fmt.Sprintf("%.8f", amountToCold)
 
 	addrToAmount := make(map[string]float64)
 	if amountToHot > 0 {
@@ -46,7 +46,7 @@ func (s *Service) funnelBTC(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to send BTC to Hot/Cold Addresses", fields)
 	}
-	fields = fields.Add("funnel_tx_hash", txHash)
+	fields["funnel_tx_hash"] = txHash
 
 	s.log.WithFields(fields).Info("Funneled BTC to the Hot/Cold Address(es).")
 

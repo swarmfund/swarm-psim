@@ -10,14 +10,14 @@ func TestFields(t *testing.T) {
 		expected F
 	}{
 		// 1
-		{Field("key", "value"), map[string]interface{}{
+		{F{"key": "value"}, map[string]interface{}{
 			"key": "value",
 		}},
 		{F{"key": "value"}, map[string]interface{}{
 			"key": "value",
 		}},
 		// 2
-		{Field("key", "value").Add("key_2", "value_2"), map[string]interface{}{
+		{F{"key": "value"}.Add("key_2", "value_2"), map[string]interface{}{
 			"key": "value",
 			"key_2": "value_2",
 		}},
@@ -26,22 +26,22 @@ func TestFields(t *testing.T) {
 			"key_2": "value_2",
 		}},
 		// 3
-		{Field("key", "value").AddFields(F{"key_2": "value_2", "key_3": "value_3"}), map[string]interface{}{
+		{F{"key": "value"}.AddFields(F{"key_2": "value_2", "key_3": "value_3"}), map[string]interface{}{
 			"key": "value",
 			"key_2": "value_2",
 			"key_3": "value_3",
 		}},
-		{Field("key", "value").AddFields(Field("key_2", "value_2").Add("key_3", "value_3")), map[string]interface{}{
+		{F{"key": "value"}.AddFields(F{"key_2": "value_2"}.Add("key_3", "value_3")), map[string]interface{}{
 			"key": "value",
 			"key_2": "value_2",
 			"key_3": "value_3",
 		}},
 		// Overwrite
-		{Field("key", "value").AddFields(F{"key_2": "value_2", "key": "value_new"}), map[string]interface{}{
+		{F{"key": "value"}.AddFields(F{"key_2": "value_2", "key": "value_new"}), map[string]interface{}{
 			"key": "value_new",
 			"key_2": "value_2",
 		}},
-		{Field("key", "value").AddFields(Field("key_2", "value_2").Add("key", "value_new")), map[string]interface{}{
+		{F{"key": "value"}.AddFields(F{"key_2": "value_2"}.Add("key", "value_new")), map[string]interface{}{
 			"key": "value_new",
 			"key_2": "value_2",
 		}},

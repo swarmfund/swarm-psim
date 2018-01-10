@@ -1,73 +1,101 @@
 package btcwithdraw
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/piotrnar/gocoin/lib/btc"
+	"gitlab.com/distributed_lab/discovery-go"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector"
 	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"time"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
-	"encoding/json"
-	"github.com/piotrnar/gocoin/lib/btc"
-	"encoding/hex"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"io/ioutil"
+	"net/http"
+	"time"
 )
 
 const (
-	// Here is the full list of RejectReasons, which Service can set into `reject_reason` of Request in case of validation error(s).
-	RejectReasonInvalidAddress = "invalid_btc_address"
-	RejectReasonTooLittleAmount = "too_little_amount"
-
-	requestStatePending int32 = 1
-	btcAsset = "BTC"
+	RequestStatePending int32 = 1
+	BTCAsset                  = "BTC"
 )
+
+var (
+	ErrMissingAddress    = errors.New("Missing field in the ExternalDetails json of WithdrawalRequest.")
+	ErrAddressNotAString = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
+
+	ErrNoVerifyServices    = errors.New("No BTC Withdraw Verify services were found.")
+	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
+)
+
+// ExternalDetails is used to marshal and unmarshal external
+// details of Withdrawal Details for ReviewRequest Operation
+// during approve.
+type ExternalDetails struct {
+	TXHash string `json:"tx_hash"`
+	TXHex  string `json:"tx_hex"`
+}
+
+// ReviewRequest is the data structure to send pre-signed Request
+// to Verify (Service btcwithdveri)
+type ReviewRequest struct {
+	Envelope string `json:"envelope"`
+}
 
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
-type RequestListener interface{
-	Requests(result chan<- horizonV2.Request) <-chan error
+type RequestListener interface {
+	WithdrawalRequests(result chan<- horizonV2.Request) <-chan error
 }
 
+// BTCClient is interface to be implemented by Bitcoin Core client
+// to parametrise the Service.
 type BTCClient interface {
 	CreateRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error)
-	SendRawTX(txHex string) (txHash string, err error)
 }
 
 type Service struct {
-	log *logan.Entry
-	config Config
+	log             *logan.Entry
+	config          Config
 	requestListener RequestListener
-	horizon   *horizon.Connector
-	btcClient BTCClient
+	horizon         *horizon.Connector
+	btcClient       BTCClient
+	discovery       *discovery.Client
 
-	requests chan horizonV2.Request
+	requests              chan horizonV2.Request
 	requestListenerErrors <-chan error
 }
 
-func New(log *logan.Entry, config Config, requestListener RequestListener, horizon *horizon.Connector, btc BTCClient) *Service {
+// New is constructor for btcwithdraw Service.
+func New(log *logan.Entry, config Config,
+	requestListener RequestListener, horizon *horizon.Connector, btc BTCClient, discoveryClient *discovery.Client) *Service {
 
 	return &Service{
-		log: log.WithField("service", conf.ServiceBTCWithdraw),
+		log:             log.WithField("service", conf.ServiceBTCWithdraw),
 		config:          config,
 		requestListener: requestListener,
 		horizon:         horizon,
 		btcClient:       btc,
+		discovery:       discoveryClient,
 
 		requests: make(chan horizonV2.Request),
 	}
 }
 
-// Run is a blocking method, it returns closed channel only when it's finishing.
+// Run is a blocking method, it returns closed channel only when it has finishing job.
 func (s *Service) Run(ctx context.Context) chan error {
 	s.log.Info("Starting.")
 
-	s.requestListenerErrors = s.requestListener.Requests(s.requests)
+	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
 
-	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5 * time.Second)
+	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second)
 
 	errs := make(chan error)
 	close(errs)
@@ -78,7 +106,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
-	case request := <- s.requests:
+	case request := <-s.requests:
 		err := s.processRequest(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{
@@ -98,21 +126,26 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 		return nil
 	}
 
-	if request.State != requestStatePending {
+	if request.State != RequestStatePending {
 		return nil
 	}
 
-	if request.Details.Withdraw.DestinationAsset != btcAsset {
+	if request.Details.Withdraw.DestinationAsset != BTCAsset {
 		// Withdraw not to a BTC - not interesting for this Service.
 		return nil
 	}
 
-	withdrawAddress := string(request.Details.Withdraw.ExternalDetails)
-	// Divide by 10^4 (precision of the system)
-	amount := float64(int64(request.Details.Withdraw.DestinationAmount)) / 10000.0
+	s.log.WithFields(getRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
+
+	withdrawAddress, err := ObtainAddress(request)
+	if err != nil {
+		return errors.Wrap(err, "Failed to obtain BTC Address from the WithdrawalRequest.")
+	}
+	// Divide by precision of the system.
+	withdrawAmount := float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
 
 	// Validate
-	isValid, err := s.validateOrReject(withdrawAddress, amount, request.ID, request.Hash)
+	isValid, err := s.validateOrReject(withdrawAddress, withdrawAmount, request.ID, request.Hash)
 	if err != nil {
 		return errors.Wrap(err, "Failed to validateOrReject Request")
 	}
@@ -121,12 +154,27 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 		return nil
 	}
 
-	err = s.processValidPendingWithdraw(ctx, withdrawAddress, amount, request.ID, request.Hash)
+	err = s.processValidPendingWithdraw(withdrawAddress, withdrawAmount, request.ID, request.Hash)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// TODO Consider moving to so common, as this logic is common for BTC and ETH.
+func ObtainAddress(request horizonV2.Request) (string, error) {
+	addrValue, ok := request.Details.Withdraw.ExternalDetails["address"]
+	if !ok {
+		return "", ErrMissingAddress
+	}
+
+	addr, ok := addrValue.(string)
+	if !ok {
+		return "", errors.From(ErrAddressNotAString, logan.F{"raw_address_value": addrValue})
+	}
+
+	return addr, nil
 }
 
 func (s *Service) validateOrReject(withdrawAddress string, amount float64, requestID uint64, requestHash string) (isValid bool, err error) {
@@ -136,9 +184,9 @@ func (s *Service) validateOrReject(withdrawAddress string, amount float64, reque
 		return true, nil
 	}
 
-	err = s.submitPermanentRejectRequest(requestID, requestHash, rejectReason)
+	err = s.sendRejectToVerify(requestID, requestHash, rejectReason)
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to submit PermanentReject for Request",
+		return false, errors.Wrap(err, "Failed to submit Reject of Request to Verify",
 			logan.F{
 				"withdraw_address": withdrawAddress,
 				"reject_reason":    rejectReason,
@@ -149,8 +197,8 @@ func (s *Service) validateOrReject(withdrawAddress string, amount float64, reque
 	return false, nil
 }
 
-func (s *Service) getRejectReason(withdrawAddress string, amount float64, requestID uint64) string {
-	_ , err := btc.NewAddrFromString(withdrawAddress)
+func (s *Service) getRejectReason(withdrawAddress string, amount float64, requestID uint64) RejectReason {
+	_, err := btc.NewAddrFromString(withdrawAddress)
 	if err != nil {
 		s.log.WithField("withdraw_address", withdrawAddress).WithField("amount", amount).WithField("request_id", requestID).WithError(err).
 			Warn("Got BTC Withdraw Request with wrong BTC Address.")
@@ -166,38 +214,7 @@ func (s *Service) getRejectReason(withdrawAddress string, amount float64, reques
 	return ""
 }
 
-func (s *Service) submitPermanentRejectRequest(requestID uint64, requestHash, rejectReason string) error {
-	err := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source: s.config.SourceKP,
-	}).Op(&horizon.ReviewRequestOp{
-		ID:      requestID,
-		Hash:    requestHash,
-		Action:  xdr.ReviewRequestOpActionPermanentReject,
-		Reason:  rejectReason,
-		Details: horizon.ReviewRequestOpDetails{
-			Type: xdr.ReviewableRequestTypeWithdraw,
-			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{},
-		},
-	}).
-		Sign(s.config.SignerKP).
-		Submit()
-
-	if err != nil {
-		var fields logan.F
-
-		sErr, ok := errors.Cause(err).(horizon.SubmitError)
-		if ok {
-			fields = logan.F{"horizon_submit_error_response_body": string(sErr.ResponseBody())}
-		}
-
-		return errors.Wrap(err, "Failed to submit Transaction to Horizon", fields)
-	}
-
-	return nil
-}
-
-func (s *Service) processValidPendingWithdraw(ctx context.Context, withdrawAddress string, withdrawAmount float64,
-		requestID uint64, requestHash string) error {
+func (s *Service) processValidPendingWithdraw(withdrawAddress string, withdrawAmount float64, requestID uint64, requestHash string) error {
 
 	fields := logan.F{
 		"request_id":       requestID,
@@ -205,44 +222,19 @@ func (s *Service) processValidPendingWithdraw(ctx context.Context, withdrawAddre
 		"withdraw_amount":  withdrawAmount,
 	}
 
-	s.log.WithFields(fields).Info("Processing pending Withdraw Request.")
-
 	signedTXHex, err := s.prepareSignedBitcoinTX(withdrawAddress, withdrawAmount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to prepare signed Bitcoin TX", fields)
 	}
 
-	fields = fields.Add("signed_tx_hex", signedTXHex)
+	fields["signed_tx_hex"] = signedTXHex
 
-	txBytes, err := hex.DecodeString(signedTXHex)
+	err = s.sendApproveToVerify(requestID, requestHash, signedTXHex)
 	if err != nil {
-		return errors.Wrap(err, "Failed to decode signed TX hex into bytes", fields)
-	}
-	signedTXHash := btc.NewSha2Hash(txBytes).String()
-
-	fields = fields.Add("signed_tx_hash", signedTXHash)
-
-	err = s.submitApproveRequest(requestID, requestHash, signedTXHash, signedTXHex)
-	if err != nil {
-		return errors.Wrap(err, "Failed to submit ReviewRequestOp to Horizon", fields)
+		return errors.Wrap(err, "Failed to send pre-signed ReviewRequestOp to Verify", fields)
 	}
 
-	sentTXHash, err := s.btcClient.SendRawTX(signedTXHex)
-	if err != nil {
-		// This problem should be fixed manually.
-		// Transactions from approved requests not existing in the Bitcoin blockchain
-		// should be submitted once more.
-		// This process should probably be automated.
-		s.log.WithFields(fields).WithError(err).Error("Failed to send withdraw TX into Bitcoin blockchain.")
-		return nil
-	}
-
-	fields = fields.Add("sent_tx_hash", sentTXHash)
-
-
-	s.log.WithFields(fields).Info("Sent withdraw TX to Bitcoin blockchain successfully.")
 	return nil
-
 }
 
 func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount float64) (signedTXHex string, err error) {
@@ -255,34 +247,53 @@ func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount 
 		return "", errors.Wrap(err, "Failed to create raw TX")
 	}
 
-	signedOnceTXHex, err := s.btcClient.SignAllTXInputs(unsignedTXHex, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey)
+	signedTXHex, err = s.btcClient.SignAllTXInputs(unsignedTXHex, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to sing raw TX using first PrivateKey", logan.F{"unsigned_tx_hex": unsignedTXHex})
-	}
-
-	// TODO Move signing by second PrivateKey to some verifier service.
-	signedTXHex, err = s.btcClient.SignAllTXInputs(signedOnceTXHex, s.config.HotWalletScriptPubKey, &s.config.HotWalletRedeemScript, s.config.PrivateKey2)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to sing raw TX using second PrivateKey", logan.F{"signed_once_tx_hex": signedOnceTXHex})
+		return "", errors.Wrap(err, "Failed to sing raw TX", logan.F{"unsigned_tx_hex": unsignedTXHex})
 	}
 
 	return signedTXHex, nil
 }
 
-func (s *Service) submitApproveRequest(requestID uint64, requestHash, signedTXHash, signedTXHex string) error {
-	externalDetails := struct {
-		TXHash string `json:"tx_hash"`
-		TXHex  string `json:"tx_hex"`
-	}{
-		TXHash: signedTXHash,
-		TXHex:  signedTXHex,
+func (s *Service) sendRejectToVerify(requestID uint64, requestHash string, reason RejectReason) error {
+	tx := s.horizon.Transaction(&horizon.TransactionBuilder{
+		Source: s.config.SourceKP,
+	}).Op(&horizon.ReviewRequestOp{
+		ID:     requestID,
+		Hash:   requestHash,
+		Action: xdr.ReviewRequestOpActionPermanentReject,
+		Reason: string(reason),
+		Details: horizon.ReviewRequestOpDetails{
+			Type:       xdr.ReviewableRequestTypeWithdraw,
+			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{},
+		},
+	}).
+		Sign(s.config.SignerKP)
+
+	err := s.sendTXToVerify(tx)
+	if err != nil {
+		return errors.Wrap(err, "Failed to send TX to Verify")
 	}
+
+	s.log.WithFields(logan.F{
+		"request_id": requestID,
+		"request_hash": requestHash,
+		"reject_reason": reason,
+	}).Info("Sent PermanentReject to Verify successfully.")
+	return nil
+}
+
+func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex string) error {
+	externalDetails := ExternalDetails{
+		TXHex: signedTXHex,
+	}
+
 	detailsBytes, err := json.Marshal(externalDetails)
 	if err != nil {
 		errors.Wrap(err, "Failed to marshal ExternalDetails for OpWithdrawal (containing hex and hash of BTC TX)")
 	}
 
-	err = s.horizon.Transaction(&horizon.TransactionBuilder{
+	tx := s.horizon.Transaction(&horizon.TransactionBuilder{
 		Source: s.config.SourceKP,
 	}).Op(&horizon.ReviewRequestOp{
 		ID:     requestID,
@@ -295,18 +306,79 @@ func (s *Service) submitApproveRequest(requestID uint64, requestHash, signedTXHa
 			},
 		},
 	}).
-		Sign(s.config.SignerKP).
-		Submit()
+		Sign(s.config.SignerKP)
 
+	err = s.sendTXToVerify(tx)
 	if err != nil {
-		var fields logan.F
+		return errors.Wrap(err, "Failed to send TX to Verify")
+	}
 
-		sErr, ok := errors.Cause(err).(horizon.SubmitError)
-		if ok {
-			fields = logan.F{"horizon_submit_error_response_body": string(sErr.ResponseBody())}
+	s.log.WithFields(logan.F{
+		"request_id": requestID,
+		"request_hash": requestHash,
+		"signed_tx_hex": signedTXHex,
+	}).Info("Sent Approve to Verify successfully.")
+
+	return nil
+}
+
+func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
+	xdrTX, err := horizonTX.Marshal64()
+	if err != nil {
+		return errors.Wrap(err, "Failed to Marshal64 the HorizonTX")
+	}
+	if xdrTX == nil {
+		return errors.Wrap(err, "Marshal64 for HorizonTX returned nil value without an error")
+	}
+	body := ReviewRequest{
+		Envelope: *xdrTX,
+	}
+
+	rawRequestBody, err := json.Marshal(body)
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal ReviewRequest (with Envelope)")
+	}
+
+	// Find Verify
+	services, err := s.discovery.DiscoverService(conf.ServiceBTCWithdrawVerify)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", conf.ServiceBTCWithdrawVerify))
+	}
+	if len(services) == 0 {
+		return ErrNoVerifyServices
+	}
+
+	url := services[0].Address
+	fields := logan.F{
+		"verify_url":       url,
+		"raw_request_body": string(rawRequestBody),
+	}
+
+	bodyReader := bytes.NewReader(rawRequestBody)
+	req, err := http.NewRequest("POST", url, bodyReader)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create Review Request to Verify", fields)
+	}
+
+	response, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return errors.Wrap(err, "Failed to send the request", fields)
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		fields := logan.F{
+			"verify_url":       url,
+			"status_code":      response.StatusCode,
+			"raw_request_body": string(rawRequestBody),
 		}
 
-		return errors.Wrap(err, "Failed to submit Transaction to Horizon", fields)
+		// TODO
+		//defer func() { _ = resp.Body.Close() }()
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return errors.Wrap(err, "Failed to read the body of response from Verify", fields)
+		}
+
+		return errors.From(ErrBadStatusFromVerify, fields.Merge(logan.F{"response_body": string(responseBody)}))
 	}
 
 	return nil
