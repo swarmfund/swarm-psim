@@ -23,6 +23,7 @@ type Config struct {
 }
 
 type Operations struct {
+	Enable          bool   `mapstructure:"enable"`
 	ClientUrl       string `mapstructure:"client_url"`
 	PayloadID       int    `mapstructure:"payload_id"`
 	IgnoreOlderThan string `mapstructure:"ignore_older_than"`
@@ -30,11 +31,12 @@ type Operations struct {
 }
 
 type Assets struct {
-	PayloadID            int          `mapstructure:"payload_id"`
-	EmissionThreshold    types.Amount `mapstructure:"emission_threshold"`
-	NotificationReceiver string       `mapstructure:"notification_receiver"`
-	CheckPeriod          string       `mapstructure:"check_period"`
-	Codes                []string     `mapstructure:"codes"`
+	Enable                bool         `mapstructure:"enable"`
+	PayloadID             int          `mapstructure:"payload_id"`
+	EmissionThreshold     types.Amount `mapstructure:"emission_threshold"`
+	CheckPeriod           string       `mapstructure:"check_period"`
+	NotificationReceivers []string     `mapstructure:"notification_receivers"`
+	Codes                 []string     `mapstructure:"codes"`
 }
 
 var (

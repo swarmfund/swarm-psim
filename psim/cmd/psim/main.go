@@ -7,11 +7,18 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 
 	// import services for side effects
-	// supervisors
-	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	// eth
+	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
+	// btc
+	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
 	// other folks
 
+	_ "gitlab.com/swarmfund/psim/psim/bearer"
 	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"
@@ -29,7 +36,7 @@ var (
 		Short: "Start service with all the whistles",
 		Run: func(cmd *cobra.Command, args []string) {
 			//env := xdr.TransactionEnvelope{}
-			//err := xdr.SafeUnmarshalBase64("AAAAAP4DpOIcoI8urCJITRZtEDS0wzyPuGojb7AbKpHcMR1gAAAAAAAAAAAAAAAAAAAAAAAAAABaOnMWAAAAAAAAAAEAAAAAAAAAAwAAAANTVU4AAAAAAAAAAAAAAAAAZdVETc5jpkVXYmmpABfBQzkkERKbmqpjtJAPalBBIpcAAAAAAAAAQjB4ODZmOGQwZmZlNmI1MDI5MDJhZmFhYTJiZDA2ODYzYWEwM2JjZDhkZjBiNWI3NmJkYzMxYjM5OGNmZTBjY2QwMQAAAAAAAAAAAAAAAAAB3DEdYAAAAEA6mRTtWYjxpCcim66actqKdwdqGbUt7N+VPxiaBbtk8TCYHanMIHSl9esYkTrwS4qU4gWhj4kZbK3D6azWgZcJ", &env)
+			//err := xdr.SafeUnmarshalBase64("AAAAAAJAZ5UJIsTjrwEY5/wS1UoogVcO07BtB866NGSysbUuAAAAAAAAAAAAAAAAAAAAAAAAAABaQRqCAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAATq4Xz5kalqrauBT0/9ZV7ppfptwGbvE4KzFFK8cspFAAAAAQAAP/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbKxtS4AAABAEO4yB1bLpR9w6pMC8TVAwmYNLbkM/OuuhDTuMXcDM7sjJa/n0ggV2Fv24UQzVGqgCw8YteIWwyWAR9SZPhTWCg==", &env)
 			//if err != nil {
 			//	panic(err)
 			//}

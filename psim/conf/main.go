@@ -9,21 +9,27 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
 	horizon "gitlab.com/swarmfund/horizon-connector"
+	horizonv2 "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 // TODO: viper's Get* methods won't throw error if value is invalid
 
 type Config interface {
+	// TODO Panic instead of returning errors.
 	Init() error
+	// DEPRECATED Use GetRequired instead (it panics if key is missing).
 	Get(key string) map[string]interface{}
-	Discovery() (*discovery.Client, error)
+	GetRequired(key string) map[string]interface{}
+	Discovery() *discovery.Client
+	// TODO Panic instead of returning errors.
 	Log() (*logan.Entry, error)
 	Horizon() (*horizon.Connector, error)
+	HorizonV2() *horizonv2.Connector
 	Services() []string
 	Stripe() (*client.API, error)
 	Ethereum() *ethclient.Client
-	Bitcoin() (*bitcoin.Client, error)
+	Bitcoin() *bitcoin.Client
 	Notificator() (*notificator.Connector, error)
 }
 
@@ -45,6 +51,18 @@ func (c *ViperConfig) Init() error {
 		return errors.Wrap(err, "failed to set config file")
 	}
 	return nil
+}
+
+// GetRequired panics, if key is missing.
+func (c *ViperConfig) GetRequired(key string) map[string]interface{} {
+	v := c.viper.Sub(key)
+	if v == nil {
+		panic(errors.From(errors.New("Config entry is missing."), logan.F{
+			"config_key": key,
+		}))
+	}
+
+	return c.viper.GetStringMap(key)
 }
 
 func (c *ViperConfig) Get(key string) map[string]interface{} {

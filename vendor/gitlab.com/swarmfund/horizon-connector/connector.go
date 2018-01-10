@@ -244,13 +244,9 @@ func (c *Connector) ManageAssetPairOp(base string, quote string, physicalPrice i
 
 func (c *Connector) CreateBalanceOp(accountID, asset string) (xdr.Operation, error) {
 	var op xdr.Operation
-	balanceID, err := c.NewBalanceID()
-	if err != nil {
-		return op, err
-	}
 
 	var xAccountID xdr.AccountId
-	err = xAccountID.SetAddress(accountID)
+	err := xAccountID.SetAddress(accountID)
 	if err != nil {
 		return op, err
 	}
@@ -258,7 +254,6 @@ func (c *Connector) CreateBalanceOp(accountID, asset string) (xdr.Operation, err
 		Body: xdr.OperationBody{
 			Type: xdr.OperationTypeManageBalance,
 			ManageBalanceOp: &xdr.ManageBalanceOp{
-				BalanceId: *balanceID,
 
 				Action:      xdr.ManageBalanceActionCreate,
 				Destination: xAccountID,

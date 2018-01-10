@@ -2,19 +2,25 @@ package conf
 
 // All services existing in PSIM
 const (
-	// Supervisors
-	ServiceStripeSupervisor = "stripe_supervisor"
-	ServiceBTCSupervisor    = "bitcoin_supervisor"
-	ServiceETHSupervisor    = "eth_supervisor"
+	// eth
+	ServiceETHSupervisor = "eth_supervisor"
+	ServiceETHFunnel     = "eth_funnel"
+	ServiceETHWithdraw   = "eth_withdraw"
+
+	// btc
+	ServiceBTCSupervisor     = "bitcoin_supervisor"
+	ServiceBTCVerify         = "btc_verify"
+	ServiceBTCFunnel         = "btc_funnel"
+	ServiceBTCWithdraw       = "btc_withdraw"
+	ServiceBTCWithdrawVerify = "btc_withdraw_verify"
 
 	// Verifies
 	ServiceStripeVerify = "stripe_verify"
-	ServiceBTCVerify    = "btc_verify"
 
 	ServiceRateSync          = "rate_sync"
-	ServiceTaxman            = "taxman"
 	ServiceCharger           = "charger"
 	ServiceOperationNotifier = "notifier"
+	ServiceBearer            = "bearer"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

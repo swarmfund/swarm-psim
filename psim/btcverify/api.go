@@ -8,9 +8,10 @@ import (
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
+	"context"
 )
 
-func (s *Service) serveAPI() {
+func (s *Service) serveAPI(ctx context.Context) {
 	r := ape.DefaultRouter()
 
 	r.Post("/", s.verifyHandler)
@@ -21,7 +22,7 @@ func (s *Service) serveAPI() {
 
 	s.log.WithField("address", s.listener.Addr().String()).Info("listening")
 
-	err := ape.ListenAndServe(s.ctx, s.listener, r)
+	err := ape.ListenAndServe(ctx, s.listener, r)
 	if err != nil {
 		s.errors <- err
 		return

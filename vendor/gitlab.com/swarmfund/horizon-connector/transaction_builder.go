@@ -1,6 +1,8 @@
 package horizon
 
 import (
+	"encoding/hex"
+
 	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/go/keypair"
 	"gitlab.com/swarmfund/go/network"
@@ -169,6 +171,7 @@ type CreateIssuanceRequestOp struct {
 	Receiver  string
 	Asset     string
 	Amount    uint64
+	Details   string
 }
 
 func (op CreateIssuanceRequestOp) XDR() (*xdr.Operation, error) {
@@ -183,9 +186,10 @@ func (op CreateIssuanceRequestOp) XDR() (*xdr.Operation, error) {
 			CreateIssuanceRequestOp: &xdr.CreateIssuanceRequestOp{
 				Reference: xdr.String64(op.Reference),
 				Request: xdr.IssuanceRequest{
-					Asset:    xdr.AssetCode(op.Asset),
-					Amount:   xdr.Uint64(op.Amount),
-					Receiver: balanceID,
+					Asset:           xdr.AssetCode(op.Asset),
+					Amount:          xdr.Uint64(op.Amount),
+					Receiver:        balanceID,
+					ExternalDetails: xdr.Longstring(op.Details),
 				},
 			},
 		},
@@ -207,6 +211,59 @@ func (op ReviewPaymentRequestOp) XDR() (*xdr.Operation, error) {
 			},
 		},
 	}, nil
+}
+
+type ReviewRequestOp struct {
+	ID      uint64
+	Hash    string
+	Action  xdr.ReviewRequestOpAction
+	Details ReviewRequestOpDetails
+	Reason  string
+}
+
+type ReviewRequestOpDetails struct {
+	Type       xdr.ReviewableRequestType
+	Withdrawal *ReviewRequestOpWithdrawalDetails
+}
+
+type ReviewRequestOpWithdrawalDetails struct {
+	ExternalDetails string
+}
+
+func (op ReviewRequestOp) XDR() (*xdr.Operation, error) {
+	hash, err := hex.DecodeString(op.Hash)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode hash")
+	}
+	var xdrhash xdr.Hash
+	copy(xdrhash[:], hash[:32])
+
+	xdrop := &xdr.Operation{
+		Body: xdr.OperationBody{
+			Type: xdr.OperationTypeReviewRequest,
+			ReviewRequestOp: &xdr.ReviewRequestOp{
+				RequestId:   xdr.Uint64(op.ID),
+				RequestHash: xdrhash,
+				Action:      op.Action,
+				RequestDetails: xdr.ReviewRequestOpRequestDetails{
+					RequestType: op.Details.Type,
+				},
+			},
+		},
+	}
+
+	if op.Action == xdr.ReviewRequestOpActionPermanentReject {
+		xdrop.Body.ReviewRequestOp.Reason = xdr.String256(op.Reason)
+	}
+
+	switch op.Details.Type {
+	case xdr.ReviewableRequestTypeWithdraw:
+		xdrop.Body.ReviewRequestOp.RequestDetails.Withdrawal = &xdr.WithdrawalDetails{
+			ExternalDetails: op.Details.Withdrawal.ExternalDetails,
+		}
+	}
+
+	return xdrop, nil
 }
 
 type PaymentOp struct {

@@ -2,8 +2,8 @@ package utils
 
 import "context"
 
-type ServiceFn func(context.Context)
-
+// TODO Move to app
 type Service interface {
-	Run() chan error
+	// TODO Stop returning chan error, do blocking Run() methods instead
+	Run(ctx context.Context) chan error
 }

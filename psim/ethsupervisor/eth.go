@@ -4,18 +4,21 @@ import (
 	"math/big"
 	"time"
 
-	"strings"
+	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2/types"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	"gitlab.com/swarmfund/psim/psim/internal/resources"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 )
 
 // TODO defer
-func (s *Service) processBlocks() {
+func (s *Service) processBlocks(ctx context.Context) {
 	for blockNumber := range s.blocksCh {
 		s.Log.WithField("number", blockNumber).Debug("processing block")
-		block, err := s.eth.BlockByNumber(s.Ctx, big.NewInt(int64(blockNumber)))
+		block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
 		if err != nil {
 			s.Log.WithField("block_number", blockNumber).Error("failed to get block")
 			s.blocksCh <- blockNumber
@@ -40,13 +43,14 @@ func (s *Service) processBlocks() {
 	}
 }
 
-func (s *Service) watchHeight() {
-	// TODO config
-	cursor := *big.NewInt(2271294)
+// TODO eth.SubscribeNewHead
+func (s *Service) watchHeight(ctx context.Context) {
+	cursor := new(big.Int).Set(s.config.Cursor)
+
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
 		for ; ; <-ticker.C {
-			head, err := s.eth.BlockByNumber(s.Ctx, nil)
+			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
 				s.Service.Errors <- errors.Wrap(err, "failed to get block count")
 				continue
@@ -54,30 +58,31 @@ func (s *Service) watchHeight() {
 
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
-			// FIXME Magic number
-			for head.NumberU64()-2 > cursor.Uint64() {
+			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
 				s.blocksCh <- cursor.Uint64()
-				cursor.Add(&cursor, big.NewInt(1))
-				//s.Log.WithField("cursor", cursor.Uint64()).Debug("cursor bumped")
+				cursor.Add(cursor, big.NewInt(1))
 			}
 		}
 	}()
 }
 
-func (s *Service) processTXs() {
+func (s *Service) processTXs(ctx context.Context) {
 	for tx := range s.txCh {
+		entry := s.Log.WithField("tx", tx.Hash().Hex())
 		for {
-			if err := s.processTX(tx); err != nil {
+			entry.Debug("processing tx")
+			if err := s.processTX(ctx, tx); err != nil {
 				s.Log.WithError(err).Error("failed to process tx")
 				continue
 			}
+			entry.Debug("tx processed")
 			break
 		}
 
 	}
 }
 
-func (s *Service) processTX(tx internal.Transaction) (err error) {
+func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			err = errors.FromPanic(rvr)
@@ -95,33 +100,23 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	}
 
 	// address is watched
-	address := s.state.AddressAt(s.Ctx, tx.Timestamp, strings.ToLower(tx.To().String()))
+	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
 	if address == nil {
 		return nil
 	}
 
-	price := s.state.PriceAt(s.Ctx, tx.Timestamp)
+	price := s.state.PriceAt(ctx, tx.Timestamp)
 	if price == nil {
 		s.Log.WithField("tx", tx.Hash().String()).Error("price is not set, skipping tx")
 		return nil
 	}
 
-	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, *address)
-	if err != nil {
-		return err
-	}
-
-	if account == nil {
-		s.Log.WithField("tx", tx.Hash().String()).Error("account expected to exist, skipping tx")
+	receiver := s.state.Balance(ctx, *address)
+	if receiver == nil {
+		s.Log.WithField("tx", tx.Hash().String()).Error("balance not found, skipping tx")
 		return nil
 	}
 
-	receiver := ""
-	for _, b := range account.Balances {
-		if b.Asset == "SUN" {
-			receiver = b.BalanceID
-		}
-	}
 	// amount = value * price / 10^18
 	div := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
 	bigPrice := big.NewInt(*price)
@@ -140,8 +135,18 @@ func (s *Service) processTX(tx internal.Transaction) (err error) {
 	if len(reference) > 64 {
 		reference = reference[len(reference)-64:]
 	}
+	request := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
+		Asset:     s.config.DepositAsset,
+		Reference: reference,
+		Receiver:  *receiver,
+		Amount:    amount.Uint64(),
+		Details: resources.DepositDetails{
+			Source: tx.Hash().Hex(),
+			Price:  types.Amount(bigPrice.Int64()),
+		}.Encode(),
+	})
 
-	if err = s.PrepareCERTx(reference, receiver, amount.Uint64()).Submit(); err != nil {
+	if err = request.Submit(); err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).

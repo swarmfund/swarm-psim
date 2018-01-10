@@ -30,9 +30,11 @@ func TestViperConfig_Discovery(t *testing.T) {
 			defer func() {
 				discoveryClient = nil
 			}()
+
 			r := bytes.NewReader([]byte(tc.raw))
 			v := viper.New()
 			v.SetConfigType("yaml")
+
 			err := v.ReadConfig(r)
 			if err != nil {
 				t.Fatal(err)
@@ -40,7 +42,8 @@ func TestViperConfig_Discovery(t *testing.T) {
 			config := ViperConfig{
 				viper: v,
 			}
-			discovery, err := config.Discovery()
+
+			discovery := config.Discovery()
 			if tc.err && err == nil {
 				t.Fatal("expected to throw error")
 			}

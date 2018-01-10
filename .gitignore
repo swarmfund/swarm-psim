@@ -1,4 +1,5 @@
 .idea/
-./bin/
+bin/
 vendor.orig
-local-config.yaml
+local*
+scripts/addresses.txt
