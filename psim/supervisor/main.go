@@ -38,11 +38,6 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 
 	globalConfig := app.Config(ctx)
 
-	discoveryClient, err := globalConfig.Discovery()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get DiscoveryClient")
-	}
-
 	horizonConnector, err := globalConfig.Horizon()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get HorizonClient")
@@ -53,7 +48,7 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	result := New(log, horizonConnector, discoveryClient, config, listener)
+	result := New(log, horizonConnector, globalConfig.Discovery(), config, listener)
 
 	result.initCommonRunners()
 	return result, nil

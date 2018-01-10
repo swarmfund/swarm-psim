@@ -45,7 +45,7 @@ discovery:
 # services
 
 services:
-  - bearer
+#  - bearer
   #- notifier
   #- charger
   #- notifier
@@ -54,6 +54,7 @@ services:
 #  - bitcoin_supervisor
 #  - btc_funnel
 #  - btc_withdraw
+  - btc_withdraw_verify
 
   #- eth_supervisor
 #  - eth_funnel
@@ -76,6 +77,47 @@ bitcoin_supervisor:
     leadership_key: btc_supervisor
     pprof: true
     # Keys should probably differ between stripe and bitcoin
+    exchange: G_SOME_VALID_PUBLIC_KEY
+    signer: S_SOME_VALID_PRIVATE_KEY
+
+btc_funnel:
+  hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
+  cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # testnet faucet
+  min_funnel_amount: 0
+  max_hot_stock: 15
+  dust_output_limit: 0.005
+
+btc_withdraw:
+  private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
+
+  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
+  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
+  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
+  min_withdraw_amount: 0.0001
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+btc_withdraw_verify:
+  host: localhost
+  port: 8101
+
+  btc_private_key: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
+
+  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
+  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
+  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
+  min_withdraw_amount: 0.0001
+
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+
+# ETH
+eth_supervisor:
+  supervisor:
+    leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
 
@@ -91,36 +133,6 @@ eth_supervisor:
     leadership_key: eth_supervisor
     exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
     signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-
-btc_funnel:
-  hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
-  cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # testnet faucet
-  min_funnel_amount: 0
-  max_hot_stock: 15
-  dust_output_limit: 0.005
-
-btc_withdraw:
-  private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
-  private_key_2: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
-
-  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
-  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
-  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
-
-  min_withdraw_amount: 0.0001
-
-  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-  signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-
-# ETH
-eth_supervisor:
-  supervisor:
-    leadership_key: eth_supervisor
-    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-    signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-
-eth_funnel:
-  keystore: "/tmp/wallets"
 
 forfeit_listener:
   pprof: true

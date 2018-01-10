@@ -1,6 +1,7 @@
 package horizon
 
 import (
+	"net/http"
 	"net/url"
 
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/account"
@@ -16,7 +17,7 @@ type Connector struct {
 }
 
 func NewConnector(base *url.URL) *Connector {
-	client := NewClient(base)
+	client := NewClient(http.DefaultClient, base)
 	return &Connector{
 		client,
 	}
@@ -41,9 +42,11 @@ func (c *Connector) Transactions() *transaction.Q {
 }
 
 func (c *Connector) Listener() *listener.Q {
+	// TODO Rename Operations to Requests? it does actually manages Requests only.
 	return listener.NewQ(c.Transactions(), c.Operations())
 }
 
+// TODO Rename to Requests? it does actually manages Requests only.
 func (c *Connector) Operations() *operation.Q {
 	return operation.NewQ(c.client)
 }

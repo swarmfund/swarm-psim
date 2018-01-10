@@ -16,9 +16,9 @@ type RequestDetails struct {
 }
 
 type RequestWithdrawDetails struct {
-	Amount            types.Amount `json:"amount"`
-	DestinationAmount types.Amount `json:"dest_asset_amount"`
-	DestinationAsset  string       `json:"dest_asset_code"`
-	BalanceID         string       `json:"balance_id"`
-	ExternalDetails   string       `json:"external_details"`
+	Amount            types.Amount           `json:"amount"`
+	DestinationAmount types.Amount           `json:"dest_asset_amount"`
+	DestinationAsset  string                 `json:"dest_asset_code"`
+	BalanceID         string                 `json:"balance_id"`
+	ExternalDetails   map[string]interface{} `json:"external_details"`
 }

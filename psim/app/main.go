@@ -142,7 +142,7 @@ func (app *App) Run() {
 
 		select {
 		case <-done:
-			app.log.Debug("Clean exit.")
+			app.log.Info("Clean exit.")
 			os.Exit(0)
 		case <-time.NewTimer(forceKillPeriodSeconds * time.Second).C:
 			// FIXME

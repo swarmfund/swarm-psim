@@ -15,6 +15,7 @@ before_script:
 stages:
   - build
   - delivery
+  - test
   - deploy
 
 build:
@@ -45,6 +46,16 @@ delivery:
     - staging
     - dev
 
+test:
+  stage: test
+  variables:
+    APP_PATH: gitlab.com/swarmfund/psim
+  script:
+    - mkdir -p $GOPATH/src/$APP_PATH
+    - cp -rf ./* $GOPATH/src/$APP_PATH
+    - cd $GOPATH/src/$APP_PATH
+    - go test ./...
+
 .deploy: &deploy
   stage: deploy
   script:
@@ -53,7 +64,7 @@ delivery:
     - BRANCH=${CI_COMMIT_REF_NAME}
     - THOST=$( echo "HOST_${BRANCH}" | awk '{print toupper($0)}' )
     - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim $BRANCH ${CI_COMMIT_SHA:0:8}"
-    - 'curl -X POST -H "Content-Type: text/plain" --data "$SERVICE" http://${!THOST}:8842/931M76zvt1h_sMOFDl_usQ'
+    - 'curl -X POST -H "Content-Type: text/plain" --data "$SERVICE" http://${!THOST}:8842/${HOOK_TOKEN}'
   when: manual
   only:
     - staging
