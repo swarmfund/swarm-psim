@@ -1,4 +1,4 @@
-package scripts
+package main
 
 import (
 	"bytes"
@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-)
-
-var (
-	addresses = []string{
-		"",
-	}
 )
 
 type Response struct {
@@ -32,18 +29,50 @@ func (e *Error) Error() string {
 }
 
 func main() {
-	// TODO Get from some config
-	url := ""
-	authKey := ""
+	log := logan.New()
 
-	// TODO Read addresses from file
+	args := os.Args[1:]
+	if len(args) < 2 {
+		log.Panic("Need Node url(1) and auth key(2) to be passed as command line arguments.")
+	}
+	url := args[0]
+	authKey := args[1]
 
-	for address := range addresses {
-		sendRequest(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, address))
+	filePath := "private_keys.txt"
+
+	privKeys, err := readPrivateKeys(filePath)
+	if err != nil {
+		log.WithField("file_path", filePath).WithError(err).Error("Failed to read private keys from file.")
+		return
+	}
+
+	for i, privKey := range privKeys {
+		if privKey == "" {
+			continue
+		}
+
+		err := sendRequestToBTCNode(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, privKey))
+		if err != nil {
+			log.WithField("i", i).WithError(err).Error("Failed to import private key.")
+			return
+		}
+
+		log.WithField("i", i).Debug("Imported private key successfully.")
 	}
 }
 
-func sendRequest(url, authKey, methodName, params string) error {
+func readPrivateKeys(filePath string) ([]string, error) {
+	dat, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to read file")
+	}
+
+	fileContent := string(dat)
+
+	return strings.Split(fileContent, "\n"), nil
+}
+
+func sendRequestToBTCNode(url, authKey, methodName, params string) error {
 	request, err := buildRequest(url, "hardcoded_request_id", methodName, params)
 	if err != nil {
 		return errors.Wrap(err, "Failed to build request")
@@ -68,11 +97,16 @@ func sendRequest(url, authKey, methodName, params string) error {
 	var response Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal response body to JSON")
+		return errors.Wrap(err, "Failed to unmarshal response body to JSON", logan.F{
+			"status_code":       resp.StatusCode,
+			"raw_response_body": string(body),
+		})
 	}
 
 	if response.Error != nil {
-		return errors.Wrap(err, "Node returned non nil error")
+		return errors.Wrap(err, "Node returned non nil error", logan.F{
+			"status_code": resp.StatusCode,
+		})
 	}
 
 	return nil
