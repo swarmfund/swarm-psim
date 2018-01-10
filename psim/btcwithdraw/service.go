@@ -211,8 +211,7 @@ func (s *Service) getRejectReason(withdrawAddress string, amount float64, reques
 	return ""
 }
 
-func (s *Service) processValidPendingWithdraw(withdrawAddress string, withdrawAmount float64,
-	requestID uint64, requestHash string) error {
+func (s *Service) processValidPendingWithdraw(withdrawAddress string, withdrawAmount float64, requestID uint64, requestHash string) error {
 
 	fields := logan.F{
 		"request_id":       requestID,
@@ -278,9 +277,8 @@ func (s *Service) sendRejectToVerify(requestID uint64, requestHash string, reaso
 	return nil
 }
 
-func (s *Service) sendApproveToVerify(requestID uint64, signedTXHash, signedTXHex string) error {
+func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex string) error {
 	externalDetails := ExternalDetails{
-		TXHash: signedTXHash,
 		TXHex:  signedTXHex,
 	}
 
@@ -293,6 +291,7 @@ func (s *Service) sendApproveToVerify(requestID uint64, signedTXHash, signedTXHe
 		Source: s.config.SourceKP,
 	}).Op(&horizon.ReviewRequestOp{
 		ID:     requestID,
+		Hash:   requestHash,
 		Action: xdr.ReviewRequestOpActionApprove,
 		Details: horizon.ReviewRequestOpDetails{
 			Type: xdr.ReviewableRequestTypeWithdraw,

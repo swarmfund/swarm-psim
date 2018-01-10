@@ -16,11 +16,20 @@ import (
 	"gitlab.com/swarmfund/go/amount"
 )
 
+var (
+	ErrNoOuts = errors.New("No Outputs in the provided Transaction.")
+	// If start withdrawing several requests in a single BTC Transaction - get rid of this Err.
+	ErrMoreThanTwoOuts        = errors.New("More than 2 Outputs in the provided Transaction.")
+	ErrWrongWithdrawAddress   = errors.New("Withdraw Address does not match with the one in the WithdrawRequest.")
+	ErrWithdrawAmountIsBigger = errors.New("Withdraw amount does not match with the one in the WithdrawRequest.")
+	ErrUnknownChangeAddress   = errors.New("Transaction is sending change to an unknown Address.")
+)
+
 func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
 	fields := logan.F{
 		"request_id": opBody.RequestId,
-		"request_hash": string(opBody.RequestHash[:]),
+		"request_hash": hex.EncodeToString(opBody.RequestHash[:]),
 		"request_action_i": int32(opBody.Action),
 		"request_action": opBody.Action.String(),
 	}
@@ -54,22 +63,13 @@ func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdr
 	}
 }
 
-var (
-	ErrNoOuts = errors.New("No Outputs in the provided Transaction.")
-	// If start withdrawing several requests in a single BTC Transaction - get rid of this Err.
-	ErrMoreThanTwoOuts = errors.New("More than 2 Outputs in the provided Transaction.")
-	ErrWrongWithdrawAddress = errors.New("Withdraw Address does not match with the one in the WithdrawRequest.")
-	ErrWrongWithdrawAmount = errors.New("Withdraw amount does not match with the one in the WithdrawRequest.")
-	ErrUnknownChangeAddress = errors.New("Transaction is sending change to an unknown Address.")
-)
-
 func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Request) error {
 	withdrawAddress, err := btcwithdraw.ObtainAddress(withdrawRequest)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain Address of WithdrawalRequest")
 	}
 	// Divide by precision of the system.
-	withdrawSatoshi := withdrawRequest.Details.Withdraw.DestinationAmount * (100000000 / amount.One)
+	withdrawSatoshi := uint64(withdrawRequest.Details.Withdraw.DestinationAmount * (100000000 / amount.One))
 
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
@@ -91,9 +91,10 @@ func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Reque
 		})
 	}
 
-	if tx.TxOut[0].Value != uint64(withdrawSatoshi) {
-		return errors.From(ErrWrongWithdrawAmount, logan.F{
+	if tx.TxOut[0].Value > withdrawSatoshi {
+		return errors.From(ErrWithdrawAmountIsBigger, logan.F{
 			"btc_amount": tx.TxOut[0].Value,
+			"requested_withdraw_amount": withdrawSatoshi,
 		})
 	}
 
