@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -26,9 +27,11 @@ const (
 )
 
 var (
+	ErrMissingAddress    = errors.New("Missing field in the ExternalDetails json of WithdrawalRequest.")
+	ErrAddressNotAString = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
+
+	ErrNoVerifyServices    = errors.New("No BTC Withdraw Verify services were found.")
 	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
-	ErrMissingAddress      = errors.New("Missing field in the ExternalDetails json of WithdrawalRequest.")
-	ErrAddressNotAString   = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
 )
 
 // ExternalDetails is used to marshal and unmarshal external
@@ -219,8 +222,6 @@ func (s *Service) processValidPendingWithdraw(withdrawAddress string, withdrawAm
 		"withdraw_amount":  withdrawAmount,
 	}
 
-	s.log.WithFields(fields).Info("Processing valid pending Withdraw Request.")
-
 	signedTXHex, err := s.prepareSignedBitcoinTX(withdrawAddress, withdrawAmount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to prepare signed Bitcoin TX", fields)
@@ -274,12 +275,17 @@ func (s *Service) sendRejectToVerify(requestID uint64, requestHash string, reaso
 		return errors.Wrap(err, "Failed to send TX to Verify")
 	}
 
+	s.log.WithFields(logan.F{
+		"request_id": requestID,
+		"request_hash": requestHash,
+		"reject_reason": reason,
+	}).Info("Sent PermanentReject to Verify successfully.")
 	return nil
 }
 
 func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex string) error {
 	externalDetails := ExternalDetails{
-		TXHex:  signedTXHex,
+		TXHex: signedTXHex,
 	}
 
 	detailsBytes, err := json.Marshal(externalDetails)
@@ -307,38 +313,22 @@ func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex
 		return errors.Wrap(err, "Failed to send TX to Verify")
 	}
 
+	s.log.WithFields(logan.F{
+		"request_id": requestID,
+		"request_hash": requestHash,
+		"signed_tx_hex": signedTXHex,
+	}).Info("Sent Approve to Verify successfully.")
+
 	return nil
 }
 
 func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	// FIXME
-	url := "http://localhost:8101/"
-
-	// FIXME
-	//services, err := s.discovery.DiscoverService(conf.ServiceBTCWithdrawVerify)
-	//if err != nil {
-	//	return errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", conf.ServiceBTCWithdrawVerify))
-	//}
-	//if len(services) == 0 {
-	//	// TODO
-	//}
-
 	xdrTX, err := horizonTX.Marshal64()
 	if err != nil {
-		return errors.Wrap(err, "Failed to Marshal64 the horizonTX")
+		return errors.Wrap(err, "Failed to Marshal64 the HorizonTX")
 	}
 	if xdrTX == nil {
-		return errors.Wrap(err, "Marshal64 returned nil value without an error")
+		return errors.Wrap(err, "Marshal64 for HorizonTX returned nil value without an error")
 	}
 	body := ReviewRequest{
 		Envelope: *xdrTX,
@@ -349,34 +339,46 @@ func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
 		return errors.Wrap(err, "Failed to marshal ReviewRequest (with Envelope)")
 	}
 
+	// Find Verify
+	services, err := s.discovery.DiscoverService(conf.ServiceBTCWithdrawVerify)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", conf.ServiceBTCWithdrawVerify))
+	}
+	if len(services) == 0 {
+		return ErrNoVerifyServices
+	}
+
+	url := services[0].Address
+	fields := logan.F{
+		"verify_url":       url,
+		"raw_request_body": string(rawRequestBody),
+	}
+
 	bodyReader := bytes.NewReader(rawRequestBody)
 	req, err := http.NewRequest("POST", url, bodyReader)
 	if err != nil {
-		return errors.Wrap(err, "Failed to create Review Request to Verify", logan.F{
-			"url":              url,
-			"raw_request_body": string(rawRequestBody),
-		})
+		return errors.Wrap(err, "Failed to create Review Request to Verify", fields)
 	}
 
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send the request", logan.F{
-			"url":              url,
-			"raw_request_body": string(rawRequestBody),
-		})
+		return errors.Wrap(err, "Failed to send the request", fields)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		fields := logan.F{
+			"verify_url":       url,
+			"status_code":      response.StatusCode,
+			"raw_request_body": string(rawRequestBody),
+		}
+
+		// TODO
 		//defer func() { _ = resp.Body.Close() }()
 		responseBody, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			// TODO
+			return errors.Wrap(err, "Failed to read the body of response from Verify", fields)
 		}
 
-		return errors.From(ErrBadStatusFromVerify, logan.F{
-			"status_code":      response.StatusCode,
-			"raw_request_body": string(rawRequestBody),
-			"response_body":    string(responseBody),
-		})
+		return errors.From(ErrBadStatusFromVerify, fields.Merge(logan.F{"response_body": string(responseBody)}))
 	}
 
 	return nil

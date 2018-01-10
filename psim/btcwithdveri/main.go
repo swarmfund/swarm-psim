@@ -42,5 +42,5 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	return New(log, config, horizonConnector, globalConfig.Bitcoin(), listener), nil
+	return New(log, config, horizonConnector, globalConfig.Bitcoin(), listener, globalConfig.Discovery()), nil
 }

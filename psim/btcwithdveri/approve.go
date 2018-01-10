@@ -84,13 +84,16 @@ func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Reque
 		return ErrMoreThanTwoOuts
 	}
 
+	// Address
 	addr := btc.NewAddrFromPkScript(tx.TxOut[0].Pk_script, s.btcClient.IsTestnet()).String()
 	if addr != withdrawAddress {
 		return errors.From(ErrWrongWithdrawAddress, logan.F{
 			"btc_address": addr,
+			"withdraw_address": withdrawAddress,
 		})
 	}
 
+	// Amount
 	if tx.TxOut[0].Value > withdrawSatoshi {
 		return errors.From(ErrWithdrawAmountIsBigger, logan.F{
 			"btc_amount": tx.TxOut[0].Value,
@@ -98,6 +101,7 @@ func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Reque
 		})
 	}
 
+	// Change Address
 	if len(tx.TxOut) == 2 {
 		// Have change
 		changeAddr := btc.NewAddrFromPkScript(tx.TxOut[1].Pk_script, s.btcClient.IsTestnet()).String()
@@ -119,6 +123,8 @@ func (s *Service) processValidApproval(txHexToSign string, horizonTX *horizon.Tr
 	}
 
 	fields := logan.F{
+		"request_id": horizonTX.Operations[0].Body.ReviewRequestOp.RequestId,
+		"request_hash": hex.EncodeToString(horizonTX.Operations[0].Body.ReviewRequestOp.RequestHash[:]),
 		"signed_tx_hex": signedTXHex,
 	}
 

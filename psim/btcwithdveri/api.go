@@ -14,6 +14,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+// TODO Pprof
 // ServeAPI is blocking method.
 func (s *Service) serveAPI(ctx context.Context) {
 	r := ape.DefaultRouter()
