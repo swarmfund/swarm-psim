@@ -29,10 +29,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to figure out %s", conf.ServiceBTCFunnel))
 	}
 
-	btcClient, err := globalConfig.Bitcoin()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Bitcoin client from global config")
-	}
+	// TODO Validate config. Some values can't be zero.
 
-	return New(config, log, btcClient), nil
+	return New(config, log, globalConfig.Bitcoin()), nil
 }

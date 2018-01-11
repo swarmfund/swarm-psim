@@ -29,6 +29,12 @@ func (t *incrementalTimer) next() <-chan time.Time {
 	result := time.After(t.currentPeriod)
 
 	t.currentPeriod = t.currentPeriod * t.multiplier
+
+	// upper cap for timer
+	if t.currentPeriod > 10*time.Minute {
+		t.currentPeriod = 10 * time.Minute
+	}
+
 	t.iteration += 1
 
 	return result

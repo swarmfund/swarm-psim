@@ -12,11 +12,13 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
 	// btc
-	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
 	// other folks
 
+	_ "gitlab.com/swarmfund/psim/psim/bearer"
 	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"

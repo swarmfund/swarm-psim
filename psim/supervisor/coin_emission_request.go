@@ -114,7 +114,7 @@ func (s *Service) sendForVerifying(txToVerify []byte, neighbor discovery.Service
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return errors.From(errors.New("Got unsuccessful response from neighbour-verifier"), logan.Field("status_code", response.StatusCode))
+		return errors.From(errors.New("Got unsuccessful response from neighbour-verifier"), logan.F{"status_code": response.StatusCode})
 	}
 	return nil
 }

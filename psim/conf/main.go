@@ -21,15 +21,15 @@ type Config interface {
 	// DEPRECATED Use GetRequired instead (it panics if key is missing).
 	Get(key string) map[string]interface{}
 	GetRequired(key string) map[string]interface{}
+	Discovery() *discovery.Client
 	// TODO Panic instead of returning errors.
-	Discovery() (*discovery.Client, error)
 	Log() (*logan.Entry, error)
 	Horizon() (*horizon.Connector, error)
 	HorizonV2() *horizonv2.Connector
 	Services() []string
 	Stripe() (*client.API, error)
 	Ethereum() *ethclient.Client
-	Bitcoin() (*bitcoin.Client, error)
+	Bitcoin() *bitcoin.Client
 	Notificator() (*notificator.Connector, error)
 }
 

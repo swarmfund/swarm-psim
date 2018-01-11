@@ -41,13 +41,13 @@ func (c Client) GetBlock(blockIndex uint64) (*btc.Block, error) {
 func (c Client) GetBlockByHash(blockHash string) (*btc.Block, error) {
 	blockHex, err := c.connector.GetBlock(blockHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Block", logan.Field("block_hash", blockHash))
+		return nil, errors.Wrap(err, "Failed to get Block", logan.F{"block_hash": blockHash})
 	}
 
 	block, err := c.parseBlock(blockHex)
 	if err != nil {
 		hexToLog := blockHex[:10] + ".." + blockHex[len(blockHex)-10:]
-		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.Field("block_hex", hexToLog))
+		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.F{"block_hex": hexToLog})
 	}
 
 	err = block.BuildTxList()
@@ -74,15 +74,15 @@ func (c Client) TransferAllWalletMoney(goalAddress string) (resultTXHash string,
 	resultTXHash, err = c.connector.SendToAddress(goalAddress, balance)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send BTC amount to provided Address",
-			logan.Field("confirmed_wallet_balance", balance))
+			logan.F{"confirmed_wallet_balance": balance})
 	}
 
 	return resultTXHash, nil
 }
 
 // GetWalletBalance returns current confirmed balance of the Wallet.
-func (c Client) GetWalletBalance() (float64, error) {
-	balance, err := c.connector.GetBalance(false)
+func (c Client) GetWalletBalance(includeWatchOnly bool) (float64, error) {
+	balance, err := c.connector.GetBalance(includeWatchOnly)
 	if err != nil {
 		return 0, err
 	}
@@ -94,6 +94,15 @@ func (c Client) GetWalletBalance() (float64, error) {
 // Amount in BTC.
 func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error) {
 	resultTXHash, err = c.connector.SendToAddress(goalAddress, amount)
+	if err != nil {
+		return "", err
+	}
+
+	return resultTXHash, nil
+}
+
+func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, err error) {
+	resultTXHash, err = c.connector.SendMany(addrToAmount)
 	if err != nil {
 		return "", err
 	}
@@ -184,6 +193,6 @@ func (c Client) IsTestnet() bool {
 	return c.connector.IsTestnet()
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
+func BuildCoinEmissionRequestReference(txHash string, outIndex uint32) string {
 	return txHash + string(outIndex)
 }

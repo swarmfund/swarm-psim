@@ -54,6 +54,7 @@ func (q *Q) Transactions(result chan<- resources.TransactionEvent) <-chan error 
 	return errs
 }
 
+// DEPRECATED Does not work any more. Can now only stream WithdrawalRequests.
 func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -73,5 +74,31 @@ func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 			}
 		}
 	}()
+	return errs
+}
+
+// TODO Consider working with *Withdrawal* specific types.
+func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
+	errs := make(chan error)
+
+	go func() {
+		defer func() {
+			close(errs)
+		}()
+
+		cursor := ""
+		for {
+			requests, err := q.op.WithdrawalRequests(cursor)
+			if err != nil {
+				errs <- err
+				continue
+			}
+			for _, request := range requests {
+				result <- request
+				cursor = request.PagingToken
+			}
+		}
+	}()
+
 	return errs
 }

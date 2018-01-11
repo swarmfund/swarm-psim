@@ -30,19 +30,14 @@ func init() {
 		globalConfig := app.Config(ctx)
 		err := figure.
 			Out(&serviceConfig).
-			From(globalConfig.Get(conf.ServiceBTCVerify)).
+			From(globalConfig.GetRequired(conf.ServiceBTCVerify)).
 			With(figure.BaseHooks, utils.CommonHooks).
 			Please()
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceBTCVerify))
 		}
 
-		log := ctx.Value(app.CtxLog).(*logan.Entry).WithField("service", conf.ServiceBTCVerify)
-
-		discoveryClient, err := globalConfig.Discovery()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get discovery client")
-		}
+		log := app.Log(ctx).WithField("service", conf.ServiceBTCVerify)
 
 		horizonConnector, err := globalConfig.Horizon()
 		if err != nil {
@@ -54,12 +49,7 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init listener")
 		}
 
-		btcClient, err := globalConfig.Bitcoin()
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to get Bitcoin client")
-		}
-
-		return newService(serviceConfig, log, discoveryClient, listener, horizonConnector, btcClient), nil
+		return newService(serviceConfig, log, globalConfig.Discovery(), listener, horizonConnector, globalConfig.Bitcoin()), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCVerify, setupFn)

@@ -19,7 +19,7 @@ func New() *Entry {
 }
 
 func (e *Entry) Out(writer io.Writer) *Entry {
-	logger := copyLogger(e.Entry.Logger)
+	logger := copyLogger(e.entry.Logger)
 	logger.Out = writer
 
 	return &Entry{
@@ -28,7 +28,7 @@ func (e *Entry) Out(writer io.Writer) *Entry {
 }
 
 func (e *Entry) Formatter(formatter Formatter) *Entry {
-	logger := copyLogger(e.Entry.Logger)
+	logger := copyLogger(e.entry.Logger)
 	logger.Formatter = formatter
 
 	return &Entry{
@@ -37,7 +37,7 @@ func (e *Entry) Formatter(formatter Formatter) *Entry {
 }
 
 func (e *Entry) Level(level Level) *Entry {
-	logger := copyLogger(e.Entry.Logger)
+	logger := copyLogger(e.entry.Logger)
 	logger.Level = logrus.Level(level)
 
 	return &Entry{

@@ -8,10 +8,11 @@ const (
 	ServiceETHWithdraw   = "eth_withdraw"
 
 	// btc
-	ServiceBTCSupervisor = "bitcoin_supervisor"
-	ServiceBTCVerify     = "btc_verify"
-	ServiceBTCFunnel     = "btc_funnel"
-	ServiceBTCWithdraw   = "btc_withdraw"
+	ServiceBTCSupervisor     = "bitcoin_supervisor"
+	ServiceBTCVerify         = "btc_verify"
+	ServiceBTCFunnel         = "btc_funnel"
+	ServiceBTCWithdraw       = "btc_withdraw"
+	ServiceBTCWithdrawVerify = "btc_withdraw_verify"
 
 	// Verifies
 	ServiceStripeVerify = "stripe_verify"
@@ -19,6 +20,7 @@ const (
 	ServiceRateSync          = "rate_sync"
 	ServiceCharger           = "charger"
 	ServiceOperationNotifier = "notifier"
+	ServiceBearer            = "bearer"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.
