@@ -35,8 +35,8 @@ var (
 		Use:   "run",
 		Short: "Start service with all the whistles",
 		Run: func(cmd *cobra.Command, args []string) {
-			//env := xdr.TransactionEnvelope{}
-			//err := xdr.SafeUnmarshalBase64("AAAAAAJAZ5UJIsTjrwEY5/wS1UoogVcO07BtB866NGSysbUuAAAAAAAAAAAAAAAAAAAAAAAAAABaQRqCAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAATq4Xz5kalqrauBT0/9ZV7ppfptwGbvE4KzFFK8cspFAAAAAQAAP/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbKxtS4AAABAEO4yB1bLpR9w6pMC8TVAwmYNLbkM/OuuhDTuMXcDM7sjJa/n0ggV2Fv24UQzVGqgCw8YteIWwyWAR9SZPhTWCg==", &env)
+			//env := xdr.TransactionResult{}
+			//err := xdr.SafeUnmarshalBase64("AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAB8AAAAAAzz4Jdvviw2AsGupbfHplbP4jaVAfQz4RHtZuwu6ZbaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", &env)
 			//if err != nil {
 			//	panic(err)
 			//}

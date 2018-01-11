@@ -51,7 +51,7 @@ func NewService(
 
 func (s *Service) listenRequests() {
 	requestCh := make(chan horizonV2.Request)
-	errs := s.horizonV2.Listener().Requests(requestCh)
+	errs := s.horizonV2.Listener().WithdrawalRequests(requestCh)
 	for {
 		select {
 		case request := <-requestCh:
@@ -76,6 +76,18 @@ func (s *Service) queueRequest(request horizonV2.Request) {
 
 	if request.State != requestStatePending {
 		entry.Debug("not pending, skipping")
+		return
+	}
+
+	// checking if request is well-formed
+	// TODO reject otherwise
+	if request.Details.Withdraw.ExternalDetails == nil {
+		entry.Warn("missing external details, skipping")
+		return
+	}
+
+	if _, ok := request.Details.Withdraw.ExternalDetails["address"]; !ok {
+		entry.Warn("missing external address, skipping")
 		return
 	}
 
