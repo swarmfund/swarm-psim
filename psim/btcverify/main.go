@@ -8,7 +8,6 @@ import (
 
 	"sync"
 
-	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"github.com/btcsuite/btcutil"
 )
 
 func init() {
@@ -57,8 +57,7 @@ func init() {
 
 // BTCClient must be implemented by a BTC Client to pass into Service for creation.
 type btcClient interface {
-	IsTestnet() bool
-	GetBlockByHash(blockHash string) (*btc.Block, error)
+	GetBlockByHash(blockHash string) (*btcutil.Block, error)
 }
 
 type Service struct {

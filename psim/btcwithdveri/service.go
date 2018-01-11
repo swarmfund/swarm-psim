@@ -10,12 +10,13 @@ import (
 	"time"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 type BTCClient interface {
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
-	IsTestnet() bool
+	GetNetParams() *chaincfg.Params
 }
 
 type Service struct {

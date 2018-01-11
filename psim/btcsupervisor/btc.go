@@ -6,7 +6,8 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/piotrnar/gocoin/lib/btc"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -14,14 +15,14 @@ import (
 )
 
 const (
-	runnerName = "btc_supervisor"
-	baseAsset  = "SUN"
+	runnerName      = "btc_supervisor"
+	baseAsset       = "SUN"
 	referenceMaxLen = 64
 )
 
 var (
 	lastProcessedBlock uint64
-	errNilPrice = errors.New("PriceAt of accountDataProvider returned nil Price.")
+	errNilPrice        = errors.New("PriceAt of accountDataProvider returned nil Price.")
 )
 
 func (s *Service) processBTCBlocksInfinitely(ctx context.Context) {
@@ -72,12 +73,11 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 		return errors.Wrap(err, "Failed to get Block from BTCClient")
 	}
 
-	blockTime := time.Unix(int64(block.BlockTime()), 0)
+	blockTime := block.MsgBlock().Header.Timestamp
+	blockHash := block.Hash().String()
 
-	for _, tx := range block.Txs {
-		blockHash := block.Hash.String()
-
-		err := s.processTX(ctx, blockHash, blockTime, *tx)
+	for _, tx := range block.Transactions() {
+		err := s.processTX(ctx, blockHash, blockTime, tx)
 		if err != nil {
 			// Tx hash is added into logs inside processTX.
 			return errors.Wrap(err, "Failed to process TX", logan.F{"block_hash": blockHash})
@@ -87,15 +87,16 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 	return nil
 }
 
-func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx btc.Tx) error {
-	for _, out := range tx.TxOut {
-		addr := btc.NewAddrFromPkScript(out.Pk_script, s.btcClient.IsTestnet())
-		if addr == nil {
-			// Somebody is playing with sending BTC not to an address - just ignore this
+func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx *btcutil.Tx) error {
+	for i, out := range tx.MsgTx().TxOut {
+		addrScriptHash, err := btcutil.NewAddressPubKeyHash(tx.MsgTx().TxOut[0].PkScript, s.btcClient.GetNetParams())
+		if err != nil || addrScriptHash == nil {
+			// Somebody is sending BTC not to a pay-to-pub-key-hash address - just ignore this Output.
+			// We only accept deposits to our Addresses which are actually pay-to-pub-key-hash addresses.
 			continue
 		}
 
-		addr58 := addr.String()
+		addr58 := addrScriptHash.String()
 
 		accountAddress := s.accountDataProvider.AddressAt(ctx, blockTime, addr58)
 		if app.IsCanceled(ctx) {
@@ -111,16 +112,16 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 			WithField("account_address", accountAddress).Debug("Found our watch BTC Address.")
 
 		// Don't take hash outside of for loop, as it's will be needed not more than once during whole processTX(), usually will not be used at all.
-		txHash := tx.Hash.String()
-		err := s.processDeposit(ctx, blockHash, blockTime, txHash, out, addr58, *accountAddress)
+		txHash := tx.Hash().String()
+		err = s.processDeposit(ctx, blockHash, blockTime, txHash, i, *out, addr58, *accountAddress)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process deposit", logan.F{
-				"block_hash": blockHash,
-				"block_time": blockTime,
+				"block_hash":      blockHash,
+				"block_time":      blockTime,
 				"tx_hash":         txHash,
-				"out_value": out.Value,
-				"out_index": out.VoutCount,
-				"btc_addr": addr58,
+				"out_value":       out.Value,
+				"out_index":       i,
+				"btc_addr":        addr58,
 				"account_address": accountAddress,
 			})
 		}
@@ -130,7 +131,7 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 }
 
 // TODO Check that amount is valid.
-func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTime time.Time, txHash string, out *btc.TxOut, addr58, accountAddress string) error {
+func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTime time.Time, txHash string, outIndex int, out wire.TxOut, addr58, accountAddress string) error {
 	price := s.accountDataProvider.PriceAt(ctx, blockTime)
 	if price == nil {
 		return errNilPrice
@@ -147,7 +148,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		return errors.New("Amount value overflow.")
 	}
 
-	err := s.sendCoinEmissionRequest(ctx, blockHash, txHash, out.VoutCount, accountAddress, amount.Uint64())
+	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, amount.Uint64())
 	if err != nil {
 		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
 			"converted_amount": amount.Uint64(),
@@ -157,7 +158,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 	return nil
 }
 
-func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash string, outIndex uint32, accountAddress string, amount uint64) error {
+func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int, accountAddress string, amount uint64) error {
 	reference := bitcoin.BuildCoinEmissionRequestReference(txHash, outIndex)
 	// Just in case. Reference must not be longer than 64.
 	if len(reference) > referenceMaxLen {
@@ -184,10 +185,10 @@ func (s *Service) sendCoinEmissionRequest(ctx context.Context, blockHash, txHash
 	//s.SendCoinEmissionRequestForVerify(s.Ctx, verifyPayload)
 
 	fields := logan.F{"account_address": accountAddress,
-						"reference": reference,
-						"block_hash": blockHash,
-						"tx_hash": txHash,
-						"out_index": outIndex,}
+		"reference":  reference,
+		"block_hash": blockHash,
+		"tx_hash":    txHash,
+		"out_index":  outIndex}
 
 	// TODO Move getting of BalanceID into accountDataProvider.
 	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, accountAddress)
