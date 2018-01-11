@@ -6,6 +6,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -89,14 +90,15 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 
 func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx *btcutil.Tx) error {
 	for i, out := range tx.MsgTx().TxOut {
-		addrScriptHash, err := btcutil.NewAddressPubKeyHash(tx.MsgTx().TxOut[0].PkScript, s.btcClient.GetNetParams())
-		if err != nil || addrScriptHash == nil {
-			// Somebody is sending BTC not to a pay-to-pub-key-hash address - just ignore this Output.
-			// We only accept deposits to our Addresses which are actually pay-to-pub-key-hash addresses.
+		scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, s.btcClient.GetNetParams())
+
+		if scriptClass != txscript.PubKeyHashTy {
+			// Output, which pays not to a pub-key-hash Address - just ignoring.
+			// We only accept deposits to our Addresses which are all actually pay-to-pub-key-hash addresses.
 			continue
 		}
 
-		addr58 := addrScriptHash.String()
+		addr58 := addrs[0].String()
 
 		accountAddress := s.accountDataProvider.AddressAt(ctx, blockTime, addr58)
 		if app.IsCanceled(ctx) {
