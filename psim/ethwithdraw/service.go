@@ -7,8 +7,6 @@ import (
 
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -26,21 +24,25 @@ type Service struct {
 	horizonV2  *horizonV2.Connector
 	horizon    *horizon.Connector
 	config     Config
-	keystore   *keystore.KeyStore
 	eth        *ethclient.Client
 	withdrawCh chan Withdraw
+
+	address common.Address
+	wallet  Wallet
 }
 
 func NewService(
 	log *logan.Entry, config Config, horizonV2 *horizonV2.Connector,
-	keystore *keystore.KeyStore, eth *ethclient.Client, horizon *horizon.Connector,
+	wallet Wallet, eth *ethclient.Client, horizon *horizon.Connector,
+	address common.Address,
 ) *Service {
 	return &Service{
 		log:       log,
 		config:    config,
 		horizonV2: horizonV2,
 		horizon:   horizon,
-		keystore:  keystore,
+		wallet:    wallet,
+		address:   address,
 		eth:       eth,
 		// make sure channel is buffered
 		withdrawCh: make(chan Withdraw, 1),
@@ -186,7 +188,7 @@ func (s *Service) submitETH(tx *types.Transaction) {
 func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 	txFee := new(big.Int).Mul(txGas, s.config.GasPrice)
 
-	nonce, err := s.eth.PendingNonceAt(s.ctx, s.config.From)
+	nonce, err := s.eth.PendingNonceAt(s.ctx, s.address)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get nonce")
 	}
@@ -199,10 +201,8 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 		txFee,
 	)
 
-	tx, err := s.keystore.SignTx(
-		accounts.Account{
-			Address: s.config.From,
-		},
+	tx, err := s.wallet.SignTX(
+		s.address,
 		types.NewTransaction(
 			nonce,
 			common.HexToAddress(withdraw.Request.Details.Withdraw.ExternalDetails),
@@ -211,7 +211,6 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 			s.config.GasPrice,
 			nil,
 		),
-		nil,
 	)
 
 	if err != nil {

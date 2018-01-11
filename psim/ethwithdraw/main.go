@@ -5,11 +5,11 @@ import (
 
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
@@ -36,15 +36,10 @@ func init() {
 			return nil, errors.Wrap(err, "failed to figure out")
 		}
 
-		ks := keystore.NewKeyStore(config.Keystore, keystore.LightScryptN, keystore.LightScryptP)
-		if !ks.HasAddress(config.From) {
-			return nil, errors.New("now wallet for address")
-		}
-
-		for _, account := range ks.Accounts() {
-			if err := ks.Unlock(account, config.Passphrase); err != nil {
-				return nil, errors.Wrap(err, "failed to unlock account")
-			}
+		wallet := eth.NewWallet()
+		address, err := wallet.ImportHEX(config.Key)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to import key")
 		}
 
 		horizonV2 := app.Config(ctx).HorizonV2()
@@ -55,6 +50,6 @@ func init() {
 
 		eth := app.Config(ctx).Ethereum()
 
-		return NewService(app.Log(ctx), config, horizonV2, ks, eth, horizon), nil
+		return NewService(app.Log(ctx), config, horizonV2, wallet, eth, horizon, address), nil
 	})
 }

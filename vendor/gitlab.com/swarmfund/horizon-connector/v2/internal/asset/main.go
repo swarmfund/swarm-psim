@@ -3,8 +3,6 @@ package asset
 import (
 	"fmt"
 
-	"net/http"
-
 	"encoding/json"
 
 	"github.com/pkg/errors"
@@ -23,22 +21,19 @@ func NewQ(client internal.Client) *Q {
 }
 func (q Q) ByCode(code string) (*resources.Asset, error) {
 	endpoint := fmt.Sprintf("/assets/%s", code)
-	resp, err := q.client.Get(endpoint)
+	response, err := q.client.Get(endpoint)
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
 	}
-	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusNotFound:
+	if response == nil {
 		return nil, nil
-	case http.StatusOK:
-		var asset resources.Asset
-		if err := json.NewDecoder(resp.Body).Decode(&asset); err != nil {
-			return nil, errors.Wrap(err, "failed to unmarshal")
-		}
-		return &asset, nil
-	default:
-		return nil, errors.Wrapf(err, "request failed with %d", resp.StatusCode)
 	}
+
+	var asset resources.Asset
+	if err := json.Unmarshal(response, &asset); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal")
+	}
+	return &asset, nil
+
 }

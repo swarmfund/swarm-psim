@@ -1,6 +1,7 @@
 package horizon
 
 import (
+	"net/http"
 	"net/url"
 
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/account"
@@ -16,7 +17,7 @@ type Connector struct {
 }
 
 func NewConnector(base *url.URL) *Connector {
-	client := NewClient(base)
+	client := NewClient(http.DefaultClient, base)
 	return &Connector{
 		client,
 	}

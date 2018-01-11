@@ -26,10 +26,9 @@ func (q *Q) Requests(cursor string) ([]resources.Request, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
 	}
-	defer response.Body.Close()
 
 	var result responses.RequestsIndex
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return result.Embedded.Records, nil
