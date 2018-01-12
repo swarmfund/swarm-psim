@@ -9,13 +9,10 @@ import (
 	"os"
 	"time"
 
-	"crypto/sha256"
-
 	"strconv"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -82,29 +79,16 @@ func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int) ([]str
 			return nil, errors.Wrap(err, "Failed to get ECPrivKey of the derived Child Key", logan.F{"i": i})
 		}
 
-		result = append(result, toWalletImportFormat(privKey, params, true))
+		//result = append(result, toWalletImportFormat(privKey, params, true))
+		wif, err := btcutil.NewWIF(privKey, params, true)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to create new WIF from private key", logan.F{"i": i})
+		}
+
+		result = append(result, wif.String())
 	}
 
 	return result, nil
-}
-
-func toWalletImportFormat(privKey *btcec.PrivateKey, params *chaincfg.Params, compressedPublicKeys bool) string {
-	result := make([]byte, 0)
-
-	// Network version byte
-	result = append(result, params.PrivateKeyID)
-
-	result = append(result, privKey.Serialize()...)
-
-	if compressedPublicKeys {
-		result = append(result, 0x01)
-	}
-
-	sha := sha256.Sum256(result)
-	sum := sha256.Sum256(sha[:])
-	result = append(result, sum[:4]...)
-
-	return base58.Encode(result)
 }
 
 func importPrivateKeys(log *logan.Entry, url string, authKey string, privateKeys []string) error {
