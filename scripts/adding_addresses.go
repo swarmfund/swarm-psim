@@ -7,9 +7,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
+	"crypto/sha256"
+
+	"strconv"
+
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/btcsuite/btcutil/hdkeychain"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
@@ -32,44 +39,89 @@ func main() {
 	log := logan.New()
 
 	args := os.Args[1:]
-	if len(args) < 2 {
-		log.Panic("Need Node url(1) and auth key(2) to be passed as command line arguments.")
+	if len(args) < 4 {
+		log.Panic("Need Node url(1), auth key(2) and extPrivKey(3), n(4) to be passed as command line arguments.")
 	}
 	url := args[0]
 	authKey := args[1]
+	extPrivKey := args[2]
 
-	filePath := "private_keys.txt"
-
-	privKeys, err := readPrivateKeys(filePath)
+	n, err := strconv.Atoi(args[3])
 	if err != nil {
-		log.WithField("file_path", filePath).WithError(err).Error("Failed to read private keys from file.")
+		log.WithError(err).Panic("Failed to parse integer from the fourth argument")
+	}
+
+	params := &chaincfg.TestNet3Params
+	privKeys, err := derivePrivateKeys(extPrivKey, params, n)
+	if err != nil {
+		log.WithError(err).Panic("Failed to derive private keys from extended key.")
 		return
 	}
 
-	for i, privKey := range privKeys {
+	err = importPrivateKeys(log, url, authKey, privKeys)
+	if err != nil {
+		log.WithError(err).Panic("Failed to import PrivateKeys.")
+	}
+}
+
+func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int) ([]string, error) {
+	extendedKey, err := hdkeychain.NewKeyFromString(extPrivKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create extended Key from base58 extended private key")
+	}
+
+	var result []string
+	for i := 0; i < n; i++ {
+		childKey, err := extendedKey.Child(hdkeychain.HardenedKeyStart + uint32(i))
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to derive child key", logan.F{"i": i})
+		}
+
+		privKey, err := childKey.ECPrivKey()
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to get ECPrivKey of the derived Child Key", logan.F{"i": i})
+		}
+
+		result = append(result, toWalletImportFormat(privKey, params, true))
+	}
+
+	return result, nil
+}
+
+func toWalletImportFormat(privKey *btcec.PrivateKey, params *chaincfg.Params, compressedPublicKeys bool) string {
+	result := make([]byte, 0)
+
+	// Network version byte
+	result = append(result, params.PrivateKeyID)
+
+	result = append(result, privKey.Serialize()...)
+
+	if compressedPublicKeys {
+		result = append(result, 0x01)
+	}
+
+	sha := sha256.Sum256(result)
+	sum := sha256.Sum256(sha[:])
+	result = append(result, sum[:4]...)
+
+	return base58.Encode(result)
+}
+
+func importPrivateKeys(log *logan.Entry, url string, authKey string, privateKeys []string) error {
+	for i, privKey := range privateKeys {
 		if privKey == "" {
 			continue
 		}
 
 		err := sendRequestToBTCNode(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, privKey))
 		if err != nil {
-			log.WithField("i", i).WithError(err).Error("Failed to import private key.")
-			return
+			return errors.Wrap(err, "Failed to import private key", logan.F{"i": i})
 		}
 
 		log.WithField("i", i).Debug("Imported private key successfully.")
 	}
-}
 
-func readPrivateKeys(filePath string) ([]string, error) {
-	dat, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to read file")
-	}
-
-	fileContent := string(dat)
-
-	return strings.Split(fileContent, "\n"), nil
+	return nil
 }
 
 func sendRequestToBTCNode(url, authKey, methodName, params string) error {
