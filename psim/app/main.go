@@ -151,7 +151,6 @@ func (app *App) Run() {
 		}
 	}()
 
-	throttle := time.NewTicker(5 * time.Second)
 	for name, setup := range registerServiceSetUp {
 		if !app.isServiceEnabled(name) {
 			continue
@@ -176,10 +175,7 @@ func (app *App) Run() {
 			}
 
 			// TODO Pass another ctx here - just for cancelling.
-			for err := range service.Run(ctx) {
-				entry.WithStack(err).WithError(err).Warn("service error")
-				<-throttle.C
-			}
+			service.Run(ctx)
 			entry.Warn("died")
 		}()
 	}

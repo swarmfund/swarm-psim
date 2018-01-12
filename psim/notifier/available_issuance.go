@@ -12,6 +12,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
+// TODO Make runners return error
 func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
 	if s.Assets == nil || !s.Assets.Enable {
 		s.logger.Warn("assets issuance checker is not enabled")
@@ -20,7 +21,7 @@ func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
 
 	d, err := time.ParseDuration(s.Assets.CheckPeriod)
 	if err != nil {
-		s.errors <- errors.Wrap(err, "can't start asset loader")
+		s.logger.WithError(err).Error("can't start asset loader")
 		return
 	}
 
@@ -34,7 +35,7 @@ func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
 		case <-ticker.C:
 			err = s.loadAssets()
 			if err != nil {
-				s.errors <- errors.Wrap(err, "load assets runner failed")
+				s.logger.WithError(err).Error("load assets runner failed")
 			}
 		}
 	}

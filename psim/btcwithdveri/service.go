@@ -58,16 +58,12 @@ func New(log *logan.Entry, config Config,
 	}
 }
 
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	// TODO Wait for acquireLeadershipEndlessly on shutdown
 	go app.RunOverIncrementalTimer(ctx, s.log, "btc_withdraw_verify_discovery_reregisterer", s.ensureServiceInDiscoveryOnce,
 		s.discoveryRegisterPeriod, s.discoveryRegisterPeriod / 2)
 
 	s.serveAPI(ctx)
-
-	errs := make(chan error)
-	close(errs)
-	return errs
 }
 
 func (s *Service) ensureServiceInDiscoveryOnce(ctx context.Context) error {

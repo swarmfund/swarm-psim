@@ -34,12 +34,7 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 
 // Run is implementation of utils.Service, Run is called by the app.
 // Run will return closed channel and only when work is finished.
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
-
 	app.RunOverIncrementalTimer(ctx, s.log, "btc_funnel_runner", s.funnelBTC, 5 * time.Second, 5 * time.Second)
-
-	errs := make(chan error)
-	close(errs)
-	return errs
 }
