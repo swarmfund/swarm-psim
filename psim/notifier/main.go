@@ -15,7 +15,7 @@ func init() {
 	app.RegisterService(conf.ServiceOperationNotifier, setupFn)
 }
 
-func setupFn(ctx context.Context) (utils.Service, error) {
+func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	cfg := &Config{}
 	err := figure.Out(cfg).

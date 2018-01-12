@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHSupervisor, func(ctx context.Context) (utils.Service, error) {
+	app.RegisterService(conf.ServiceETHSupervisor, func(ctx context.Context) (app.Service, error) {
 		config := Config{
 			Supervisor: supervisor.NewConfig(conf.ServiceETHSupervisor),
 		}

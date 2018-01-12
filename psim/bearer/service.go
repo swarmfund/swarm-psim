@@ -13,7 +13,7 @@ import (
 )
 
 // Service is a main structure for bearer runner,
-// implements `utils.Service` interface.
+// implements `app.Service` interface.
 type Service struct {
 	config  Config
 	horizon *horizon.Connector

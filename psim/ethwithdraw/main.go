@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHWithdraw, func(ctx context.Context) (utils.Service, error) {
+	app.RegisterService(conf.ServiceETHWithdraw, func(ctx context.Context) (app.Service, error) {
 		config := Config{
 			GasPrice: big.NewInt(1000000000),
 		}

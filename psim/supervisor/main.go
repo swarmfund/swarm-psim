@@ -98,7 +98,7 @@ func (s *Service) AddRunner(runner func(context.Context)) {
 
 // Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
 // Once all runners returned - Errors channel will be closed.
-// Implements utils.Service.
+// Implements app.Service.
 func (s *Service) Run(ctx context.Context) {
 	s.Log.Info("Started.")
 

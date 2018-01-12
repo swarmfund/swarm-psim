@@ -14,7 +14,7 @@ type BTCClient interface {
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
 }
 
-// Service implements utils.Service to be registered in the app.
+// Service implements app.Service to be registered in the app.
 type Service struct {
 	config Config
 	log    *logan.Entry
@@ -32,7 +32,7 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 	}
 }
 
-// Run is implementation of utils.Service, Run is called by the app.
+// Run is implementation of app.Service, Run is called by the app.
 // Run will return closed channel and only when work is finished.
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")

@@ -17,7 +17,7 @@ func init() {
 	app.RegisterService(conf.ServiceBearer, setupFn)
 }
 
-func setupFn(ctx context.Context) (utils.Service, error) {
+func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx).WithField("service", conf.ServiceBearer)
 
