@@ -15,8 +15,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/horizon-connector"
-	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/go/xdrbuild"
+	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/conf"
@@ -52,7 +52,7 @@ type ReviewRequest struct {
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
-	WithdrawalRequests(result chan<- horizonV2.Request) <-chan error
+	WithdrawalRequests(result chan<- horizon.Request) <-chan error
 }
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -71,23 +71,23 @@ type Service struct {
 	btcClient       BTCClient
 	discovery       *discovery.Client
 
-	requests              chan horizonV2.Request
+	requests              chan horizon.Request
 	requestListenerErrors <-chan error
 }
 
 // New is constructor for btcwithdraw Service.
 func New(log *logan.Entry, config Config,
-	requestListener RequestListener, horizon *horizon.Connector, btc BTCClient, discoveryClient *discovery.Client) *Service {
+	requestListener RequestListener, horizonConnector *horizon.Connector, btc BTCClient, discoveryClient *discovery.Client) *Service {
 
 	return &Service{
 		log:             log.WithField("service", conf.ServiceBTCWithdraw),
 		config:          config,
 		requestListener: requestListener,
-		horizon:         horizon,
+		horizon:         horizonConnector,
 		btcClient:       btc,
 		discovery:       discoveryClient,
 
-		requests: make(chan horizonV2.Request),
+		requests: make(chan horizon.Request),
 	}
 }
 
@@ -118,7 +118,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request horizonV2.Request) error {
+func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		// not a withdraw request
 		return nil
@@ -239,22 +239,28 @@ func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount 
 }
 
 func (s *Service) sendRejectToVerify(requestID uint64, requestHash string, reason RejectReason) error {
-	tx := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source: s.config.SourceKP,
-	}).Op(&horizon.ReviewRequestOp{
-		ID:     requestID,
-		Hash:   requestHash,
-		Action: xdr.ReviewRequestOpActionPermanentReject,
-		Reason: string(reason),
-		Details: horizon.ReviewRequestOpDetails{
-			Type:       xdr.ReviewableRequestTypeWithdraw,
-			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{},
-		},
-	}).
-		Sign(s.config.SignerKP)
-
-	err := s.sendTXToVerify(tx)
+	var builder *xdrbuild.Builder
+	{
+		info, err := s.horizon.Info()
+		if err != nil {
+			return errors.Wrap(err, "failed to get horizon info")
+		}
+		builder = xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
+	}
+	envelope, err := builder.Transaction(s.config.SourceKP).
+		Op(xdrbuild.ReviewRequestOp{
+			ID:     requestID,
+			Hash:   requestHash,
+			Action: xdr.ReviewRequestOpActionPermanentReject,
+			Reason: string(reason),
+		}).
+		Sign(s.config.SignerKP).
+		Marshal()
 	if err != nil {
+		return errors.Wrap(err, "failed to marshal reject tx")
+	}
+
+	if err := s.sendTXToVerify(envelope); err != nil {
 		return errors.Wrap(err, "Failed to send TX to Verify")
 	}
 
@@ -276,22 +282,27 @@ func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex
 		errors.Wrap(err, "Failed to marshal ExternalDetails for OpWithdrawal (containing hex and hash of BTC TX)")
 	}
 
-	tx := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source: s.config.SourceKP,
-	}).Op(&horizon.ReviewRequestOp{
-		ID:     requestID,
-		Hash:   requestHash,
-		Action: xdr.ReviewRequestOpActionApprove,
-		Details: horizon.ReviewRequestOpDetails{
-			Type: xdr.ReviewableRequestTypeWithdraw,
-			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{
+	var builder *xdrbuild.Builder
+	{
+		info, err := s.horizon.Info()
+		if err != nil {
+			return errors.Wrap(err, "failed to get horizon info")
+		}
+		builder = xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
+	}
+	envelope, err := builder.Transaction(s.config.SourceKP).
+		Op(xdrbuild.ReviewRequestOp{
+			ID:     requestID,
+			Hash:   requestHash,
+			Action: xdr.ReviewRequestOpActionApprove,
+			Details: xdrbuild.WithdrawalDetails{
 				ExternalDetails: string(detailsBytes),
 			},
-		},
-	}).
-		Sign(s.config.SignerKP)
+		}).
+		Sign(s.config.SignerKP).
+		Marshal()
 
-	err = s.sendTXToVerify(tx)
+	err = s.sendTXToVerify(envelope)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send TX to Verify")
 	}
@@ -305,16 +316,9 @@ func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex
 	return nil
 }
 
-func (s *Service) sendTXToVerify(horizonTX *horizon.TransactionBuilder) error {
-	xdrTX, err := horizonTX.Marshal64()
-	if err != nil {
-		return errors.Wrap(err, "Failed to Marshal64 the HorizonTX")
-	}
-	if xdrTX == nil {
-		return errors.Wrap(err, "Marshal64 for HorizonTX returned nil value without an error")
-	}
+func (s *Service) sendTXToVerify(envelope string) error {
 	body := ReviewRequest{
-		Envelope: *xdrTX,
+		Envelope: envelope,
 	}
 
 	rawRequestBody, err := json.Marshal(body)

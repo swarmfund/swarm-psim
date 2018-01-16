@@ -2,12 +2,13 @@ package btcwithdraw
 
 import (
 	"context"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/figure"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 )
 
 func init() {
@@ -30,11 +31,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	horizonConnector, err := globalConfig.Horizon()
-	if err != nil {
-		panic(err)
-	}
+	horizonConnector := globalConfig.Horizon()
 
-	return New(log, config, globalConfig.HorizonV2().Listener(), horizonConnector,
+	return New(log, config, horizonConnector.Listener(), horizonConnector,
 		globalConfig.Bitcoin(), globalConfig.Discovery()), nil
 }
