@@ -21,7 +21,6 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
 	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
-	_ "gitlab.com/swarmfund/psim/psim/ratesync"
 )
 
 var (
