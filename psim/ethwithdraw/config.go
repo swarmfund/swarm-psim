@@ -3,7 +3,7 @@ package ethwithdraw
 import (
 	"math/big"
 
-	"gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/tokend/keypair"
 )
 
 type Config struct {
@@ -11,6 +11,6 @@ type Config struct {
 	Key      string
 	Asset    string
 	GasPrice *big.Int
-	Source   keypair.KP
-	Signer   keypair.KP
+	Source   keypair.Address
+	Signer   keypair.Full
 }

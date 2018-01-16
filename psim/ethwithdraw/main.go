@@ -42,14 +42,9 @@ func init() {
 			return nil, errors.Wrap(err, "failed to import key")
 		}
 
-		horizonV2 := app.Config(ctx).HorizonV2()
-		horizon, err := app.Config(ctx).Horizon()
-		if err != nil {
-			return nil, errors.New("failed to get horizon")
-		}
-
+		horizon := app.Config(ctx).Horizon()
 		eth := app.Config(ctx).Ethereum()
 
-		return NewService(app.Log(ctx), config, horizonV2, wallet, eth, horizon, address), nil
+		return NewService(app.Log(ctx), config, horizon, wallet, eth, address), nil
 	})
 }
