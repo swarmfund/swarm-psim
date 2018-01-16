@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"encoding/json"
+
+	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/account"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/asset"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/listener"
@@ -26,6 +29,23 @@ func NewConnector(base *url.URL) *Connector {
 func (c *Connector) WithSigner(kp keypair.Full) *Connector {
 	return &Connector{
 		c.client.WithSigner(kp),
+	}
+}
+
+func (c *Connector) Info() (info *Info, err error) {
+	response, err := c.client.Get("/")
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+	if err := json.Unmarshal(response, &info); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal info")
+	}
+	return info, nil
+}
+
+func (c *Connector) Submitter() *Submitter {
+	return &Submitter{
+		client: c.client,
 	}
 }
 

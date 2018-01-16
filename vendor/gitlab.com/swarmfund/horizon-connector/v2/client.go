@@ -7,6 +7,8 @@ import (
 
 	"io/ioutil"
 
+	"io"
+
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/errors"
 	"gitlab.com/tokend/keypair"
 )
@@ -45,6 +47,9 @@ func NewClient(client *http.Client, base *url.URL) *Client {
 
 func (c *Client) Do(request *http.Request) ([]byte, error) {
 	<-c.throttle
+
+	// ensure content-type just in case
+	request.Header.Set("content-type", "application/json")
 
 	response, err := c.client.Do(request)
 	if err != nil {
@@ -102,18 +107,26 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 	}
 }
 
-func (c *Client) Get(endpoint string) ([]byte, error) {
+func (c *Client) prepareURL(endpoint string) (string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return nil, errors.E(
+		return "", errors.E(
 			"failed to parse endpoint",
 			err,
 			errors.Runtime,
 		)
 	}
 
-	u = c.base.ResolveReference(u)
-	request, err := http.NewRequest("GET", u.String(), nil)
+	return c.base.ResolveReference(u).String(), nil
+}
+
+func (c *Client) Get(endpoint string) ([]byte, error) {
+	endpoint, err := c.prepareURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, errors.E(
 			"failed to build request",
@@ -121,6 +134,25 @@ func (c *Client) Get(endpoint string) ([]byte, error) {
 			errors.Runtime,
 		)
 	}
+
+	return c.Do(request)
+}
+
+func (c *Client) Post(endpoint string, body io.Reader) ([]byte, error) {
+	endpoint, err := c.prepareURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest("POST", endpoint, body)
+	if err != nil {
+		return nil, errors.E(
+			"failed to build request",
+			err,
+			errors.Runtime,
+		)
+	}
+
 	return c.Do(request)
 }
 

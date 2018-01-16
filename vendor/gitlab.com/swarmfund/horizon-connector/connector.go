@@ -9,65 +9,23 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 
 	"gitlab.com/swarmfund/go/keypair"
-	"gitlab.com/swarmfund/go/strkey"
-	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/internal/resources"
 )
 
 type Connector struct {
 	baseURL string
 	client  *http.Client
-	info    *Info
 }
 
 func NewConnector(endpoint string) (*Connector, error) {
-	info, err := NewInfo(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Connector{
 		baseURL: strings.TrimRight(endpoint, "/"),
 		client:  &http.Client{},
-		info:    info,
 	}, nil
-}
-
-func (c *Connector) Info() (*Info, error) {
-	return NewInfo(c.baseURL)
-}
-
-func (c *Connector) TimeBounds() xdr.TimeBounds {
-	var fixToRemove int64 = 60
-	return xdr.TimeBounds{
-		MaxTime: xdr.Uint64(time.Now().Unix() + c.info.TxExpirationPeriod - fixToRemove),
-	}
-}
-
-func (c *Connector) NewBalanceID() (*xdr.BalanceId, error) {
-	kp, err := keypair.Random()
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err := strkey.Decode(strkey.VersionByteAccountID, kp.Address())
-	if err != nil {
-		return nil, err
-	}
-
-	var ui xdr.Uint256
-	copy(ui[:], raw)
-	bid, err := xdr.NewBalanceId(xdr.CryptoKeyTypeKeyTypeEd25519, ui)
-	if err != nil {
-		return nil, err
-	}
-
-	return &bid, nil
 }
 
 func (c *Connector) doSigned(kp keypair.KP, method, path string) (*http.Response, error) {
@@ -84,33 +42,6 @@ func (c *Connector) do(method, path string) (*http.Response, error) {
 		return nil, err
 	}
 	return c.client.Do(req)
-}
-
-func prepareQueryString(params interface{}) (url.Values, error) {
-	// going struct -> json -> map -> form -> string
-	paramsBytes, err := json.Marshal(&params)
-	if err != nil {
-		return nil, err
-	}
-
-	paramsMap := map[string]interface{}{}
-	err = json.Unmarshal(paramsBytes, &paramsMap)
-	if err != nil {
-		return nil, err
-	}
-
-	form := url.Values{}
-	for key, value := range paramsMap {
-		// TODO type cast non-strings
-		switch v := value.(type) {
-		case string:
-			form.Add(key, v)
-		default:
-			return nil, errors.New("invalid param type")
-		}
-	}
-
-	return form, nil
 }
 
 func (c *Connector) SignedRequest(method, endpoint string, kp keypair.KP) (*http.Request, error) {
@@ -198,85 +129,6 @@ func (c *Connector) BalanceIDs(accountID string) (*BalanceIDResponse, error) {
 	default:
 		return nil, fmt.Errorf("failed to load balances: %d", response.StatusCode)
 	}
-}
-
-func (c *Connector) CoinEmissionRequests(kp keypair.KP, params *CoinEmissionRequestsParams) ([]CoinEmissionRequest, error) {
-	endpoint := fmt.Sprintf("/coins_emission_requests?reference=%s&exchange=%s", params.Reference, params.Exchange)
-	response, err := c.doSigned(kp, "GET", endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	defer response.Body.Close()
-
-	switch response.StatusCode {
-	case 200:
-		cerResponse := CoinEmissionRequestsResponse{}
-
-		err := json.NewDecoder(response.Body).Decode(&cerResponse)
-		if err != nil {
-			return nil, err
-		}
-		return cerResponse.Embedded.Records, nil
-	case 404:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("failed to get cer: %d", response.StatusCode)
-	}
-}
-
-func (c *Connector) ManageAssetPairOp(base string, quote string, physicalPrice int64) (xdr.Operation, error) {
-	return xdr.Operation{
-		Body: xdr.OperationBody{
-			Type: xdr.OperationTypeManageAssetPair,
-			ManageAssetPairOp: &xdr.ManageAssetPairOp{
-				Action:                  xdr.ManageAssetPairActionUpdatePrice,
-				Base:                    xdr.AssetCode(base),
-				Quote:                   xdr.AssetCode(quote),
-				PhysicalPrice:           xdr.Int64(physicalPrice),
-				PhysicalPriceCorrection: xdr.Int64(0),
-				MaxPriceStep:            xdr.Int64(0),
-				Policies:                xdr.Int32(0),
-			},
-		},
-	}, nil
-}
-
-func (c *Connector) CreateBalanceOp(accountID, asset string) (xdr.Operation, error) {
-	var op xdr.Operation
-
-	var xAccountID xdr.AccountId
-	err := xAccountID.SetAddress(accountID)
-	if err != nil {
-		return op, err
-	}
-	op = xdr.Operation{
-		Body: xdr.OperationBody{
-			Type: xdr.OperationTypeManageBalance,
-			ManageBalanceOp: &xdr.ManageBalanceOp{
-
-				Action:      xdr.ManageBalanceActionCreate,
-				Destination: xAccountID,
-				Asset:       xdr.AssetCode(asset),
-			},
-		},
-	}
-
-	return op, nil
-}
-
-func (c *Connector) ReviewPaymentRequestOp(paymentID int64, accept bool) (xdr.Operation, error) {
-	op := xdr.Operation{
-		Body: xdr.OperationBody{
-			Type: xdr.OperationTypeReviewPaymentRequest,
-			ReviewPaymentRequestOp: &xdr.ReviewPaymentRequestOp{
-				PaymentId: xdr.Uint64(paymentID),
-				Accept:    accept,
-			},
-		},
-	}
-
-	return op, nil
 }
 
 func (c *Connector) submit(request *http.Request, tx string) ([]byte, error) {
@@ -387,59 +239,4 @@ func (c *Connector) SubmitTXVerbose(tx string) (*TransactionSuccess, error) {
 		}
 		return nil, serr
 	}
-}
-
-func (c *Connector) Transaction(tx *TransactionBuilder) *TransactionBuilder {
-	if tx.Envelope != "" {
-		env := xdr.TransactionEnvelope{}
-		err := xdr.SafeUnmarshalBase64(tx.Envelope, &env)
-		if err != nil {
-			tx.err = err
-			return tx
-		}
-
-		tx.Salt = uint64(env.Tx.Salt)
-
-		tx.TimeBounds = &env.Tx.TimeBounds
-
-		for _, signature := range env.Signatures {
-			s, err := xdr.MarshalBase64(&signature)
-			if err != nil {
-				tx.err = err
-				return tx
-			}
-			tx.Signatures = append(tx.Signatures, s)
-		}
-		tx.Source, err = keypair.Parse(env.Tx.SourceAccount.Address())
-		if err != nil {
-			tx.err = err
-			return tx
-		}
-
-		tx.Operations = env.Tx.Operations
-	}
-
-	if tx.connector == nil {
-		tx.connector = c
-	}
-	if tx.ops == nil {
-		tx.ops = []Operation{}
-	}
-	return tx
-}
-
-func ParseBalanceID(addr string) (xdr.BalanceId, error) {
-	raw, err := strkey.Decode(strkey.VersionByteBalanceID, addr)
-	if err != nil {
-		return xdr.BalanceId{}, err
-	}
-
-	if len(raw) != 32 {
-		return xdr.BalanceId{}, errors.New("invalid address")
-	}
-
-	var ui xdr.Uint256
-	copy(ui[:], raw)
-
-	return xdr.NewBalanceId(xdr.CryptoKeyTypeKeyTypeEd25519, ui)
 }
