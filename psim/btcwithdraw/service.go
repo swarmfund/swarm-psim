@@ -92,16 +92,12 @@ func New(log *logan.Entry, config Config,
 }
 
 // Run is a blocking method, it returns closed channel only when it has finishing job.
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
 	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
 
 	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second)
-
-	errs := make(chan error)
-	close(errs)
-	return errs
 }
 
 func (s *Service) listenAndProcessRequests(ctx context.Context) error {

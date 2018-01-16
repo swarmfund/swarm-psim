@@ -249,7 +249,7 @@ func (s *Service) approveWithdraw(withdraw *Withdraw) error {
 	return nil
 }
 
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	s.ctx = ctx
 
 	// TODO check there is no pending transactions in the pool
@@ -257,6 +257,4 @@ func (s *Service) Run(ctx context.Context) chan error {
 
 	go s.listenRequests()
 	go s.processRequests()
-
-	return make(chan error)
 }

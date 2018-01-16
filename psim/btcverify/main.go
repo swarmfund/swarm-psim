@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	setupFn := func(ctx context.Context) (utils.Service, error) {
+	setupFn := func(ctx context.Context) (app.Service, error) {
 		serviceConfig := Config{
 			Host:        "localhost",
 			ServiceName: conf.ServiceBTCVerify,
@@ -65,7 +65,6 @@ type Service struct {
 
 	config   Config
 	log      *logan.Entry
-	errors   chan error
 	listener net.Listener
 	horizon  *horizon.Connector
 
@@ -82,7 +81,6 @@ func newService(config Config, log *logan.Entry, discovery *discovery.Client, li
 		ServiceID: utils.GenerateToken(),
 		config:    config,
 		log:       log,
-		errors:    make(chan error),
 		listener:  listener,
 		horizon:   horizon,
 
@@ -94,31 +92,27 @@ func newService(config Config, log *logan.Entry, discovery *discovery.Client, li
 
 //Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
 //Once all runners returned - Errors channel will be closed.
-//Implements utils.Service.
-func (s *Service) Run(ctx context.Context) chan error {
+//Implements app.Service.
+func (s *Service) Run(ctx context.Context) {
 	runners := []func(context.Context){
 		s.registerInDiscovery,
 		s.serveAPI,
 	}
 
-	go func() {
-		wg := sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 
-		for _, runner := range runners {
-			ohigo := runner
-			wg.Add(1)
+	for _, runner := range runners {
+		ohigo := runner
+		wg.Add(1)
 
-			go func() {
-				ohigo(ctx)
-				wg.Done()
-			}()
-		}
+		go func() {
+			ohigo(ctx)
+			wg.Done()
+		}()
+	}
 
-		wg.Wait()
-		close(s.errors)
-	}()
+	wg.Wait()
 
-	return s.errors
 }
 
 func (s *Service) registerInDiscovery(ctx context.Context) {
@@ -137,7 +131,7 @@ func (s *Service) registerInDiscovery(ctx context.Context) {
 
 		err := s.discovery.RegisterServiceSync(s.discoveryService)
 		if err != nil {
-			s.errors <- errors.Wrap(err, "discovery error")
+			s.log.WithError(err).Error("discovery error")
 			continue
 		}
 	}

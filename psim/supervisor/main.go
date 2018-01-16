@@ -58,7 +58,6 @@ func New(log *logan.Entry, horizon *horizon.Connector, discovery *discovery.Clie
 
 	return &Service{
 		Log:    log,
-		Errors: make(chan error),
 
 		horizon:   horizon,
 		discovery: discovery,
@@ -99,28 +98,23 @@ func (s *Service) AddRunner(runner func(context.Context)) {
 
 // Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
 // Once all runners returned - Errors channel will be closed.
-// Implements utils.Service.
-func (s *Service) Run(ctx context.Context) chan error {
+// Implements app.Service.
+func (s *Service) Run(ctx context.Context) {
 	s.Log.Info("Started.")
 
-	go func() {
-		wg := sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 
-		for _, runner := range s.runners {
-			ohigo := runner
-			wg.Add(1)
+	for _, runner := range s.runners {
+		ohigo := runner
+		wg.Add(1)
 
-			go func() {
-				ohigo(ctx)
-				wg.Done()
-			}()
-		}
+		go func() {
+			ohigo(ctx)
+			wg.Done()
+		}()
+	}
 
-		wg.Wait()
-		close(s.Errors)
-	}()
-
-	return s.Errors
+	wg.Wait()
 }
 
 func (s *Service) debugAPI(ctx context.Context) {
@@ -140,6 +134,7 @@ func (s *Service) debugAPI(ctx context.Context) {
 	return
 }
 
+// TODO Return error
 // TODO Run over incremental timer.
 func (s *Service) acquireLeadership(ctx context.Context) {
 	var session *discovery.Session
@@ -155,7 +150,7 @@ func (s *Service) acquireLeadership(ctx context.Context) {
 		if session == nil {
 			session, err = discovery.NewSession(s.discovery)
 			if err != nil {
-				s.Errors <- errors.Wrap(err, "Failed to register session in Discovery")
+				s.Log.WithError(err).Error("Failed to register session in Discovery")
 				continue
 			}
 			session.EndlessRenew()
@@ -167,7 +162,7 @@ func (s *Service) acquireLeadership(ctx context.Context) {
 		})
 
 		if err != nil {
-			s.Errors <- err
+			s.Log.WithError(err).Error("Failed to acquire leadership")
 			s.IsLeader = false
 			continue
 		}

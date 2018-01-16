@@ -52,7 +52,7 @@ func (s *Service) watchHeight(ctx context.Context) {
 		for ; ; <-ticker.C {
 			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
-				s.Service.Errors <- errors.Wrap(err, "failed to get block count")
+				s.Log.WithError(err).Error("failed to get block count")
 				continue
 			}
 

@@ -12,7 +12,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 const (
@@ -26,11 +25,19 @@ const (
 	forceKillPeriodSeconds = 30
 )
 
+// DEPRECATED
+type DeprecatedService func(ctx context.Context) error
+type ServiceSetUp func(ctx context.Context) (Service, error)
+
 var (
 	servicesMu           = sync.RWMutex{}
-	registeredServices   = map[string]Service{}
+	registeredServices   = map[string]DeprecatedService{}
 	registerServiceSetUp = map[string]ServiceSetUp{}
 )
+
+type Service interface {
+	Run(ctx context.Context)
+}
 
 func Config(ctx context.Context) conf.Config {
 	v := ctx.Value(ctxConfig)
@@ -48,9 +55,6 @@ func Log(ctx context.Context) *logan.Entry {
 	return v.(*logan.Entry)
 }
 
-type Service func(ctx context.Context) error
-type ServiceSetUp func(ctx context.Context) (utils.Service, error)
-
 func RegisterService(name string, setup ServiceSetUp) {
 	servicesMu.Lock()
 	defer servicesMu.Unlock()
@@ -64,7 +68,7 @@ func RegisterService(name string, setup ServiceSetUp) {
 }
 
 // DEPRECATED use RegisterService
-func Register(name string, service Service) {
+func Register(name string, service DeprecatedService) {
 	servicesMu.Lock()
 	defer servicesMu.Unlock()
 	if service == nil {
@@ -151,7 +155,6 @@ func (app *App) Run() {
 		}
 	}()
 
-	throttle := time.NewTicker(5 * time.Second)
 	for name, setup := range registerServiceSetUp {
 		if !app.isServiceEnabled(name) {
 			continue
@@ -176,10 +179,7 @@ func (app *App) Run() {
 			}
 
 			// TODO Pass another ctx here - just for cancelling.
-			for err := range service.Run(ctx) {
-				entry.WithStack(err).WithError(err).Warn("service error")
-				<-throttle.C
-			}
+			service.Run(ctx)
 			entry.Warn("died")
 		}()
 	}

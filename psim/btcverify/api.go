@@ -24,7 +24,7 @@ func (s *Service) serveAPI(ctx context.Context) {
 
 	err := ape.ListenAndServe(ctx, s.listener, r)
 	if err != nil {
-		s.errors <- err
+		s.log.WithError(err).Error("listen and serve error")
 		return
 	}
 	return

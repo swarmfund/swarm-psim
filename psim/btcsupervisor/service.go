@@ -22,7 +22,7 @@ type AccountDataProvider interface {
 	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
-// Service implements utils.Service interface, it supervises Stripe transactions
+// Service implements app.Service interface, it supervises Stripe transactions
 // and send CoinEmissionRequests to Horizon if arrived Charge detected.
 //
 // Service uses supervisor.Service for common for supervisors logic, such as Leadership and Profiling.
