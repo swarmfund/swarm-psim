@@ -11,8 +11,11 @@ import (
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector/v2/types"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"gitlab.com/swarmfund/psim/psim/internal/resources"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 )
 
 const (
@@ -150,7 +153,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		return errors.New("Amount value overflow.")
 	}
 
-	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, amount.Uint64())
+	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, amount.Uint64(), bigPrice.Int64())
 	if err != nil {
 		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
 			"converted_amount": amount.Uint64(),
@@ -160,7 +163,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 	return nil
 }
 
-func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int, accountAddress string, amount uint64) error {
+func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int, accountAddress string, amount uint64, price int64) error {
 	reference := bitcoin.BuildCoinEmissionRequestReference(txHash, outIndex)
 	// Just in case. Reference must not be longer than 64.
 	if len(reference) > referenceMaxLen {
@@ -192,18 +195,13 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 		"tx_hash":    txHash,
 		"out_index":  outIndex}
 
-	// TODO Move getting of BalanceID into accountDataProvider.
-	account, err := s.horizon.AccountSigned(s.config.Supervisor.SignerKP, accountAddress)
+	balances, err := s.horizon.WithSigner(s.config.Supervisor.SignerKP).Accounts().Balances(accountAddress)
 	if err != nil {
 		return err
 	}
 
-	if account == nil {
-		return errors.New("Horizon returned nil Account.")
-	}
-
 	receiver := ""
-	for _, b := range account.Balances {
+	for _, b := range balances {
 		if b.Asset == baseAsset {
 			receiver = b.BalanceID
 		}
@@ -215,9 +213,19 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 
 	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
 
-	err = s.PrepareCERTx(reference, receiver, amount).
-		Submit()
-	if err != nil {
+	envelope, err := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
+		Asset:     baseAsset,
+		Reference: reference,
+		Receiver:  receiver,
+		Amount:    amount,
+		Details: resources.DepositDetails{
+			Source: txHash,
+			Price:  types.Amount(price),
+		}.Encode(),
+	}).Marshal()
+
+	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
+	if result.Err != nil {
 		s.Log.WithError(err).Error("Failed to submit CoinEmissionRequest Transaction.")
 		return nil
 	}

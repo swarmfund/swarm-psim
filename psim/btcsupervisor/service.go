@@ -1,12 +1,13 @@
 package btcsupervisor
 
 import (
-	"gitlab.com/swarmfund/psim/psim/supervisor"
-	"gitlab.com/swarmfund/horizon-connector"
-	"time"
 	"context"
-	"github.com/btcsuite/btcutil"
+	"time"
+
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
+	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 )
 
 // BTCClient must be implemented by a BTC Client to pass into Service constructor.
