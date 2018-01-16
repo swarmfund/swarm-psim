@@ -2,16 +2,17 @@ package scripts
 
 import (
 	"bytes"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"time"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 var (
-	addresses = []string {
+	addresses = []string{
 		"",
 	}
 )
@@ -48,7 +49,7 @@ func sendRequest(url, authKey, methodName, params string) error {
 		return errors.Wrap(err, "Failed to build request")
 	}
 
-	request.Header.Set("Authorization", "Basic " + authKey)
+	request.Header.Set("Authorization", "Basic "+authKey)
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
