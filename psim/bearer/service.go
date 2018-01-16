@@ -13,7 +13,7 @@ import (
 )
 
 // Service is a main structure for bearer runner,
-// implements `utils.Service` interface.
+// implements `app.Service` interface.
 type Service struct {
 	config  Config
 	horizon *horizon.Connector
@@ -31,7 +31,7 @@ func New(config Config, log *logan.Entry, connector *horizon.Connector) *Service
 }
 
 // Run will return closed channel and only when work is finished.
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	s.logger.Info("Starting.")
 
 	app.RunOverIncrementalTimer(
@@ -41,10 +41,6 @@ func (s *Service) Run(ctx context.Context) chan error {
 		s.sendOperations,
 		0,
 		s.config.AbnormalPeriod)
-
-	errs := make(chan error)
-	close(errs)
-	return errs
 }
 
 // sendOperations is create and submit operations.

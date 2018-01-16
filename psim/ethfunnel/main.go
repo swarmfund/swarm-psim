@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHFunnel, func(ctx context.Context) (utils.Service, error) {
+	app.RegisterService(conf.ServiceETHFunnel, func(ctx context.Context) (app.Service, error) {
 		config := Config{}
 		err := figure.
 			Out(&config).

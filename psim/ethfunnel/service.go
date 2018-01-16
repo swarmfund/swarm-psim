@@ -53,14 +53,12 @@ func NewService(
 	}
 }
 
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	go s.watchHeight()
 	go s.processAccounts()
 	go s.fetchBlocks()
 	go s.accountBacklog()
 	go s.consumeTXs()
-
-	return make(chan error)
 }
 
 func (s *Service) accountBacklog() {

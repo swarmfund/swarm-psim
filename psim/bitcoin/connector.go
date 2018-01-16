@@ -13,8 +13,8 @@ import (
 
 	"strconv"
 
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 var (
@@ -34,7 +34,7 @@ type Connector interface {
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
 	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
-	SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
 
@@ -169,7 +169,7 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 		lastAddr = addr
 		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
 	}
-	params = params[:len(params) - 1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
+	params = params[:len(params)-1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
 	err = c.sendRequest("sendmany", params, &response)
 
 	if err != nil {
@@ -225,7 +225,7 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXH
 		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
 	}
 	if response.Error != nil {
-		if response.Error.Code == errCodeInsufficientFunds{
+		if response.Error.Code == errCodeInsufficientFunds {
 			return "", ErrInsufficientFunds
 		}
 
@@ -251,8 +251,8 @@ func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, 
 	var response struct {
 		Response
 		Result struct {
-			Hex string `json:"hex"`
-			Complete bool `json:"complete"`
+			Hex      string `json:"hex"`
+			Complete bool   `json:"complete"`
 		} `json:"result"`
 	}
 

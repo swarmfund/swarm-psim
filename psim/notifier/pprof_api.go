@@ -3,10 +3,10 @@ package notifier
 import (
 	"context"
 
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/ape"
 )
 
+// TODO Make runners return error
 func (s *Service) servePProfAPI(ctx context.Context) {
 	if !s.Pprof {
 		return
@@ -27,7 +27,7 @@ func (s *Service) servePProfAPI(ctx context.Context) {
 	s.logger.WithField("address", listener.Addr().String()).Info("PProf api listen")
 
 	if err := ape.ListenAndServe(ctx, listener, router); err != nil {
-		s.errors <- errors.Wrap(err, "api failed")
+		s.logger.WithError(err).Error("api failed")
 		return
 	}
 

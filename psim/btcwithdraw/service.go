@@ -5,7 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/piotrnar/gocoin/lib/btc"
+	"io/ioutil"
+	"net/http"
+	"time"
+
+	"github.com/btcsuite/btcd/chaincfg"
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -16,9 +20,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 const (
@@ -57,8 +58,9 @@ type RequestListener interface {
 // BTCClient is interface to be implemented by Bitcoin Core client
 // to parametrise the Service.
 type BTCClient interface {
-	CreateRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
+	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error)
+	GetNetParams() *chaincfg.Params
 }
 
 type Service struct {
@@ -90,16 +92,12 @@ func New(log *logan.Entry, config Config,
 }
 
 // Run is a blocking method, it returns closed channel only when it has finishing job.
-func (s *Service) Run(ctx context.Context) chan error {
+func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
 	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
 
 	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second)
-
-	errs := make(chan error)
-	close(errs)
-	return errs
 }
 
 func (s *Service) listenAndProcessRequests(ctx context.Context) error {
@@ -162,21 +160,6 @@ func (s *Service) processRequest(ctx context.Context, request horizonV2.Request)
 	return nil
 }
 
-// TODO Consider moving to so common, as this logic is common for BTC and ETH.
-func ObtainAddress(request horizonV2.Request) (string, error) {
-	addrValue, ok := request.Details.Withdraw.ExternalDetails["address"]
-	if !ok {
-		return "", ErrMissingAddress
-	}
-
-	addr, ok := addrValue.(string)
-	if !ok {
-		return "", errors.From(ErrAddressNotAString, logan.F{"raw_address_value": addrValue})
-	}
-
-	return addr, nil
-}
-
 func (s *Service) validateOrReject(withdrawAddress string, amount float64, requestID uint64, requestHash string) (isValid bool, err error) {
 	rejectReason := s.getRejectReason(withdrawAddress, amount, requestID)
 
@@ -198,7 +181,7 @@ func (s *Service) validateOrReject(withdrawAddress string, amount float64, reque
 }
 
 func (s *Service) getRejectReason(withdrawAddress string, amount float64, requestID uint64) RejectReason {
-	_, err := btc.NewAddrFromString(withdrawAddress)
+	err := ValidateBTCAddress(withdrawAddress, s.btcClient.GetNetParams())
 	if err != nil {
 		s.log.WithField("withdraw_address", withdrawAddress).WithField("amount", amount).WithField("request_id", requestID).WithError(err).
 			Warn("Got BTC Withdraw Request with wrong BTC Address.")
@@ -238,7 +221,7 @@ func (s *Service) processValidPendingWithdraw(withdrawAddress string, withdrawAm
 }
 
 func (s *Service) prepareSignedBitcoinTX(withdrawAddress string, withdrawAmount float64) (signedTXHex string, err error) {
-	unsignedTXHex, err := s.btcClient.CreateRawTX(withdrawAddress, withdrawAmount, s.config.HotWalletAddress)
+	unsignedTXHex, err := s.btcClient.CreateAndFundRawTX(withdrawAddress, withdrawAmount, s.config.HotWalletAddress)
 	if err != nil {
 		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
 			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet")
@@ -276,8 +259,8 @@ func (s *Service) sendRejectToVerify(requestID uint64, requestHash string, reaso
 	}
 
 	s.log.WithFields(logan.F{
-		"request_id": requestID,
-		"request_hash": requestHash,
+		"request_id":    requestID,
+		"request_hash":  requestHash,
 		"reject_reason": reason,
 	}).Info("Sent PermanentReject to Verify successfully.")
 	return nil
@@ -314,8 +297,8 @@ func (s *Service) sendApproveToVerify(requestID uint64, requestHash, signedTXHex
 	}
 
 	s.log.WithFields(logan.F{
-		"request_id": requestID,
-		"request_hash": requestHash,
+		"request_id":    requestID,
+		"request_hash":  requestHash,
 		"signed_tx_hex": signedTXHex,
 	}).Info("Sent Approve to Verify successfully.")
 

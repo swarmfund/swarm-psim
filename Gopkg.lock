@@ -28,8 +28,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcd"
-  packages = ["btcec"]
+  packages = ["btcec","chaincfg","chaincfg/chainhash","txscript","wire"]
   revision = "2e60448ffcc6bf78332d1fe590260095f554dd78"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btclog"
+  packages = ["."]
+  revision = "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcutil"
+  packages = [".","base58","bech32"]
+  revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
 
 [[projects]]
   name = "github.com/certifi/gocertifi"
@@ -174,12 +186,6 @@
   packages = ["."]
   revision = "16398bac157da96aa88f98a2df640c7f32af1da2"
   version = "v1.0.1"
-
-[[projects]]
-  name = "github.com/piotrnar/gocoin"
-  packages = ["lib/btc","lib/secp256k1"]
-  revision = "f1d89db80c7f168bfba442eaeb48f6858360b316"
-  version = "1.9.2"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -382,6 +388,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1e72a3fd19dac4b216fb8633776c91299315749e52758883170ae86227a6efa9"
+  inputs-digest = "afc07e02ab0ea6d9731a7dc4b45afd262988d1efaf4faa2651210b45b2193ada"
   solver-name = "gps-cdcl"
   solver-version = 1

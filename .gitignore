@@ -2,4 +2,4 @@
 bin/
 vendor.orig
 local*
-scripts/addresses.txt
+scripts/private_keys.txt

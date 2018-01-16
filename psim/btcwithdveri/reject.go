@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
-	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/swarmfund/go/amount"
 )
 
@@ -56,7 +55,7 @@ func (s *Service) validateInvalidAddress(request horizonV2.Request) string {
 		return "Unable to obtain BTC Address of the Withdrawal"
 	}
 
-	_, err = btc.NewAddrFromString(addr)
+	err = btcwithdraw.ValidateBTCAddress(addr, s.btcClient.GetNetParams())
 	if err != nil {
 		return ""
 	} else {

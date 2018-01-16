@@ -1,19 +1,20 @@
 package btcwithdveri
 
 import (
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
-	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/distributed_lab/logan/v3"
 	"encoding/hex"
-	"github.com/piotrnar/gocoin/lib/btc"
-	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	"encoding/json"
-	"gitlab.com/swarmfund/psim/ape"
-	"gitlab.com/swarmfund/psim/ape/problems"
 	"fmt"
 	"net/http"
+
+	"github.com/btcsuite/btcutil"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/horizon-connector"
+	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
 )
 
 var (
@@ -28,10 +29,10 @@ var (
 func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
 	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
 	fields := logan.F{
-		"request_id": opBody.RequestId,
-		"request_hash": hex.EncodeToString(opBody.RequestHash[:]),
+		"request_id":       opBody.RequestId,
+		"request_hash":     hex.EncodeToString(opBody.RequestHash[:]),
 		"request_action_i": int32(opBody.Action),
-		"request_action": opBody.Action.String(),
+		"request_action":   opBody.Action.String(),
 	}
 
 	extDetails := opBody.RequestDetails.Withdrawal.ExternalDetails
@@ -69,42 +70,55 @@ func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Reque
 		return errors.Wrap(err, "Failed to obtain Address of WithdrawalRequest")
 	}
 	// Divide by precision of the system.
-	withdrawSatoshi := uint64(withdrawRequest.Details.Withdraw.DestinationAmount * (100000000 / amount.One))
+	withdrawSatoshi := int64(withdrawRequest.Details.Withdraw.DestinationAmount * (100000000 / amount.One))
 
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
 		return errors.Wrap(err, "Failed to decode txHex into bytes")
 	}
 
-	tx, _ := btc.NewTx(txBytes)
-	if len(tx.TxOut) == 0 {
+	tx, _ := btcutil.NewTxFromBytes(txBytes)
+	if len(tx.MsgTx().TxOut) == 0 {
 		return ErrNoOuts
 	}
-	if len(tx.TxOut) > 2 {
+	if len(tx.MsgTx().TxOut) > 2 {
 		return ErrMoreThanTwoOuts
 	}
 
-	// Address
-	addr := btc.NewAddrFromPkScript(tx.TxOut[0].Pk_script, s.btcClient.IsTestnet()).String()
+	// TODO Move to separate method
+	// Withdraw Address
+	addrScriptHash, err := btcutil.NewAddressPubKeyHash(tx.MsgTx().TxOut[0].PkScript, s.btcClient.GetNetParams())
+	if err != nil {
+		return errors.Wrap(err, "Failed to obtain pay-to-pubkey-hash Address from the first TX Out (the withdraw Address)")
+	}
+	addr := addrScriptHash.String()
+
 	if addr != withdrawAddress {
 		return errors.From(ErrWrongWithdrawAddress, logan.F{
-			"btc_address": addr,
+			"btc_address":      addr,
 			"withdraw_address": withdrawAddress,
 		})
 	}
 
 	// Amount
-	if tx.TxOut[0].Value > withdrawSatoshi {
+	if tx.MsgTx().TxOut[0].Value > withdrawSatoshi {
 		return errors.From(ErrWithdrawAmountIsBigger, logan.F{
-			"btc_amount": tx.TxOut[0].Value,
+			"btc_amount":                tx.MsgTx().TxOut[0].Value,
 			"requested_withdraw_amount": withdrawSatoshi,
 		})
 	}
 
+	// TODO Move to separate method
 	// Change Address
-	if len(tx.TxOut) == 2 {
+	if len(tx.MsgTx().TxOut) == 2 {
 		// Have change
-		changeAddr := btc.NewAddrFromPkScript(tx.TxOut[1].Pk_script, s.btcClient.IsTestnet()).String()
+		//changeAddr := btc.NewAddrFromPkScript(tx.MsgTx().TxOut[1].PkScript, s.btcClient.IsTestnet()).String()
+		addrScriptHash, err := btcutil.NewAddressPubKeyHash(tx.MsgTx().TxOut[1].PkScript, s.btcClient.GetNetParams())
+		if err != nil {
+			return errors.Wrap(err, "Failed to obtain pay-to-pubkey-hash Address from the second TX Out (the change Address)")
+		}
+		changeAddr := addrScriptHash.String()
+
 		if changeAddr != s.config.HotWalletAddress {
 			return errors.From(ErrUnknownChangeAddress, logan.F{
 				"change_address":       changeAddr,
@@ -123,19 +137,23 @@ func (s *Service) processValidApproval(txHexToSign string, horizonTX *horizon.Tr
 	}
 
 	fields := logan.F{
-		"request_id": horizonTX.Operations[0].Body.ReviewRequestOp.RequestId,
-		"request_hash": hex.EncodeToString(horizonTX.Operations[0].Body.ReviewRequestOp.RequestHash[:]),
+		"request_id":    horizonTX.Operations[0].Body.ReviewRequestOp.RequestId,
+		"request_hash":  hex.EncodeToString(horizonTX.Operations[0].Body.ReviewRequestOp.RequestHash[:]),
 		"signed_tx_hex": signedTXHex,
 	}
 
+	// TODO Move to separate method
 	// Obtaining TX hash
 	txBytes, err := hex.DecodeString(signedTXHex)
 	if err != nil {
-		return errors.Wrap(err, "Failed to decode signed TX hex into bytes")
+		return errors.Wrap(err, "Failed to decode signed TX hex into bytes", logan.F{"signed_tx_hex": signedTXHex})
 	}
-	signedTXHash := btc.NewSha2Hash(txBytes).String()
+	tx, err := btcutil.NewTxFromBytes(txBytes)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create TX out of signedTX bytes", logan.F{"signed_tx_hex": signedTXHex})
+	}
 
-	fields["signed_tx_hash"] = signedTXHash
+	fields["signed_tx_hash"] = tx.Hash().String()
 
 	err = s.submitApproveRequest(horizonTX)
 	if err != nil {

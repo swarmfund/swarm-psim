@@ -3,16 +3,17 @@ package btcsupervisor
 import (
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/horizon-connector"
-	"github.com/piotrnar/gocoin/lib/btc"
 	"time"
 	"context"
+	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 // BTCClient must be implemented by a BTC Client to pass into Service constructor.
 type BTCClient interface {
-	IsTestnet() bool
 	GetBlockCount() (uint64, error)
-	GetBlock(blockIndex uint64) (*btc.Block, error)
+	GetBlock(blockIndex uint64) (*btcutil.Block, error)
+	GetNetParams() *chaincfg.Params
 }
 
 // AddressQ must be implemented by WatchAddress storage to pass into Service constructor.
@@ -21,7 +22,7 @@ type AccountDataProvider interface {
 	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
-// Service implements utils.Service interface, it supervises Stripe transactions
+// Service implements app.Service interface, it supervises Stripe transactions
 // and send CoinEmissionRequests to Horizon if arrived Charge detected.
 //
 // Service uses supervisor.Service for common for supervisors logic, such as Leadership and Profiling.

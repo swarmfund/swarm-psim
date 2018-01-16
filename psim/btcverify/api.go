@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"context"
+	"github.com/btcsuite/btcd/wire"
 )
 
 func (s *Service) serveAPI(ctx context.Context) {
@@ -24,7 +24,7 @@ func (s *Service) serveAPI(ctx context.Context) {
 
 	err := ape.ListenAndServe(ctx, s.listener, r)
 	if err != nil {
-		s.errors <- err
+		s.log.WithError(err).Error("listen and serve error")
 		return
 	}
 	return
@@ -83,8 +83,8 @@ func (s *Service) verifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, tx := range block.Txs {
-		if tx.Hash.String() == payload.TXHash {
+	for _, tx := range block.MsgBlock().Transactions {
+		if tx.TxHash().String() == payload.TXHash {
 			for i, _ := range tx.TxOut {
 				if i == payload.OutIndex {
 					//s.verifyTxOUT(w, r, tx.TxOut[i], opBody, horizonTX)
@@ -106,7 +106,7 @@ func (s *Service) verifyHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s *Service) verifyTxOUT(w http.ResponseWriter, r *http.Request, txOut *btc.TxOut,
+func (s *Service) verifyTxOUT(w http.ResponseWriter, r *http.Request, txOut *wire.TxOut,
 	/*opBody *xdr.ManageCoinsEmissionRequestOp,*/ horizonTX *horizon.TransactionBuilder) {
 	//
 	//// TODO Make sure amount is valid (maybe need to * or / by 10^N)
