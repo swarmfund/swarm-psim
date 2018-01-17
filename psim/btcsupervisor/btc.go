@@ -113,17 +113,12 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 			continue
 		}
 
-		s.Log.WithField("block_hash", blockHash).WithField("btc_addr", addr58).
-			WithField("account_address", accountAddress).Debug("Found our watch BTC Address.")
-
-		// Don't take hash outside of for loop, as it's will be needed not more than once during whole processTX(), usually will not be used at all.
-		txHash := tx.Hash().String()
-		err = s.processDeposit(ctx, blockHash, blockTime, txHash, i, *out, addr58, *accountAddress)
+		err = s.processDeposit(ctx, blockHash, blockTime, tx.Hash().String(), i, *out, addr58, *accountAddress)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process deposit", logan.F{
 				"block_hash":      blockHash,
 				"block_time":      blockTime,
-				"tx_hash":         txHash,
+				"tx_hash":         tx.Hash().String(),
 				"out_value":       out.Value,
 				"out_index":       i,
 				"btc_addr":        addr58,
@@ -137,6 +132,14 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 
 // TODO Check that amount is valid.
 func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTime time.Time, txHash string, outIndex int, out wire.TxOut, addr58, accountAddress string) error {
+	s.Log.WithFields(logan.F{
+		"block_hash":      blockHash,
+		"tx_hash":         txHash,
+		"btc_addr":        addr58,
+		"account_address": accountAddress,
+	}).
+		Debug("Processing deposit.")
+
 	price := s.accountDataProvider.PriceAt(ctx, blockTime)
 	if price == nil {
 		return errNilPrice
@@ -189,15 +192,16 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	//
 	//s.SendCoinEmissionRequestForVerify(s.Ctx, verifyPayload)
 
-	fields := logan.F{"account_address": accountAddress,
+	logger := s.Log.WithFields(logan.F{"account_address": accountAddress,
 		"reference":  reference,
 		"block_hash": blockHash,
 		"tx_hash":    txHash,
-		"out_index":  outIndex}
+		"out_index":  outIndex,
+	})
 
 	balances, err := s.horizon.WithSigner(s.config.Supervisor.SignerKP).Accounts().Balances(accountAddress)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to get Account from Horizon")
 	}
 
 	receiver := ""
@@ -209,11 +213,11 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 
 	// TODO Handle if no receiver.
 
-	fields["receiver"] = receiver
+	logger = logger.WithField("receiver", receiver)
 
-	s.Log.WithFields(fields).Info("Sending CoinEmissionRequest.")
+	logger.Info("Sending CoinEmissionRequest.")
 
-	envelope, err := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
+	tx := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
 		Asset:     baseAsset,
 		Reference: reference,
 		Receiver:  receiver,
@@ -222,14 +226,23 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 			Source: txHash,
 			Price:  types.Amount(price),
 		}.Encode(),
-	}).Marshal()
+	})
+
+	// TODO Remove after moving logic of the second signature to the verifier.
+	tx = tx.Sign(s.config.AdditionalSignerKP)
+
+	envelope, err := tx.Marshal()
 
 	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
 	if result.Err != nil {
-		s.Log.WithError(err).Error("Failed to submit CoinEmissionRequest Transaction.")
+		logger.WithFields(logan.F{
+			"submit_response_raw":      string(result.RawResponse),
+			"submit_response_tx_code":  result.TXCode,
+			"submit_response_op_codes": result.OpCodes,
+		}).WithError(result.Err).Error("Failed to submit CoinEmissionRequest Transaction.")
 		return nil
 	}
 
-	s.Log.WithFields(fields).Info("CoinEmissionRequest was sent successfully.")
+	logger.Info("CoinEmissionRequest was sent successfully.")
 	return nil
 }
