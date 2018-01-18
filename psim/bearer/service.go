@@ -6,8 +6,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
-	horizon "gitlab.com/swarmfund/horizon-connector"
+	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
@@ -62,14 +61,4 @@ func (s *Service) sendOperations(ctx context.Context) error {
 	case <-tm.C:
 		return nil
 	}
-}
-
-// submitOperation is build transaction, sign and submit it to the Horizon.
-func (s *Service) submitOperation(op xdr.Operation) error {
-	tb := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source:     s.config.Source,
-		Operations: []xdr.Operation{op},
-	})
-
-	return tb.Sign(s.config.Signer).Submit()
 }

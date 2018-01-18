@@ -33,10 +33,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to figure out %s", conf.ServiceBearer))
 	}
 
-	hConn, err := globalConfig.Horizon()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get horizon connector")
-	}
+	hConn := globalConfig.Horizon()
 
 	return New(config, log, hConn), nil
 }
