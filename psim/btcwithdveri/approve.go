@@ -65,7 +65,7 @@ func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdr
 }
 
 func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Request) error {
-	withdrawAddress, err := btcwithdraw.ObtainAddress(withdrawRequest)
+	withdrawAddress, err := btcwithdraw.GetWithdrawAddress(withdrawRequest)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain Address of WithdrawalRequest")
 	}

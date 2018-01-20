@@ -130,7 +130,6 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 	return nil
 }
 
-// TODO Check that amount is valid.
 func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTime time.Time, txHash string, outIndex int, out wire.TxOut, addr58, accountAddress string) error {
 	s.Log.WithFields(logan.F{
 		"block_hash":      blockHash,
@@ -145,7 +144,6 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		return errNilPrice
 	}
 
-	// TODO Check that amount is valid.
 	// amount = value * price / 10^8
 	div := new(big.Int).Mul(big.NewInt(100000000), big.NewInt(1))
 	bigPrice := big.NewInt(*price)

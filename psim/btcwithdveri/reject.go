@@ -50,7 +50,7 @@ func (s *Service) validateReject(request horizonV2.Request, reason btcwithdraw.R
 }
 
 func (s *Service) validateInvalidAddress(request horizonV2.Request) string {
-	addr, err := btcwithdraw.ObtainAddress(request)
+	addr, err := btcwithdraw.GetWithdrawAddress(request)
 	if err != nil {
 		return "Unable to obtain BTC Address of the Withdrawal"
 	}
