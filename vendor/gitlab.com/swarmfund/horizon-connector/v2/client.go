@@ -9,6 +9,8 @@ import (
 
 	"io"
 
+	depkeypair "gitlab.com/swarmfund/go/keypair"
+	"gitlab.com/swarmfund/go/signcontrol"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/errors"
 	"gitlab.com/tokend/keypair"
 )
@@ -50,6 +52,11 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 
 	// ensure content-type just in case
 	request.Header.Set("content-type", "application/json")
+
+	if c.signer != nil {
+		// TODO move to proper keypair
+		signcontrol.SignRequest(request, depkeypair.MustParse(c.signer.Seed()))
+	}
 
 	response, err := c.client.Do(request)
 	if err != nil {

@@ -32,6 +32,10 @@ func (c *Connector) WithSigner(kp keypair.Full) *Connector {
 	}
 }
 
+func (c *Connector) Client() *Client {
+	return c.client
+}
+
 func (c *Connector) Info() (info *Info, err error) {
 	response, err := c.client.Get("/")
 	if err != nil {

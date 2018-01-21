@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/distributed_lab/sse-go"
-	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
 type Service struct {
