@@ -10,6 +10,29 @@ import (
 	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
 )
 
+// Requests
+
+type WithdrawalRequest struct {
+	ID   uint64 `json:"id"`
+	Hash string `json:"hash"`
+}
+
+type ApproveRequest struct {
+	Request WithdrawalRequest `json:"request"`
+
+	TXHex string `json:"tx_hex"`
+}
+
+type RejectRequest struct {
+	Request WithdrawalRequest `json:"request"`
+
+	RejectReason RejectReason `json:"reject_reason"`
+}
+
+type EnvelopeResponse struct {
+	Envelope string `json:"envelope"`
+}
+
 // TODO Consider moving to some common package, as this logic is common for BTC and ETH.
 
 const (

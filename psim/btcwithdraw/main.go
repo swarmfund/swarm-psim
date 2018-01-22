@@ -9,6 +9,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/go/xdrbuild"
 )
 
 func init() {
@@ -33,6 +34,20 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	horizonConnector := globalConfig.Horizon()
 
-	return New(log, config, horizonConnector.Listener(), horizonConnector,
-		globalConfig.Bitcoin(), globalConfig.Discovery()), nil
+	horizonInfo, err := horizonConnector.Info()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Horizon info")
+	}
+
+	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+
+	return New(
+		log,
+		config,
+		horizonConnector.Listener(),
+		horizonConnector,
+		builder,
+		globalConfig.Bitcoin(),
+		globalConfig.Discovery(),
+	), nil
 }
