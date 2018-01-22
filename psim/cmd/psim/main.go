@@ -7,19 +7,20 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 
 	// import services for side effects
+
 	// eth
 	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
+
 	// btc
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
-	// other folks
 
+	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
-	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 )
 
