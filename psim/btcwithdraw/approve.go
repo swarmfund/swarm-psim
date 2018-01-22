@@ -6,6 +6,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 func (s *Service) processValidPendingRequest(ctx context.Context, withdrawAddress string, withdrawAmount float64, request horizon.Request) error {
@@ -36,13 +37,7 @@ func (s *Service) createBitcoinTX(withdrawAddress string, withdrawAmount float64
 }
 
 func (s *Service) verifyApprove(ctx context.Context, request horizon.Request, btcTXHex string) error {
-	returnedEnvelope, err := s.sendRequestToVerify(ApproveRequest{
-		Request: WithdrawalRequest{
-			ID:   request.ID,
-			Hash: request.Hash,
-		},
-		TXHex: btcTXHex,
-	})
+	returnedEnvelope, err := s.sendRequestToVerify(withdraw.NewApprove(request.ID, request.Hash, btcTXHex))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send preliminary Approve to Verify")
 	}
@@ -57,7 +52,7 @@ func (s *Service) verifyApprove(ctx context.Context, request horizon.Request, bt
 		return errors.Wrap(err, "Failed to sign-and-submit Envelope")
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).WithField("tx_hex", btcTXHex).
+	s.log.WithFields(withdraw.GetRequestLoganFields("request", request)).WithField("tx_hex", btcTXHex).
 		Info("Sent Approve to Verify successfully.")
 
 	return nil

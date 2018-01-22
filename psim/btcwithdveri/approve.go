@@ -15,6 +15,7 @@ import (
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 var (
@@ -65,7 +66,7 @@ func (s *Service) processApproval(w http.ResponseWriter, r *http.Request, withdr
 }
 
 func (s *Service) validateApproval(txHex string, withdrawRequest horizonV2.Request) error {
-	withdrawAddress, err := btcwithdraw.GetWithdrawAddress(withdrawRequest)
+	withdrawAddress, err := withdraw.GetWithdrawAddress(withdrawRequest)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain Address of WithdrawalRequest")
 	}

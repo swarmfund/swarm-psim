@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/hex"
 	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 // CheckEnvelope returns text of error, or empty string if Envelope is valid.
@@ -34,7 +35,7 @@ func checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, re
 	return ""
 }
 
-func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason RejectReason) string {
+func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason withdraw.RejectReason) string {
 	generalCheck := checkEnvelope(envelope, requestID, requestHash)
 	if generalCheck != "" {
 		return generalCheck

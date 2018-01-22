@@ -18,17 +18,10 @@ import (
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-)
-
-const (
-	RequestStatePending int32 = 1
-	BTCAsset                  = "BTC"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 var (
-	ErrMissingAddress    = errors.New("Missing field in the ExternalDetails json of WithdrawalRequest.")
-	ErrAddressNotAString = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
-
 	ErrNoVerifyServices    = errors.New("No BTC Withdraw Verify services were found.")
 	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
 )
@@ -108,7 +101,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	case request := <-s.requests:
 		err := s.processRequest(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Withdraw Request", GetRequestLoganFields("request", request))
+			return errors.Wrap(err, "Failed to process Withdraw Request", withdraw.GetRequestLoganFields("request", request))
 		}
 
 		return nil
@@ -118,18 +111,18 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 }
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	if !IsPendingBTCWithdraw(request) {
+	if !withdraw.IsPendingBTCWithdraw(request) {
 		return nil
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
+	s.log.WithFields(withdraw.GetRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
 
-	withdrawAddress, err := GetWithdrawAddress(request)
+	withdrawAddress, err := withdraw.GetWithdrawAddress(request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get BTC Address from the WithdrawalRequest")
 	}
 	// Divide by precision of the system.
-	withdrawAmount := GetWithdrawAmount(request)
+	withdrawAmount := withdraw.GetWithdrawAmount(request)
 	fields := logan.F{
 		"withdraw_address": withdrawAddress,
 		"withdraw_amount":  withdrawAmount,
@@ -137,7 +130,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	rejectReason := s.getRejectReason(withdrawAddress, withdrawAmount)
 	if rejectReason != "" {
-		s.log.WithFields(fields).WithFields(GetRequestLoganFields("request", request)).WithField("reject_reason", rejectReason).
+		s.log.WithFields(fields).WithFields(withdraw.GetRequestLoganFields("request", request)).WithField("reject_reason", rejectReason).
 			Warn("Got BTC Withdraw Request which is invalid due to some RejectReason.")
 
 		err = s.verifyReject(ctx, request, rejectReason)
@@ -205,8 +198,13 @@ func (s *Service) sendRequestToVerify(request interface{}) (*xdr.TransactionEnve
 		return nil, errors.From(ErrBadStatusFromVerify, fields)
 	}
 
-	envelope := xdr.TransactionEnvelope{}
+	envelopeResponse := withdraw.EnvelopeResponse{}
+	err = json.Unmarshal(responseBytes, &envelopeResponse)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response body", fields)
+	}
 
+	envelope := xdr.TransactionEnvelope{}
 	err = envelope.Scan(responseBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Scan TransactionEnveloper from response from Verify", fields)

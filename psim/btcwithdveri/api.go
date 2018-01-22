@@ -12,6 +12,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 // TODO Pprof
@@ -89,15 +90,15 @@ func (s *Service) processReviewRequest(w http.ResponseWriter, r *http.Request, h
 		return
 	}
 
-	if withdrawRequest.State != btcwithdraw.RequestStatePending {
+	if withdrawRequest.State != withdraw.RequestStatePending {
 		ape.RenderErr(w, r, problems.Conflict(fmt.Sprintf(
-			"Expected Request from Horizon with State Pending(%d), but got (%d).", btcwithdraw.RequestStatePending, withdrawRequest.State)))
+			"Expected Request from Horizon with State Pending(%d), but got (%d).", withdraw.RequestStatePending, withdrawRequest.State)))
 		return
 	}
 
-	if withdrawRequest.Details.Withdraw.DestinationAsset != btcwithdraw.BTCAsset {
+	if withdrawRequest.Details.Withdraw.DestinationAsset != withdraw.BTCAsset {
 		ape.RenderErr(w, r, problems.Forbidden(fmt.Sprintf(
-			"Expected Withdraw Request from Horizon with DestinationAsset %s, but got %s.", btcwithdraw.BTCAsset, withdrawRequest.Details.Withdraw.DestinationAsset)))
+			"Expected Withdraw Request from Horizon with DestinationAsset %s, but got %s.", withdraw.BTCAsset, withdrawRequest.Details.Withdraw.DestinationAsset)))
 		return
 	}
 

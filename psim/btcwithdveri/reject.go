@@ -10,6 +10,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
 	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 func (s *Service) processReject(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request, horizonTX *horizon.TransactionBuilder) {
@@ -50,7 +51,7 @@ func (s *Service) validateReject(request horizonV2.Request, reason btcwithdraw.R
 }
 
 func (s *Service) validateInvalidAddress(request horizonV2.Request) string {
-	addr, err := btcwithdraw.GetWithdrawAddress(request)
+	addr, err := withdraw.GetWithdrawAddress(request)
 	if err != nil {
 		return "Unable to obtain BTC Address of the Withdrawal"
 	}
