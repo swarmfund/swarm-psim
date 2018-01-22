@@ -44,6 +44,7 @@ type ViperConfig struct {
 func NewViperConfig(fn string) *ViperConfig {
 	config := ViperConfig{
 		viper: viper.GetViper(),
+		Mutex: &sync.Mutex{},
 	}
 	config.viper.SetConfigFile(fn)
 	return &config
