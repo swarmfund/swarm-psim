@@ -39,10 +39,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to init common Supervisor")
 	}
 
-	horizonConnector, err := globalConfig.Horizon()
-	if err != nil {
-		panic(err)
-	}
+	horizonConnector := globalConfig.Horizon()
 
 	log := app.Log(ctx)
 
@@ -50,7 +47,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		ctx,
 		log.WithField("service", "addrstate"),
 		internal.StateMutator,
-		globalConfig.HorizonV2().Listener(),
+		horizonConnector.Listener(),
 	)
 
 	return New(commonSupervisor, config, globalConfig.Bitcoin(), addressProvider, horizonConnector), nil

@@ -1,16 +1,16 @@
 package btcwithdraw
 
-import "gitlab.com/swarmfund/go/keypair"
+import "gitlab.com/tokend/keypair"
 
 type Config struct {
 	PrivateKey string `fig:"private_key"`
 
-	HotWalletAddress string `fig:"hot_wallet_address"`
+	HotWalletAddress      string `fig:"hot_wallet_address"`
 	HotWalletScriptPubKey string `fig:"hot_wallet_script_pub_key"`
 	HotWalletRedeemScript string `fig:"hot_wallet_redeem_script"`
 
 	MinWithdrawAmount float64 `fig:"min_withdraw_amount"`
 
-	SourceKP keypair.KP `fig:"source"`
-	SignerKP keypair.KP `fig:"signer" mapstructure:"signer"`
+	SourceKP keypair.Address `fig:"source"`
+	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`
 }

@@ -2,54 +2,51 @@ package ethwithdraw
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rlp"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
-	horizon "gitlab.com/swarmfund/horizon-connector"
-	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/go/xdrbuild"
+	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
 
 type Service struct {
 	ctx        context.Context
 	log        *logan.Entry
-	horizonV2  *horizonV2.Connector
 	horizon    *horizon.Connector
 	config     Config
-	keystore   *keystore.KeyStore
 	eth        *ethclient.Client
 	withdrawCh chan Withdraw
+
+	address common.Address
+	wallet  Wallet
 }
 
 func NewService(
-	log *logan.Entry, config Config, horizonV2 *horizonV2.Connector,
-	keystore *keystore.KeyStore, eth *ethclient.Client, horizon *horizon.Connector,
+	log *logan.Entry, config Config, horizon *horizon.Connector,
+	wallet Wallet, eth *ethclient.Client, address common.Address,
 ) *Service {
 	return &Service{
-		log:       log,
-		config:    config,
-		horizonV2: horizonV2,
-		horizon:   horizon,
-		keystore:  keystore,
-		eth:       eth,
+		log:     log,
+		config:  config,
+		horizon: horizon,
+		wallet:  wallet,
+		address: address,
+		eth:     eth,
 		// make sure channel is buffered
 		withdrawCh: make(chan Withdraw, 1),
 	}
 }
 
 func (s *Service) listenRequests() {
-	requestCh := make(chan horizonV2.Request)
-	errs := s.horizonV2.Listener().Requests(requestCh)
+	requestCh := make(chan horizon.Request)
+	errs := s.horizon.Listener().WithdrawalRequests(requestCh)
 	for {
 		select {
 		case request := <-requestCh:
@@ -60,7 +57,7 @@ func (s *Service) listenRequests() {
 	}
 }
 
-func (s *Service) queueRequest(request horizonV2.Request) {
+func (s *Service) queueRequest(request horizon.Request) {
 	entry := s.log.WithField("request", request.ID)
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		entry.Debug("not a withdraw, skipping")
@@ -77,6 +74,18 @@ func (s *Service) queueRequest(request horizonV2.Request) {
 		return
 	}
 
+	// checking if request is well-formed
+	// TODO reject otherwise
+	if request.Details.Withdraw.ExternalDetails == nil {
+		entry.Warn("missing external details, skipping")
+		return
+	}
+
+	if _, ok := request.Details.Withdraw.ExternalDetails["address"]; !ok {
+		entry.Warn("missing external address, skipping")
+		return
+	}
+
 	// request passes filters
 	// let's get to processing
 	s.withdrawCh <- Withdraw{
@@ -85,7 +94,7 @@ func (s *Service) queueRequest(request horizonV2.Request) {
 }
 
 type Withdraw struct {
-	Request  horizonV2.Request
+	Request  horizon.Request
 	ETH      *types.Transaction
 	Approved bool
 }
@@ -186,7 +195,7 @@ func (s *Service) submitETH(tx *types.Transaction) {
 func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 	txFee := new(big.Int).Mul(txGas, s.config.GasPrice)
 
-	nonce, err := s.eth.PendingNonceAt(s.ctx, s.config.From)
+	nonce, err := s.eth.PendingNonceAt(s.ctx, s.address)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get nonce")
 	}
@@ -199,10 +208,8 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 		txFee,
 	)
 
-	tx, err := s.keystore.SignTx(
-		accounts.Account{
-			Address: s.config.From,
-		},
+	tx, err := s.wallet.SignTX(
+		s.address,
 		types.NewTransaction(
 			nonce,
 			// FIXME
@@ -212,7 +219,6 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 			s.config.GasPrice,
 			nil,
 		),
-		nil,
 	)
 
 	if err != nil {
@@ -223,28 +229,31 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 }
 
 func (s *Service) approveWithdraw(withdraw *Withdraw) error {
-	txraw, err := rlp.EncodeToBytes(withdraw.ETH.Data())
-	if err != nil {
-		return errors.Wrap(err, "failed to encode eth tx")
+	var builder *xdrbuild.Builder
+	{
+		info, err := s.horizon.Info()
+		if err != nil {
+			return errors.Wrap(err, "failed to get horizon info")
+		}
+
+		builder = xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
 	}
 
-	err = s.horizon.Transaction(&horizon.TransactionBuilder{
-		Source: s.config.Source,
-	}).Op(&horizon.ReviewRequestOp{
-		Hash:   withdraw.Request.Hash,
-		ID:     withdraw.Request.ID,
-		Action: xdr.ReviewRequestOpActionApprove,
-		Details: horizon.ReviewRequestOpDetails{
-			Type: xdr.ReviewableRequestTypeWithdraw,
-			Withdrawal: &horizon.ReviewRequestOpWithdrawalDetails{
-				ExternalDetails: fmt.Sprintf("%x", txraw),
-			},
-		},
-	}).
+	envelope, err := builder.Transaction(s.config.Source).
+		Op(xdrbuild.ReviewRequestOp{
+			Hash:   withdraw.Request.Hash,
+			ID:     withdraw.Request.ID,
+			Action: xdr.ReviewRequestOpActionApprove,
+		}).
 		Sign(s.config.Signer).
-		Submit()
+		Marshal()
 	if err != nil {
-		return errors.Wrap(err, "failed to submit tx")
+		return errors.Wrap(err, "failed to build review op")
+	}
+
+	result := s.horizon.Submitter().Submit(s.ctx, envelope)
+	if result.Err != nil {
+		return errors.Wrap(err, "failed to submit review op")
 	}
 	return nil
 }

@@ -5,52 +5,37 @@ import (
 	"net/url"
 	"time"
 
+	"bytes"
+	"encoding/json"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/signcontrol"
 	"gitlab.com/swarmfund/psim/psim/notifier/internal/operations"
-	"gitlab.com/swarmfund/psim/psim/notifier/internal/types"
 )
 
 const (
-	horizonPathAssets       = "/assets"
 	horizonPathParticipants = "/participants"
 	horizonPathPayments     = "/payments"
 )
 
-func (s *Service) getAssetsList() ([]types.Asset, error) {
-	request, err := s.horizon.SignedRequest("GET", horizonPathAssets, s.Signer)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create NewSignedRequest")
-	}
-
-	var resp []types.Asset
-	err = sendRequest(request, &resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
-	}
-
-	s.logger.WithField("response", resp).Debug("Got assets")
-	return resp, nil
-}
-
 func (s *Service) getParticipants(requestData *operations.ParticipantsRequest) (map[int64][]operations.ApiParticipant, error) {
-	request, err := s.horizon.SignedRequest("POST", horizonPathParticipants, s.Signer)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create NewSignedRequest")
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(&requestData); err != nil {
+		return nil, errors.Wrap(err, "failed to marshal")
 	}
 
-	err = setJSONBody(request, requestData)
+	response, err := s.horizon.WithSigner(s.Signer).Client().Post(horizonPathParticipants, &buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to set request body")
+		return nil, errors.Wrap(err, "request failed")
 	}
 
-	var resp map[int64][]operations.ApiParticipant
-	err = sendRequest(request, &resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+	var result map[int64][]operations.ApiParticipant
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	s.logger.WithField("response", resp).Debug("Got participants")
-	return resp, nil
+	s.logger.Debug("got participants")
+	return result, nil
 }
 
 func (s *Service) paymentsRequest() (*http.Request, error) {
@@ -73,5 +58,9 @@ func (s *Service) paymentsRequest() (*http.Request, error) {
 	u.RawQuery = q.Encode()
 
 	s.logger.WithField("cursor", s.Operations.Cursor).WithField("path", u.String()).Warn("Remake request")
-	return s.horizon.SignedRequest("GET", u.String(), s.Signer)
+	request, err := http.NewRequest("GET", u.String(), nil)
+	if err := signcontrol.SignRequest(request, s.Signer); err != nil {
+		return nil, errors.Wrap(err, "failed to sign request")
+	}
+	return request, nil
 }

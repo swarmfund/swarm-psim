@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/ethfunnel/internal"
 )
 
 var (
@@ -19,11 +18,11 @@ var (
 )
 
 type Service struct {
-	ctx      context.Context
-	keystore *internal.Wallet
-	eth      *ethclient.Client
-	log      *logan.Entry
-	config   Config
+	ctx    context.Context
+	wallet Wallet
+	eth    *ethclient.Client
+	log    *logan.Entry
+	config Config
 
 	blocksCh   chan *big.Int
 	txCh       chan types.Transaction
@@ -37,14 +36,14 @@ type Transfer struct {
 }
 
 func NewService(
-	ctx context.Context, log *logan.Entry, config Config, wallet *internal.Wallet, eth *ethclient.Client,
+	ctx context.Context, log *logan.Entry, config Config, wallet Wallet, eth *ethclient.Client,
 ) *Service {
 	return &Service{
-		ctx:      ctx,
-		log:      log,
-		config:   config,
-		keystore: wallet,
-		eth:      eth,
+		ctx:    ctx,
+		log:    log,
+		config: config,
+		wallet: wallet,
+		eth:    eth,
 		// most workers will submit task back in case of error,
 		// make sure channels are buffered
 		blocksCh:   make(chan *big.Int, 1),
@@ -70,7 +69,7 @@ func (s *Service) accountBacklog() {
 	}()
 
 	s.log.Debug("processing backlog")
-	for _, addr := range s.keystore.Addresses() {
+	for _, addr := range s.wallet.Addresses() {
 		s.accountCh <- addr
 	}
 	s.log.Info("backlog processed")
@@ -175,7 +174,7 @@ func (s *Service) processAccounts() {
 			return errors.Wrap(err, "failed to get nonce")
 		}
 
-		tx, err := s.keystore.SignTX(
+		tx, err := s.wallet.SignTX(
 			address,
 			types.NewTransaction(
 				nonce,
@@ -219,7 +218,7 @@ func (s *Service) consumeTXs() {
 		}()
 
 		to := tx.To()
-		if to != nil && s.keystore.HasAddress(*to) {
+		if to != nil && s.wallet.HasAddress(*to) {
 			s.log.WithField("addr", to.Hex()).Info("found managed address")
 			s.accountCh <- *to
 		}

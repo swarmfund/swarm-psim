@@ -9,14 +9,11 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  addr: http://18.195.18.3:8000
-#  addr: http://128.199.229.140:8011
-#  addr: https://api.bullioncoin.io
+  addr: http://swarm:8000
 #  addr: http://localhost:8000
-#  addr: http://139.59.113.110:8011
 
 notificator:
-  url: http://18.195.18.3:9009
+  url: http://swarm:9009
   secret: string
   public: string
 
@@ -25,7 +22,7 @@ stripe:
 
 bitcoin:
   # move node to separate object?
-  node_host: 18.195.18.3
+  node_host: swarm
   node_port: 8332
   node_auth_key: dTAwM2IwNGVmOTUwMWJiZjA2YjpwMDA2NWUyN2MxNWY1NTBiOTJh
   testnet: true
@@ -34,7 +31,7 @@ bitcoin:
 
 ethereum:
   proto: http
-  host: 18.195.18.3
+  host: swarm
   port: 8545
 
 discovery:
@@ -54,7 +51,7 @@ services:
 #  - bitcoin_supervisor
 #  - btc_funnel
 #  - btc_withdraw
-  - btc_withdraw_verify
+#  - btc_withdraw_verify
 
   #- eth_supervisor
 #  - eth_funnel
@@ -70,7 +67,7 @@ stripe_supervisor:
 
 # BTC
 bitcoin_supervisor:
-  last_processed_block: 1255109
+  last_processed_block: 1259180
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   supervisor:
@@ -79,6 +76,9 @@ bitcoin_supervisor:
     # Keys should probably differ between stripe and bitcoin
     exchange: G_SOME_VALID_PUBLIC_KEY
     signer: S_SOME_VALID_PRIVATE_KEY
+
+  # TODO Remove after moving logic of the second signature to the verifier.
+  additional_signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_funnel:
   hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
