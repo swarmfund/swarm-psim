@@ -1,17 +1,17 @@
 package btcwithdveri
 
 import (
-	"gitlab.com/swarmfund/psim/ape"
 	"context"
 	"encoding/json"
-	"gitlab.com/swarmfund/psim/ape/problems"
 	"net/http"
-	"gitlab.com/swarmfund/horizon-connector"
-	horizonV2 "gitlab.com/swarmfund/horizon-connector/v2"
+
 	"fmt"
-	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
@@ -20,7 +20,9 @@ import (
 func (s *Service) serveAPI(ctx context.Context) {
 	r := ape.DefaultRouter()
 
-	r.Post("/", s.handle)
+	r.Post(withdraw.VerifyPreliminaryApproveURLSuffix, s.preliminaryApproveHandler)
+	r.Post(withdraw.VerifyApproveURLSuffix, s.approveHandler)
+	//r.Post(withdraw.VerifyRejectURLSuffix, s.rejectHandler)
 
 	// TODO
 	//if s.config.Pprof {
@@ -38,106 +40,153 @@ func (s *Service) serveAPI(ctx context.Context) {
 	return
 }
 
-func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
-	payload := btcwithdraw.ReviewRequest{}
-	err := json.NewDecoder(r.Body).Decode(&payload)
+func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Request) {
+	approveRequest := withdraw.ApproveRequest{}
+	ok := s.readRequest(w, r, &approveRequest)
+	if !ok {
+		return
+	}
+
+	// FIXME Change RequestType (to pending)
+	checkErr, err := s.checkWithdrawRequest(approveRequest.Request.ID, approveRequest.Request.Hash, int32(xdr.ReviewableRequestTypeWithdraw), approveRequest.TXHex)
 	if err != nil {
-		ape.RenderErr(w, r, problems.BadRequest("Cannot parse JSON request body."))
+		s.log.WithField("preliminary_approve_request", approveRequest).WithError(err).Error("Failed to check WithdrawRequest.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+	if checkErr != "" {
+		s.log.WithField("preliminary_approve_request", approveRequest).WithField("check_error", checkErr).Warn("Got invalid PreliminaryApproveRequest.")
+		ape.RenderErr(w, r, problems.Forbidden(checkErr))
 		return
 	}
 
-	horizonTX := s.horizon.Transaction(&horizon.TransactionBuilder{
-		Envelope: payload.Envelope,
-	})
-
-	if len(horizonTX.Operations) != 1 {
-		ape.RenderErr(w, r, problems.BadRequest("Provided Transaction Envelope contains zero or more than one Operation."))
-		return
-	}
-
-	op := horizonTX.Operations[0]
-	if op.Body.Type != xdr.OperationTypeReviewRequest {
-		ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf(
-			"Expected Operation of type ReviewRequest(%d), but got (%d).", xdr.OperationTypeReviewRequest, op.Body.Type)))
-		return
-	}
-
-	s.processReviewRequest(w, r, horizonTX)
-}
-
-func (s *Service) processReviewRequest(w http.ResponseWriter, r *http.Request, horizonTX *horizon.TransactionBuilder) {
-	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
-
-	details := opBody.RequestDetails
-
-	if details.RequestType != xdr.ReviewableRequestTypeWithdraw {
-		ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf(
-			"Expected Request of type Withdraw(%d), but got (%d).", xdr.ReviewableRequestTypeWithdraw, details.RequestType)))
-		return
-	}
-
-	withdrawRequest, err := s.getRequest(w, r, int(opBody.RequestId))
+	// ApproveRequest is valid
+	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.SourceKP).Op(xdrbuild.ReviewRequestOp{
+		ID:     approveRequest.Request.ID,
+		Hash:   approveRequest.Request.Hash,
+		Action: xdr.ReviewRequestOpActionApprove,
+	}).Sign(s.config.SignerKP).Marshal()
 	if err != nil {
-		s.log.WithField("request_id", opBody.RequestId).WithError(err).Error("Failed to get WithdrawRequest from Horizon")
+		s.log.WithField("preliminary_approve_request", approveRequest).WithError(err).Error("Failed to marshal signed Envelope")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
 
-	if withdrawRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
-		// not a withdraw request
-		ape.RenderErr(w, r, problems.Forbidden(fmt.Sprintf(
-			"Expected Request from Horizon of type Withdraw(%d), but got (%d).", xdr.ReviewableRequestTypeWithdraw, withdrawRequest.Details.RequestType)))
+	response := withdraw.EnvelopeResponse{
+		Envelope: signedEnvelope,
+	}
+	respBytes, err := json.Marshal(response)
+	if err != nil {
+		s.log.WithField("response_trying_to_render", response).WithError(err).Error("Failed to marshal response.")
+		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
 
-	if withdrawRequest.State != withdraw.RequestStatePending {
-		ape.RenderErr(w, r, problems.Conflict(fmt.Sprintf(
-			"Expected Request from Horizon with State Pending(%d), but got (%d).", withdraw.RequestStatePending, withdrawRequest.State)))
-		return
-	}
-
-	if withdrawRequest.Details.Withdraw.DestinationAsset != withdraw.BTCAsset {
-		ape.RenderErr(w, r, problems.Forbidden(fmt.Sprintf(
-			"Expected Withdraw Request from Horizon with DestinationAsset %s, but got %s.", withdraw.BTCAsset, withdrawRequest.Details.Withdraw.DestinationAsset)))
-		return
-	}
-
-	s.processValidRequest(w, r, *withdrawRequest, horizonTX)
+	w.Write(respBytes)
 }
 
-func (s *Service) getRequest(w http.ResponseWriter, r *http.Request, requestID int) (*horizonV2.Request, error){
-	// TODO Stop managing requests manually, make helpers in Horizon for this instead
-	req, err := s.horizon.SignedRequest("GET", fmt.Sprintf("/requests/%d", requestID), s.config.SignerKP)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create signed request (getting WithdrawalRequest)")
+func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
+	approveRequest := withdraw.ApproveRequest{}
+	ok := s.readRequest(w, r, &approveRequest)
+	if !ok {
+		return
 	}
 
-	response, err := (&http.Client{}).Do(req)
+	logger := s.log.WithField("approve_request", approveRequest)
+
+	checkErr, err := s.checkWithdrawRequest(approveRequest.Request.ID, approveRequest.Request.Hash, int32(xdr.ReviewableRequestTypeWithdraw), approveRequest.TXHex)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send signed request (getting WithdrawalRequest) to Horizon")
+		logger.WithError(err).Error("Failed to check WithdrawRequest.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+	if checkErr != "" {
+		logger.WithField("check_error", checkErr).Warn("Got invalid PreliminaryApproveRequest.")
+		ape.RenderErr(w, r, problems.Forbidden(checkErr))
+		return
 	}
 
-	var request horizonV2.Request
-	err = json.NewDecoder(response.Body).Decode(&request)
-	return &request, err
+	fullySignedBtcTXHex, err := s.btcClient.SignAllTXInputs(approveRequest.TXHex, s.config.HotWalletScriptPubKey, s.config.HotWalletRedeemScript, s.config.PrivateKey)
+	if err != nil {
+		logger.WithError(err).Error("Failed to sign BTC TX.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+	extDetails := withdraw.ExternalDetails{
+		TXHex: fullySignedBtcTXHex,
+	}
+	extDetBytes, err := json.Marshal(extDetails)
+	if err != nil {
+		logger.WithError(err).Error("Failed to marshal ExternalDetails into JSON.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+
+	// ApproveRequest is valid
+	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.SourceKP).Op(xdrbuild.ReviewRequestOp{
+		ID:     approveRequest.Request.ID,
+		Hash:   approveRequest.Request.Hash,
+		Action: xdr.ReviewRequestOpActionApprove,
+		Details: xdrbuild.WithdrawalDetails{
+			ExternalDetails: string(extDetBytes),
+		},
+	}).Sign(s.config.SignerKP).Marshal()
+	if err != nil {
+		logger.WithError(err).Error("Failed to marshal signed Envelope.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+
+	response := withdraw.EnvelopeResponse{
+		Envelope: signedEnvelope,
+	}
+	respBytes, err := json.Marshal(response)
+	if err != nil {
+		s.log.WithField("response_trying_to_render", response).WithError(err).Error("Failed to marshal response.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+
+	w.Write(respBytes)
 }
 
-func (s *Service) processValidRequest(w http.ResponseWriter, r *http.Request, withdrawRequest horizonV2.Request,
-		horizonTX *horizon.TransactionBuilder) {
-
-	opBody := horizonTX.Operations[0].Body.ReviewRequestOp
-
-	switch opBody.Action{
-	case xdr.ReviewRequestOpActionApprove:
-		s.processApproval(w, r, withdrawRequest, horizonTX)
-		return
-	case xdr.ReviewRequestOpActionPermanentReject:
-		s.processReject(w, r, withdrawRequest, horizonTX)
-		return
-	default:
-		ape.RenderErr(w, r, problems.BadRequest(fmt.Sprintf(
-			"Expected Action of type Approve(%d) or PermanentReject(%d), but got (%d).",
-			xdr.ReviewRequestOpActionApprove, xdr.ReviewRequestOpActionPermanentReject, opBody.Action)))
-		return
+func (s *Service) readRequest(w http.ResponseWriter, r *http.Request, request interface{}) (success bool) {
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		s.log.WithError(err).Warn("Failed to parse request.")
+		ape.RenderErr(w, r, problems.BadRequest("Cannot parse JSON request."))
+		return false
 	}
+
+	return true
+}
+
+func (s *Service) checkWithdrawRequest(requestID uint64, requestHash string, neededRequestType int32, btcTXHex string) (checkErr string, err error) {
+	request, err := withdraw.ObtainRequest(s.horizon.Client(), requestID)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to Obtain WithdrawRequest from Horizon")
+	}
+
+	requestFields := withdraw.GetRequestLoganFields("withdraw_request", *request)
+
+	if request.Hash != requestHash {
+		return fmt.Sprintf("The RequestHash from Horizon (%s) does not match from the one provided (%s).", request.Hash, requestHash), nil
+	}
+	proveErr := withdraw.ProvePendingBTCRequest(*request, neededRequestType)
+	if proveErr != "" {
+		return proveErr, nil
+	}
+
+	addr, err := withdraw.GetWithdrawAddress(*request)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get Address from the WithdrawRequest", requestFields)
+	}
+	amount := withdraw.GetWithdrawAmount(*request)
+
+	validationErr, err := withdraw.ValidateBTCTx(btcTXHex, s.btcClient.GetNetParams(), addr, s.config.HotWalletAddress, amount)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to validate BTC TX", requestFields)
+	}
+
+	return validationErr, nil
 }

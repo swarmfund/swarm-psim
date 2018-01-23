@@ -1,6 +1,9 @@
 package withdraw
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
@@ -59,4 +62,26 @@ func GetWithdrawAddress(request horizon.Request) (string, error) {
 // and divides this value by the amount.One (the value of one whole unit of currency).
 func GetWithdrawAmount(request horizon.Request) float64 {
 	return float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
+}
+
+// TODO Add comment
+func GetWithdrawAmountInt(request horizon.Request, assetPrecision int) int64 {
+	return int64(request.Details.Withdraw.DestinationAmount) * (int64(10^assetPrecision) / amount.One)
+}
+
+func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Request, error) {
+	respBytes, err := horizonClient.Get(fmt.Sprintf("/requests/%d", requestID))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Request from Horizon")
+	}
+
+	var request horizon.Request
+	err = json.Unmarshal(respBytes, &request)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal Request from the Horizon response", logan.F{
+			"horizon_response": string(respBytes),
+		})
+	}
+
+	return &request, nil
 }

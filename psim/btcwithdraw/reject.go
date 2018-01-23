@@ -22,7 +22,7 @@ func (s *Service) getRejectReason(withdrawAddress string, amount float64) withdr
 }
 
 func (s *Service) verifyReject(ctx context.Context, request horizon.Request, reason withdraw.RejectReason) error {
-	returnedEnvelope, err := s.sendRequestToVerify(withdraw.NewReject(request.ID, request.Hash, reason))
+	returnedEnvelope, err := s.sendRequestToVerify(withdraw.VerifyRejectURLSuffix, withdraw.NewReject(request.ID, request.Hash, reason))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send Reject to Verify")
 	}

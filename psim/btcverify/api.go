@@ -4,17 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"context"
+
+	"github.com/btcsuite/btcd/wire"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
-	"context"
-	"github.com/btcsuite/btcd/wire"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 func (s *Service) serveAPI(ctx context.Context) {
 	r := ape.DefaultRouter()
 
-	r.Post("/", s.verifyHandler)
+	r.Post("/", s.verifyHandler())
 	if s.config.Pprof {
 		s.log.Info("enabling debugging endpoints")
 		ape.InjectPprof(r)
@@ -107,7 +110,7 @@ func (s *Service) verifyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) verifyTxOUT(w http.ResponseWriter, r *http.Request, txOut *wire.TxOut,
-	/*opBody *xdr.ManageCoinsEmissionRequestOp,*/ horizonTX *horizon.TransactionBuilder) {
+	opBody *xdr.ManageCoinsEmissionRequestOp, horizonTX *horizon.TransactionBuilder) {
 	//
 	//// TODO Make sure amount is valid (maybe need to * or / by 10^N)
 	//if int64(opBody.Amount) != int64(txOut.Value) {

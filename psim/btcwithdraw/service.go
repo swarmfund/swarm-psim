@@ -43,8 +43,10 @@ type RequestListener interface {
 // BTCClient is interface to be implemented by Bitcoin Core client
 // to parametrise the Service.
 type BTCClient interface {
+	// CreateAndFundRawTX sets Change position in Outputs to 1.
 	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
-	SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error)
+	SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error)
+	SendRawTX(txHex string) (txHash string, err error)
 	GetNetParams() *chaincfg.Params
 }
 
@@ -110,8 +112,10 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	}
 }
 
+// FIXME
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	if !withdraw.IsPendingBTCWithdraw(request) {
+	// FIXME Use new RequestType (pending)
+	if withdraw.ProvePendingBTCRequest(request, int32(xdr.ReviewableRequestTypeWithdraw)) != "" {
 		return nil
 	}
 
@@ -151,15 +155,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	return nil
 }
 
-// TODO Move to Verify Service
-func (s *Service) prepareAndSignTX(op xdrbuild.ReviewRequestOp) (envelope string, err error) {
-	return s.xdrbuilder.Transaction(s.config.SourceKP).
-		Op(op).
-		Sign(s.config.SignerKP).
-		Marshal()
-}
-
-func (s *Service) sendRequestToVerify(request interface{}) (*xdr.TransactionEnvelope, error) {
+func (s *Service) sendRequestToVerify(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
 	rawRequestBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to marshal RequestBody")
@@ -169,6 +165,7 @@ func (s *Service) sendRequestToVerify(request interface{}) (*xdr.TransactionEnve
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")
 	}
+	url = url + urlSuffix
 
 	fields := logan.F{
 		"verify_url":       url,
@@ -205,9 +202,9 @@ func (s *Service) sendRequestToVerify(request interface{}) (*xdr.TransactionEnve
 	}
 
 	envelope := xdr.TransactionEnvelope{}
-	err = envelope.Scan(responseBytes)
+	err = envelope.Scan(envelopeResponse.Envelope)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Scan TransactionEnveloper from response from Verify", fields)
+		return nil, errors.Wrap(err, "Failed to Scan TransactionEnvelope from response from Verify", fields)
 	}
 
 	return &envelope, nil

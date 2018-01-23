@@ -2,4 +2,3 @@
 bin/
 vendor.orig
 local*
-scripts/private_keys.txt

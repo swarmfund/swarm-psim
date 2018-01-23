@@ -94,6 +94,7 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx *btcutil.Tx) error {
 	for i, out := range tx.MsgTx().TxOut {
 		scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, s.btcClient.GetNetParams())
+		// TODO Check error?
 
 		if scriptClass != txscript.PubKeyHashTy {
 			// Output, which pays not to a pub-key-hash Address - just ignoring.
