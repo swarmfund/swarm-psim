@@ -126,4 +126,4 @@
 
 [[override]]
   name = "gitlab.com/swarmfund/go"
-  branch = "master"
+  branch = "dev"
