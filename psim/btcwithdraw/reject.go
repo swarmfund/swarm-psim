@@ -9,12 +9,23 @@ import (
 	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
-func (s *Service) getRejectReason(withdrawAddress string, amount float64) withdraw.RejectReason {
-	err := withdraw.ValidateBTCAddress(withdrawAddress, s.btcClient.GetNetParams())
+func (s *Service) getRejectReason(request horizon.Request) withdraw.RejectReason {
+	address, err := withdraw.GetWithdrawAddress(request)
+	if err != nil {
+		switch errors.Cause(err) {
+		case withdraw.ErrMissingAddress:
+			return withdraw.RejectReasonMissingAddress
+		case withdraw.ErrAddressNotAString:
+			return withdraw.RejectReasonAddressNotAString
+		}
+	}
+
+	err = withdraw.ValidateBTCAddress(address, s.btcClient.GetNetParams())
 	if err != nil {
 		return withdraw.RejectReasonInvalidAddress
 	}
 
+	amount := withdraw.GetWithdrawAmount(request)
 	if amount < s.config.MinWithdrawAmount {
 		return withdraw.RejectReasonTooLittleAmount
 	}

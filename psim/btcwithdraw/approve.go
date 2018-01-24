@@ -11,7 +11,13 @@ import (
 	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
-func (s *Service) processValidPendingRequest(ctx context.Context, withdrawAddress string, withdrawAmount float64, request horizon.Request) error {
+func (s *Service) processValidPendingRequest(ctx context.Context, request horizon.Request) error {
+	withdrawAddress, err := withdraw.GetWithdrawAddress(request)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get Withdraw Address")
+	}
+	withdrawAmount := withdraw.GetWithdrawAmount(request)
+
 	unsignedBtcTXHex, err := s.createBitcoinTX(withdrawAddress, withdrawAmount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create Bitcoin TX")

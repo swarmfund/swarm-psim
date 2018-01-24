@@ -108,7 +108,19 @@ func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash string, neededRequestType int32, btcTXHex string) (checkErr string, err error) {
-	addr, amount, checkErr, err := s.obtainAndCheckRequest(requestID, requestHash, neededRequestType)
+	request, checkErr, err := s.obtainAndCheckRequest(requestID, requestHash, neededRequestType)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to obtain-and-check Request")
+	}
+	if checkErr != "" {
+		return checkErr, nil
+	}
+
+	addr, err := withdraw.GetWithdrawAddress(*request)
+	if err != nil {
+		return err.Error(), err
+	}
+	amount := withdraw.GetWithdrawAmount(*request)
 
 	validationErr, err := withdraw.ValidateBTCTx(btcTXHex, s.btcClient.GetNetParams(), addr, s.config.HotWalletAddress, amount)
 	if err != nil {

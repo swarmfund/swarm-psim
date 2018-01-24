@@ -121,36 +121,25 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	s.log.WithFields(withdraw.GetRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
 
-	withdrawAddress, err := withdraw.GetWithdrawAddress(request)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get BTC Address from the WithdrawalRequest")
-	}
-	// Divide by precision of the system.
-	withdrawAmount := withdraw.GetWithdrawAmount(request)
-	fields := logan.F{
-		"withdraw_address": withdrawAddress,
-		"withdraw_amount":  withdrawAmount,
-	}
-
-	rejectReason := s.getRejectReason(withdrawAddress, withdrawAmount)
+	rejectReason := s.getRejectReason(request)
 	if rejectReason != "" {
-		fields["reject_reason"] = rejectReason
-
-		s.log.WithFields(fields).WithFields(withdraw.GetRequestLoganFields("request", request)).
+		s.log.WithField("reject_reason", rejectReason).WithFields(withdraw.GetRequestLoganFields("request", request)).
 			Warn("Got BTC Withdraw Request which is invalid due to the RejectReason.")
 
-		err = s.processRequestReject(ctx, request, rejectReason)
+		err := s.processRequestReject(ctx, request, rejectReason)
 		if err != nil {
-			return errors.Wrap(err, "Failed to verify Reject of Request", fields)
+			return errors.Wrap(err, "Failed to verify Reject of Request", logan.F{
+				"reject_reason": rejectReason,
+			})
 		}
 
 		// Request is invalid, Reject was submitted successfully.
 		return nil
 	}
 
-	err = s.processValidPendingRequest(ctx, withdrawAddress, withdrawAmount, request)
+	err := s.processValidPendingRequest(ctx, request)
 	if err != nil {
-		return errors.Wrap(err, "Failed to process valid pending Request", fields)
+		return errors.Wrap(err, "Failed to process valid pending Request")
 	}
 
 	return nil

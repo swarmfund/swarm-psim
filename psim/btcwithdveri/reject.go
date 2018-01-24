@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.com/distributed_lab/logan/v3"
+	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/withdraw"
@@ -21,24 +22,21 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger := s.log.WithField("reject_request", rejectRequest)
 
-	addr, amount, checkErr, err := s.obtainAndCheckRequest(rejectRequest.Request.ID, rejectRequest.Request.Hash, int32(xdr.ReviewableRequestTypeWithdraw))
+	request, checkErr, err := s.obtainAndCheckRequest(rejectRequest.Request.ID, rejectRequest.Request.Hash, int32(xdr.ReviewableRequestTypeWithdraw))
 	if err != nil {
-		logger.WithError(err).Error("Failed to check WithdrawRequest.")
+		logger.WithError(err).Error("Failed to obtain-and-check WithdrawRequest.")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
 	if checkErr != "" {
-		logger.WithField("check_error", checkErr).Warn("Got invalid PreliminaryApproveRequest.")
+		logger.WithField("check_error", checkErr).Warn("Got invalid RejectRequest.")
 		ape.RenderErr(w, r, problems.Forbidden(checkErr))
 		return
 	}
 
-	logger = logger.WithFields(logan.F{
-		"withdraw_address": addr,
-		"withdraw_amount":  amount,
-	})
+	logger = logger.WithFields(withdraw.GetRequestLoganFields("request", *request))
 
-	validationErr := s.validateReject(addr, amount, rejectRequest.RejectReason)
+	validationErr := s.validateRejectReason(*request, rejectRequest.RejectReason)
 	if validationErr != "" {
 		logger.WithField("validation_error", validationErr).Warn("Got invalid RejectReason.")
 		ape.RenderErr(w, r, problems.Forbidden(validationErr))
@@ -65,11 +63,37 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Verified Reject successfully.")
 }
 
-func (s *Service) validateReject(addr string, amount float64, reason withdraw.RejectReason) string {
+func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.RejectReason) string {
+	var gettingAddressErr withdraw.RejectReason
+	addr, err := withdraw.GetWithdrawAddress(request)
+	if err != nil {
+		switch errors.Cause(err) {
+		case withdraw.ErrMissingAddress:
+			gettingAddressErr = withdraw.RejectReasonMissingAddress
+		case withdraw.ErrAddressNotAString:
+			gettingAddressErr = withdraw.RejectReasonAddressNotAString
+		}
+	}
+
+	if gettingAddressErr != "" {
+		if gettingAddressErr == reason {
+			return ""
+		} else {
+			return fmt.Sprintf("Expected RejectReason to be (%s), but received (%s)", gettingAddressErr, reason)
+		}
+	}
+
+	// No problems getting Address
+
 	switch reason {
+	case withdraw.RejectReasonMissingAddress:
+		return "Address field is actually present in the details."
+	case withdraw.RejectReasonAddressNotAString:
+		return "Address from details is actually a string."
 	case withdraw.RejectReasonInvalidAddress:
 		return s.validateInvalidAddress(addr)
 	case withdraw.RejectReasonTooLittleAmount:
+		amount := withdraw.GetWithdrawAmount(request)
 		return s.validateTooLittleAmount(amount)
 	}
 

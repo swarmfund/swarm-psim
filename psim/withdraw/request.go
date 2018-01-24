@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	ErrMissingAddress    = errors.New("Missing field in the ExternalDetails json of WithdrawalRequest.")
+	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json of WithdrawalRequest.")
 	ErrAddressNotAString = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
 )
 
@@ -43,7 +43,9 @@ func GetRequestLoganFields(key string, request horizon.Request) logan.F {
 
 // GetWithdrawAddress obtains withdraw Address from the `address` field of the ExternalDetails
 // of Withdraw in Request Details.
+//
 // Returns error if no `address` field in the ExternalDetails map or if the field is not a string.
+// Only returns errors with causes either ErrMissingAddress or ErrAddressNotAString.
 func GetWithdrawAddress(request horizon.Request) (string, error) {
 	addrValue, ok := request.Details.Withdraw.ExternalDetails["address"]
 	if !ok {

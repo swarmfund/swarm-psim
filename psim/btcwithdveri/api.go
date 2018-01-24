@@ -11,6 +11,7 @@ import (
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
 // TODO Pprof
@@ -49,29 +50,21 @@ func (s *Service) readAPIRequest(w http.ResponseWriter, r *http.Request, request
 	return true
 }
 
-func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, neededRequestType int32) (addr string, amount float64, checkErr string, err error) {
-	request, err := withdraw.ObtainRequest(s.horizon.Client(), requestID)
+func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, neededRequestType int32) (request *horizon.Request, checkErr string, err error) {
+	request, err = withdraw.ObtainRequest(s.horizon.Client(), requestID)
 	if err != nil {
-		return "", 0, "", errors.Wrap(err, "Failed to Obtain WithdrawRequest from Horizon")
+		return nil, "", errors.Wrap(err, "Failed to Obtain WithdrawRequest from Horizon")
 	}
 
-	requestFields := withdraw.GetRequestLoganFields("withdraw_request", *request)
-
 	if request.Hash != requestHash {
-		return "", 0, fmt.Sprintf("The RequestHash from Horizon (%s) does not match the one provided (%s).", request.Hash, requestHash), nil
+		return nil, fmt.Sprintf("The RequestHash from Horizon (%s) does not match the one provided (%s).", request.Hash, requestHash), nil
 	}
 	proveErr := withdraw.ProvePendingRequest(*request, neededRequestType, withdraw.BTCAsset)
 	if proveErr != "" {
-		return "", 0, fmt.Sprintf("Not a pending BTC WithdrawRequest: %s", proveErr), nil
+		return nil, fmt.Sprintf("Not a pending BTC WithdrawRequest: %s", proveErr), nil
 	}
 
-	addr, err = withdraw.GetWithdrawAddress(*request)
-	if err != nil {
-		return "", 0, "", errors.Wrap(err, "Failed to get Address from the WithdrawRequest", requestFields)
-	}
-	amount = withdraw.GetWithdrawAmount(*request)
-
-	return addr, amount, "", nil
+	return request, "", nil
 }
 
 func (s *Service) marshalResponseEnvelope(w http.ResponseWriter, r *http.Request, envelope string) {
