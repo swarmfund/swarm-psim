@@ -66,11 +66,7 @@ func GetWithdrawAmount(request horizon.Request) float64 {
 	return float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
 }
 
-// TODO Add comment
-func GetWithdrawAmountInt(request horizon.Request, assetPrecision int) int64 {
-	return int64(request.Details.Withdraw.DestinationAmount) * (int64(10^assetPrecision) / amount.One)
-}
-
+// TODO Comment
 func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Request, error) {
 	respBytes, err := horizonClient.Get(fmt.Sprintf("/requests/%d", requestID))
 	if err != nil {
@@ -86,4 +82,27 @@ func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Re
 	}
 
 	return &request, nil
+}
+
+// ProvePendingRequest returns empty string if the Request is:
+// - in pending state;
+// - type equals `neededRequestType`;
+// - its DestinationAsset equals `asset`.
+func ProvePendingRequest(request horizon.Request, neededRequestType int32, asset string) string {
+	if request.State != RequestStatePending {
+		// State is not pending
+		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
+	}
+
+	if request.Details.RequestType != neededRequestType {
+		// not a withdraw request
+		return fmt.Sprintf("Invalid RequestType (%d) expected (%d).", request.Details.RequestType, neededRequestType)
+	}
+
+	if request.Details.Withdraw.DestinationAsset != asset {
+		// Withdraw not to BTC.
+		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", request.Details.Withdraw.DestinationAsset, asset)
+	}
+
+	return ""
 }

@@ -9,14 +9,18 @@ import (
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
+// TODO Move BTC specific thing out of this package
+
 const (
+	// DEPRECATED, store this thing in Config
 	BTCAsset = "BTC"
 )
 
 // TODO Comment
+//
+// DEPRECATED Use the one in your specific package
 func ValidateBTCTx(txHex string, netParams *chaincfg.Params, withdrawAddress, changeAddress string, withdrawAmount float64) (string, error) {
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
@@ -38,7 +42,7 @@ func ValidateBTCTx(txHex string, netParams *chaincfg.Params, withdrawAddress, ch
 
 	// TODO Move to separate method
 	// Addresses of TX Outputs
-	txOutAddresses, err := GetBtcTXAddresses(tx, netParams)
+	txOutAddresses, err := getBtcTXAddresses(tx, netParams)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Address from Outputs of the BTC TX")
 	}
@@ -68,7 +72,8 @@ func ValidateBTCTx(txHex string, netParams *chaincfg.Params, withdrawAddress, ch
 	return "", nil
 }
 
-func GetBtcTXAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, error) {
+// DEPRECATED Use the one in your specific package
+func getBtcTXAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, error) {
 	var result []string
 
 	for i, out := range tx.MsgTx().TxOut {
@@ -88,30 +93,8 @@ func GetBtcTXAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, er
 
 // ValidateBTCAddress decodes the string encoding of an Address and returns
 // nil if addr is a valid encoding for a known Address type and error otherwise.
+// DEPRECATED Use the one in your specific package
 func ValidateBTCAddress(addr string, defaultNet *chaincfg.Params) error {
 	_, err := btcutil.DecodeAddress(addr, defaultNet)
 	return err
-}
-
-// ProvePendingRequest returns empty string if the Request is:
-// - in pending state;
-// - type equals `neededRequestType`;
-// - its DestinationAsset equals `asset`.
-func ProvePendingRequest(request horizon.Request, neededRequestType int32, asset string) string {
-	if request.State != RequestStatePending {
-		// State is not pending
-		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
-	}
-
-	if request.Details.RequestType != neededRequestType {
-		// not a withdraw request
-		return fmt.Sprintf("Invalid RequestType (%d) expected (%d).", request.Details.RequestType, neededRequestType)
-	}
-
-	if request.Details.Withdraw.DestinationAsset != asset {
-		// Withdraw not to BTC.
-		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", request.Details.Withdraw.DestinationAsset, BTCAsset)
-	}
-
-	return ""
 }

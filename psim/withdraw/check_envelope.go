@@ -1,17 +1,15 @@
-package btcwithdraw
+package withdraw
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 // CheckPreliminaryApproveEnvelope returns text of error, or empty string if Envelope is valid.
-func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash, btcTXHex string) string {
+func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash, offchainTXHex string) string {
 	generalCheck := checkEnvelope(envelope, requestID, requestHash)
 	if generalCheck != "" {
 		return generalCheck
@@ -24,22 +22,22 @@ func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID
 	}
 
 	extDetails := op.RequestDetails.Withdrawal.ExternalDetails
-	btcDetails := withdraw.ExternalDetails{}
-	err := json.Unmarshal([]byte(extDetails), &btcDetails)
+	offchainDetails := ExternalDetails{}
+	err := json.Unmarshal([]byte(extDetails), &offchainDetails)
 	if err != nil {
 		return fmt.Sprintf("Cannot unmarshal Withdrawal ExternalDetails of Op: (%s).", extDetails)
 	}
 
-	if btcDetails.TXHex != btcTXHex {
-		return fmt.Sprintf("Invalid BTC TX hex in the Envelope: (%s), expected (%s).", btcDetails.TXHex, btcTXHex)
+	if offchainDetails.TXHex != offchainTXHex {
+		return fmt.Sprintf("Invalid Offchain TX hex in the Envelope: (%s), expected (%s).", offchainDetails.TXHex, offchainTXHex)
 	}
 
 	return ""
 }
 
 // CheckApproveEnvelope returns text of error, or empty string if Envelope is valid.
-func checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash,
-	withdrawAddress string, withdrawAmount float64, changeAddress string, netParams *chaincfg.Params) (txHex, checkErr string) {
+func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash,
+	withdrawAddress string, withdrawAmount float64, changeAddress string) (txHex, checkErr string) {
 
 	generalCheck := checkEnvelope(envelope, requestID, requestHash)
 	if generalCheck != "" {
@@ -53,25 +51,25 @@ func checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, re
 	}
 
 	extDetails := op.RequestDetails.Withdrawal.ExternalDetails
-	btcDetails := withdraw.ExternalDetails{}
-	err := json.Unmarshal([]byte(extDetails), &btcDetails)
+	offchainDetails := ExternalDetails{}
+	err := json.Unmarshal([]byte(extDetails), &offchainDetails)
 	if err != nil {
 		return "", fmt.Sprintf("Cannot unmarshal Withdrawal ExternalDetails of Op: %s; extDetails: (%s).", err.Error(), extDetails)
 	}
 
-	validationErr, err := withdraw.ValidateBTCTx(btcDetails.TXHex, netParams, withdrawAddress, changeAddress, withdrawAmount)
+	validationErr, err := s.offchainHelper.ValidateTx(offchainDetails.TXHex, withdrawAddress, withdrawAmount)
 	if err != nil {
-		return "", fmt.Sprintf("Failed to validate BTC TX: %s", err.Error())
+		return "", fmt.Sprintf("Failed to validate Offchain TX: %s", err.Error())
 	}
 	if validationErr != "" {
 		return "", validationErr
 	}
 
-	return btcDetails.TXHex, ""
+	return offchainDetails.TXHex, ""
 }
 
 // CheckRejectEnvelope returns text of error, or empty string if Envelope is valid.
-func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason withdraw.RejectReason) string {
+func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason RejectReason) string {
 	generalCheck := checkEnvelope(envelope, requestID, requestHash)
 	if generalCheck != "" {
 		return generalCheck

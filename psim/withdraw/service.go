@@ -1,38 +1,29 @@
-package btcwithdraw
+package withdraw
 
 import (
-	"bytes"
 	"context"
+	"time"
+
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/tokend/keypair"
 )
 
 var (
-	ErrNoVerifyServices    = errors.New("No BTC Withdraw Verify services were found.")
+	ErrNoVerifyServices    = errors.New("No Withdraw Verify services were found.")
 	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
 )
-
-// ExternalDetails is used to marshal and unmarshal external
-// details of Withdrawal Details for ReviewRequest Operation
-// during approve.
-type ExternalDetails struct {
-	//TXHash string `json:"tx_hash"`
-	TXHex string `json:"tx_hex"`
-}
 
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
@@ -40,48 +31,56 @@ type RequestListener interface {
 	WithdrawalRequests(result chan<- horizon.Request) <-chan error
 }
 
-// BTCClient is interface to be implemented by Bitcoin Core client
-// to parametrise the Service.
-type BTCClient interface {
-	// CreateAndFundRawTX sets Change position in Outputs to 1.
-	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
-	SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error)
-	SendRawTX(txHex string) (txHash string, err error)
-	GetNetParams() *chaincfg.Params
+// TODO Comment
+type OffchainHelper interface {
+	// TODO Comment for all methods
+	GetAsset() string
+	GetHotWallerAddress() string
+	GetMinWithdrawAmount() float64
+
+	ValidateAddress(addr string) error
+	ValidateTx(txHex string, withdrawAddress string, withdrawAmount float64) (string, error)
+
+	CreateTX(addr string, amount float64) (txHex string, err error)
+	SignTX(txHex string) (string, error)
+	SendTX(txHex string) (txHash string, err error)
 }
 
 type Service struct {
-	log             *logan.Entry
-	config          Config
-	requestListener RequestListener
-	horizon         *horizon.Connector
-	xdrbuilder      *xdrbuild.Builder
-	btcClient       BTCClient
-	discovery       *discovery.Client
+	verifyServiceName string
+	signerKP          keypair.Full `fig:"signer" mapstructure:"signer"`
+	log               *logan.Entry
+	requestListener   RequestListener
+	horizon           *horizon.Connector
+	xdrbuilder        *xdrbuild.Builder
+	discovery         *discovery.Client
+	offchainHelper    OffchainHelper
 
 	requests              chan horizon.Request
 	requestListenerErrors <-chan error
 }
 
-// New is constructor for btcwithdraw Service.
 func New(
+	serviceName string,
+	verifyServiceName string,
+	signerKP keypair.Full,
 	log *logan.Entry,
-	config Config,
 	requestListener RequestListener,
 	horizonConnector *horizon.Connector,
 	builder *xdrbuild.Builder,
-	btc BTCClient,
 	discoveryClient *discovery.Client,
+	helper OffchainHelper,
 ) *Service {
 
 	return &Service{
-		log:             log.WithField("service", conf.ServiceBTCWithdraw),
-		config:          config,
-		requestListener: requestListener,
-		horizon:         horizonConnector,
-		xdrbuilder:      builder,
-		btcClient:       btc,
-		discovery:       discoveryClient,
+		verifyServiceName: verifyServiceName,
+		signerKP:          signerKP,
+		log:               log.WithField("service", serviceName),
+		requestListener:   requestListener,
+		horizon:           horizonConnector,
+		xdrbuilder:        builder,
+		discovery:         discoveryClient,
+		offchainHelper:    helper,
 
 		requests: make(chan horizon.Request),
 	}
@@ -103,7 +102,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	case request := <-s.requests:
 		err := s.processRequest(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Withdraw Request", withdraw.GetRequestLoganFields("request", request))
+			return errors.Wrap(err, "Failed to process Withdraw Request", GetRequestLoganFields("request", request))
 		}
 
 		return nil
@@ -115,16 +114,16 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 // FIXME
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	// FIXME Use new RequestType (pending)
-	if withdraw.ProvePendingRequest(request, int32(xdr.ReviewableRequestTypeWithdraw), withdraw.BTCAsset) != "" {
+	if ProvePendingRequest(request, int32(xdr.ReviewableRequestTypeWithdraw), s.offchainHelper.GetAsset()) != "" {
 		return nil
 	}
 
-	s.log.WithFields(withdraw.GetRequestLoganFields("request", request)).Debug("Found pending BTC Withdrawal Request.")
+	s.log.WithFields(GetRequestLoganFields("request", request)).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
 
 	rejectReason := s.getRejectReason(request)
 	if rejectReason != "" {
-		s.log.WithField("reject_reason", rejectReason).WithFields(withdraw.GetRequestLoganFields("request", request)).
-			Warn("Got BTC Withdraw Request which is invalid due to the RejectReason.")
+		s.log.WithField("reject_reason", rejectReason).WithFields(GetRequestLoganFields("request", request)).
+			Warn("Got Withdraw Request which is invalid due to the RejectReason.")
 
 		err := s.processRequestReject(ctx, request, rejectReason)
 		if err != nil {
@@ -185,7 +184,7 @@ func (s *Service) sendRequestToVerify(urlSuffix string, request interface{}) (*x
 		return nil, errors.From(ErrBadStatusFromVerify, fields)
 	}
 
-	envelopeResponse := withdraw.EnvelopeResponse{}
+	envelopeResponse := EnvelopeResponse{}
 	err = json.Unmarshal(responseBytes, &envelopeResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to unmarshal response body", fields)
@@ -201,7 +200,7 @@ func (s *Service) sendRequestToVerify(urlSuffix string, request interface{}) (*x
 }
 
 func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) error {
-	signedEnvelope, err := s.xdrbuilder.Sign(&envelope, s.config.SignerKP)
+	signedEnvelope, err := s.xdrbuilder.Sign(&envelope, s.signerKP)
 	if err != nil {
 		return errors.Wrap(err, "Failed to sign Envelope")
 	}
@@ -219,9 +218,9 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 }
 
 func (s *Service) getVerifyURL() (string, error) {
-	services, err := s.discovery.DiscoverService(conf.ServiceBTCWithdrawVerify)
+	services, err := s.discovery.DiscoverService(s.verifyServiceName)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", conf.ServiceBTCWithdrawVerify))
+		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifyServiceName))
 	}
 	if len(services) == 0 {
 		return "", ErrNoVerifyServices
