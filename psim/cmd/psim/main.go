@@ -17,7 +17,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
-	//_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"

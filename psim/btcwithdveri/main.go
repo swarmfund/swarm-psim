@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/figure"
 	"context"
 	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/go/xdrbuild"
 )
 
 func init() {
@@ -32,15 +33,18 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	horizonConnector, err := globalConfig.Horizon()
-	if err != nil {
-		panic(err)
-	}
-
 	listener, err := ape.Listener(config.Host, config.Port)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	return New(log, config, horizonConnector, globalConfig.Bitcoin(), listener, globalConfig.Discovery()), nil
+	horizonConnector := globalConfig.Horizon()
+
+	horizonInfo, err := horizonConnector.Info()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Horizon info")
+	}
+	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+
+	return New(log, config, horizonConnector, builder, globalConfig.Bitcoin(), listener, globalConfig.Discovery()), nil
 }

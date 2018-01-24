@@ -1,6 +1,6 @@
 package btcwithdveri
 
-import "gitlab.com/swarmfund/go/keypair"
+import "gitlab.com/tokend/keypair"
 
 type Config struct {
 	Host string `fig:"host"`
@@ -15,5 +15,6 @@ type Config struct {
 
 	MinWithdrawAmount float64 `fig:"min_withdraw_amount"`
 
-	SignerKP keypair.KP `fig:"signer" mapstructure:"signer"`
+	SourceKP keypair.Address `fig:"source"`
+	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`
 }

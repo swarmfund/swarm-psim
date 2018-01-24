@@ -39,6 +39,7 @@ func (c Client) GetBlock(blockIndex uint64) (*btcutil.Block, error) {
 	return c.GetBlockByHash(hash)
 }
 
+// TODO Comment
 func (c Client) GetBlockByHash(blockHash string) (*btcutil.Block, error) {
 	blockHex, err := c.connector.GetBlock(blockHash)
 	if err != nil {
@@ -116,6 +117,8 @@ func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, 
 //
 // If there is not enough unlocked BTC to fulfil the TX -
 // error with cause ErrInsufficientFunds is returned.
+//
+// Change position in Outputs is set to 1.
 func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
 	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
 	if err != nil {
@@ -134,7 +137,7 @@ func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAdd
 }
 
 // SignRawTX signs the inputs of the provided TX with the provided privateKey.
-func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error) {
+func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
 	tx, err := c.parseTX(txHex)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
@@ -146,7 +149,7 @@ func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string
 			TXHash:       hex.EncodeToString(in.PreviousOutPoint.Hash[:]),
 			Vout:         in.PreviousOutPoint.Index,
 			ScriptPubKey: scriptPubKey,
-			RedeemScript: redeemScript,
+			RedeemScript: &redeemScript,
 		})
 	}
 

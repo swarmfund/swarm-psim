@@ -96,7 +96,6 @@ btc_withdraw:
 
   min_withdraw_amount: 0.0001
 
-  source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_withdraw_verify:
@@ -111,6 +110,7 @@ btc_withdraw_verify:
 
   min_withdraw_amount: 0.0001
 
+  source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
 

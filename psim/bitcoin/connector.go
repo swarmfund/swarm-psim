@@ -205,6 +205,8 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 // using flags `includeWatching` and `lockUnspents` as true.
 // If Bitcoin Node returns -4:Insufficient funds error -
 // ErrInsufficientFunds is returned.
+//
+// Change position in Outputs is set to 1.
 func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error) {
 	var response struct {
 		Response

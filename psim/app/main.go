@@ -174,6 +174,7 @@ func (app *App) Run() {
 			ctx := context.WithValue(ctx, ctxLog, entry)
 			service, err := ohaigo(ctx)
 			if err != nil {
+				// TODO Consider panicking here instead of Error log and return.
 				entry.WithError(err).Error("App failed to set up service.")
 				return
 			}

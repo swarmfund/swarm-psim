@@ -11,6 +11,5 @@ type Config struct {
 
 	MinWithdrawAmount float64 `fig:"min_withdraw_amount"`
 
-	SourceKP keypair.Address `fig:"source"`
-	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`
+	SignerKP keypair.Full `fig:"signer" mapstructure:"signer"`
 }

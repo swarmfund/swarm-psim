@@ -11,13 +11,14 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 func init() {
@@ -39,17 +40,12 @@ func init() {
 
 		log := app.Log(ctx).WithField("service", conf.ServiceBTCVerify)
 
-		horizonConnector, err := globalConfig.Horizon()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get Horizon connector")
-		}
-
 		listener, err := ape.Listener(serviceConfig.Host, serviceConfig.Port)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init listener")
 		}
 
-		return newService(serviceConfig, log, globalConfig.Discovery(), listener, horizonConnector, globalConfig.Bitcoin()), nil
+		return newService(serviceConfig, log, globalConfig.Discovery(), listener, globalConfig.Horizon(), globalConfig.Bitcoin()), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCVerify, setupFn)
@@ -135,14 +131,4 @@ func (s *Service) registerInDiscovery(ctx context.Context) {
 			continue
 		}
 	}
-}
-
-// VerifyRequest is struct, which is used to parse requests coming from btcsupervisor,
-// btcsupervisor should use this type for requests to this verifier.
-type VerifyRequest struct {
-	Envelope string `json:"envelope"`
-
-	BlockHash string `json:"block_hash"`
-	TXHash    string `json:"tx_hash"`
-	OutIndex  int    `json:"out_index"`
 }
