@@ -19,7 +19,8 @@ const (
 
 var (
 	txGas        = big.NewInt(21000)
-	ethPrecision = new(big.Int).Mul(big.NewInt(10000000), big.NewInt(10000000))
+	// DEPRECATED Now uses 12. Move to amount.One
+	ethPrecision = new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1000000))
 )
 
 func init() {

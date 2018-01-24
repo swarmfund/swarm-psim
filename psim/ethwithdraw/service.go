@@ -6,6 +6,8 @@ import (
 
 	"time"
 
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -17,7 +19,6 @@ import (
 )
 
 type Service struct {
-	ctx        context.Context
 	log        *logan.Entry
 	horizon    *horizon.Connector
 	config     Config
@@ -99,23 +100,23 @@ type Withdraw struct {
 	Approved bool
 }
 
-func (s *Service) processRequests() {
+func (s *Service) processRequests(ctx context.Context) {
 	do := func(log *logan.Entry, withdraw *Withdraw) (err error) {
 		defer func() {
-			if rvr := recover(); rvr != nil {
-				err = errors.FromPanic(rvr)
-			}
+			//if rvr := recover(); rvr != nil {
+			//	err = errors.FromPanic(rvr)
+			//}
 		}()
 
 		// craft ethereum transaction
-		withdraw.ETH, err = s.craftETH(withdraw)
+		withdraw.ETH, err = s.craftETH(ctx, withdraw)
 		if err != nil {
 			return errors.Wrap(err, "failed craft eth tx")
 		}
 
 		// submit stellar tx
 		if !withdraw.Approved {
-			if err := s.approveWithdraw(withdraw); err != nil {
+			if err := s.approveWithdraw(ctx, withdraw); err != nil {
 				return errors.Wrap(err, "failed to approve request")
 			}
 			log.Info("request approved")
@@ -123,10 +124,10 @@ func (s *Service) processRequests() {
 		}
 
 		// submit eth tx
-		s.submitETH(withdraw.ETH)
+		s.submitETH(ctx, withdraw.ETH)
 
 		// wait while tx is mined
-		s.ensureMined(withdraw.ETH.Hash())
+		s.ensureMined(ctx, withdraw.ETH.Hash())
 
 		return nil
 	}
@@ -143,14 +144,14 @@ func (s *Service) processRequests() {
 	}
 }
 
-func (s *Service) ensureMined(hash common.Hash) {
+func (s *Service) ensureMined(ctx context.Context, hash common.Hash) {
 	do := func(hash common.Hash) (ok bool, err error) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
 				err = errors.FromPanic(rvr)
 			}
 		}()
-		tx, pending, err := s.eth.TransactionByHash(s.ctx, hash)
+		tx, pending, err := s.eth.TransactionByHash(ctx, hash)
 		if err != nil {
 			return false, errors.Wrap(err, "failed to get tx")
 		}
@@ -170,14 +171,14 @@ func (s *Service) ensureMined(hash common.Hash) {
 	}
 }
 
-func (s *Service) submitETH(tx *types.Transaction) {
+func (s *Service) submitETH(ctx context.Context, tx *types.Transaction) {
 	do := func(tx *types.Transaction) (err error) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
 				err = errors.FromPanic(rvr)
 			}
 		}()
-		return s.eth.SendTransaction(s.ctx, tx)
+		return s.eth.SendTransaction(ctx, tx)
 	}
 	entry := s.log.WithField("hash", tx.Hash().Hex())
 	for {
@@ -192,21 +193,23 @@ func (s *Service) submitETH(tx *types.Transaction) {
 	}
 }
 
-func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
+func (s *Service) craftETH(ctx context.Context, withdraw *Withdraw) (*types.Transaction, error) {
 	txFee := new(big.Int).Mul(txGas, s.config.GasPrice)
 
-	nonce, err := s.eth.PendingNonceAt(s.ctx, s.address)
+	nonce, err := s.eth.PendingNonceAt(ctx, s.address)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get nonce")
 	}
 
 	value := new(big.Int).Sub(
 		new(big.Int).Mul(
-			big.NewInt(int64(withdraw.Request.Details.Withdraw.Amount)),
+			big.NewInt(int64(withdraw.Request.Details.Withdraw.DestinationAmount)),
 			ethPrecision,
 		),
 		txFee,
 	)
+
+	fmt.Println(value.String())
 
 	tx, err := s.wallet.SignTX(
 		s.address,
@@ -228,7 +231,7 @@ func (s *Service) craftETH(withdraw *Withdraw) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func (s *Service) approveWithdraw(withdraw *Withdraw) error {
+func (s *Service) approveWithdraw(ctx context.Context, withdraw *Withdraw) error {
 	var builder *xdrbuild.Builder
 	{
 		info, err := s.horizon.Info()
@@ -241,8 +244,12 @@ func (s *Service) approveWithdraw(withdraw *Withdraw) error {
 
 	envelope, err := builder.Transaction(s.config.Source).
 		Op(xdrbuild.ReviewRequestOp{
-			Hash:   withdraw.Request.Hash,
-			ID:     withdraw.Request.ID,
+			Hash: withdraw.Request.Hash,
+			ID:   withdraw.Request.ID,
+			Details: xdrbuild.WithdrawalDetails{
+				// TODO Set Hash of the ETH TX
+				ExternalDetails: "",
+			},
 			Action: xdr.ReviewRequestOpActionApprove,
 		}).
 		Sign(s.config.Signer).
@@ -251,19 +258,25 @@ func (s *Service) approveWithdraw(withdraw *Withdraw) error {
 		return errors.Wrap(err, "failed to build review op")
 	}
 
-	result := s.horizon.Submitter().Submit(s.ctx, envelope)
+	result := s.horizon.Submitter().Submit(ctx, envelope)
+
 	if result.Err != nil {
-		return errors.Wrap(err, "failed to submit review op")
+		return errors.Wrap(result.Err, "failed to submit review op", logan.F{
+			"submit_response_raw":      string(result.RawResponse),
+			"submit_response_tx_code":  result.TXCode,
+			"submit_response_op_codes": result.OpCodes,
+		})
 	}
+
 	return nil
 }
 
 func (s *Service) Run(ctx context.Context) {
-	s.ctx = ctx
-
 	// TODO check there is no pending transactions in the pool
 	// TODO check all approved withdraw requests are really approved
 
 	go s.listenRequests()
-	go s.processRequests()
+	go s.processRequests(ctx)
+
+	<-ctx.Done()
 }
