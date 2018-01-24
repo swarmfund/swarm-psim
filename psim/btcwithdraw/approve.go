@@ -94,7 +94,7 @@ func (s *Service) verifyPreliminaryApprove(ctx context.Context, request horizon.
 	//}
 
 	s.log.WithFields(withdraw.GetRequestLoganFields("request", request)).WithField("tx_hex", btcTXHex).
-		Info("Sent Approve to Verify successfully.")
+		Debug("Verified PreliminaryApprove successfully.")
 
 	return nil
 }
@@ -112,18 +112,22 @@ func (s *Service) verifyApprove(ctx context.Context, request horizon.Request, pa
 
 	btcTXHash, err := s.btcClient.SendRawTX(fullySignedBtcTXHex)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send fully signed BTC TX into Bitcoin network")
+		return errors.Wrap(err, "Failed to send fully signed BTC TX into Bitcoin network", logan.F{
+			"fully_signed_btc_tx_hex": fullySignedBtcTXHex,
+		})
 	}
 
 	err = s.signAndSubmitEnvelope(ctx, *returnedEnvelope)
 	if err != nil {
-		return errors.Wrap(err, "Failed to sign-and-submit Envelope")
+		return errors.Wrap(err, "Failed to sign-and-submit Envelope", logan.F{
+			"envelope_returned_by_verify": returnedEnvelope,
+			"btc_sent_tx_hash":            btcTXHash,
+		})
 	}
 
 	s.log.WithFields(withdraw.GetRequestLoganFields("request", request)).WithFields(logan.F{
-		"fully_signed_tx_hex": fullySignedBtcTXHex,
-		"btc_tx_hash":         btcTXHash,
-	}).Info("Sent Approve to Verify successfully.")
+		"sent_btc_tx_hash": btcTXHash,
+	}).Info("Verified Approve successfully.")
 
 	return nil
 }

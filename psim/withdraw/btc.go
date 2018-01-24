@@ -93,11 +93,11 @@ func ValidateBTCAddress(addr string, defaultNet *chaincfg.Params) error {
 	return err
 }
 
-// ProvePendingBTCRequest returns empty string if the Request is:
-// - of Withdraw type;
+// ProvePendingRequest returns empty string if the Request is:
 // - in pending state;
-// - its DestinationAsset is BTC.
-func ProvePendingBTCRequest(request horizon.Request, neededRequestType int32) string {
+// - type equals `neededRequestType`;
+// - its DestinationAsset equals `asset`.
+func ProvePendingRequest(request horizon.Request, neededRequestType int32, asset string) string {
 	if request.State != RequestStatePending {
 		// State is not pending
 		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
@@ -108,7 +108,7 @@ func ProvePendingBTCRequest(request horizon.Request, neededRequestType int32) st
 		return fmt.Sprintf("Invalid RequestType (%d) expected (%d).", request.Details.RequestType, neededRequestType)
 	}
 
-	if request.Details.Withdraw.DestinationAsset != BTCAsset {
+	if request.Details.Withdraw.DestinationAsset != asset {
 		// Withdraw not to BTC.
 		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", request.Details.Withdraw.DestinationAsset, BTCAsset)
 	}

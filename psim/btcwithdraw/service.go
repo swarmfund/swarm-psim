@@ -115,7 +115,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 // FIXME
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	// FIXME Use new RequestType (pending)
-	if withdraw.ProvePendingBTCRequest(request, int32(xdr.ReviewableRequestTypeWithdraw)) != "" {
+	if withdraw.ProvePendingRequest(request, int32(xdr.ReviewableRequestTypeWithdraw), withdraw.BTCAsset) != "" {
 		return nil
 	}
 
@@ -134,12 +134,13 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	rejectReason := s.getRejectReason(withdrawAddress, withdrawAmount)
 	if rejectReason != "" {
-		s.log.WithFields(fields).WithFields(withdraw.GetRequestLoganFields("request", request)).WithField("reject_reason", rejectReason).
-			Warn("Got BTC Withdraw Request which is invalid due to some RejectReason.")
+		fields["reject_reason"] = rejectReason
 
-		err = s.verifyReject(ctx, request, rejectReason)
+		s.log.WithFields(fields).WithFields(withdraw.GetRequestLoganFields("request", request)).
+			Warn("Got BTC Withdraw Request which is invalid due to the RejectReason.")
+
+		err = s.processRequestReject(ctx, request, rejectReason)
 		if err != nil {
-			fields["reject_reason"] = rejectReason
 			return errors.Wrap(err, "Failed to verify Reject of Request", fields)
 		}
 
