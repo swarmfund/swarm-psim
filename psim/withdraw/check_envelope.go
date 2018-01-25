@@ -37,7 +37,7 @@ func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID
 
 // CheckApproveEnvelope returns text of error, or empty string if Envelope is valid.
 func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash,
-	withdrawAddress string, withdrawAmount float64) (txHex, checkErr string) {
+	withdrawAddress string, withdrawAmount int64) (txHex, checkErr string) {
 
 	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeWithdraw)
 	if generalCheck != "" {

@@ -24,7 +24,7 @@ func (s *Service) getRejectReason(request horizon.Request) RejectReason {
 		return RejectReasonInvalidAddress
 	}
 
-	amount := GetWithdrawAmount(request)
+	amount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
 	if amount < s.offchainHelper.GetMinWithdrawAmount() {
 		return RejectReasonTooLittleAmount
 	}

@@ -66,6 +66,7 @@ func GetWithdrawAddress(request horizon.Request) (string, error) {
 
 // GetWithdrawAmount retrieves DestinationAmount of the Withdraw from Details of the Request
 // and divides this value by the amount.One (the value of one whole unit of currency).
+// DEPRECATED Stop working in floats
 func GetWithdrawAmount(request horizon.Request) float64 {
 	return float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
 }

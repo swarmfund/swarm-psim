@@ -11,6 +11,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -100,7 +101,7 @@ func (h BTCHelper) GetAsset() string {
 //}
 
 // GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
-func (h BTCHelper) GetMinWithdrawAmount() float64 {
+func (h BTCHelper) GetMinWithdrawAmount() int64 {
 	return h.config.MinWithdrawAmount
 }
 
@@ -111,7 +112,7 @@ func (h BTCHelper) ValidateAddress(addr string) error {
 }
 
 // ValidateTx is implementation of OffchainHelper interface from package withdraw.
-func (h BTCHelper) ValidateTx(txHex string, withdrawAddress string, withdrawAmount float64) (string, error) {
+func (h BTCHelper) ValidateTx(txHex string, withdrawAddress string, withdrawAmount int64) (string, error) {
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to decode txHex into bytes")
@@ -154,17 +155,28 @@ func (h BTCHelper) ValidateTx(txHex string, withdrawAddress string, withdrawAmou
 	}
 
 	// Amount
+	// TODO
+	// TODO
+	// TODO Check that Out.Value + fee <= withdrawAmount
+	// TODO
+	// TODO
 	// TODO Take into account BTC fee set by user, when it appears in the Core (if it happens)
-	if (float64(tx.MsgTx().TxOut[0].Value) / 100000000) > withdrawAmount {
-		return fmt.Sprintf("Wrong BTC amount in the first Output of the TX - WithdrawAmount (%d), expected not more than (%.8f).", tx.MsgTx().TxOut[0].Value, withdrawAmount), nil
+	if tx.MsgTx().TxOut[0].Value > withdrawAmount {
+		// TODO Add fee to log.
+		return fmt.Sprintf("Wrong BTC amount in the first Output of the TX - WithdrawAmount (%d), expected not more than (%d).", tx.MsgTx().TxOut[0].Value, withdrawAmount), nil
 	}
 
 	return "", nil
 }
 
+// GetWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
+func (h BTCHelper) ConvertAmount(destinationAmount int64) int64 {
+	return destinationAmount * ((10^8) / amount.One)
+}
+
 // CreateTX is implementation of OffchainHelper interface from package withdraw.
-func (h BTCHelper) CreateTX(addr string, amount float64) (txHex string, err error) {
-	txHex, err = h.btcClient.CreateAndFundRawTX(addr, amount, h.config.HotWalletAddress)
+func (h BTCHelper) CreateTX(addr string, amount int64) (txHex string, err error) {
+	txHex, err = h.btcClient.CreateAndFundRawTX(addr, float64(amount), h.config.HotWalletAddress)
 	if err != nil {
 		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
 			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet")

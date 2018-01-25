@@ -17,7 +17,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Withdraw Address")
 	}
-	withdrawAmount := GetWithdrawAmount(request)
+	withdrawAmount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// TwoStepWithdrawal needs PreliminaryApprove first.
@@ -88,7 +88,7 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 	return nil
 }
 
-func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount float64) error {
+func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount int64) error {
 	returnedEnvelope, err := s.sendRequestToVerifier(VerifyApproveURLSuffix, NewApprove(request.ID, request.Hash, partlySignedOffchainTX))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send Approve to Verify")

@@ -31,6 +31,7 @@ type RequestListener interface {
 	WithdrawalRequests(result chan<- horizon.Request) <-chan error
 }
 
+// TODO Add method getting system precision
 // OffchainHelper is the interface for specific Offchain(BTC or ETH) withdraw services to implement
 // and parametrise the Service.
 type OffchainHelper interface {
@@ -39,7 +40,9 @@ type OffchainHelper interface {
 	GetAsset() string
 	// GetMinWithdrawAmount must return the threshold Withdraw amount value,
 	// WithdrawRequests with amount less than provided by this method will be Rejected.
-	GetMinWithdrawAmount() float64
+	//
+	// Must use the same precision system the other methods in this interface do
+	GetMinWithdrawAmount() int64
 
 	// ValidateAddress must return non-nil error if
 	// provided string representation of Address is invalid for the Offchain network.
@@ -52,11 +55,26 @@ type OffchainHelper interface {
 	//
 	// If was impossible to validate the TX on some reason - method must return non-nil error,
 	// otherwise returned error must be nil.
-	ValidateTx(tx string, withdrawAddress string, withdrawAmount float64) (string, error)
+	ValidateTx(tx string, withdrawAddress string, withdrawAmount int64) (string, error)
+
+	// ConvertAmount must convert DestinationAmount of the Withdraw
+	// provided in integer with system precision to the amount in integer with Offchain precision
+	// such as satoshis int BTC for instance.
+	//
+	// This value will be used to pass into other methods of this interface,
+	// so all methods must use the same precision system.
+	//
+	// Normally this method should do
+	//
+	// 		return destinationAmount * ((10^N) / amount.One)
+	//
+	// where N - is the precision of the Offchain system (8 for Bitcoin - satoshis).
+	// Though wouldn't be so easy, if your precision is 18 (like for Ethereum) :/
+	ConvertAmount(destinationAmount int64) int64
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
 	// This TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
-	CreateTX(withdrawAddr string, withdrawAmount float64) (tx string, err error)
+	CreateTX(withdrawAddr string, withdrawAmount int64) (tx string, err error)
 	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
 	SignTX(tx string) (string, error)
 	// SendTX must spread the TX into Offchain network and return hash of already transmitted TX.
