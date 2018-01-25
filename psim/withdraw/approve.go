@@ -11,6 +11,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
+// ProcessValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
 func (s *Service) processValidPendingRequest(ctx context.Context, request horizon.Request) error {
 	withdrawAddress, err := GetWithdrawAddress(request)
 	if err != nil {
@@ -19,6 +20,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 	withdrawAmount := GetWithdrawAmount(request)
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+		// TwoStepWithdrawal needs PreliminaryApprove first.
 		unsignedOffchainTXHex, err := s.offchainHelper.CreateTX(withdrawAddress, withdrawAmount)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Offchain TX")
@@ -35,10 +37,10 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		return errors.Wrap(err, "Failed to obtain Request from Horizon")
 	}
 
-	// FIXME
 	for newRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+		s.log.WithField("new_request_id", newRequest.ID).
+			Debugf("WithdrawRequest still hasn't changed type to Withdraw(%d). Sleeping for 3 seconds.", xdr.ReviewableRequestTypeWithdraw)
 		// TODO Incremental
-		s.log.WithField("new_request_id", newRequest.ID).Debug("Still hasn't changed type. Sleeping for 3 seconds.")
 		time.Sleep(3 * time.Second)
 		newRequest, err = ObtainRequest(s.horizon.Client(), request.ID)
 		if err != nil {
@@ -46,26 +48,26 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		}
 	}
 
-	unsignedOffchainTXHex, err := GetTXHex(request)
+	unsignedOffchainTX, err := GetTXHex(request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get TX hex from the WithdrawRequest")
 	}
 
-	partlySignedOffchainTXHex, err := s.offchainHelper.SignTX(unsignedOffchainTXHex)
+	partlySignedOffchainTX, err := s.offchainHelper.SignTX(unsignedOffchainTX)
 	if err != nil {
-		return errors.Wrap(err, "Failed to sign TX", logan.F{"tx_being_signed": unsignedOffchainTXHex})
+		return errors.Wrap(err, "Failed to sign TX", logan.F{"tx_being_signed": unsignedOffchainTX})
 	}
 
-	err = s.processApprove(ctx, *newRequest, partlySignedOffchainTXHex, withdrawAddress, withdrawAmount)
+	err = s.processApprove(ctx, *newRequest, partlySignedOffchainTX, withdrawAddress, withdrawAmount)
 	if err != nil {
-		return errors.Wrap(err, "Failed to verify Approve Request", logan.F{"partly_signed_offchain_tx_hex": partlySignedOffchainTXHex})
+		return errors.Wrap(err, "Failed to verify Approve Request", logan.F{"partly_signed_offchain_tx_hex": partlySignedOffchainTX})
 	}
 
 	return nil
 }
 
 func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon.Request, offchainTXHex string) error {
-	returnedEnvelope, err := s.sendRequestToVerify(VerifyPreliminaryApproveURLSuffix, NewApprove(request.ID, request.Hash, offchainTXHex))
+	returnedEnvelope, err := s.sendRequestToVerifier(VerifyPreliminaryApproveURLSuffix, NewApprove(request.ID, request.Hash, offchainTXHex))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send preliminary Approve to Verify")
 	}
@@ -86,21 +88,21 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 	return nil
 }
 
-func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTXHex string, withdrawAddress string, withdrawAmount float64) error {
-	returnedEnvelope, err := s.sendRequestToVerify(VerifyApproveURLSuffix, NewApprove(request.ID, request.Hash, partlySignedOffchainTXHex))
+func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount float64) error {
+	returnedEnvelope, err := s.sendRequestToVerifier(VerifyApproveURLSuffix, NewApprove(request.ID, request.Hash, partlySignedOffchainTX))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send Approve to Verify")
 	}
 
-	fullySignedOffchainTXHex, checkErr := s.checkApproveEnvelope(*returnedEnvelope, request.ID, request.Hash, withdrawAddress, withdrawAmount, s.offchainHelper.GetHotWallerAddress())
+	fullySignedOffchainTX, checkErr := s.checkApproveEnvelope(*returnedEnvelope, request.ID, request.Hash, withdrawAddress, withdrawAmount)
 	if checkErr != "" {
 		return errors.Wrap(err, "Envelope returned by Verify is invalid")
 	}
 
-	offchainTXHash, err := s.offchainHelper.SendTX(fullySignedOffchainTXHex)
+	offchainTXHash, err := s.offchainHelper.SendTX(fullySignedOffchainTX)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send fully signed Offchain TX into Offchain network", logan.F{
-			"fully_signed_offchain_tx_hex": fullySignedOffchainTXHex,
+			"fully_signed_offchain_tx_hex": fullySignedOffchainTX,
 		})
 	}
 
@@ -114,7 +116,7 @@ func (s *Service) processApprove(ctx context.Context, request horizon.Request, p
 
 	s.log.WithFields(GetRequestLoganFields("request", request)).WithFields(logan.F{
 		"sent_offchain_tx_hash": offchainTXHash,
-	}).Info("Verified Approve successfully.")
+	}).Info("Processed Approve of WithdrawRequest successfully.")
 
 	return nil
 }

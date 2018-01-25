@@ -29,7 +29,7 @@ func New(config Config, log *logan.Entry, connector *horizon.Connector) *Service
 	}
 }
 
-// Run will return closed channel and only when work is finished.
+// Run will returns only when work is finished.
 func (s *Service) Run(ctx context.Context) {
 	s.logger.Info("Starting.")
 

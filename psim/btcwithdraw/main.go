@@ -72,11 +72,13 @@ type BTCClient interface {
 	GetNetParams() *chaincfg.Params
 }
 
+// BTCHelper is BTC specific implementation of the OffchainHelper interface from package withdraw.
 type BTCHelper struct {
 	config    Config
 	btcClient BTCClient
 }
 
+// New is constructor for BTCHelper.
 func New(config Config, btcClient BTCClient) *BTCHelper {
 	return &BTCHelper{
 		config:    config,
@@ -85,24 +87,30 @@ func New(config Config, btcClient BTCClient) *BTCHelper {
 }
 
 // TODO Config
+// GetAsset is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) GetAsset() string {
 	// TODO Config
 	return "BTC"
 }
 
-func (h BTCHelper) GetHotWallerAddress() string {
-	return h.config.HotWalletAddress
-}
+// TODO Remove me.
+// GetHotWallerAddress is implementation of OffchainHelper interface from package withdraw.
+//func (h BTCHelper) GetHotWallerAddress() string {
+//	return h.config.HotWalletAddress
+//}
 
+// GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) GetMinWithdrawAmount() float64 {
 	return h.config.MinWithdrawAmount
 }
 
+// ValidateAddress is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) ValidateAddress(addr string) error {
 	_, err := btcutil.DecodeAddress(addr, h.btcClient.GetNetParams())
 	return err
 }
 
+// ValidateTx is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) ValidateTx(txHex string, withdrawAddress string, withdrawAmount float64) (string, error) {
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
@@ -154,6 +162,7 @@ func (h BTCHelper) ValidateTx(txHex string, withdrawAddress string, withdrawAmou
 	return "", nil
 }
 
+// CreateTX is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) CreateTX(addr string, amount float64) (txHex string, err error) {
 	txHex, err = h.btcClient.CreateAndFundRawTX(addr, amount, h.config.HotWalletAddress)
 	if err != nil {
@@ -167,10 +176,12 @@ func (h BTCHelper) CreateTX(addr string, amount float64) (txHex string, err erro
 	return txHex, nil
 }
 
+// SignTX is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) SignTX(txHex string) (string, error) {
 	return h.btcClient.SignAllTXInputs(txHex, h.config.HotWalletScriptPubKey, h.config.HotWalletRedeemScript, h.config.PrivateKey)
 }
 
+// SendTX is implementation of OffchainHelper interface from package withdraw.
 func (h BTCHelper) SendTX(txHex string) (txHash string, err error) {
 	return h.btcClient.SendRawTX(txHex)
 }

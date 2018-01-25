@@ -14,6 +14,8 @@ const (
 	RequestStatePending int32 = 1
 )
 
+// TODO Functions in this file should probably become private.
+
 var (
 	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json of WithdrawalRequest.")
 	ErrMissingTXHex      = errors.New("Missing Offchain TX (tx_hex field) in the ExternalDetails json of WithdrawalRequest.")
@@ -87,7 +89,9 @@ func GetTXHex(request horizon.Request) (string, error) {
 	return txHex, nil
 }
 
-// TODO Comment
+// ObtainRequest gets Request by the requestID from Horizon, using provided horizonConnector.
+// Error means that could not get response from Horizon
+// or failed to unmarshal the response into horizon.Request.
 func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Request, error) {
 	respBytes, err := horizonClient.Get(fmt.Sprintf("/requests/%d", requestID))
 	if err != nil {
@@ -109,6 +113,8 @@ func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Re
 // - in pending state;
 // - type equals `neededRequestType`;
 // - its DestinationAsset equals `asset`.
+//
+// Otherwise returns string describing the validation error.
 func ProvePendingRequest(request horizon.Request, neededRequestType *int32, asset string) string {
 	if request.State != RequestStatePending {
 		// State is not pending

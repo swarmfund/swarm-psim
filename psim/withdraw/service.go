@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	ErrNoVerifyServices    = errors.New("No Withdraw Verify services were found.")
-	ErrBadStatusFromVerify = errors.New("Unsuccessful status code from Verify.")
+	ErrNoVerifierServices    = errors.New("No Withdraw Verify services were found.")
+	ErrBadStatusFromVerifier = errors.New("Unsuccessful status code from Verify.")
 )
 
 // RequestListener is the interface, which must be implemented
@@ -31,38 +31,60 @@ type RequestListener interface {
 	WithdrawalRequests(result chan<- horizon.Request) <-chan error
 }
 
-// TODO Comment
+// OffchainHelper is the interface for specific Offchain(BTC or ETH) withdraw services to implement
+// and parametrise the Service.
 type OffchainHelper interface {
-	// TODO Comment for all methods
+	// GetAsset must return string code of the Offchain asset the Helper works with.
+	// The returned asset is used to filter WithdrawRequests.
 	GetAsset() string
-	GetHotWallerAddress() string
+	// GetMinWithdrawAmount must return the threshold Withdraw amount value,
+	// WithdrawRequests with amount less than provided by this method will be Rejected.
 	GetMinWithdrawAmount() float64
 
+	// ValidateAddress must return non-nil error if
+	// provided string representation of Address is invalid for the Offchain network.
+	//
+	// This method is used during validation of WithdrawRequest and Requests with
+	// invalid Addresses will be rejected.
 	ValidateAddress(addr string) error
-	ValidateTx(txHex string, withdrawAddress string, withdrawAmount float64) (string, error)
+	// ValidateTx must return string explanation of validation error,
+	// if the TX pays money not to the `withdrawAddress` or amount is bigger than `withdrawAmount`.
+	//
+	// If was impossible to validate the TX on some reason - method must return non-nil error,
+	// otherwise returned error must be nil.
+	ValidateTx(tx string, withdrawAddress string, withdrawAmount float64) (string, error)
 
-	CreateTX(addr string, amount float64) (txHex string, err error)
-	SignTX(txHex string) (string, error)
-	SendTX(txHex string) (txHash string, err error)
+	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
+	// This TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
+	CreateTX(withdrawAddr string, withdrawAmount float64) (tx string, err error)
+	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
+	SignTX(tx string) (string, error)
+	// SendTX must spread the TX into Offchain network and return hash of already transmitted TX.
+	SendTX(tx string) (txHash string, err error)
 }
 
+// Service is abstract withdraw service, which approves or rejects WithdrawRequest,
+// communicating with withdraw verify service for multisig.
+//
+// To do all the Offchain(BTC or ETH) stuff, Service uses offchainHelper (implementor of the OffchainHelper interface).
 type Service struct {
-	verifyServiceName string
-	signerKP          keypair.Full `fig:"signer" mapstructure:"signer"`
-	log               *logan.Entry
-	requestListener   RequestListener
-	horizon           *horizon.Connector
-	xdrbuilder        *xdrbuild.Builder
-	discovery         *discovery.Client
-	offchainHelper    OffchainHelper
+	verifierServiceName string
+	signerKP            keypair.Full
+	log                 *logan.Entry
+	requestListener     RequestListener
+	horizon             *horizon.Connector
+	xdrbuilder          *xdrbuild.Builder
+	discovery           *discovery.Client
+	offchainHelper      OffchainHelper
 
 	requests              chan horizon.Request
 	requestListenerErrors <-chan error
 }
 
+// New is constructor for Service.
 func New(
 	serviceName string,
-	verifyServiceName string,
+	verifierServiceName string,
 	signerKP keypair.Full,
 	log *logan.Entry,
 	requestListener RequestListener,
@@ -73,20 +95,20 @@ func New(
 ) *Service {
 
 	return &Service{
-		verifyServiceName: verifyServiceName,
-		signerKP:          signerKP,
-		log:               log.WithField("service", serviceName),
-		requestListener:   requestListener,
-		horizon:           horizonConnector,
-		xdrbuilder:        builder,
-		discovery:         discoveryClient,
-		offchainHelper:    helper,
+		verifierServiceName: verifierServiceName,
+		signerKP:            signerKP,
+		log:                 log.WithField("service", serviceName),
+		requestListener:     requestListener,
+		horizon:             horizonConnector,
+		xdrbuilder:          builder,
+		discovery:           discoveryClient,
+		offchainHelper:      helper,
 
 		requests: make(chan horizon.Request),
 	}
 }
 
-// Run is a blocking method, it returns closed channel only when it has finishing job.
+// Run is a blocking method, it returns only when ctx closes.
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
@@ -113,16 +135,19 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	if ProvePendingRequest(request, nil, s.offchainHelper.GetAsset()) != "" {
+		// Not a pending or asset doesn't match.
 		return nil
 	}
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) &&
 		request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+		// Not a Withdraw at all.
 		return nil
 	}
 
-	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
-		s.log.WithFields(GetRequestLoganFields("request", request)).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
+	s.log.WithFields(GetRequestLoganFields("request", request)).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
 
+	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
 		rejectReason := s.getRejectReason(request)
 		if rejectReason != "" {
 			s.log.WithField("reject_reason", rejectReason).WithFields(GetRequestLoganFields("request", request)).
@@ -140,6 +165,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		}
 	}
 
+	// processValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
 	err := s.processValidPendingRequest(ctx, request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process valid pending Request")
@@ -148,13 +174,13 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	return nil
 }
 
-func (s *Service) sendRequestToVerify(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
+func (s *Service) sendRequestToVerifier(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
 	rawRequestBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to marshal RequestBody")
 	}
 
-	url, err := s.getVerifyURL()
+	url, err := s.getVerifierURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")
 	}
@@ -185,7 +211,7 @@ func (s *Service) sendRequestToVerify(urlSuffix string, request interface{}) (*x
 	fields["response_body"] = string(responseBytes)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.From(ErrBadStatusFromVerify, fields)
+		return nil, errors.From(ErrBadStatusFromVerifier, fields)
 	}
 
 	envelopeResponse := EnvelopeResponse{}
@@ -221,13 +247,13 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 	return nil
 }
 
-func (s *Service) getVerifyURL() (string, error) {
-	services, err := s.discovery.DiscoverService(s.verifyServiceName)
+func (s *Service) getVerifierURL() (string, error) {
+	services, err := s.discovery.DiscoverService(s.verifierServiceName)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifyServiceName))
+		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
 	}
 	if len(services) == 0 {
-		return "", ErrNoVerifyServices
+		return "", ErrNoVerifierServices
 	}
 
 	return services[0].Address, nil

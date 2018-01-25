@@ -33,7 +33,7 @@ func (s *Service) getRejectReason(request horizon.Request) RejectReason {
 }
 
 func (s *Service) processRequestReject(ctx context.Context, request horizon.Request, reason RejectReason) error {
-	returnedEnvelope, err := s.sendRequestToVerify(VerifyRejectURLSuffix, NewReject(request.ID, request.Hash, reason))
+	returnedEnvelope, err := s.sendRequestToVerifier(VerifyRejectURLSuffix, NewReject(request.ID, request.Hash, reason))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send Reject to Verify")
 	}

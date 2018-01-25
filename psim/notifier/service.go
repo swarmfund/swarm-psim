@@ -36,7 +36,6 @@ func New(
 }
 
 // Run start service executing
-// returns chan of processing errors.
 func (s *Service) Run(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	// TODO Make runners return error

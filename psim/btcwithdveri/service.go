@@ -62,6 +62,7 @@ func New(log *logan.Entry, config Config,
 	}
 }
 
+// TODO Comment
 func (s *Service) Run(ctx context.Context) {
 	// TODO Wait for acquireLeadershipEndlessly on shutdown
 	go app.RunOverIncrementalTimer(ctx, s.log, "btc_withdraw_verify_discovery_reregisterer", s.ensureServiceInDiscoveryOnce,
