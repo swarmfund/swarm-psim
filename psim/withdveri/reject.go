@@ -1,4 +1,4 @@
-package btcwithdveri
+package withdveri
 
 import (
 	"fmt"
@@ -44,7 +44,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// RejectRequest is valid
-	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.SourceKP).Op(xdrbuild.ReviewRequestOp{
+	signedEnvelope, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
 		ID:     rejectRequest.Request.ID,
 		Hash:   rejectRequest.Request.Hash,
 		Action: xdr.ReviewRequestOpActionPermanentReject,
@@ -52,7 +52,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 			ExternalDetails: "",
 		},
 		Reason: string(rejectRequest.RejectReason),
-	}).Sign(s.config.SignerKP).Marshal()
+	}).Sign(s.signerKP).Marshal()
 	if err != nil {
 		logger.WithError(err).Error("Failed to marshal signed Envelope.")
 		ape.RenderErr(w, r, problems.ServerError(err))
@@ -93,7 +93,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	case withdraw.RejectReasonInvalidAddress:
 		return s.validateInvalidAddress(addr)
 	case withdraw.RejectReasonTooLittleAmount:
-		amount := withdraw.GetWithdrawAmount(request)
+		amount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
 		return s.validateTooLittleAmount(amount)
 	}
 
@@ -101,18 +101,18 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 }
 
 func (s *Service) validateInvalidAddress(addr string) string {
-	err := withdraw.ValidateBTCAddress(addr, s.btcClient.GetNetParams())
+	err := s.offchainHelper.ValidateAddress(addr)
 	if err != nil {
 		return ""
 	} else {
-		return fmt.Sprintf("BTC Address '%s' is actually valid.", addr)
+		return fmt.Sprintf("The Address '%s' is actually valid.", addr)
 	}
 }
 
-func (s *Service) validateTooLittleAmount(amount float64) string {
-	if amount < s.config.MinWithdrawAmount {
+func (s *Service) validateTooLittleAmount(amount int64) string {
+	if amount < s.offchainHelper.GetMinWithdrawAmount() {
 		return ""
 	} else {
-		return fmt.Sprintf("Amount is not actually little. I consider %f as MinWithdrawAmount.", s.config.MinWithdrawAmount)
+		return fmt.Sprintf("Amount is not actually little. I consider %f as MinWithdrawAmount.", s.offchainHelper.GetMinWithdrawAmount())
 	}
 }

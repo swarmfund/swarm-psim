@@ -13,7 +13,7 @@ type Config struct {
 	HotWalletScriptPubKey string `fig:"hot_wallet_script_pub_key"`
 	HotWalletRedeemScript string `fig:"hot_wallet_redeem_script"`
 
-	MinWithdrawAmount float64 `fig:"min_withdraw_amount"`
+	MinWithdrawAmount int64 `fig:"min_withdraw_amount"`
 
 	SourceKP keypair.Address `fig:"source"`
 	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`

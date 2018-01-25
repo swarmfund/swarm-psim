@@ -1,4 +1,4 @@
-package btcwithdveri
+package withdveri
 
 import (
 	"encoding/json"
@@ -35,11 +35,11 @@ func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// ApproveRequest is valid
-	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.SourceKP).Op(xdrbuild.ReviewRequestOp{
+	signedEnvelope, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
 		ID:     approveRequest.Request.ID,
 		Hash:   approveRequest.Request.Hash,
 		Action: xdr.ReviewRequestOpActionApprove,
-	}).Sign(s.config.SignerKP).Marshal()
+	}).Sign(s.signerKP).Marshal()
 	if err != nil {
 		logger.WithError(err).Error("Failed to marshal signed Envelope")
 		ape.RenderErr(w, r, problems.ServerError(err))
@@ -71,14 +71,14 @@ func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullySignedBtcTXHex, err := s.btcClient.SignAllTXInputs(approveRequest.TXHex, s.config.HotWalletScriptPubKey, s.config.HotWalletRedeemScript, s.config.PrivateKey)
+	fullySignedOffchainTXHex, err := s.offchainHelper.SignTX(approveRequest.TXHex)
 	if err != nil {
-		logger.WithError(err).Error("Failed to sign BTC TX.")
+		logger.WithError(err).Error("Failed to sign the TX.")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
 	extDetails := withdraw.ExternalDetails{
-		TXHex: fullySignedBtcTXHex,
+		TXHex: fullySignedOffchainTXHex,
 	}
 	extDetBytes, err := json.Marshal(extDetails)
 	if err != nil {
@@ -88,14 +88,14 @@ func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ApproveRequest is valid
-	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.SourceKP).Op(xdrbuild.ReviewRequestOp{
+	signedEnvelope, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
 		ID:     approveRequest.Request.ID,
 		Hash:   approveRequest.Request.Hash,
 		Action: xdr.ReviewRequestOpActionApprove,
 		Details: xdrbuild.WithdrawalDetails{
 			ExternalDetails: string(extDetBytes),
 		},
-	}).Sign(s.config.SignerKP).Marshal()
+	}).Sign(s.signerKP).Marshal()
 	if err != nil {
 		logger.WithError(err).Error("Failed to marshal signed Envelope.")
 		ape.RenderErr(w, r, problems.ServerError(err))
@@ -106,7 +106,7 @@ func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Verified Approve successfully.")
 }
 
-func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash string, neededRequestType int32, btcTXHex string) (checkErr string, err error) {
+func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash string, neededRequestType int32, txHex string) (checkErr string, err error) {
 	request, checkErr, err := s.obtainAndCheckRequest(requestID, requestHash, neededRequestType)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to obtain-and-check Request")
@@ -119,11 +119,11 @@ func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash s
 	if err != nil {
 		return err.Error(), err
 	}
-	amount := withdraw.GetWithdrawAmount(*request)
+	amount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
 
-	validationErr, err := withdraw.ValidateBTCTx(btcTXHex, s.btcClient.GetNetParams(), addr, s.config.HotWalletAddress, amount)
+	validationErr, err := s.offchainHelper.ValidateTX(txHex, addr, amount)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to validate BTC TX", logan.F{
+		return "", errors.Wrap(err, "Failed to validate the TX", logan.F{
 			"request_addr":   addr,
 			"request_amount": amount,
 		})

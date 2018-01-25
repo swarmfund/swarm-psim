@@ -57,7 +57,7 @@ func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestI
 		return "", fmt.Sprintf("Cannot unmarshal Withdrawal ExternalDetails of Op: %s; extDetails: (%s).", err.Error(), extDetails)
 	}
 
-	validationErr, err := s.offchainHelper.ValidateTx(offchainDetails.TXHex, withdrawAddress, withdrawAmount)
+	validationErr, err := s.offchainHelper.ValidateTX(offchainDetails.TXHex, withdrawAddress, withdrawAmount)
 	if err != nil {
 		return "", fmt.Sprintf("Failed to validate Offchain TX: %s", err.Error())
 	}

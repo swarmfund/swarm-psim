@@ -31,10 +31,10 @@ type RequestListener interface {
 	WithdrawalRequests(result chan<- horizon.Request) <-chan error
 }
 
-// TODO Add method getting system precision
-// OffchainHelper is the interface for specific Offchain(BTC or ETH) withdraw services to implement
+// CommonOffchainHelper is the interface for specific Offchain(BTC or ETH)
+// withdraw and withdraw-verify services to implement
 // and parametrise the Service.
-type OffchainHelper interface {
+type CommonOffchainHelper interface {
 	// GetAsset must return string code of the Offchain asset the Helper works with.
 	// The returned asset is used to filter WithdrawRequests.
 	GetAsset() string
@@ -50,12 +50,12 @@ type OffchainHelper interface {
 	// This method is used during validation of WithdrawRequest and Requests with
 	// invalid Addresses will be rejected.
 	ValidateAddress(addr string) error
-	// ValidateTx must return string explanation of validation error,
+	// ValidateTX must return string explanation of validation error,
 	// if the TX pays money not to the `withdrawAddress` or amount is bigger than `withdrawAmount`.
 	//
 	// If was impossible to validate the TX on some reason - method must return non-nil error,
 	// otherwise returned error must be nil.
-	ValidateTx(tx string, withdrawAddress string, withdrawAmount int64) (string, error)
+	ValidateTX(tx string, withdrawAddress string, withdrawAmount int64) (string, error)
 
 	// ConvertAmount must convert DestinationAmount of the Withdraw
 	// provided in integer with system precision to the amount in integer with Offchain precision
@@ -72,11 +72,18 @@ type OffchainHelper interface {
 	// Though wouldn't be so easy, if your precision is 18 (like for Ethereum) :/
 	ConvertAmount(destinationAmount int64) int64
 
+	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
+	SignTX(tx string) (string, error)
+}
+
+// OffchainHelper is the interface for specific Offchain(BTC or ETH) withdraw services to implement
+// and parametrise the Service.
+type OffchainHelper interface {
+	CommonOffchainHelper
+
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
 	// This TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
 	CreateTX(withdrawAddr string, withdrawAmount int64) (tx string, err error)
-	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
-	SignTX(tx string) (string, error)
 	// SendTX must spread the TX into Offchain network and return hash of already transmitted TX.
 	SendTX(tx string) (txHash string, err error)
 }

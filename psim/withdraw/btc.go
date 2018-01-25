@@ -13,11 +13,6 @@ import (
 
 // TODO Move BTC specific thing out of this package
 
-const (
-	// DEPRECATED, store this thing in Config
-	BTCAsset = "BTC"
-)
-
 // TODO Comment
 //
 // DEPRECATED Use the one in your specific package
