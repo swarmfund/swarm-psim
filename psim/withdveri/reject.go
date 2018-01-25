@@ -34,7 +34,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger = logger.WithFields(withdraw.GetRequestLoganFields("request", *request))
+	logger = logger.WithField("request", *request)
 
 	validationErr := s.validateRejectReason(*request, rejectRequest.RejectReason)
 	if validationErr != "" {
@@ -68,7 +68,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	addr, err := withdraw.GetWithdrawAddress(request)
 	if err != nil {
 		switch errors.Cause(err) {
-		case withdraw.ErrMissingAddress:
+		case withdraw.ErrMissingTwoStepWithdraw, withdraw.ErrMissingAddress:
 			gettingAddressErr = withdraw.RejectReasonMissingAddress
 		case withdraw.ErrAddressNotAString:
 			gettingAddressErr = withdraw.RejectReasonAddressNotAString
@@ -93,7 +93,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	case withdraw.RejectReasonInvalidAddress:
 		return s.validateInvalidAddress(addr)
 	case withdraw.RejectReasonTooLittleAmount:
-		amount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
+		amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestinationAmount))
 		return s.validateTooLittleAmount(amount)
 	}
 

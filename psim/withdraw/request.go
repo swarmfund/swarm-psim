@@ -6,7 +6,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
@@ -17,41 +16,30 @@ const (
 // TODO Functions in this file should probably become private.
 
 var (
-	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json of WithdrawalRequest.")
-	ErrMissingTXHex      = errors.New("Missing Offchain TX (tx_hex field) in the ExternalDetails json of WithdrawalRequest.")
+	ErrMissingWithdraw        = errors.New("Missing  in the ExternalDetails json of WithdrawRequest.")
+	ErrMissingTwoStepWithdraw = errors.New("Missing  in the ExternalDetails json of TowStepWithdrawRequest.")
+
+	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json of TwoStepWithdrawRequest.")
 	ErrAddressNotAString = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
-	ErrTXHexNotAString   = errors.New("Offchain TX (tx_hex field) in ExternalDetails of WithdrawalRequest is not a string.")
+
+	ErrMissingTXHex    = errors.New("Missing Offchain TX (tx_hex field) in the PreConfirmationDetails json of WithdrawRequest.")
+	ErrTXHexNotAString = errors.New("Offchain TX (tx_hex field) in ExternalDetails of WithdrawRequest is not a string.")
 )
-
-// GetRequestLoganFields is a helper which builds map of logan.F for logging, so that not to do this
-// each time horizon.Request needs to be logged.
-//
-// This method exists because of the lack of GetLoganFields() method on the horizon.Request type.
-func GetRequestLoganFields(key string, request horizon.Request) logan.F {
-	result := logan.F{
-		key + "_id":    request.ID,
-		key + "_state": request.State,
-	}
-
-	if request.Details.Withdraw != nil {
-		detKey := key + "_withdraw_details"
-
-		result[detKey+"_amount"] = request.Details.Withdraw.Amount
-		result[detKey+"_destination_amount"] = request.Details.Withdraw.DestinationAmount
-		result[detKey+"_balance_id"] = request.Details.Withdraw.BalanceID
-		result[detKey+"_external_details"] = request.Details.Withdraw.ExternalDetails
-	}
-
-	return result
-}
 
 // GetWithdrawAddress obtains withdraw Address from the `address` field of the ExternalDetails
 // of Withdraw in Request Details.
 //
 // Returns error if no `address` field in the ExternalDetails map or if the field is not a string.
-// Only returns errors with causes either ErrMissingAddress or ErrAddressNotAString.
+// Only returns errors with causes:
+// - ErrMissingTwoStepWithdraw
+// - ErrMissingAddress
+// - ErrAddressNotAString.
 func GetWithdrawAddress(request horizon.Request) (string, error) {
-	addrValue, ok := request.Details.Withdraw.ExternalDetails["address"]
+	if request.Details.TwoStepWithdraw == nil {
+		return "", ErrMissingTwoStepWithdraw
+	}
+
+	addrValue, ok := request.Details.TwoStepWithdraw.ExternalDetails["address"]
 	if !ok {
 		return "", ErrMissingAddress
 	}
@@ -64,11 +52,16 @@ func GetWithdrawAddress(request horizon.Request) (string, error) {
 	return addr, nil
 }
 
-// GetWithdrawAmount retrieves DestinationAmount of the Withdraw from Details of the Request
-// and divides this value by the amount.One (the value of one whole unit of currency).
-// DEPRECATED Stop working in floats
-func GetWithdrawAmount(request horizon.Request) float64 {
-	return float64(int64(request.Details.Withdraw.DestinationAmount)) / amount.One
+// TODO Comment
+func GetWithdrawAmount(request horizon.Request) (int64, error) {
+	if request.Details.TwoStepWithdraw != nil {
+		return int64(request.Details.TwoStepWithdraw.DestinationAmount), nil
+	}
+	if request.Details.Withdraw != nil {
+		return int64(request.Details.Withdraw.DestinationAmount), nil
+	}
+
+	return 0, ErrMissingTwoStepWithdraw
 }
 
 // GetTXHex obtains Withdraw TX hex from the `tx_hex` field of the ExternalDetails
@@ -77,7 +70,11 @@ func GetWithdrawAmount(request horizon.Request) float64 {
 // Returns error if no `tx_hex` field in the ExternalDetails map or if the field is not a string.
 // Only returns errors with causes equal to either ErrMissingTXHex or ErrTXHexNotAString.
 func GetTXHex(request horizon.Request) (string, error) {
-	txHexValue, ok := request.Details.Withdraw.ExternalDetails["tx_hex"]
+	if request.Details.Withdraw == nil {
+		return "", ErrMissingWithdraw
+	}
+
+	txHexValue, ok := request.Details.Withdraw.PreConfirmationDetails["tx_hex"]
 	if !ok {
 		return "", ErrMissingTXHex
 	}
@@ -116,22 +113,34 @@ func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Re
 // - its DestinationAsset equals `asset`.
 //
 // Otherwise returns string describing the validation error.
-func ProvePendingRequest(request horizon.Request, neededRequestType *int32, asset string) string {
+func ProvePendingRequest(request horizon.Request, asset string, neededRequestTypes ...int32) string {
 	if request.State != RequestStatePending {
 		// State is not pending
 		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
 	}
 
-	if neededRequestType != nil {
-		if request.Details.RequestType != *neededRequestType {
-			// not a withdraw request
-			return fmt.Sprintf("Invalid RequestType (%d) expected (%d).", request.Details.RequestType, neededRequestType)
+	var isTypeValid bool
+	for _, neededRequestType := range neededRequestTypes {
+		if request.Details.RequestType == neededRequestType {
+			//return fmt.Sprintf("Invalid RequestType (%d) expected (%d).", request.Details.RequestType, neededRequestType)
+			isTypeValid = true
 		}
 	}
+	if !isTypeValid {
+		return fmt.Sprintf("Invalid RequestType (%d) expected (%v).", request.Details.RequestType, neededRequestTypes)
+	}
 
-	if request.Details.Withdraw.DestinationAsset != asset {
+	var destAsset string
+	if request.Details.TwoStepWithdraw != nil {
+		destAsset = request.Details.TwoStepWithdraw.DestinationAsset
+	}
+	if request.Details.Withdraw != nil {
+		destAsset = request.Details.Withdraw.DestinationAsset
+	}
+
+	if destAsset != asset {
 		// Withdraw not to BTC.
-		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", request.Details.Withdraw.DestinationAsset, asset)
+		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", destAsset, asset)
 	}
 
 	return ""

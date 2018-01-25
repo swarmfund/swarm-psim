@@ -12,7 +12,7 @@ func (s *Service) getRejectReason(request horizon.Request) RejectReason {
 	address, err := GetWithdrawAddress(request)
 	if err != nil {
 		switch errors.Cause(err) {
-		case ErrMissingAddress:
+		case ErrMissingTwoStepWithdraw, ErrMissingAddress:
 			return RejectReasonMissingAddress
 		case ErrAddressNotAString:
 			return RejectReasonAddressNotAString
@@ -24,7 +24,7 @@ func (s *Service) getRejectReason(request horizon.Request) RejectReason {
 		return RejectReasonInvalidAddress
 	}
 
-	amount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
+	amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestinationAmount))
 	if amount < s.offchainHelper.GetMinWithdrawAmount() {
 		return RejectReasonTooLittleAmount
 	}
@@ -53,7 +53,7 @@ func (s *Service) processRequestReject(ctx context.Context, request horizon.Requ
 		})
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).WithField("reject_reason", reason).
+	s.log.WithField("request", request).WithField("reject_reason", reason).
 		Info("Processed PermanentReject successfully.")
 
 	return nil

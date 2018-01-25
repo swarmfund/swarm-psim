@@ -17,7 +17,11 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Withdraw Address")
 	}
-	withdrawAmount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
+	amount, err := GetWithdrawAmount(request)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get Withdraw Amount")
+	}
+	withdrawAmount := s.offchainHelper.ConvertAmount(amount)
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// TwoStepWithdrawal needs PreliminaryApprove first.
@@ -82,7 +86,7 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 		return errors.Wrap(err, "Failed to sign-and-submit Envelope")
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).WithField("tx_hex", offchainTXHex).
+	s.log.WithField("request", request).WithField("tx_hex", offchainTXHex).
 		Debug("Verified PreliminaryApprove successfully.")
 
 	return nil
@@ -114,7 +118,7 @@ func (s *Service) processApprove(ctx context.Context, request horizon.Request, p
 		})
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).WithFields(logan.F{
+	s.log.WithField("request", request).WithFields(logan.F{
 		"sent_offchain_tx_hash": offchainTXHash,
 	}).Info("Processed Approve of WithdrawRequest successfully.")
 

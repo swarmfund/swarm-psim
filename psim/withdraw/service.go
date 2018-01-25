@@ -149,7 +149,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	case request := <-s.requests:
 		err := s.processRequest(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Withdraw Request", GetRequestLoganFields("request", request))
+			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{"request": request})
 		}
 
 		return nil
@@ -159,8 +159,13 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 }
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	if ProvePendingRequest(request, nil, s.offchainHelper.GetAsset()) != "" {
+	proveErr := ProvePendingRequest(request, s.offchainHelper.GetAsset(), int32(xdr.ReviewableRequestTypeTwoStepWithdrawal), int32(xdr.ReviewableRequestTypeWithdraw))
+	if proveErr != "" {
 		// Not a pending or asset doesn't match.
+		s.log.WithFields(logan.F{
+			"request_id": request.ID,
+			"prove_err":  proveErr,
+		}).Debug("Found not interesting Request.")
 		return nil
 	}
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) &&
@@ -169,13 +174,13 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		return nil
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
+	s.log.WithField("request", request).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
 		rejectReason := s.getRejectReason(request)
 		if rejectReason != "" {
-			s.log.WithField("reject_reason", rejectReason).WithFields(GetRequestLoganFields("request", request)).
+			s.log.WithField("reject_reason", rejectReason).WithField("request", request).
 				Warn("Got Withdraw Request which is invalid due to the RejectReason.")
 
 			err := s.processRequestReject(ctx, request, rejectReason)

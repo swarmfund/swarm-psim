@@ -4,7 +4,6 @@ package btcwithdveri
 import (
 	"context"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"

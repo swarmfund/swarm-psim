@@ -117,9 +117,13 @@ func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash s
 
 	addr, err := withdraw.GetWithdrawAddress(*request)
 	if err != nil {
-		return err.Error(), err
+		return err.Error(), nil
 	}
-	amount := s.offchainHelper.ConvertAmount(int64(request.Details.Withdraw.DestinationAmount))
+	amount, err := withdraw.GetWithdrawAmount(*request)
+	if err != nil {
+		return err.Error(), nil
+	}
+	amount = s.offchainHelper.ConvertAmount(amount)
 
 	validationErr, err := s.offchainHelper.ValidateTX(txHex, addr, amount)
 	if err != nil {
