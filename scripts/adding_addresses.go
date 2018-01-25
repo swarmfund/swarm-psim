@@ -49,7 +49,7 @@ func main() {
 	}
 
 	params := &chaincfg.TestNet3Params
-	privKeys, err := derivePrivateKeys(extPrivKey, params, n)
+	privKeys, err := derivePrivateKeys(extPrivKey, params, n, false)
 	if err != nil {
 		log.WithError(err).Panic("Failed to derive private keys from extended key.")
 		return
@@ -61,7 +61,7 @@ func main() {
 	}
 }
 
-func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int) ([]string, error) {
+func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int, hardened bool) ([]string, error) {
 	extendedKey, err := hdkeychain.NewKeyFromString(extPrivKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create extended Key from base58 extended private key")
@@ -69,7 +69,12 @@ func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int) ([]str
 
 	var result []string
 	for i := 0; i < n; i++ {
-		childKey, err := extendedKey.Child(hdkeychain.HardenedKeyStart + uint32(i))
+		childID := uint32(i)
+		if hardened {
+			childID += hdkeychain.HardenedKeyStart
+		}
+
+		childKey, err := extendedKey.Child(childID)
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to derive child key", logan.F{"i": i})
 		}

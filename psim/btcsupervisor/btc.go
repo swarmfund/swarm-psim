@@ -4,7 +4,8 @@ import (
 	"time"
 
 	"context"
-	"math/big"
+
+	"math"
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -20,7 +21,7 @@ import (
 
 const (
 	runnerName      = "btc_supervisor"
-	baseAsset       = "SUN"
+	btcAsset        = "BTC"
 	referenceMaxLen = 64
 )
 
@@ -136,21 +137,14 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		"tx_hash":         txHash,
 		"btc_addr":        addr58,
 		"account_address": accountAddress,
-	}).
-		Debug("Processing deposit.")
+	}).Debug("Processing deposit.")
 
-	// amount = value / 10^8
-	precisionDiv := new(big.Int).Mul(big.NewInt(100000000), big.NewInt(1))
-	amount := big.NewInt(int64(out.Value))
-	amount = amount.Div(amount, precisionDiv)
-	if !amount.IsUint64() {
-		return errors.New("Amount value overflow.")
-	}
+	emissionAmount := uint64(float64(out.Value) * (amount.One / math.Pow(10, 8)))
 
-	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, amount.Uint64())
+	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, emissionAmount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
-			"converted_amount": amount.Uint64(),
+			"converted_amount": emissionAmount,
 		})
 	}
 
@@ -197,7 +191,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 
 	receiver := ""
 	for _, b := range balances {
-		if b.Asset == baseAsset {
+		if b.Asset == btcAsset {
 			receiver = b.BalanceID
 		}
 	}
@@ -209,7 +203,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	logger.Info("Sending CoinEmissionRequest.")
 
 	tx := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
-		Asset:     baseAsset,
+		Asset:     btcAsset,
 		Reference: reference,
 		Receiver:  receiver,
 		Amount:    emissionAmount,
@@ -223,9 +217,13 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	tx = tx.Sign(s.config.AdditionalSignerKP)
 
 	envelope, err := tx.Marshal()
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal TX into envelope")
+	}
 
 	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
 	if result.Err != nil {
+		// TODO Detect reference duplication errors and never log them
 		logger.WithFields(logan.F{
 			"submit_response_raw":      string(result.RawResponse),
 			"submit_response_tx_code":  result.TXCode,
