@@ -10,7 +10,7 @@ import (
 
 // CheckPreliminaryApproveEnvelope returns text of error, or empty string if Envelope is valid.
 func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash, offchainTXHex string) string {
-	generalCheck := checkEnvelope(envelope, requestID, requestHash)
+	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeTwoStepWithdrawal)
 	if generalCheck != "" {
 		return generalCheck
 	}
@@ -39,7 +39,7 @@ func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID
 func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash,
 	withdrawAddress string, withdrawAmount float64, changeAddress string) (txHex, checkErr string) {
 
-	generalCheck := checkEnvelope(envelope, requestID, requestHash)
+	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeWithdraw)
 	if generalCheck != "" {
 		return "", generalCheck
 	}
@@ -70,7 +70,7 @@ func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestI
 
 // CheckRejectEnvelope returns text of error, or empty string if Envelope is valid.
 func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason RejectReason) string {
-	generalCheck := checkEnvelope(envelope, requestID, requestHash)
+	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeTwoStepWithdrawal)
 	if generalCheck != "" {
 		return generalCheck
 	}
@@ -88,7 +88,7 @@ func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, req
 	return ""
 }
 
-func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string) string {
+func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, requestType xdr.ReviewableRequestType) string {
 	if len(envelope.Tx.Operations) != 1 {
 		return "Number of Operations does not equal 1."
 	}
@@ -104,8 +104,8 @@ func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHa
 		return fmt.Sprintf("Invalid Request Hash (%s), expected (%s).", reqHash, requestHash)
 	}
 
-	if op.RequestDetails.RequestType != xdr.ReviewableRequestTypeWithdraw {
-		return fmt.Sprintf("Invalid RequestType (%d), expected Withdraw(%d).", op.RequestDetails.RequestType, xdr.ReviewableRequestTypeWithdraw)
+	if op.RequestDetails.RequestType != requestType {
+		return fmt.Sprintf("Invalid RequestType (%d), expected Withdraw(%d).", op.RequestDetails.RequestType, requestType)
 	}
 
 	return ""

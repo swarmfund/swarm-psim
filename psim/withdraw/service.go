@@ -111,29 +111,33 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	}
 }
 
-// FIXME
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	// FIXME Use new RequestType (pending)
-	if ProvePendingRequest(request, int32(xdr.ReviewableRequestTypeWithdraw), s.offchainHelper.GetAsset()) != "" {
+	if ProvePendingRequest(request, nil, s.offchainHelper.GetAsset()) != "" {
+		return nil
+	}
+	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) &&
+		request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		return nil
 	}
 
-	s.log.WithFields(GetRequestLoganFields("request", request)).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
+	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+		s.log.WithFields(GetRequestLoganFields("request", request)).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
 
-	rejectReason := s.getRejectReason(request)
-	if rejectReason != "" {
-		s.log.WithField("reject_reason", rejectReason).WithFields(GetRequestLoganFields("request", request)).
-			Warn("Got Withdraw Request which is invalid due to the RejectReason.")
+		rejectReason := s.getRejectReason(request)
+		if rejectReason != "" {
+			s.log.WithField("reject_reason", rejectReason).WithFields(GetRequestLoganFields("request", request)).
+				Warn("Got Withdraw Request which is invalid due to the RejectReason.")
 
-		err := s.processRequestReject(ctx, request, rejectReason)
-		if err != nil {
-			return errors.Wrap(err, "Failed to verify Reject of Request", logan.F{
-				"reject_reason": rejectReason,
-			})
+			err := s.processRequestReject(ctx, request, rejectReason)
+			if err != nil {
+				return errors.Wrap(err, "Failed to verify Reject of Request", logan.F{
+					"reject_reason": rejectReason,
+				})
+			}
+
+			// Request is invalid, Reject was submitted successfully.
+			return nil
 		}
-
-		// Request is invalid, Reject was submitted successfully.
-		return nil
 	}
 
 	err := s.processValidPendingRequest(ctx, request)

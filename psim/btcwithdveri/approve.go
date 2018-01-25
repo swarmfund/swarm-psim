@@ -22,8 +22,7 @@ func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Reque
 
 	logger := s.log.WithField("preliminary_approve_request", approveRequest)
 
-	// FIXME Change RequestType (to pending)
-	checkErr, err := s.obtainAndCheckRequestWithTXHex(approveRequest.Request.ID, approveRequest.Request.Hash, int32(xdr.ReviewableRequestTypeWithdraw), approveRequest.TXHex)
+	checkErr, err := s.obtainAndCheckRequestWithTXHex(approveRequest.Request.ID, approveRequest.Request.Hash, int32(xdr.ReviewableRequestTypeTwoStepWithdrawal), approveRequest.TXHex)
 	if err != nil {
 		logger.WithError(err).Error("Failed to check WithdrawRequest.")
 		ape.RenderErr(w, r, problems.ServerError(err))
