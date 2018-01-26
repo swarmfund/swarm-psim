@@ -17,10 +17,9 @@ type BTCClient interface {
 	GetNetParams() *chaincfg.Params
 }
 
-// AddressQ must be implemented by WatchAddress storage to pass into Service constructor.
-type AccountDataProvider interface {
+// AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
+type AddressProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
-	PriceAt(ctx context.Context, ts time.Time) *int64
 }
 
 // Service implements app.Service interface, it supervises Stripe transactions
@@ -31,21 +30,21 @@ type Service struct {
 	*supervisor.Service
 
 	// TODO Interface?
-	horizon             *horizon.Connector
-	config              Config
-	btcClient           BTCClient
-	accountDataProvider AccountDataProvider
+	horizon         *horizon.Connector
+	config          Config
+	btcClient       BTCClient
+	addressProvider AddressProvider
 }
 
 // New is constructor for the btcsupervisor Service.
-func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClient, addressProvider AccountDataProvider, horizon *horizon.Connector) *Service {
+func New(commonSupervisor *supervisor.Service, config Config, btcClient BTCClient, addressProvider AddressProvider, horizon *horizon.Connector) *Service {
 	result := &Service{
 		Service: commonSupervisor,
 
-		horizon:             horizon,
-		config:              config,
-		btcClient:           btcClient,
-		accountDataProvider: addressProvider,
+		horizon:         horizon,
+		config:          config,
+		btcClient:       btcClient,
+		addressProvider: addressProvider,
 	}
 
 	result.AddRunner(result.processBTCBlocksInfinitely)

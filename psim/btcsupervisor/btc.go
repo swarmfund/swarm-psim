@@ -4,14 +4,15 @@ import (
 	"time"
 
 	"context"
-	"math/big"
+
+	"math"
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
@@ -20,13 +21,12 @@ import (
 
 const (
 	runnerName      = "btc_supervisor"
-	baseAsset       = "SUN"
+	btcAsset        = "BTC"
 	referenceMaxLen = 64
 )
 
 var (
 	lastProcessedBlock uint64
-	errNilPrice        = errors.New("PriceAt of accountDataProvider returned nil Price.")
 )
 
 func (s *Service) processBTCBlocksInfinitely(ctx context.Context) {
@@ -104,7 +104,7 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 
 		addr58 := addrs[0].String()
 
-		accountAddress := s.accountDataProvider.AddressAt(ctx, blockTime, addr58)
+		accountAddress := s.addressProvider.AddressAt(ctx, blockTime, addr58)
 		if app.IsCanceled(ctx) {
 			return nil
 		}
@@ -137,35 +137,21 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		"tx_hash":         txHash,
 		"btc_addr":        addr58,
 		"account_address": accountAddress,
-	}).
-		Debug("Processing deposit.")
+	}).Debug("Processing deposit.")
 
-	price := s.accountDataProvider.PriceAt(ctx, blockTime)
-	if price == nil {
-		return errNilPrice
-	}
+	emissionAmount := uint64(float64(out.Value) * (amount.One / math.Pow(10, 8)))
 
-	// amount = value * price / 10^8
-	div := new(big.Int).Mul(big.NewInt(100000000), big.NewInt(1))
-	bigPrice := big.NewInt(*price)
-
-	amount := new(big.Int).Mul(big.NewInt(int64(out.Value)), bigPrice)
-	amount = amount.Div(amount, div)
-	if !amount.IsUint64() {
-		return errors.New("Amount value overflow.")
-	}
-
-	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, amount.Uint64(), bigPrice.Int64())
+	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, emissionAmount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
-			"converted_amount": amount.Uint64(),
+			"converted_amount": emissionAmount,
 		})
 	}
 
 	return nil
 }
 
-func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int, accountAddress string, amount uint64, price int64) error {
+func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int, accountAddress string, emissionAmount uint64) error {
 	reference := bitcoin.BuildCoinEmissionRequestReference(txHash, outIndex)
 	// Just in case. Reference must not be longer than 64.
 	if len(reference) > referenceMaxLen {
@@ -175,7 +161,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	// TODO Verify
 
 	// TODO Verify
-	//txBuilder := s.PrepareCERTx(reference, accountAddress, amount)
+	//txBuilder := s.PrepareCERTx(reference, accountAddress, emissionAmount)
 	//
 	//envelope, err := txBuilder.Marshal64()
 	//if err != nil {
@@ -205,7 +191,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 
 	receiver := ""
 	for _, b := range balances {
-		if b.Asset == baseAsset {
+		if b.Asset == btcAsset {
 			receiver = b.BalanceID
 		}
 	}
@@ -217,13 +203,13 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	logger.Info("Sending CoinEmissionRequest.")
 
 	tx := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
-		Asset:     baseAsset,
+		Asset:     btcAsset,
 		Reference: reference,
 		Receiver:  receiver,
-		Amount:    amount,
+		Amount:    emissionAmount,
 		Details: resources.DepositDetails{
 			Source: txHash,
-			Price:  types.Amount(price),
+			Price:  amount.One,
 		}.Encode(),
 	})
 
@@ -231,9 +217,13 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	tx = tx.Sign(s.config.AdditionalSignerKP)
 
 	envelope, err := tx.Marshal()
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal TX into envelope")
+	}
 
 	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
 	if result.Err != nil {
+		// TODO Detect reference duplication errors and never log them
 		logger.WithFields(logan.F{
 			"submit_response_raw":      string(result.RawResponse),
 			"submit_response_tx_code":  result.TXCode,
