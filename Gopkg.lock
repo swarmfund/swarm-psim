@@ -86,12 +86,6 @@
   version = "v3.3.1"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/go-errors/errors"
-  packages = ["."]
-  revision = "3afebba5a48dbc89b574d890b6b34d9ee10b4785"
-
-[[projects]]
   name = "github.com/go-ozzo/ozzo-validation"
   packages = ["."]
   revision = "85dcd8368eba387e65a03488b003e233994e87e9"
@@ -297,7 +291,7 @@
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
-  packages = [".","v3","v3/errors","v3/fields"]
+  packages = ["v3","v3/errors","v3/fields"]
   revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
   version = "v3.4"
 
@@ -317,13 +311,13 @@
   branch = "dev"
   name = "gitlab.com/swarmfund/go"
   packages = ["amount","crc16","hash","keypair","network","signcontrol","strkey","xdr","xdrbuild","xdrbuild/internal"]
-  revision = "16b2514d328500b04828abad0c4c6ac7b95d37a8"
+  revision = "dbc914cbd71ae4233fcc30c862d75f97ee1020e2"
 
 [[projects]]
-  branch = "feature/v2"
+  branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
-  packages = [".","internal/resources","v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/transaction","v2/types"]
-  revision = "8ddb1b8249d3f4c2a30be02bf64cd4c5609bcda6"
+  packages = [".","v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/transaction","v2/types"]
+  revision = "4fa607325502c60658368eab2a3ee5d49afed029"
 
 [[projects]]
   branch = "master"
@@ -388,6 +382,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7425e60815ea77eca1d491670200e531a3f0497b9d9d169ec2c1976109c417fc"
+  inputs-digest = "47aed704d38f9e4d62a0729b9a417712d76d38e5c9d2fe8d843583c0f777eb7f"
   solver-name = "gps-cdcl"
   solver-version = 1

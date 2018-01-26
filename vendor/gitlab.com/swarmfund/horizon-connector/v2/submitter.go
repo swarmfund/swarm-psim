@@ -30,6 +30,7 @@ type SubmitResult struct {
 	OpCodes     []string
 }
 
+// TODO Return error
 func (s *Submitter) Submit(ctx context.Context, envelope string) SubmitResult {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(&resources.TransactionSubmit{
