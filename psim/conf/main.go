@@ -27,9 +27,11 @@ type Config interface {
 	Log() (*logan.Entry, error)
 	Horizon() *horizon.Connector
 	Services() []string
+	// TODO Panic instead of returning errors.
 	Stripe() (*client.API, error)
 	Ethereum() *ethclient.Client
 	Bitcoin() *bitcoin.Client
+	// TODO Panic instead of returning errors.
 	Notificator() (*notificator.Connector, error)
 }
 

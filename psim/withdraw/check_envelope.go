@@ -1,18 +1,16 @@
-package btcwithdraw
+package withdraw
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 // CheckPreliminaryApproveEnvelope returns text of error, or empty string if Envelope is valid.
-func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash, btcTXHex string) string {
-	generalCheck := checkEnvelope(envelope, requestID, requestHash)
+func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash, offchainTXHex string) string {
+	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeTwoStepWithdrawal)
 	if generalCheck != "" {
 		return generalCheck
 	}
@@ -23,25 +21,25 @@ func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID
 		return fmt.Sprintf("Invalid ReviewRequestOpAction (%d) expected Approve(%d).", op.Action, xdr.ReviewRequestOpActionApprove)
 	}
 
-	extDetails := op.RequestDetails.Withdrawal.ExternalDetails
-	btcDetails := withdraw.ExternalDetails{}
-	err := json.Unmarshal([]byte(extDetails), &btcDetails)
+	extDetails := op.RequestDetails.TwoStepWithdrawal.ExternalDetails
+	offchainDetails := ExternalDetails{}
+	err := json.Unmarshal([]byte(extDetails), &offchainDetails)
 	if err != nil {
 		return fmt.Sprintf("Cannot unmarshal Withdrawal ExternalDetails of Op: (%s).", extDetails)
 	}
 
-	if btcDetails.TXHex != btcTXHex {
-		return fmt.Sprintf("Invalid BTC TX hex in the Envelope: (%s), expected (%s).", btcDetails.TXHex, btcTXHex)
+	if offchainDetails.TXHex != offchainTXHex {
+		return fmt.Sprintf("Invalid Offchain TX hex in the Envelope: (%s), expected (%s).", offchainDetails.TXHex, offchainTXHex)
 	}
 
 	return ""
 }
 
 // CheckApproveEnvelope returns text of error, or empty string if Envelope is valid.
-func checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash,
-	withdrawAddress string, withdrawAmount float64, changeAddress string, netParams *chaincfg.Params) (txHex, checkErr string) {
+func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash,
+	withdrawAddress string, withdrawAmount int64) (txHex, checkErr string) {
 
-	generalCheck := checkEnvelope(envelope, requestID, requestHash)
+	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeWithdraw)
 	if generalCheck != "" {
 		return "", generalCheck
 	}
@@ -53,26 +51,26 @@ func checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, re
 	}
 
 	extDetails := op.RequestDetails.Withdrawal.ExternalDetails
-	btcDetails := withdraw.ExternalDetails{}
-	err := json.Unmarshal([]byte(extDetails), &btcDetails)
+	offchainDetails := ExternalDetails{}
+	err := json.Unmarshal([]byte(extDetails), &offchainDetails)
 	if err != nil {
 		return "", fmt.Sprintf("Cannot unmarshal Withdrawal ExternalDetails of Op: %s; extDetails: (%s).", err.Error(), extDetails)
 	}
 
-	validationErr, err := withdraw.ValidateBTCTx(btcDetails.TXHex, netParams, withdrawAddress, changeAddress, withdrawAmount)
+	validationErr, err := s.offchainHelper.ValidateTX(offchainDetails.TXHex, withdrawAddress, withdrawAmount)
 	if err != nil {
-		return "", fmt.Sprintf("Failed to validate BTC TX: %s", err.Error())
+		return "", fmt.Sprintf("Failed to validate Offchain TX: %s", err.Error())
 	}
 	if validationErr != "" {
 		return "", validationErr
 	}
 
-	return btcDetails.TXHex, ""
+	return offchainDetails.TXHex, ""
 }
 
 // CheckRejectEnvelope returns text of error, or empty string if Envelope is valid.
-func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason withdraw.RejectReason) string {
-	generalCheck := checkEnvelope(envelope, requestID, requestHash)
+func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, rejectReason RejectReason) string {
+	generalCheck := checkEnvelope(envelope, requestID, requestHash, xdr.ReviewableRequestTypeTwoStepWithdrawal)
 	if generalCheck != "" {
 		return generalCheck
 	}
@@ -90,7 +88,7 @@ func checkRejectEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, req
 	return ""
 }
 
-func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string) string {
+func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHash string, requestType xdr.ReviewableRequestType) string {
 	if len(envelope.Tx.Operations) != 1 {
 		return "Number of Operations does not equal 1."
 	}
@@ -106,8 +104,8 @@ func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHa
 		return fmt.Sprintf("Invalid Request Hash (%s), expected (%s).", reqHash, requestHash)
 	}
 
-	if op.RequestDetails.RequestType != xdr.ReviewableRequestTypeWithdraw {
-		return fmt.Sprintf("Invalid RequestType (%d), expected Withdraw(%d).", op.RequestDetails.RequestType, xdr.ReviewableRequestTypeWithdraw)
+	if op.RequestDetails.RequestType != requestType {
+		return fmt.Sprintf("Invalid RequestType (%d), expected (%d).", op.RequestDetails.RequestType, requestType)
 	}
 
 	return ""

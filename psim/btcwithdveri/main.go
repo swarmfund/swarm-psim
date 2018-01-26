@@ -2,15 +2,18 @@
 package btcwithdveri
 
 import (
-	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/conf"
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/figure"
-	"context"
-	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/withdveri"
 )
 
 func init() {
@@ -44,7 +47,24 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
-	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
-	return New(log, config, horizonConnector, builder, globalConfig.Bitcoin(), listener, globalConfig.Discovery()), nil
+	return withdveri.New(
+		conf.ServiceBTCWithdrawVerify,
+		log,
+		config.SourceKP,
+		config.SignerKP,
+		horizonConnector,
+		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
+		listener,
+		globalConfig.Discovery(),
+		btcwithdraw.NewBTCHelper(
+			log,
+			config.MinWithdrawAmount,
+			config.HotWalletAddress,
+			config.HotWalletScriptPubKey,
+			config.HotWalletRedeemScript,
+			config.PrivateKey,
+			globalConfig.Bitcoin(),
+		),
+	), nil
 }

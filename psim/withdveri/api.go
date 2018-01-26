@@ -1,4 +1,4 @@
-package btcwithdveri
+package withdveri
 
 import (
 	"context"
@@ -59,9 +59,9 @@ func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, ne
 	if request.Hash != requestHash {
 		return nil, fmt.Sprintf("The RequestHash from Horizon (%s) does not match the one provided (%s).", request.Hash, requestHash), nil
 	}
-	proveErr := withdraw.ProvePendingRequest(*request, neededRequestType, withdraw.BTCAsset)
+	proveErr := withdraw.ProvePendingRequest(*request, s.offchainHelper.GetAsset(), neededRequestType)
 	if proveErr != "" {
-		return nil, fmt.Sprintf("Not a pending BTC WithdrawRequest: %s", proveErr), nil
+		return nil, fmt.Sprintf("Not a pending WithdrawRequest: %s", proveErr), nil
 	}
 
 	return request, "", nil

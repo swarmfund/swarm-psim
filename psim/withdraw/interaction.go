@@ -82,5 +82,5 @@ func (r EnvelopeResponse) GetLoganFields() map[string]interface{} {
 // details of Withdrawal Details for ReviewRequest Operation
 // during approve.
 type ExternalDetails struct {
-	TXHex string `json:"tx_hex"`
+	TXHex   string `json:"tx_hex,omitempty"`
 }

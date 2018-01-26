@@ -88,13 +88,13 @@ btc_funnel:
   dust_output_limit: 0.005
 
 btc_withdraw:
-  private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
+  btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
 
   hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
   hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
 
-  min_withdraw_amount: 0.0001
+  min_withdraw_amount: 10000 # satoshis
 
   signer: S_SOME_VALID_PRIVATE_KEY
 
@@ -108,7 +108,7 @@ btc_withdraw_verify:
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
   hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
 
-  min_withdraw_amount: 0.0001
+  min_withdraw_amount: 10000 # satoshis
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY

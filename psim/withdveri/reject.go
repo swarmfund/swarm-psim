@@ -1,10 +1,10 @@
-package btcwithdveri
+package withdveri
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
@@ -22,7 +22,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger := s.log.WithField("reject_request", rejectRequest)
 
-	request, checkErr, err := s.obtainAndCheckRequest(rejectRequest.Request.ID, rejectRequest.Request.Hash, int32(xdr.ReviewableRequestTypeWithdraw))
+	request, checkErr, err := s.obtainAndCheckRequest(rejectRequest.Request.ID, rejectRequest.Request.Hash, int32(xdr.ReviewableRequestTypeTwoStepWithdrawal))
 	if err != nil {
 		logger.WithError(err).Error("Failed to obtain-and-check WithdrawRequest.")
 		ape.RenderErr(w, r, problems.ServerError(err))
@@ -34,7 +34,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger = logger.WithFields(withdraw.GetRequestLoganFields("request", *request))
+	logger = logger.WithField("request", *request)
 
 	validationErr := s.validateRejectReason(*request, rejectRequest.RejectReason)
 	if validationErr != "" {
@@ -44,15 +44,15 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// RejectRequest is valid
-	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.SourceKP).Op(xdrbuild.ReviewRequestOp{
+	signedEnvelope, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
 		ID:     rejectRequest.Request.ID,
 		Hash:   rejectRequest.Request.Hash,
 		Action: xdr.ReviewRequestOpActionPermanentReject,
-		Details: xdrbuild.WithdrawalDetails{
+		Details: xdrbuild.TwoStepWithdrawalDetails{
 			ExternalDetails: "",
 		},
 		Reason: string(rejectRequest.RejectReason),
-	}).Sign(s.config.SignerKP).Marshal()
+	}).Sign(s.signerKP).Marshal()
 	if err != nil {
 		logger.WithError(err).Error("Failed to marshal signed Envelope.")
 		ape.RenderErr(w, r, problems.ServerError(err))
@@ -68,7 +68,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	addr, err := withdraw.GetWithdrawAddress(request)
 	if err != nil {
 		switch errors.Cause(err) {
-		case withdraw.ErrMissingAddress:
+		case withdraw.ErrMissingTwoStepWithdraw, withdraw.ErrMissingAddress:
 			gettingAddressErr = withdraw.RejectReasonMissingAddress
 		case withdraw.ErrAddressNotAString:
 			gettingAddressErr = withdraw.RejectReasonAddressNotAString
@@ -93,7 +93,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	case withdraw.RejectReasonInvalidAddress:
 		return s.validateInvalidAddress(addr)
 	case withdraw.RejectReasonTooLittleAmount:
-		amount := withdraw.GetWithdrawAmount(request)
+		amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestinationAmount))
 		return s.validateTooLittleAmount(amount)
 	}
 
@@ -101,18 +101,18 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 }
 
 func (s *Service) validateInvalidAddress(addr string) string {
-	err := withdraw.ValidateBTCAddress(addr, s.btcClient.GetNetParams())
+	err := s.offchainHelper.ValidateAddress(addr)
 	if err != nil {
 		return ""
 	} else {
-		return fmt.Sprintf("BTC Address '%s' is actually valid.", addr)
+		return fmt.Sprintf("The Address '%s' is actually valid.", addr)
 	}
 }
 
-func (s *Service) validateTooLittleAmount(amount float64) string {
-	if amount < s.config.MinWithdrawAmount {
+func (s *Service) validateTooLittleAmount(amount int64) string {
+	if amount < s.offchainHelper.GetMinWithdrawAmount() {
 		return ""
 	} else {
-		return fmt.Sprintf("Amount is not actually little. I consider %f as MinWithdrawAmount.", s.config.MinWithdrawAmount)
+		return fmt.Sprintf("Amount (%d) is not actually little. I consider (%d) as MinWithdrawAmount.", amount, s.offchainHelper.GetMinWithdrawAmount())
 	}
 }

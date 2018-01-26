@@ -5,11 +5,12 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 func init() {
@@ -41,13 +42,23 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
-	return New(
+	return withdraw.New(
+		conf.ServiceBTCWithdraw,
+		conf.ServiceBTCWithdrawVerify,
+		config.SignerKP,
 		log,
-		config,
 		horizonConnector.Listener(),
 		horizonConnector,
 		builder,
-		globalConfig.Bitcoin(),
 		globalConfig.Discovery(),
+		NewBTCHelper(
+			log,
+			config.MinWithdrawAmount,
+			config.HotWalletAddress,
+			config.HotWalletScriptPubKey,
+			config.HotWalletRedeemScript,
+			config.PrivateKey,
+			globalConfig.Bitcoin(),
+		),
 	), nil
 }

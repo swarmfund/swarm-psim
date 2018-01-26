@@ -109,7 +109,7 @@
   version = "1.2.2"
 
 [[constraint]]
-  branch = "feature/v2"
+  branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
 
 [[constraint]]
@@ -126,4 +126,4 @@
 
 [[override]]
   name = "gitlab.com/swarmfund/go"
-  branch = "master"
+  branch = "dev"
