@@ -168,13 +168,13 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		}).Debug("Found not interesting Request.")
 		return nil
 	}
-	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) &&
-		request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
-		// Not a Withdraw at all.
-		return nil
-	}
 
-	s.log.WithField("request", request).Debugf("Found pending %s Withdrawal Request.", s.offchainHelper.GetAsset())
+	switch request.Details.RequestType {
+	case int32(xdr.ReviewableRequestTypeTwoStepWithdrawal):
+		s.log.WithField("request", request).Debugf("Found pending %s TwoStepWithdrawal Request.", s.offchainHelper.GetAsset())
+	case int32(xdr.ReviewableRequestTypeWithdraw):
+		s.log.WithField("request", request).Debugf("Found pending %s Withdraw Request.", s.offchainHelper.GetAsset())
+	}
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
@@ -270,6 +270,7 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
 	}
 	submitResult := s.horizon.Submitter().Submit(ctx, envelopeBase64)
+
 	if submitResult.Err != nil {
 		return errors.Wrap(err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
 	}

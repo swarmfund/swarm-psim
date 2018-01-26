@@ -52,7 +52,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		}
 	}
 
-	unsignedOffchainTX, err := GetTXHex(request)
+	unsignedOffchainTX, err := GetTXHex(*newRequest)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get TX hex from the WithdrawRequest")
 	}
@@ -106,7 +106,8 @@ func (s *Service) processApprove(ctx context.Context, request horizon.Request, p
 	offchainTXHash, err := s.offchainHelper.SendTX(fullySignedOffchainTX)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send fully signed Offchain TX into Offchain network", logan.F{
-			"fully_signed_offchain_tx_hex": fullySignedOffchainTX,
+			"partly_signed_offchain_tx_hex": partlySignedOffchainTX,
+			"fully_signed_offchain_tx_hex":  fullySignedOffchainTX,
 		})
 	}
 

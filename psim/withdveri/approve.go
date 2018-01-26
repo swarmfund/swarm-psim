@@ -60,7 +60,7 @@ func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.marshalResponseEnvelope(w, r, signedEnvelope)
-	logger.Info("Verified Preliminary Approve successfully.")
+	logger.Info("Verified PreliminaryApprove successfully.")
 }
 
 func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {

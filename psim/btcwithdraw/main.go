@@ -52,6 +52,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		globalConfig.Discovery(),
 		NewBTCHelper(
+			log,
 			config.MinWithdrawAmount,
 			config.HotWalletAddress,
 			config.HotWalletScriptPubKey,

@@ -19,6 +19,7 @@ import (
 
 var (
 	ErrInsufficientFunds = errors.New("Insufficient funds.")
+	ErrAlreadyInChain    = errors.New("Transaction is already in chain.")
 )
 
 // Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
@@ -281,7 +282,16 @@ func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 		return "", errors.Wrap(err, "Failed to send or parse send raw Transaction request")
 	}
 	if response.Error != nil {
-		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error")
+		fields := logan.F{
+			"bitcoin_core_response_id":     response.ID,
+			"bitcoin_core_response_result": response.Result,
+		}
+
+		if response.Error.Code == errCodeTransactionAlreadyInChain {
+			return response.Result, errors.From(ErrAlreadyInChain, fields)
+		}
+
+		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error", fields)
 	}
 
 	return response.Result, nil

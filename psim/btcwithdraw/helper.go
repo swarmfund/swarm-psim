@@ -25,6 +25,8 @@ type BTCClient interface {
 
 // CommonBTCHelper is BTC specific implementation of the OffchainHelper interface from package withdraw.
 type CommonBTCHelper struct {
+	log *logan.Entry
+
 	minWithdrawAmount     int64
 	hotWalletAddress      string
 	hotWalletScriptPubKey string
@@ -36,6 +38,7 @@ type CommonBTCHelper struct {
 
 // NewBTCHelper is constructor for CommonBTCHelper.
 func NewBTCHelper(
+	log *logan.Entry,
 	minWithdrawAmount int64,
 	hotWalletAddress,
 	hotWalletScriptPubKey,
@@ -44,6 +47,9 @@ func NewBTCHelper(
 	btcClient BTCClient) *CommonBTCHelper {
 
 	return &CommonBTCHelper{
+		// TODO Not actually a helper, but if you suggest a better name - tell me.
+		log: log.WithField("service", "btc_helper"),
+
 		minWithdrawAmount:     minWithdrawAmount,
 		hotWalletAddress:      hotWalletAddress,
 		hotWalletScriptPubKey: hotWalletScriptPubKey,
@@ -180,5 +186,26 @@ func (h CommonBTCHelper) SignTX(txHex string) (string, error) {
 
 // SendTX is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) SendTX(txHex string) (txHash string, err error) {
-	return h.btcClient.SendRawTX(txHex)
+	txHash, err = h.btcClient.SendRawTX(txHex)
+
+	if errors.Cause(err) == bitcoin.ErrAlreadyInChain {
+		h.log.WithFields(logan.F{
+			"tx_trying_to_send": txHex,
+		}).WithError(err).Warn("Was asked to send TX, got response that it's already in chain.")
+
+		// Already in chain, we have the Hash - just don't tell anyone about this error. Warning is logged though.
+		bb, _ := hex.DecodeString(txHex)
+		if bb == nil {
+			return txHash, err
+		}
+
+		tx, _ := btcutil.NewTxFromBytes(bb)
+		if tx == nil {
+			return txHash, err
+		}
+
+		return tx.Hash().String(), nil
+	}
+
+	return txHash, err
 }

@@ -3,10 +3,10 @@ package bitcoin
 import (
 	"encoding/hex"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"github.com/btcsuite/btcd/chaincfg"
 )
 
 // Client uses Connector to request some Bitcoin Node
@@ -143,10 +143,14 @@ func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string,
 		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
 	}
 
+	if len(tx.MsgTx().TxIn) == 0 {
+		return "", errors.New("No TX Inputs to sign")
+	}
+
 	var inputUTXOs []Out
 	for _, in := range tx.MsgTx().TxIn {
 		inputUTXOs = append(inputUTXOs, Out{
-			TXHash:       hex.EncodeToString(in.PreviousOutPoint.Hash[:]),
+			TXHash:       in.PreviousOutPoint.Hash.String(),
 			Vout:         in.PreviousOutPoint.Index,
 			ScriptPubKey: scriptPubKey,
 			RedeemScript: &redeemScript,
@@ -178,7 +182,7 @@ func (c Client) parseBlock(blockHex string) (*btcutil.Block, error) {
 func (c Client) parseTX(txHex string) (*btcutil.Tx, error) {
 	bb, err := hex.DecodeString(txHex)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to decode TX hex string to bytes")
+		return nil, errors.Wrap(err, "Failed to decode TX hex string into bytes")
 	}
 
 	tx, _ := btcutil.NewTxFromBytes(bb)

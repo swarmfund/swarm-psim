@@ -3,7 +3,8 @@ package bitcoin
 import "fmt"
 
 const (
-	errCodeInsufficientFunds = -4
+	errCodeInsufficientFunds         = -4
+	errCodeTransactionAlreadyInChain = -27
 )
 
 type Response struct {

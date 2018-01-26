@@ -16,11 +16,12 @@ const (
 // TODO Functions in this file should probably become private.
 
 var (
-	ErrMissingWithdraw        = errors.New("Missing  in the ExternalDetails json of WithdrawRequest.")
-	ErrMissingTwoStepWithdraw = errors.New("Missing  in the ExternalDetails json of TowStepWithdrawRequest.")
+	ErrMissingWithdraw         = errors.New("Missing WithdrawRequest in the RequestDetails.")
+	ErrMissingTwoStepWithdraw  = errors.New("Missing TwoStepWithdrawRequest in the RequestDetails.")
+	ErrMissingRequestInDetails = errors.New("Missing both TwoStepWithdrawRequest and WithdrawRequest.")
 
-	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json of TwoStepWithdrawRequest.")
-	ErrAddressNotAString = errors.New("Address field in ExternalDetails of WithdrawalRequest is not a string.")
+	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json.")
+	ErrAddressNotAString = errors.New("Address field in ExternalDetails is not a string.")
 
 	ErrMissingTXHex    = errors.New("Missing Offchain TX (tx_hex field) in the PreConfirmationDetails json of WithdrawRequest.")
 	ErrTXHexNotAString = errors.New("Offchain TX (tx_hex field) in ExternalDetails of WithdrawRequest is not a string.")
@@ -31,15 +32,23 @@ var (
 //
 // Returns error if no `address` field in the ExternalDetails map or if the field is not a string.
 // Only returns errors with causes:
-// - ErrMissingTwoStepWithdraw
+// - ErrMissingRequestInDetails
 // - ErrMissingAddress
 // - ErrAddressNotAString.
 func GetWithdrawAddress(request horizon.Request) (string, error) {
-	if request.Details.TwoStepWithdraw == nil {
-		return "", ErrMissingTwoStepWithdraw
+	if request.Details.TwoStepWithdraw != nil {
+		return getWithdrawAddress(request.Details.TwoStepWithdraw.ExternalDetails)
 	}
 
-	addrValue, ok := request.Details.TwoStepWithdraw.ExternalDetails["address"]
+	if request.Details.Withdraw != nil {
+		return getWithdrawAddress(request.Details.Withdraw.ExternalDetails)
+	}
+
+	return "", ErrMissingRequestInDetails
+}
+
+func getWithdrawAddress(externalDetails map[string]interface{}) (string, error) {
+	addrValue, ok := externalDetails["address"]
 	if !ok {
 		return "", ErrMissingAddress
 	}
@@ -61,14 +70,17 @@ func GetWithdrawAmount(request horizon.Request) (int64, error) {
 		return int64(request.Details.Withdraw.DestinationAmount), nil
 	}
 
-	return 0, ErrMissingTwoStepWithdraw
+	return 0, ErrMissingRequestInDetails
 }
 
 // GetTXHex obtains Withdraw TX hex from the `tx_hex` field of the ExternalDetails
 // of Withdraw in Request Details.
 //
-// Returns error if no `tx_hex` field in the ExternalDetails map or if the field is not a string.
-// Only returns errors with causes equal to either ErrMissingTXHex or ErrTXHexNotAString.
+// Returns error if Withdraw in Details is nil, or if no `tx_hex` field in the ExternalDetails map, or if the field is not a string.
+// Only returns errors with causes equal to:
+// - ErrMissingWithdraw
+// - ErrMissingTXHex
+// - ErrTXHexNotAString.
 func GetTXHex(request horizon.Request) (string, error) {
 	if request.Details.Withdraw == nil {
 		return "", ErrMissingWithdraw

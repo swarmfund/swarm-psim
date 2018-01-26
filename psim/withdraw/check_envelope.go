@@ -21,7 +21,7 @@ func checkPreliminaryApproveEnvelope(envelope xdr.TransactionEnvelope, requestID
 		return fmt.Sprintf("Invalid ReviewRequestOpAction (%d) expected Approve(%d).", op.Action, xdr.ReviewRequestOpActionApprove)
 	}
 
-	extDetails := op.RequestDetails.Withdrawal.ExternalDetails
+	extDetails := op.RequestDetails.TwoStepWithdrawal.ExternalDetails
 	offchainDetails := ExternalDetails{}
 	err := json.Unmarshal([]byte(extDetails), &offchainDetails)
 	if err != nil {
