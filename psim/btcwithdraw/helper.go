@@ -7,7 +7,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
-	"gitlab.com/distributed_lab/logan"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
@@ -149,18 +149,24 @@ func getBtcTXAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, er
 
 // GetWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) ConvertAmount(destinationAmount int64) int64 {
-	return destinationAmount * ((10 ^ 8) / amount.One)
+	return destinationAmount * ((100000000) / amount.One)
 }
 
 // CreateTX is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) CreateTX(addr string, amount int64) (txHex string, err error) {
-	txHex, err = h.btcClient.CreateAndFundRawTX(addr, float64(amount), h.config.HotWalletAddress)
+	floatAmount := float64(amount) / 100000000
+
+	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.config.HotWalletAddress)
 	if err != nil {
 		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
-			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet")
+			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet", logan.F{
+				"float_amount": floatAmount,
+			})
 		}
 
-		return "", errors.Wrap(err, "Failed to create raw TX")
+		return "", errors.Wrap(err, "Failed to create raw TX", logan.F{
+			"float_amount": floatAmount,
+		})
 	}
 
 	return txHex, nil
