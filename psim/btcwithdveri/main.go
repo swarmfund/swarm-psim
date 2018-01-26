@@ -62,6 +62,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 				config.HotWalletAddress,
 				config.HotWalletScriptPubKey,
 				config.HotWalletRedeemScript,
+				config.PrivateKey,
 				globalConfig.Bitcoin(),
 			),
 	), nil

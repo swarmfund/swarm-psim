@@ -25,12 +25,11 @@ type BTCClient interface {
 
 // CommonBTCHelper is BTC specific implementation of the OffchainHelper interface from package withdraw.
 type CommonBTCHelper struct {
-	config Config
-
 	minWithdrawAmount     int64
 	hotWalletAddress      string
 	hotWalletScriptPubKey string
 	hotWalletRedeemScript string
+	privateKey            string
 
 	btcClient BTCClient
 }
@@ -41,6 +40,7 @@ func NewBTCHelper(
 	hotWalletAddress,
 	hotWalletScriptPubKey,
 	hotWalletRedeemScript string,
+	privateKey string,
 	btcClient BTCClient) *CommonBTCHelper {
 
 	return &CommonBTCHelper{
@@ -48,6 +48,7 @@ func NewBTCHelper(
 		hotWalletAddress:      hotWalletAddress,
 		hotWalletScriptPubKey: hotWalletScriptPubKey,
 		hotWalletRedeemScript: hotWalletRedeemScript,
+		privateKey:            privateKey,
 
 		btcClient: btcClient,
 	}
@@ -62,7 +63,7 @@ func (h CommonBTCHelper) GetAsset() string {
 
 // GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) GetMinWithdrawAmount() int64 {
-	return h.config.MinWithdrawAmount
+	return h.minWithdrawAmount
 }
 
 // ValidateAddress is implementation of OffchainHelper interface from package withdraw.
@@ -109,8 +110,8 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 	// Change Address
 	if len(txOutAddresses) == 2 {
 		// Have change
-		if txOutAddresses[1] != h.config.HotWalletAddress {
-			return fmt.Sprintf("Wrong BTC Address in the second Output of the TX - CahngeAddress (%s), expected (%s).", txOutAddresses[1], h.config.HotWalletAddress), nil
+		if txOutAddresses[1] != h.hotWalletAddress {
+			return fmt.Sprintf("Wrong BTC Address in the second Output of the TX - CahngeAddress (%s), expected (%s).", txOutAddresses[1], h.hotWalletAddress), nil
 		}
 	}
 
@@ -156,7 +157,7 @@ func (h CommonBTCHelper) ConvertAmount(destinationAmount int64) int64 {
 func (h CommonBTCHelper) CreateTX(addr string, amount int64) (txHex string, err error) {
 	floatAmount := float64(amount) / 100000000
 
-	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.config.HotWalletAddress)
+	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.hotWalletAddress)
 	if err != nil {
 		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
 			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet", logan.F{
@@ -174,7 +175,7 @@ func (h CommonBTCHelper) CreateTX(addr string, amount int64) (txHex string, err 
 
 // SignTX is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) SignTX(txHex string) (string, error) {
-	return h.btcClient.SignAllTXInputs(txHex, h.config.HotWalletScriptPubKey, h.config.HotWalletRedeemScript, h.config.PrivateKey)
+	return h.btcClient.SignAllTXInputs(txHex, h.hotWalletScriptPubKey, h.hotWalletRedeemScript, h.privateKey)
 }
 
 // SendTX is implementation of OffchainHelper interface from package withdraw.
