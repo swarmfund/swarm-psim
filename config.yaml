@@ -67,7 +67,7 @@ stripe_supervisor:
 
 # BTC
 bitcoin_supervisor:
-  last_processed_block: 1260510
+  last_processed_block: 1260685
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   supervisor:
