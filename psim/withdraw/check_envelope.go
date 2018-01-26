@@ -105,7 +105,7 @@ func checkEnvelope(envelope xdr.TransactionEnvelope, requestID uint64, requestHa
 	}
 
 	if op.RequestDetails.RequestType != requestType {
-		return fmt.Sprintf("Invalid RequestType (%d), expected Withdraw(%d).", op.RequestDetails.RequestType, requestType)
+		return fmt.Sprintf("Invalid RequestType (%d), expected (%d).", op.RequestDetails.RequestType, requestType)
 	}
 
 	return ""

@@ -10,10 +10,10 @@ import (
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/withdveri"
-	"gitlab.com/swarmfund/psim/psim/btcwithdraw"
 )
 
 func init() {
@@ -58,12 +58,12 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		listener,
 		globalConfig.Discovery(),
 		btcwithdraw.NewBTCHelper(
-				config.MinWithdrawAmount,
-				config.HotWalletAddress,
-				config.HotWalletScriptPubKey,
-				config.HotWalletRedeemScript,
-				config.PrivateKey,
-				globalConfig.Bitcoin(),
-			),
+			config.MinWithdrawAmount,
+			config.HotWalletAddress,
+			config.HotWalletScriptPubKey,
+			config.HotWalletRedeemScript,
+			config.PrivateKey,
+			globalConfig.Bitcoin(),
+		),
 	), nil
 }

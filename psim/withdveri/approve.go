@@ -35,10 +35,23 @@ func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// ApproveRequest is valid
+	extDetails := withdraw.ExternalDetails{
+		TXHex: approveRequest.TXHex,
+	}
+	extDetBytes, err := json.Marshal(extDetails)
+	if err != nil {
+		logger.WithError(err).Error("Failed to marshal ExternalDetails into JSON.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+
 	signedEnvelope, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
 		ID:     approveRequest.Request.ID,
 		Hash:   approveRequest.Request.Hash,
 		Action: xdr.ReviewRequestOpActionApprove,
+		Details: xdrbuild.TwoStepWithdrawalDetails{
+			ExternalDetails: string(extDetBytes),
+		},
 	}).Sign(s.signerKP).Marshal()
 	if err != nil {
 		logger.WithError(err).Error("Failed to marshal signed Envelope")
