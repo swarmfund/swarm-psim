@@ -45,6 +45,16 @@ func main() {
 	authKey := args[1]
 	extPrivKey := args[2]
 
+	var params *chaincfg.Params
+	switch extPrivKey[:4] {
+	case "xprv":
+		params = &chaincfg.MainNetParams
+	case "tprv":
+		params = &chaincfg.TestNet3Params
+	default:
+		panic("Private key starts with neither 'xprv'(main net) not 'tprv'(test net).")
+	}
+
 	firstIndex, err := strconv.Atoi(args[3])
 	if err != nil {
 		log.WithError(err).Panic("Failed to parse integer from the argument (4) (index of first private key to import).")
@@ -55,12 +65,13 @@ func main() {
 		log.WithError(err).Panic("Failed to parse integer from the argument (5) (index of last private key to import).")
 	}
 
-	params := &chaincfg.TestNet3Params
 	privKeys, err := derivePrivateKeys(extPrivKey, firstIndex, lastIndex, false)
 	if err != nil {
 		log.WithError(err).Panic("Failed to derive private keys from extended key.")
 		return
 	}
+
+	log.Info("Finished deriving private keys from extended private key.")
 
 	err = importPrivateKeys(log, url, params, authKey, privKeys, firstIndex)
 	if err != nil {
