@@ -11,6 +11,7 @@ import (
 
 	"strconv"
 
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
@@ -37,7 +38,8 @@ func main() {
 
 	args := os.Args[1:]
 	if len(args) < 4 {
-		log.Panic("Need Node url(1), auth key(2) and extPrivKey(3), n(4) to be passed as command line arguments.")
+		log.Panic("Need Node url(1), auth key(2), extPrivKey(3) and number of private keys to import(4) to be passed as command line arguments.\n" +
+			"Example: http://127.0.0.1:8332 base64({{username}}:{{password}}) xprv....... 10000")
 	}
 	url := args[0]
 	authKey := args[1]
@@ -45,29 +47,30 @@ func main() {
 
 	n, err := strconv.Atoi(args[3])
 	if err != nil {
-		log.WithError(err).Panic("Failed to parse integer from the fourth argument")
+		log.WithError(err).Panic("Failed to parse integer from the fourth argument (number of private keys to import).")
 	}
 
 	params := &chaincfg.TestNet3Params
-	privKeys, err := derivePrivateKeys(extPrivKey, params, n, false)
+	privKeys, err := derivePrivateKeys(extPrivKey, n, false)
 	if err != nil {
 		log.WithError(err).Panic("Failed to derive private keys from extended key.")
 		return
 	}
 
-	err = importPrivateKeys(log, url, authKey, privKeys)
+	err = importPrivateKeys(log, url, params, authKey, privKeys)
 	if err != nil {
-		log.WithError(err).Panic("Failed to import PrivateKeys.")
+		log.WithError(err).Error("Failed to import PrivateKeys.")
+		return
 	}
 }
 
-func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int, hardened bool) ([]string, error) {
+func derivePrivateKeys(extPrivKey string, n int, hardened bool) ([]*btcec.PrivateKey, error) {
 	extendedKey, err := hdkeychain.NewKeyFromString(extPrivKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create extended Key from base58 extended private key")
 	}
 
-	var result []string
+	var result []*btcec.PrivateKey
 	for i := 0; i < n; i++ {
 		childID := uint32(i)
 		if hardened {
@@ -84,30 +87,44 @@ func derivePrivateKeys(extPrivKey string, params *chaincfg.Params, n int, harden
 			return nil, errors.Wrap(err, "Failed to get ECPrivKey of the derived Child Key", logan.F{"i": i})
 		}
 
-		//result = append(result, toWalletImportFormat(privKey, params, true))
-		wif, err := btcutil.NewWIF(privKey, params, true)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to create new WIF from private key", logan.F{"i": i})
-		}
-
-		result = append(result, wif.String())
+		result = append(result, privKey)
 	}
 
 	return result, nil
 }
 
-func importPrivateKeys(log *logan.Entry, url string, authKey string, privateKeys []string) error {
+func importPrivateKeys(log *logan.Entry, url string, params *chaincfg.Params, authKey string, privateKeys []*btcec.PrivateKey) error {
 	for i, privKey := range privateKeys {
-		if privKey == "" {
+		if privKey == nil {
 			continue
 		}
 
-		err := sendRequestToBTCNode(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, privKey))
+		var addr string
+		addrPKH, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(privKey.PubKey().SerializeCompressed()), params)
 		if err != nil {
-			return errors.Wrap(err, "Failed to import private key", logan.F{"i": i})
+			addr = err.Error()
+		} else {
+			if addrPKH != nil {
+				addr = addrPKH.String()
+			}
 		}
 
-		log.WithField("i", i).Debug("Imported private key successfully.")
+		fields := logan.F{
+			"i":    i,
+			"addr": addr,
+		}
+
+		wif, err := btcutil.NewWIF(privKey, params, true)
+		if err != nil {
+			return errors.Wrap(err, "Failed to create new WIF from private key", fields)
+		}
+
+		err = sendRequestToBTCNode(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, wif.String()))
+		if err != nil {
+			return errors.Wrap(err, "Failed to import private key", fields)
+		}
+
+		log.WithFields(fields).Debug("Imported private key successfully.")
 	}
 
 	return nil
