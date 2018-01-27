@@ -37,41 +37,46 @@ func main() {
 	log := logan.New()
 
 	args := os.Args[1:]
-	if len(args) < 4 {
-		log.Panic("Need Node url(1), auth key(2), extPrivKey(3) and number of private keys to import(4) to be passed as command line arguments.\n" +
-			"Example: http://127.0.0.1:8332 base64({{username}}:{{password}}) xprv....... 10000")
+	if len(args) < 5 {
+		log.Panic("Need Bitcoin core url(1), Bitcoin core auth key(2), extPrivKey(3), index of first private key to import(4) and index of last private key to import(5) to be passed as command line arguments.\n" +
+			"Example: http://127.0.0.1:8332 base64({{username}}:{{password}}) xprv....... 0 10000")
 	}
 	url := args[0]
 	authKey := args[1]
 	extPrivKey := args[2]
 
-	n, err := strconv.Atoi(args[3])
+	firstIndex, err := strconv.Atoi(args[3])
 	if err != nil {
-		log.WithError(err).Panic("Failed to parse integer from the fourth argument (number of private keys to import).")
+		log.WithError(err).Panic("Failed to parse integer from the argument (4) (index of first private key to import).")
+	}
+
+	lastIndex, err := strconv.Atoi(args[4])
+	if err != nil {
+		log.WithError(err).Panic("Failed to parse integer from the argument (5) (index of last private key to import).")
 	}
 
 	params := &chaincfg.TestNet3Params
-	privKeys, err := derivePrivateKeys(extPrivKey, n, false)
+	privKeys, err := derivePrivateKeys(extPrivKey, firstIndex, lastIndex, false)
 	if err != nil {
 		log.WithError(err).Panic("Failed to derive private keys from extended key.")
 		return
 	}
 
-	err = importPrivateKeys(log, url, params, authKey, privKeys)
+	err = importPrivateKeys(log, url, params, authKey, privKeys, firstIndex)
 	if err != nil {
 		log.WithError(err).Error("Failed to import PrivateKeys.")
 		return
 	}
 }
 
-func derivePrivateKeys(extPrivKey string, n int, hardened bool) ([]*btcec.PrivateKey, error) {
+func derivePrivateKeys(extPrivKey string, firstIndex, lastIndex int, hardened bool) ([]*btcec.PrivateKey, error) {
 	extendedKey, err := hdkeychain.NewKeyFromString(extPrivKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create extended Key from base58 extended private key")
 	}
 
 	var result []*btcec.PrivateKey
-	for i := 0; i < n; i++ {
+	for i := firstIndex; i < lastIndex+1; i++ {
 		childID := uint32(i)
 		if hardened {
 			childID += hdkeychain.HardenedKeyStart
@@ -93,7 +98,7 @@ func derivePrivateKeys(extPrivKey string, n int, hardened bool) ([]*btcec.Privat
 	return result, nil
 }
 
-func importPrivateKeys(log *logan.Entry, url string, params *chaincfg.Params, authKey string, privateKeys []*btcec.PrivateKey) error {
+func importPrivateKeys(log *logan.Entry, url string, params *chaincfg.Params, authKey string, privateKeys []*btcec.PrivateKey, firstIndex int) error {
 	for i, privKey := range privateKeys {
 		if privKey == nil {
 			continue
@@ -110,7 +115,7 @@ func importPrivateKeys(log *logan.Entry, url string, params *chaincfg.Params, au
 		}
 
 		fields := logan.F{
-			"i":    i,
+			"i":    firstIndex + i,
 			"addr": addr,
 		}
 
@@ -120,8 +125,12 @@ func importPrivateKeys(log *logan.Entry, url string, params *chaincfg.Params, au
 		}
 
 		err = sendRequestToBTCNode(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, wif.String()))
-		if err != nil {
-			return errors.Wrap(err, "Failed to import private key", fields)
+		for err != nil {
+			// Retry until success
+			log.WithFields(fields).WithError(err).Warn("Failed to import private key, will now sleep 10s and retry.")
+			time.Sleep(10 * time.Second)
+
+			err = sendRequestToBTCNode(url, authKey, "importprivkey", fmt.Sprintf(`"%s", "", false`, wif.String()))
 		}
 
 		log.WithFields(fields).Debug("Imported private key successfully.")
