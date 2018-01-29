@@ -13,12 +13,13 @@ import (
 
 	"strconv"
 
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 var (
 	ErrInsufficientFunds = errors.New("Insufficient funds.")
+	ErrAlreadyInChain    = errors.New("Transaction is already in chain.")
 )
 
 // Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
@@ -34,7 +35,7 @@ type Connector interface {
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
 	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
-	SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
 
@@ -169,7 +170,7 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 		lastAddr = addr
 		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
 	}
-	params = params[:len(params) - 1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
+	params = params[:len(params)-1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
 	err = c.sendRequest("sendmany", params, &response)
 
 	if err != nil {
@@ -205,6 +206,8 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 // using flags `includeWatching` and `lockUnspents` as true.
 // If Bitcoin Node returns -4:Insufficient funds error -
 // ErrInsufficientFunds is returned.
+//
+// Change position in Outputs is set to 1.
 func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error) {
 	var response struct {
 		Response
@@ -225,7 +228,7 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXH
 		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
 	}
 	if response.Error != nil {
-		if response.Error.Code == errCodeInsufficientFunds{
+		if response.Error.Code == errCodeInsufficientFunds {
 			return "", ErrInsufficientFunds
 		}
 
@@ -251,8 +254,8 @@ func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, 
 	var response struct {
 		Response
 		Result struct {
-			Hex string `json:"hex"`
-			Complete bool `json:"complete"`
+			Hex      string `json:"hex"`
+			Complete bool   `json:"complete"`
 		} `json:"result"`
 	}
 
@@ -279,7 +282,16 @@ func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 		return "", errors.Wrap(err, "Failed to send or parse send raw Transaction request")
 	}
 	if response.Error != nil {
-		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error")
+		fields := logan.F{
+			"bitcoin_core_response_id":     response.ID,
+			"bitcoin_core_response_result": response.Result,
+		}
+
+		if response.Error.Code == errCodeTransactionAlreadyInChain {
+			return response.Result, errors.From(ErrAlreadyInChain, fields)
+		}
+
+		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error", fields)
 	}
 
 	return response.Result, nil

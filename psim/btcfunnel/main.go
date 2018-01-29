@@ -2,7 +2,6 @@ package btcfunnel
 
 import (
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/utils"
 	"context"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/figure"
@@ -14,7 +13,7 @@ func init() {
 	app.RegisterService(conf.ServiceBTCFunnel, setupFn)
 }
 
-func setupFn(ctx context.Context) (utils.Service, error) {
+func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx).WithField("service", conf.ServiceBTCFunnel)
 

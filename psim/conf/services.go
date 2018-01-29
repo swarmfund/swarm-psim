@@ -17,8 +17,6 @@ const (
 	// Verifies
 	ServiceStripeVerify = "stripe_verify"
 
-	ServiceRateSync          = "rate_sync"
-	ServiceCharger           = "charger"
 	ServiceOperationNotifier = "notifier"
 	ServiceBearer            = "bearer"
 )

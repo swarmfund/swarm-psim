@@ -14,10 +14,10 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/go-errors/errors"
+  name = "github.com/go-ozzo/ozzo-validation"
   packages = ["."]
-  revision = "3afebba5a48dbc89b574d890b6b34d9ee10b4785"
+  revision = "85dcd8368eba387e65a03488b003e233994e87e9"
+  version = "v3.3"
 
 [[projects]]
   branch = "master"
@@ -57,15 +57,15 @@
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
-  packages = ["."]
-  revision = "b8cfbf0cdfb9c7185cd426c24babaac54dcfbb82"
-  version = "v3.0"
+  packages = ["v3","v3/errors","v3/fields"]
+  revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
+  version = "v3.4"
 
 [[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/go"
-  packages = ["amount","crc16","hash","keypair","network","strkey","xdr"]
-  revision = "d339c0b858f75802acda7741b4617a00a383c979"
+  packages = ["amount","crc16","hash","keypair","network","signcontrol","strkey","xdr","xdrbuild","xdrbuild/internal"]
+  revision = "504f88d57f8e23e3eba75c825fd02ed2b9214a30"
 
 [[projects]]
   branch = "master"
@@ -88,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c7099f11fc17c4acd6d6fff3705c408b4914ec8363a7cbcd88ddb56da189bef0"
+  inputs-digest = "db8acfd5d82dad9530a07a6ea2f8b68cad8c8b179f114b2603d87c0556b9c8a1"
   solver-name = "gps-cdcl"
   solver-version = 1

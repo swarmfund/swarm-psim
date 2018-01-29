@@ -3,13 +3,14 @@ package bitcoin
 import (
 	"encoding/hex"
 
-	"github.com/piotrnar/gocoin/lib/btc"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 // Client uses Connector to request some Bitcoin Node
-// and transforms raw responses to gocoin structures.
+// and transforms raw responses to btcutil structures.
 type Client struct {
 	connector Connector
 }
@@ -28,8 +29,8 @@ func (c Client) GetBlockCount() (uint64, error) {
 
 // GetBlock gets Block hash by index via Connector,
 // gets raw Block(hex) by hash from Connector
-// and tries to parse raw Block into gocoin Block structure.
-func (c Client) GetBlock(blockIndex uint64) (*btc.Block, error) {
+// and tries to parse raw Block into btcutil Block structure.
+func (c Client) GetBlock(blockIndex uint64) (*btcutil.Block, error) {
 	hash, err := c.connector.GetBlockHash(blockIndex)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Block hash")
@@ -38,7 +39,8 @@ func (c Client) GetBlock(blockIndex uint64) (*btc.Block, error) {
 	return c.GetBlockByHash(hash)
 }
 
-func (c Client) GetBlockByHash(blockHash string) (*btc.Block, error) {
+// TODO Comment
+func (c Client) GetBlockByHash(blockHash string) (*btcutil.Block, error) {
 	blockHex, err := c.connector.GetBlock(blockHash)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Block", logan.F{"block_hash": blockHash})
@@ -48,11 +50,6 @@ func (c Client) GetBlockByHash(blockHash string) (*btc.Block, error) {
 	if err != nil {
 		hexToLog := blockHex[:10] + ".." + blockHex[len(blockHex)-10:]
 		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.F{"block_hex": hexToLog})
-	}
-
-	err = block.BuildTxList()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build TX list of Block")
 	}
 
 	return block, nil
@@ -110,9 +107,9 @@ func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, 
 	return resultTXHash, nil
 }
 
-// CreateRawTX creates TX, which pays provided amount
+// CreateAndFundRawTX creates TX, which pays provided amount
 // to the provided goalAddress, passing change to the provided changeAddress.
-// Node decides, which UTXOs use for inputs for the TX during the FundRawTX request.
+// Node decides, which UTXOs to use for inputs for the TX during the FundRawTX request.
 //
 // The returned Transaction is not submitted into the network,
 // it is not even signed yet.
@@ -120,12 +117,15 @@ func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, 
 //
 // If there is not enough unlocked BTC to fulfil the TX -
 // error with cause ErrInsufficientFunds is returned.
-func (c Client) CreateRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
+//
+// Change position in Outputs is set to 1.
+func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
 	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to CreateRawTX")
+		return "", errors.Wrap(err, "Failed to CreateAndFundRawTX")
 	}
 
+	// Fill TX with inputs - UTXOs
 	txHex, err = c.connector.FundRawTX(txHex, changeAddress)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
@@ -136,24 +136,28 @@ func (c Client) CreateRawTX(goalAddress string, amount float64, changeAddress st
 	return txHex, nil
 }
 
-// SignRawTX signs provided TX with the provided privateKey.
-func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript *string, privateKey string) (resultTXHex string, err error) {
+// SignRawTX signs the inputs of the provided TX with the provided privateKey.
+func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
 	tx, err := c.parseTX(txHex)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
 	}
 
-	var outputs []Out
-	for _, in := range tx.TxIn {
-		outputs = append(outputs, Out{
-			TXHash: hex.EncodeToString(in.Input.Hash[:]),
-			Vout:   in.Input.Vout,
+	if len(tx.MsgTx().TxIn) == 0 {
+		return "", errors.New("No TX Inputs to sign")
+	}
+
+	var inputUTXOs []Out
+	for _, in := range tx.MsgTx().TxIn {
+		inputUTXOs = append(inputUTXOs, Out{
+			TXHash:       in.PreviousOutPoint.Hash.String(),
+			Vout:         in.PreviousOutPoint.Index,
 			ScriptPubKey: scriptPubKey,
-			RedeemScript: redeemScript,
+			RedeemScript: &redeemScript,
 		})
 	}
 
-	return c.connector.SignRawTX(txHex, outputs, privateKey)
+	return c.connector.SignRawTX(txHex, inputUTXOs, privateKey)
 }
 
 // SendRawTX submits TX into the blockchain.
@@ -161,13 +165,13 @@ func (c Client) SendRawTX(txHex string) (txHash string, err error) {
 	return c.connector.SendRawTX(txHex)
 }
 
-func (c Client) parseBlock(blockHex string) (*btc.Block, error) {
+func (c Client) parseBlock(blockHex string) (*btcutil.Block, error) {
 	bb, err := hex.DecodeString(blockHex)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to decode Block hex string to bytes")
 	}
 
-	block, err := btc.NewBlock(bb)
+	block, err := btcutil.NewBlockFromBytes(bb)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to build new Block from bytes")
 	}
@@ -175,13 +179,13 @@ func (c Client) parseBlock(blockHex string) (*btc.Block, error) {
 	return block, nil
 }
 
-func (c Client) parseTX(txHex string) (*btc.Tx, error) {
+func (c Client) parseTX(txHex string) (*btcutil.Tx, error) {
 	bb, err := hex.DecodeString(txHex)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to decode TX hex string to bytes")
+		return nil, errors.Wrap(err, "Failed to decode TX hex string into bytes")
 	}
 
-	tx, _ := btc.NewTx(bb)
+	tx, _ := btcutil.NewTxFromBytes(bb)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to build new TX from bytes")
 	}
@@ -189,10 +193,14 @@ func (c Client) parseTX(txHex string) (*btc.Tx, error) {
 	return tx, nil
 }
 
-func (c Client) IsTestnet() bool {
-	return c.connector.IsTestnet()
+func (c Client) GetNetParams() *chaincfg.Params {
+	if c.connector.IsTestnet() {
+		return &chaincfg.TestNet3Params
+	} else {
+		return &chaincfg.MainNetParams
+	}
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex uint32) string {
+func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
 	return txHash + string(outIndex)
 }

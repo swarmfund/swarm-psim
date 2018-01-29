@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
 
@@ -35,7 +34,7 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 	go func() {
 		defer func() {
 			if rvr := recover(); rvr != nil {
-				log.WithError(errors.FromPanic(rvr)).Error("state watcher panicked")
+				log.WithRecover(rvr).Error("state watcher panicked")
 			}
 		}()
 		w.run(ctx)

@@ -7,11 +7,12 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/notifier/internal/emails"
-	"gitlab.com/swarmfund/psim/psim/notifier/internal/types"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
+// TODO Make runners return error
 func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
 	if s.Assets == nil || !s.Assets.Enable {
 		s.logger.Warn("assets issuance checker is not enabled")
@@ -20,7 +21,7 @@ func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
 
 	d, err := time.ParseDuration(s.Assets.CheckPeriod)
 	if err != nil {
-		s.errors <- errors.Wrap(err, "can't start asset loader")
+		s.logger.WithError(err).Error("can't start asset loader")
 		return
 	}
 
@@ -34,7 +35,7 @@ func (s *Service) checkAssetsIssuanceAmount(ctx context.Context) {
 		case <-ticker.C:
 			err = s.loadAssets()
 			if err != nil {
-				s.errors <- errors.Wrap(err, "load assets runner failed")
+				s.logger.WithError(err).Error("load assets runner failed")
 			}
 		}
 	}
@@ -48,7 +49,7 @@ func (s *Service) loadAssets() (err error) {
 		}
 	}()
 
-	assets, err := s.getAssetsList()
+	assets, err := s.horizon.Assets().Index()
 	if err != nil {
 		return errors.Wrap(err, "unable to get assets list")
 	}
@@ -62,7 +63,7 @@ func (s *Service) loadAssets() (err error) {
 	return nil
 }
 
-func (s *Service) processAsset(asset types.Asset) error {
+func (s *Service) processAsset(asset horizon.Asset) error {
 	if !contains(s.Assets.Codes, asset.Code) {
 		return nil
 	}
@@ -84,7 +85,7 @@ func (s *Service) processAsset(asset types.Asset) error {
 	return nil
 }
 
-func (s *Service) notifyOwner(asset types.Asset, receiver string) error {
+func (s *Service) notifyOwner(asset horizon.Asset, receiver string) error {
 	letter := &emails.NoticeLetter{
 		ID:       utils.GenerateToken(),
 		Header:   fmt.Sprintf("%s Admin Notification", s.ProjectName),

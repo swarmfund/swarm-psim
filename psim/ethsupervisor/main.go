@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHSupervisor, func(ctx context.Context) (utils.Service, error) {
+	app.RegisterService(conf.ServiceETHSupervisor, func(ctx context.Context) (app.Service, error) {
 		config := Config{
 			Supervisor: supervisor.NewConfig(conf.ServiceETHSupervisor),
 		}
@@ -40,14 +40,14 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizonV2 := app.Config(ctx).HorizonV2()
+		horizon := app.Config(ctx).Horizon()
 
 		log := app.Log(ctx)
 		state := addrstate.New(
 			ctx,
 			log.WithField("service", "addrstate"),
 			internal.StateMutator(config.BaseAsset, config.DepositAsset),
-			horizonV2.Listener(),
+			horizon.Listener(),
 		)
 
 		return New(commonSupervisor, ethClient, state, config), nil

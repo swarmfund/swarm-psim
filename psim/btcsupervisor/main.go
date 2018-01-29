@@ -5,7 +5,6 @@ import (
 
 	"fmt"
 
-
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
@@ -13,14 +12,13 @@ import (
 	"gitlab.com/swarmfund/psim/psim/btcsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
-	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
 	app.RegisterService(conf.ServiceBTCSupervisor, setupFn)
 }
 
-func setupFn(ctx context.Context) (utils.Service, error) {
+func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 
 	config := Config{
@@ -41,10 +39,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		return nil, errors.Wrap(err, "Failed to init common Supervisor")
 	}
 
-	horizonConnector, err := globalConfig.Horizon()
-	if err != nil {
-		panic(err)
-	}
+	horizonConnector := globalConfig.Horizon()
 
 	log := app.Log(ctx)
 
@@ -52,7 +47,7 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		ctx,
 		log.WithField("service", "addrstate"),
 		internal.StateMutator,
-		globalConfig.HorizonV2().Listener(),
+		horizonConnector.Listener(),
 	)
 
 	return New(commonSupervisor, config, globalConfig.Bitcoin(), addressProvider, horizonConnector), nil
