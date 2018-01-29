@@ -116,30 +116,30 @@ btc_withdraw_verify:
 
 
 # ETH
-eth_supervisor:
-  supervisor:
-    leadership_key: eth_supervisor
-    exchange: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-    signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-
-eth_funnel:
-  keystore: "/tmp/wallets"
 
 eth_supervisor:
   confirmations: 2
-  cursor: 2334122
-  base_asset: SUN
-  deposit_asset: ETH
+  cursor: 2405320
+  base_asset: ETH
+  deposit_asset: SUN
   supervisor:
     leadership_key: eth_supervisor
     exchange: G_SOME_VALID_PUBLIC_KEY
     signer: S_SOME_VALID_PRIVATE_KEY
 
+eth_funnel:
+  seed: "some_valid_eth_seed"
+  destination: "address_of_eth_hot_wallet"
+  confirmations: 1
+  threshold: 1
+  gas_price: 1000000000
+
 eth_withdraw:
-  key: "c08fcf992f299c992477790fffbc30eb709b0c93534d3da5c48b92d4b2abd054"
-  source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
-  signer: SB3YDBQV7VPJEWBT5FLSKO5N2WMAFJR46JXPV7HKTANXW4IKTMKZ2VNE
+  key: "hot_wallet_private_key"
   asset: "ETH"
+  gas_price: 1000000000
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
 
 forfeit_listener:
   pprof: true
