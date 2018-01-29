@@ -21,7 +21,6 @@ import (
 
 const (
 	runnerName      = "btc_supervisor"
-	btcAsset        = "BTC"
 	referenceMaxLen = 64
 )
 
@@ -114,6 +113,20 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 			continue
 		}
 
+		if out.Value < int64(s.config.MinDepositAmount) {
+			s.Log.WithFields(logan.F{
+				"block_hash":                     blockHash,
+				"block_time":                     blockTime,
+				"tx_hash":                        tx.Hash().String(),
+				"out_value":                      out.Value,
+				"out_index":                      i,
+				"btc_addr":                       addr58,
+				"account_address":                accountAddress,
+				"min_deposit_amount_from_config": s.config.MinDepositAmount,
+			}).Warn("Received deposit with too small amount.")
+			continue
+		}
+
 		err = s.processDeposit(ctx, blockHash, blockTime, tx.Hash().String(), i, *out, addr58, *accountAddress)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process deposit", logan.F{
@@ -191,7 +204,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 
 	receiver := ""
 	for _, b := range balances {
-		if b.Asset == btcAsset {
+		if b.Asset == s.config.DepositAsset {
 			receiver = b.BalanceID
 		}
 	}
@@ -203,7 +216,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 	logger.Info("Sending CoinEmissionRequest.")
 
 	tx := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
-		Asset:     btcAsset,
+		Asset:     s.config.DepositAsset,
 		Reference: reference,
 		Receiver:  receiver,
 		Amount:    emissionAmount,
