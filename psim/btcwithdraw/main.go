@@ -2,19 +2,22 @@ package btcwithdraw
 
 import (
 	"context"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/figure"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 func init() {
 	app.RegisterService(conf.ServiceBTCWithdraw, setupFn)
 }
 
-func setupFn(ctx context.Context) (utils.Service, error) {
+func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx)
 
@@ -30,11 +33,32 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 		})
 	}
 
-	horizonConnector, err := globalConfig.Horizon()
+	horizonConnector := globalConfig.Horizon()
+
+	horizonInfo, err := horizonConnector.Info()
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
-	return New(log, config, globalConfig.HorizonV2().Listener(), horizonConnector,
-		globalConfig.Bitcoin(), globalConfig.Discovery()), nil
+	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+
+	return withdraw.New(
+		conf.ServiceBTCWithdraw,
+		conf.ServiceBTCWithdrawVerify,
+		config.SignerKP,
+		log,
+		horizonConnector.Listener(),
+		horizonConnector,
+		builder,
+		globalConfig.Discovery(),
+		NewBTCHelper(
+			log,
+			config.MinWithdrawAmount,
+			config.HotWalletAddress,
+			config.HotWalletScriptPubKey,
+			config.HotWalletRedeemScript,
+			config.PrivateKey,
+			globalConfig.Bitcoin(),
+		),
+	), nil
 }

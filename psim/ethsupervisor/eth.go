@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
 	"gitlab.com/swarmfund/horizon-connector/v2/types"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
@@ -52,7 +51,7 @@ func (s *Service) watchHeight(ctx context.Context) {
 		for ; ; <-ticker.C {
 			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
-				s.Service.Errors <- errors.Wrap(err, "failed to get block count")
+				s.Log.WithError(err).Error("failed to get block count")
 				continue
 			}
 
@@ -146,21 +145,23 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		}.Encode(),
 	})
 
-	if err = request.Submit(); err != nil {
+	envelope, err := request.Marshal()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal IR")
+	}
+
+	if result := s.Horizon.Submitter().Submit(context.TODO(), envelope); result.Err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).
 			WithError(err)
 
-		if serr, ok := errors.Cause(err).(horizon.SubmitError); ok {
-			opCodes := serr.OperationCodes()
-			if len(opCodes) == 1 {
-				switch opCodes[0] {
-				// safe to move on
-				case "op_reference_duplication":
-					entry.Info("tx failed")
-					return nil
-				}
+		if len(result.OpCodes) == 1 {
+			switch result.OpCodes[0] {
+			// safe to move on
+			case "op_reference_duplication":
+				entry.Info("tx failed")
+				return nil
 			}
 		}
 

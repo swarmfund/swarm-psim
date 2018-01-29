@@ -30,6 +30,13 @@ var (
 			}
 			return reflect.ValueOf(result), nil
 		},
+		"int64": func(value interface{}) (reflect.Value, error) {
+			result, err := cast.ToInt64E(value)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse int64")
+			}
+			return reflect.ValueOf(result), nil
+		},
 		"uint64": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToUint64E(value)
 			if err != nil {

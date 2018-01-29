@@ -8,5 +8,4 @@ type ConnectorConfig struct {
 	NodeAuthKey     string `fig:"node_auth_key"`
 	Testnet         bool   `fig:"testnet"`
 	RequestTimeout  int    `fig:"request_timeout_s"`
-	MinDepositValue uint64 `fig:"min_deposit_value"`
 }

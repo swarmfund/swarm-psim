@@ -7,12 +7,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/ethfunnel/internal"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHFunnel, func(ctx context.Context) (utils.Service, error) {
+	app.RegisterService(conf.ServiceETHFunnel, func(ctx context.Context) (app.Service, error) {
 		config := Config{}
 		err := figure.
 			Out(&config).
@@ -23,12 +23,12 @@ func init() {
 			return nil, errors.Wrap(err, "failed to figure out")
 		}
 
-		eth := app.Config(ctx).Ethereum()
-
-		wallet, err := internal.NewWallet(config.Seed)
+		wallet, err := eth.NewHDWallet(config.Seed)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init wallet")
 		}
+
+		eth := app.Config(ctx).Ethereum()
 
 		return NewService(ctx, app.Log(ctx), config, wallet, eth), nil
 	})

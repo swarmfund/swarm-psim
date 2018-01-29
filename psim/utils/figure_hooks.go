@@ -8,16 +8,16 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"gitlab.com/swarmfund/go/keypair"
 	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/tokend/keypair"
 )
 
 var (
 	CommonHooks = figure.Hooks{
-		"keypair.KP": func(value interface{}) (reflect.Value, error) {
+		"keypair.Address": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {
 			case string:
-				kp, err := keypair.Parse(v)
+				kp, err := keypair.ParseAddress(v)
 				if err != nil {
 					return reflect.Value{}, errors.Wrap(err, "failed to parse kp")
 				}
@@ -29,14 +29,14 @@ var (
 			}
 		},
 
-		"*keypair.Full": func(value interface{}) (reflect.Value, error) {
+		"keypair.Full": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {
 			case string:
-				kp, err := keypair.Parse(v)
+				kp, err := keypair.ParseSeed(v)
 				if err != nil {
 					return reflect.Value{}, errors.Wrap(err, "failed to parse kp")
 				}
-				kpFull, ok := kp.(*keypair.Full)
+				kpFull, ok := kp.(keypair.Full)
 				if !ok {
 					return reflect.Value{}, errors.Wrap(err,
 						"failed to cast kp to keypair.Full; string must be a Seed")

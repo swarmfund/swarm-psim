@@ -8,20 +8,21 @@ import (
 
 	"sync"
 
-	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 func init() {
-	setupFn := func(ctx context.Context) (utils.Service, error) {
+	setupFn := func(ctx context.Context) (app.Service, error) {
 		serviceConfig := Config{
 			Host:        "localhost",
 			ServiceName: conf.ServiceBTCVerify,
@@ -39,17 +40,12 @@ func init() {
 
 		log := app.Log(ctx).WithField("service", conf.ServiceBTCVerify)
 
-		horizonConnector, err := globalConfig.Horizon()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get Horizon connector")
-		}
-
 		listener, err := ape.Listener(serviceConfig.Host, serviceConfig.Port)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init listener")
 		}
 
-		return newService(serviceConfig, log, globalConfig.Discovery(), listener, horizonConnector, globalConfig.Bitcoin()), nil
+		return newService(serviceConfig, log, globalConfig.Discovery(), listener, globalConfig.Horizon(), globalConfig.Bitcoin()), nil
 	}
 
 	app.RegisterService(conf.ServiceBTCVerify, setupFn)
@@ -57,8 +53,7 @@ func init() {
 
 // BTCClient must be implemented by a BTC Client to pass into Service for creation.
 type btcClient interface {
-	IsTestnet() bool
-	GetBlockByHash(blockHash string) (*btc.Block, error)
+	GetBlockByHash(blockHash string) (*btcutil.Block, error)
 }
 
 type Service struct {
@@ -66,7 +61,6 @@ type Service struct {
 
 	config   Config
 	log      *logan.Entry
-	errors   chan error
 	listener net.Listener
 	horizon  *horizon.Connector
 
@@ -83,7 +77,6 @@ func newService(config Config, log *logan.Entry, discovery *discovery.Client, li
 		ServiceID: utils.GenerateToken(),
 		config:    config,
 		log:       log,
-		errors:    make(chan error),
 		listener:  listener,
 		horizon:   horizon,
 
@@ -93,33 +86,28 @@ func newService(config Config, log *logan.Entry, discovery *discovery.Client, li
 	}
 }
 
-//Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
-//Once all runners returned - Errors channel will be closed.
-//Implements utils.Service.
-func (s *Service) Run(ctx context.Context) chan error {
+// Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
+// Once all runners returned - this method will finish.
+// Implements app.Service.
+func (s *Service) Run(ctx context.Context) {
 	runners := []func(context.Context){
 		s.registerInDiscovery,
 		s.serveAPI,
 	}
 
-	go func() {
-		wg := sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 
-		for _, runner := range runners {
-			ohigo := runner
-			wg.Add(1)
+	for _, runner := range runners {
+		ohigo := runner
+		wg.Add(1)
 
-			go func() {
-				ohigo(ctx)
-				wg.Done()
-			}()
-		}
+		go func() {
+			ohigo(ctx)
+			wg.Done()
+		}()
+	}
 
-		wg.Wait()
-		close(s.errors)
-	}()
-
-	return s.errors
+	wg.Wait()
 }
 
 func (s *Service) registerInDiscovery(ctx context.Context) {
@@ -138,18 +126,8 @@ func (s *Service) registerInDiscovery(ctx context.Context) {
 
 		err := s.discovery.RegisterServiceSync(s.discoveryService)
 		if err != nil {
-			s.errors <- errors.Wrap(err, "discovery error")
+			s.log.WithError(err).Error("discovery error")
 			continue
 		}
 	}
-}
-
-// VerifyRequest is struct, which is used to parse requests coming from btcsupervisor,
-// btcsupervisor should use this type for requests to this verifier.
-type VerifyRequest struct {
-	Envelope string `json:"envelope"`
-
-	BlockHash string `json:"block_hash"`
-	TXHash    string `json:"tx_hash"`
-	OutIndex  int    `json:"out_index"`
 }

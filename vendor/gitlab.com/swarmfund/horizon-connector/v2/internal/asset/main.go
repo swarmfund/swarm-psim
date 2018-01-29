@@ -35,5 +35,22 @@ func (q Q) ByCode(code string) (*resources.Asset, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return &asset, nil
+}
 
+func (q Q) Index() ([]resources.Asset, error) {
+	endpoint := "/assets"
+	response, err := q.client.Get(endpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if response == nil {
+		return nil, nil
+	}
+
+	var assets []resources.Asset
+	if err := json.Unmarshal(response, &assets); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal")
+	}
+	return assets, nil
 }

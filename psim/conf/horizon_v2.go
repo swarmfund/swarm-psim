@@ -3,34 +3,31 @@ package conf
 import (
 	"net/url"
 
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
 
-var (
-	horizonV2 *horizon.Connector
-)
+func (c *ViperConfig) Horizon() *horizon.Connector {
+	c.Lock()
+	defer c.Unlock()
 
-func (c *ViperConfig) HorizonV2() *horizon.Connector {
-	if horizonV2 != nil {
-		return horizonV2
+	if c.horizon == nil {
+		v := c.viper.Sub("horizon")
+		if v == nil {
+			panic("horizon config entry is missing")
+		}
+
+		addr := v.GetString("addr")
+		endpoint, err := url.Parse(addr)
+		if err != nil {
+			panic(errors.Wrap(err, "failed to parse addr", logan.F{
+				"addr": addr,
+			}))
+		}
+
+		c.horizon = horizon.NewConnector(endpoint)
 	}
 
-	v := c.viper.Sub("horizon")
-	if v == nil {
-		panic("config entry is missing")
-	}
-
-	addr := v.GetString("addr")
-	endpoint, err := url.Parse(addr)
-	if err != nil {
-		panic(errors.Wrap(err, "Failed to parse addr into url", logan.F{
-			"addr": addr,
-		}))
-	}
-
-	horizonV2 = horizon.NewConnector(endpoint)
-
-	return horizonV2
+	return c.horizon
 }
