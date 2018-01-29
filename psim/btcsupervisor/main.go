@@ -39,7 +39,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to init common Supervisor")
 	}
 
-	horizonConnector := globalConfig.Horizon()
+	horizonConnector := globalConfig.Horizon().WithSigner(config.Supervisor.SignerKP)
 
 	log := app.Log(ctx)
 

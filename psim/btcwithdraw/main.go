@@ -33,7 +33,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	horizonConnector := globalConfig.Horizon()
+	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
 
 	horizonInfo, err := horizonConnector.Info()
 	if err != nil {

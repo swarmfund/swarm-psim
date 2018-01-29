@@ -25,6 +25,7 @@ type Config interface {
 	Discovery() *discovery.Client
 	// TODO Panic instead of returning errors.
 	Log() (*logan.Entry, error)
+	// TODO Consider creating HorizonWithSigner() method.
 	Horizon() *horizon.Connector
 	Services() []string
 	// TODO Panic instead of returning errors.

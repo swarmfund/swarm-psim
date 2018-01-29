@@ -40,7 +40,7 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizon := app.Config(ctx).Horizon()
+		horizon := app.Config(ctx).Horizon().WithSigner(config.Supervisor.SignerKP)
 
 		log := app.Log(ctx)
 		state := addrstate.New(
