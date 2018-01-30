@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Seed          string
 	Destination   common.Address
+	// Min withdraw amount
 	Threshold     *big.Int
 	GasPrice      *big.Int
 	Confirmations *big.Int

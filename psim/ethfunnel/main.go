@@ -28,6 +28,6 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init wallet")
 		}
 
-		return NewService(ctx, app.Log(ctx), config, wallet, app.Config(ctx).Ethereum()), nil
+		return NewService(app.Log(ctx), config, wallet, app.Config(ctx).Ethereum()), nil
 	})
 }
