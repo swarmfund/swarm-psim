@@ -177,6 +177,8 @@ func (s *Service) processAddr(ctx context.Context, address common.Address) (err 
 		}
 	}()
 
+	s.log.WithField("addr", address.String()).Debug("Processing Address.")
+
 	balance, err := s.eth.BalanceAt(ctx, address, nil)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get ETH balance of the Address from node")
