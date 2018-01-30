@@ -54,14 +54,15 @@ func (w *Watcher) ensureReached(ts time.Time) {
 	}
 }
 
-func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
+func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, offchainAddr string) *string {
 	w.ensureReached(ts)
 
-	addr, ok := w.state.addrs[addr]
+	addrI, ok := w.state.addrs.Load(offchainAddr)
 	if !ok {
 		return nil
 	}
-	return &addr
+	addrValue := addrI.(string)
+	return &addrValue
 }
 
 func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
@@ -76,10 +77,12 @@ func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
 }
 
 func (w *Watcher) Balance(ctx context.Context, address string) *string {
-	balance, ok := w.state.balances[address]
+	balanceI, ok := w.state.balances.Load(address)
 	if ok {
+		balance := balanceI.(string)
 		return &balance
 	}
+
 	// if we don't have balance already, let's wait for latest ledger
 	now := time.Now()
 	for w.head.Before(now) {
@@ -88,11 +91,14 @@ func (w *Watcher) Balance(ctx context.Context, address string) *string {
 			continue
 		}
 	}
+
 	// now check again
-	balance, ok = w.state.balances[address]
+	balanceI, ok = w.state.balances.Load(address)
 	if !ok {
 		return nil
 	}
+
+	balance := balanceI.(string)
 	return &balance
 }
 
