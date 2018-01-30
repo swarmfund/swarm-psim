@@ -109,7 +109,6 @@ func (s *Service) watchHeight() *big.Int {
 		}
 		cursor = cursorUpdate
 	}
-
 }
 
 func (s *Service) fetchBlocks() {

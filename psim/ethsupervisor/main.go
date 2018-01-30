@@ -33,6 +33,10 @@ func init() {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceETHSupervisor))
 		}
 
+		if config.FixedDepositFee == nil {
+			panic("'fixed_deposit_fee' cannot be empty")
+		}
+
 		commonSupervisor, err := supervisor.InitNew(ctx, conf.ServiceETHSupervisor, config.Supervisor)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init supervisor common")

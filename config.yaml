@@ -122,6 +122,8 @@ eth_supervisor:
   cursor: 2405320
   base_asset: ETH
   deposit_asset: SUN
+  fixed_deposit_fee: 1000000000000000 # 0.001 ETH
+
   supervisor:
     leadership_key: eth_supervisor
     exchange: G_SOME_VALID_PUBLIC_KEY

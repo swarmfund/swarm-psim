@@ -118,7 +118,8 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 
 	// amount = value * price / 10^18
 	ethPrecision := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
-	emissionAmount := new(big.Int).Mul(tx.Value(), big.NewInt(amount.One))
+	valueWithoutDepositFee := tx.Value().Sub(tx.Value(), s.config.FixedDepositFee)
+	emissionAmount := new(big.Int).Mul(valueWithoutDepositFee, big.NewInt(amount.One))
 	emissionAmount = emissionAmount.Div(emissionAmount, ethPrecision)
 	if !emissionAmount.IsUint64() {
 		entry.Error("amount overflow, skipping tx")
@@ -173,7 +174,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		return err
 	}
 
-	s.Log.Info("issuance request submitted")
+	entry.Info("issuance request submitted")
 
 	return nil
 }
