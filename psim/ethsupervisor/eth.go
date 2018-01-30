@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
@@ -107,12 +107,6 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 
 	s.Log.WithField("tx_hash", tx.Hash().Hex()).Info("Found deposit.")
 
-	price := s.state.PriceAt(ctx, tx.Timestamp)
-	if price == nil {
-		s.Log.WithField("tx", tx.Hash().String()).Error("price is not set, skipping tx")
-		return nil
-	}
-
 	receiver := s.state.Balance(ctx, *address)
 	if receiver == nil {
 		s.Log.WithField("tx", tx.Hash().String()).Error("balance not found, skipping tx")
@@ -120,12 +114,10 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	}
 
 	// amount = value * price / 10^18
-	div := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
-	bigPrice := big.NewInt(*price)
-
-	amount := new(big.Int).Mul(tx.Value(), bigPrice)
-	amount = amount.Div(amount, div)
-	if !amount.IsUint64() {
+	ethPrecision := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
+	coef := new(big.Int).Div(big.NewInt(amount.One), ethPrecision)
+	emissionAmount := coef.Mul(tx.Value(), coef)
+	if !emissionAmount.IsUint64() {
 		s.Log.WithField("tx", tx.Hash().String()).Error("amount overflow, skipping tx")
 		return nil
 	}
@@ -141,10 +133,10 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		Asset:     s.config.DepositAsset,
 		Reference: reference,
 		Receiver:  *receiver,
-		Amount:    amount.Uint64(),
+		Amount:    emissionAmount.Uint64(),
 		Details: resources.DepositDetails{
 			Source: tx.Hash().Hex(),
-			Price:  types.Amount(bigPrice.Int64()),
+			Price:  amount.One,
 		}.Encode(),
 	})
 
