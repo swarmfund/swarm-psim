@@ -18,16 +18,14 @@ const (
 )
 
 var (
-	txGas        = big.NewInt(21000)
+	txGas = big.NewInt(21000)
 	// DEPRECATED Now uses 12. Move to amount.One
 	ethPrecision = new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1000000))
 )
 
 func init() {
 	app.RegisterService(conf.ServiceETHWithdraw, func(ctx context.Context) (app.Service, error) {
-		config := Config{
-			GasPrice: big.NewInt(1000000000),
-		}
+		config := Config{}
 		err := figure.
 			Out(&config).
 			With(figure.BaseHooks, utils.ETHHooks).
@@ -37,15 +35,22 @@ func init() {
 			return nil, errors.Wrap(err, "failed to figure out")
 		}
 
+		if config.GasPrice == nil {
+			return nil, errors.New("'gas_price' cannot be empty")
+		}
+
 		wallet := eth.NewWallet()
 		address, err := wallet.ImportHEX(config.Key)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to import key")
 		}
 
-		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
-		eth := app.Config(ctx).Ethereum()
-
-		return NewService(app.Log(ctx), config, horizon, wallet, eth, address), nil
+		return NewService(
+			app.Log(ctx),
+			config,
+			app.Config(ctx).Horizon().WithSigner(config.Signer),
+			wallet,
+			app.Config(ctx).Ethereum(),
+			address), nil
 	})
 }

@@ -34,7 +34,7 @@ func init() {
 		}
 
 		if config.FixedDepositFee == nil {
-			panic("'fixed_deposit_fee' cannot be empty")
+			return nil, errors.New("'fixed_deposit_fee' cannot be empty")
 		}
 
 		commonSupervisor, err := supervisor.InitNew(ctx, conf.ServiceETHSupervisor, config.Supervisor)
