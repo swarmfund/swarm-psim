@@ -68,6 +68,7 @@ type Service struct {
 	depositThreshold *big.Int
 }
 
+// FIXME Hardcoded threshold
 func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, config Config) *Service {
 	s := &Service{
 		Service: supervisor,
@@ -77,7 +78,7 @@ func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, con
 		// could be buffered to increase throughput
 		txCh:     make(chan internal.Transaction, 1),
 		blocksCh: make(chan uint64, 1),
-		// FIXME
+		// FIXME Hardcoded threshold
 		depositThreshold: big.NewInt(1000000000000),
 	}
 

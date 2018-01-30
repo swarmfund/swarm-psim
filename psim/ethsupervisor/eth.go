@@ -16,16 +16,18 @@ import (
 // TODO defer
 func (s *Service) processBlocks(ctx context.Context) {
 	for blockNumber := range s.blocksCh {
-		s.Log.WithField("number", blockNumber).Debug("processing block")
+		entry := s.Log.WithField("block_number", blockNumber)
+		entry.Debug("Processing block.")
+
 		block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
 		if err != nil {
-			s.Log.WithField("block_number", blockNumber).Error("failed to get block")
+			entry.Error("Failed to get block.")
 			s.blocksCh <- blockNumber
 			continue
 		}
 
 		if block == nil {
-			s.Log.WithField("block_number", blockNumber).Error("missing block")
+			entry.Error("Got nil block from node.")
 			continue
 		}
 
@@ -68,19 +70,18 @@ func (s *Service) watchHeight(ctx context.Context) {
 func (s *Service) processTXs(ctx context.Context) {
 	for tx := range s.txCh {
 		entry := s.Log.WithField("tx", tx.Hash().Hex())
+
 		for {
-			entry.Debug("processing tx")
 			if err := s.processTX(ctx, tx); err != nil {
-				s.Log.WithError(err).Error("failed to process tx")
+				entry.WithError(err).Error("Failed to process TX.")
 				continue
 			}
-			entry.Debug("tx processed")
 			break
 		}
-
 	}
 }
 
+// TODO Refactor me.
 func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
@@ -103,6 +104,8 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	if address == nil {
 		return nil
 	}
+
+	s.Log.WithField("tx_hash", tx.Hash().Hex()).Info("Found deposit.")
 
 	price := s.state.PriceAt(ctx, tx.Timestamp)
 	if price == nil {
@@ -127,7 +130,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		return nil
 	}
 
-	s.Log.Info("submitting issuance request")
+	s.Log.Info("Submitting issuance request.")
 
 	reference := tx.Hash().Hex()
 	// yoba eth hex trimming
@@ -147,10 +150,10 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 
 	envelope, err := request.Marshal()
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal IR")
+		return errors.Wrap(err, "Failed to marshal IssuanceRequest Envelope")
 	}
 
-	if result := s.Horizon.Submitter().Submit(context.TODO(), envelope); result.Err != nil {
+	if result := s.Horizon.Submitter().Submit(ctx, envelope); result.Err != nil {
 		entry := s.Log.
 			WithField("tx", tx.Hash().String()).
 			WithField("block", tx.BlockNumber).
@@ -165,7 +168,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 			}
 		}
 
-		entry.Error("failed to submit issuance request")
+		entry.Error("Failed to submit IssuanceRequest.")
 		return err
 	}
 
