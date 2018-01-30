@@ -6,6 +6,7 @@ import (
 
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
@@ -72,6 +73,7 @@ func (s *Service) processTXs(ctx context.Context) {
 		entry := s.Log.WithField("tx", tx.Hash().Hex())
 
 		for {
+			// TODO Incremental!
 			if err := s.processTX(ctx, tx); err != nil {
 				entry.WithError(err).Error("Failed to process TX.")
 				continue
@@ -105,24 +107,23 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		return nil
 	}
 
-	s.Log.WithField("tx_hash", tx.Hash().Hex()).Info("Found deposit.")
+	entry := s.Log.WithField("tx_hash", tx.Hash().Hex())
+	entry.Info("Found deposit.")
 
 	receiver := s.state.Balance(ctx, *address)
 	if receiver == nil {
-		s.Log.WithField("tx", tx.Hash().String()).Error("balance not found, skipping tx")
+		entry.Error("balance not found, skipping tx")
 		return nil
 	}
 
 	// amount = value * price / 10^18
 	ethPrecision := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
-	coef := new(big.Int).Div(big.NewInt(amount.One), ethPrecision)
-	emissionAmount := coef.Mul(tx.Value(), coef)
+	emissionAmount := new(big.Int).Mul(tx.Value(), big.NewInt(amount.One))
+	emissionAmount = emissionAmount.Div(emissionAmount, ethPrecision)
 	if !emissionAmount.IsUint64() {
-		s.Log.WithField("tx", tx.Hash().String()).Error("amount overflow, skipping tx")
+		entry.Error("amount overflow, skipping tx")
 		return nil
 	}
-
-	s.Log.Info("Submitting issuance request.")
 
 	reference := tx.Hash().Hex()
 	// yoba eth hex trimming
@@ -140,27 +141,35 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		}.Encode(),
 	})
 
+	entry = entry.WithFields(logan.F{
+		"emission_amount": emissionAmount.Uint64(),
+		"reference":       reference,
+		"receiver":        *receiver,
+	})
+
 	envelope, err := request.Marshal()
 	if err != nil {
 		return errors.Wrap(err, "Failed to marshal IssuanceRequest Envelope")
 	}
 
 	if result := s.Horizon.Submitter().Submit(ctx, envelope); result.Err != nil {
-		entry := s.Log.
-			WithField("tx", tx.Hash().String()).
-			WithField("block", tx.BlockNumber).
-			WithError(err)
+		entry := entry.WithFields(logan.F{
+			"block":                    tx.BlockNumber,
+			"submit_response_raw":      string(result.RawResponse),
+			"submit_response_tx_code":  result.TXCode,
+			"submit_response_op_codes": result.OpCodes,
+		}).WithError(result.Err)
 
 		if len(result.OpCodes) == 1 {
 			switch result.OpCodes[0] {
 			// safe to move on
 			case "op_reference_duplication":
-				entry.Info("tx failed")
+				entry.Info("Met op_reference_duplication in response from Horizon - skipping.")
 				return nil
 			}
 		}
 
-		entry.Error("Failed to submit IssuanceRequest.")
+		entry.Error("Failed to submit CoinEmissionRequest Transaction.")
 		return err
 	}
 
