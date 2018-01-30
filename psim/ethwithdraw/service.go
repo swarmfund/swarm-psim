@@ -8,6 +8,8 @@ import (
 
 	"fmt"
 
+	"bytes"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -101,47 +103,50 @@ type Withdraw struct {
 }
 
 func (s *Service) processRequests(ctx context.Context) {
-	do := func(log *logan.Entry, withdraw *Withdraw) (err error) {
-		defer func() {
-			//if rvr := recover(); rvr != nil {
-			//	err = errors.FromPanic(rvr)
-			//}
-		}()
+	for withdrawReq := range s.withdrawCh {
+		entry := s.log.WithField("request", withdrawReq.Request.ID)
 
-		// craft ethereum transaction
-		withdraw.ETH, err = s.craftETH(ctx, withdraw)
-		if err != nil {
-			return errors.Wrap(err, "failed craft eth tx")
-		}
-
-		// submit stellar tx
-		if !withdraw.Approved {
-			if err := s.approveWithdraw(ctx, withdraw); err != nil {
-				return errors.Wrap(err, "failed to approve request")
-			}
-			log.Info("request approved")
-			withdraw.Approved = true
-		}
-
-		// submit eth tx
-		s.submitETH(ctx, withdraw.ETH)
-
-		// wait while tx is mined
-		s.ensureMined(ctx, withdraw.ETH.Hash())
-
-		return nil
-	}
-
-	for withdraw := range s.withdrawCh {
-		entry := s.log.WithField("request", withdraw.Request.ID)
-		if err := do(entry, &withdraw); err != nil {
+		if err := s.processRequest(ctx, &withdrawReq); err != nil {
 			entry.WithError(err).Error("processing failed")
-			go func() { s.withdrawCh <- withdraw }()
+			go func() { s.withdrawCh <- withdrawReq }()
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		entry.Info("processed")
+
+		entry.Info("WithdrawRequest processed.")
 	}
+}
+
+func (s *Service) processRequest(ctx context.Context, withdrawReq *Withdraw) (err error) {
+	defer func() {
+		//if rvr := recover(); rvr != nil {
+		//	err = errors.FromPanic(rvr)
+		//}
+	}()
+
+	// craft ethereum transaction
+	withdrawReq.ETH, err = s.craftETH(ctx, withdrawReq)
+	if err != nil {
+		return errors.Wrap(err, "failed craft eth tx")
+	}
+
+	// submit stellar tx
+	if !withdrawReq.Approved {
+		if err := s.approveWithdraw(ctx, withdrawReq); err != nil {
+			return errors.Wrap(err, "failed to approve request")
+		}
+
+		s.log.WithField("request_id", withdrawReq.Request.ID).Info("Request approved.")
+		withdrawReq.Approved = true
+	}
+
+	// submit eth tx
+	s.submitETH(ctx, withdrawReq.ETH)
+
+	// wait while tx is mined
+	s.ensureMined(ctx, withdrawReq.ETH.Hash())
+
+	return nil
 }
 
 func (s *Service) ensureMined(ctx context.Context, hash common.Hash) {
@@ -178,17 +183,21 @@ func (s *Service) submitETH(ctx context.Context, tx *types.Transaction) {
 				err = errors.FromPanic(rvr)
 			}
 		}()
+
 		return s.eth.SendTransaction(ctx, tx)
 	}
-	entry := s.log.WithField("hash", tx.Hash().Hex())
+
+	entry := s.log.WithField("tx_hash", tx.Hash().String())
+
 	for {
 		if err := do(tx); err != nil {
-			entry.WithError(err).Error("failed to submit eth tx")
+			entry.WithError(err).Error("Failed to submit ETH TX.")
 			// TODO incremental backoff
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		entry.Info("submitted eth tx")
+
+		entry.Info("Submitted ETH TX successfully.")
 		return
 	}
 }
@@ -208,8 +217,6 @@ func (s *Service) craftETH(ctx context.Context, withdraw *Withdraw) (*types.Tran
 		),
 		txFee,
 	)
-
-	fmt.Println(value.String())
 
 	tx, err := s.wallet.SignTX(
 		s.address,
@@ -231,7 +238,7 @@ func (s *Service) craftETH(ctx context.Context, withdraw *Withdraw) (*types.Tran
 	return tx, nil
 }
 
-func (s *Service) approveWithdraw(ctx context.Context, withdraw *Withdraw) error {
+func (s *Service) approveWithdraw(ctx context.Context, withdrawReq *Withdraw) error {
 	var builder *xdrbuild.Builder
 	{
 		info, err := s.horizon.Info()
@@ -242,13 +249,17 @@ func (s *Service) approveWithdraw(ctx context.Context, withdraw *Withdraw) error
 		builder = xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
 	}
 
+	b := bytes.Buffer{}
+	withdrawReq.ETH.EncodeRLP(&b)
+	txHex := fmt.Sprintf("%x\n", b.Bytes())
+
 	envelope, err := builder.Transaction(s.config.Source).
 		Op(xdrbuild.ReviewRequestOp{
-			Hash: withdraw.Request.Hash,
-			ID:   withdraw.Request.ID,
+			Hash: withdrawReq.Request.Hash,
+			ID:   withdrawReq.Request.ID,
 			Details: xdrbuild.WithdrawalDetails{
 				// TODO Set Hash of the ETH TX
-				ExternalDetails: "",
+				ExternalDetails: fmt.Sprintf(`{"tx_hex": "%s", "tx_hash": "%s"}`, txHex, withdrawReq.ETH.Hash().String()),
 			},
 			Action: xdr.ReviewRequestOpActionApprove,
 		}).
