@@ -32,6 +32,14 @@ func NewHDWallet(hexseed string) (*Wallet, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init master")
 	}
+	master, err = master.NewChildKey(bip32.FirstHardenedChild)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to derive m/0`")
+	}
+	master, err = master.NewChildKey(bip32.FirstHardenedChild)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to derive m/0`/0`")
+	}
 
 	wallet := &Wallet{
 		hd:     true,
