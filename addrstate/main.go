@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 type Watcher struct {
@@ -43,10 +44,11 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 	return w
 }
 
-// ensureReached will block until state head reached provided ts
-func (w *Watcher) ensureReached(ts time.Time) {
+func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	for w.head.Before(ts) {
 		select {
+		case <- ctx.Done():
+			return
 		case <-w.headUpdate:
 			// Make the for check again
 			continue
@@ -55,7 +57,10 @@ func (w *Watcher) ensureReached(ts time.Time) {
 }
 
 func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, offchainAddr string) *string {
-	w.ensureReached(ts)
+	w.ensureReached(ctx, ts)
+	if app.IsCanceled(ctx) {
+		return nil
+	}
 
 	addrI, ok := w.state.addrs.Load(offchainAddr)
 	if !ok {
@@ -65,8 +70,12 @@ func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, offchainAddr stri
 	return &addrValue
 }
 
+// TODO Seems useless - remove me
 func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
-	w.ensureReached(ts)
+	w.ensureReached(ctx, ts)
+	if app.IsCanceled(ctx) {
+		return nil
+	}
 
 	for _, price := range w.state.prices {
 		if ts.After(price.UpdatedAt) {

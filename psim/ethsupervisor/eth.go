@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
@@ -70,6 +71,10 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 func (s *Service) processTXs(ctx context.Context) {
 	for tx := range s.txCh {
+		if app.IsCanceled(ctx) {
+			return
+		}
+
 		entry := s.Log.WithField("tx", tx.Hash().Hex())
 
 		for {
@@ -103,6 +108,10 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 
 	// address is watched
 	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
+	if app.IsCanceled(ctx) {
+		return nil
+	}
+
 	if address == nil {
 		return nil
 	}
@@ -114,6 +123,10 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	entry.Info("Found deposit.")
 
 	receiver := s.state.Balance(ctx, *address)
+	if app.IsCanceled(ctx) {
+		return nil
+	}
+
 	if receiver == nil {
 		entry.Error("balance not found, skipping tx")
 		return nil
