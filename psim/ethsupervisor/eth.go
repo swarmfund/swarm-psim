@@ -17,7 +17,12 @@ import (
 
 // TODO defer
 func (s *Service) processBlocks(ctx context.Context) {
+	// TODO Listen to both s.blockCh and ctx.Done() in select.
 	for blockNumber := range s.blocksCh {
+		if app.IsCanceled(ctx) {
+			return
+		}
+
 		entry := s.Log.WithField("block_number", blockNumber)
 		entry.Debug("Processing block.")
 
@@ -34,9 +39,14 @@ func (s *Service) processBlocks(ctx context.Context) {
 		}
 
 		for _, tx := range block.Transactions() {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
 			if tx == nil {
 				continue
 			}
+
 			s.txCh <- internal.Transaction{
 				Timestamp:   time.Unix(block.Time().Int64(), 0),
 				BlockNumber: block.NumberU64(),
@@ -52,7 +62,13 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
+
+		// TODO Listen to both ticker.C and ctx.Done() in select.
 		for ; ; <-ticker.C {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
 			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
 				s.Log.WithError(err).Error("failed to get block count")
@@ -62,6 +78,10 @@ func (s *Service) watchHeight(ctx context.Context) {
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
 			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
+				if app.IsCanceled(ctx) {
+					return
+				}
+
 				s.blocksCh <- cursor.Uint64()
 				cursor.Add(cursor, big.NewInt(1))
 			}
