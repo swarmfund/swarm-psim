@@ -70,21 +70,6 @@ func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, offchainAddr stri
 	return &addrValue
 }
 
-// TODO Seems useless - remove me
-func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
-	w.ensureReached(ctx, ts)
-	if app.IsCanceled(ctx) {
-		return nil
-	}
-
-	for _, price := range w.state.prices {
-		if ts.After(price.UpdatedAt) {
-			return &price.Value
-		}
-	}
-	return nil
-}
-
 func (w *Watcher) Balance(ctx context.Context, address string) *string {
 	balanceI, ok := w.state.balances.Load(address)
 	if ok {
