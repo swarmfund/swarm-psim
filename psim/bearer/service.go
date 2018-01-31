@@ -6,9 +6,11 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"fmt"
+	"encoding/json"
 )
 
 // Service is a main structure for bearer runner,
@@ -42,15 +44,32 @@ func (s *Service) Run(ctx context.Context) {
 		s.config.AbnormalPeriod)
 }
 
+func (s *Service) obtainSales() ([]horizon.Sale, error) {
+	respBytes, err := s.horizon.Client().Get(fmt.Sprintf("/core_sales"))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get core sales from Horizon")
+	}
+
+	var sales []horizon.Sale
+	err = json.Unmarshal(respBytes, &sales)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal Sales from Horizon response", logan.F{
+			"horizon_response": string(respBytes),
+		})
+	}
+
+	return sales, nil
+}
+
 // sendOperations is create and submit operations.
 func (s *Service) sendOperations(ctx context.Context) error {
-	err := s.checkSaleState()
+	err := s.checkSaleState(ctx)
 	if err == nil {
 		s.logger.Info("Operation submitted")
 		return nil
 	}
 
-	if err != errorNoSales {
+	if err != errNoSales {
 		return errors.Wrap(err, "can not to submit checkSaleState operation")
 	}
 
