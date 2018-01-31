@@ -113,31 +113,25 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 			continue
 		}
 
+		fields := logan.F{
+			"block_hash":      blockHash,
+			"block_time":      blockTime,
+			"tx_hash":         tx.Hash().String(),
+			"out_value":       out.Value,
+			"out_index":       i,
+			"btc_addr":        addr58,
+			"account_address": accountAddress,
+		}
+
 		if out.Value < int64(s.config.MinDepositAmount) {
-			s.Log.WithFields(logan.F{
-				"block_hash":                     blockHash,
-				"block_time":                     blockTime,
-				"tx_hash":                        tx.Hash().String(),
-				"out_value":                      out.Value,
-				"out_index":                      i,
-				"btc_addr":                       addr58,
-				"account_address":                accountAddress,
-				"min_deposit_amount_from_config": s.config.MinDepositAmount,
-			}).Warn("Received deposit with too small amount.")
+			s.Log.WithFields(fields).WithField("min_deposit_amount_from_config", s.config.MinDepositAmount).
+				Warn("Received deposit with too small amount.")
 			continue
 		}
 
 		err = s.processDeposit(ctx, blockHash, blockTime, tx.Hash().String(), i, *out, addr58, *accountAddress)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process deposit", logan.F{
-				"block_hash":      blockHash,
-				"block_time":      blockTime,
-				"tx_hash":         tx.Hash().String(),
-				"out_value":       out.Value,
-				"out_index":       i,
-				"btc_addr":        addr58,
-				"account_address": accountAddress,
-			})
+			return errors.Wrap(err, "Failed to process deposit", fields)
 		}
 	}
 
@@ -152,7 +146,8 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		"account_address": accountAddress,
 	}).Debug("Processing deposit.")
 
-	emissionAmount := uint64(float64(out.Value) * (amount.One / math.Pow(10, 8)))
+	valueWithoutDepositFee := out.Value - int64(s.config.FixedDepositFee)
+	emissionAmount := uint64(float64(valueWithoutDepositFee) * (amount.One / math.Pow(10, 8)))
 
 	err := s.sendCoinEmissionRequest(blockHash, txHash, outIndex, accountAddress, emissionAmount)
 	if err != nil {
@@ -197,9 +192,10 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 		"out_index":  outIndex,
 	})
 
+	// TODO Move getting BalanceID to separate method
 	balances, err := s.horizon.WithSigner(s.config.Supervisor.SignerKP).Accounts().Balances(accountAddress)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Account from Horizon")
+		return errors.Wrap(err, "Failed to get Account Balances from Horizon")
 	}
 
 	receiver := ""

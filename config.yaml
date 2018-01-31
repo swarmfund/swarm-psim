@@ -69,7 +69,9 @@ bitcoin_supervisor:
   last_processed_block: 1260685
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
-  min_deposit_amount: 10000 # satoshis (0.0001 BTC)
+  min_deposit_amount: 500000 # satoshis (0.005 BTC)
+  deposit_asset: BTC
+  fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
 
   supervisor:
     leadership_key: btc_supervisor
@@ -86,7 +88,7 @@ btc_funnel:
   cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # testnet faucet
   min_funnel_amount: 0
   max_hot_stock: 50
-  dust_output_limit: 0.005
+  dust_output_limit: 0.005 # in BTC
 
 btc_withdraw:
   btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N

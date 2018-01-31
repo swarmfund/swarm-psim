@@ -34,6 +34,13 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to figure out %s", conf.ServiceBTCSupervisor))
 	}
 
+	if config.FixedDepositFee == 0 {
+		return nil, errors.New("fixed_deposit_fee cannot be zero")
+	}
+	if config.MinDepositAmount <= 2 * config.FixedDepositFee {
+		return nil, errors.New("min_deposit_amount must be at least twice grater than fixed_deposit_fee")
+	}
+
 	commonSupervisor, err := supervisor.InitNew(ctx, conf.ServiceBTCSupervisor, config.Supervisor)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to init common Supervisor")

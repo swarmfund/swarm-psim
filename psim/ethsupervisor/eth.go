@@ -107,7 +107,10 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		return nil
 	}
 
-	entry := s.Log.WithField("tx_hash", tx.Hash().Hex())
+	entry := s.Log.WithFields(logan.F{
+		"tx_hash":     tx.Hash().Hex(),
+		"eth_address": tx.To().String(),
+	})
 	entry.Info("Found deposit.")
 
 	receiver := s.state.Balance(ctx, *address)
