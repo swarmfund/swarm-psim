@@ -34,6 +34,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	hConn := globalConfig.Horizon()
-
-	return New(config, log, hConn), nil
+	saleStateChecker := NewSalesStateChecker(hConn, config)
+	return New(config, log, saleStateChecker), nil
 }
