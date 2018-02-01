@@ -2,11 +2,9 @@ package bearer
 
 import (
 	"context"
-	"strings"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
 )
 
 var errNoSales = errors.New("no sales")
@@ -16,6 +14,10 @@ func (s *Service) checkSaleState(ctx context.Context) error {
 	sales, err := s.checker.GetSales()
 	if err != nil {
 		return errors.Wrap(err, "failed to get sales")
+	}
+
+	if len(sales) == 0 {
+		return nil
 	}
 
 	info, err := s.checker.GetHorizonInfo()
@@ -30,9 +32,6 @@ func (s *Service) checkSaleState(ctx context.Context) error {
 		}
 
 		result := s.checker.SubmitTx(ctx, envelope)
-		if len(result.OpCodes) == 1 && strings.Contains(result.OpCodes[0], xdr.CheckSaleStateResultCodeNotFound.ShortString()) {
-			return errNoSales
-		}
 		if result.Err != nil {
 			return errors.Wrap(result.Err, "failed to submit tx", logan.F{
 				"submit_response_raw":      string(result.RawResponse),

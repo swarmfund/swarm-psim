@@ -29,7 +29,9 @@ func TestSalesStateChecker(t *testing.T) {
 		Convey("Failed to get horizon info", func() {
 			expectedError := errors.New("failed to get horizon info")
 			sale := horizon.Sale{1}
-			salesStateChecker.On("GetSales").Return(sale, nil).Once()
+			var sales []horizon.Sale
+			sales = append(sales, sale)
+			salesStateChecker.On("GetSales").Return(sales, nil).Once()
 			salesStateChecker.On("GetHorizonInfo").Return(nil, expectedError).Once()
 			err := service.checkSaleState(ctx)
 			assert.NotNil(t, err)
