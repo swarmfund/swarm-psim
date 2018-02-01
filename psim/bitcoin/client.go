@@ -119,14 +119,14 @@ func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, 
 // error with cause ErrInsufficientFunds is returned.
 //
 // Change position in Outputs is set to 1.
-func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
+func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
 	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to CreateAndFundRawTX")
 	}
 
 	// Fill TX with inputs - UTXOs
-	txHex, err = c.connector.FundRawTX(txHex, changeAddress)
+	txHex, err = c.connector.FundRawTX(txHex, changeAddress, feeRate)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
 			"created_tx_hex": txHex,

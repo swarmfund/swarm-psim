@@ -34,7 +34,7 @@ type Connector interface {
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
 	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
-	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
+	FundRawTX(initialTXHex, changeAddress string, feeRate *float64) (resultTXHex string, err error)
 	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
@@ -165,12 +165,12 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 	}
 
 	var lastAddr string
-	params := `"", {`
+	params := `"", {` // FromAccount
 	for addr, amount := range addrToAmount {
 		lastAddr = addr
 		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
 	}
-	params = params[:len(params)-1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
+	params = params[:len(params)-1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr) // Confirmations, Comment, SubtractFeeFromAmount
 	err = c.sendRequest("sendmany", params, &response)
 
 	if err != nil {
@@ -204,11 +204,12 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 
 // FundRawTX runs fundrawtransaction request to the Bitcoin Node
 // using flags `includeWatching` and `lockUnspents` as true.
+// Fee is subtracted from the Output 0. Change position in Outputs is set to 1.
+// If feeRate provided is nil - the wallet determines the fee.
+//
 // If Bitcoin Node returns -4:Insufficient funds error -
 // ErrInsufficientFunds is returned.
-//
-// Change position in Outputs is set to 1.
-func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error) {
+func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
 	var response struct {
 		Response
 		Result struct {
@@ -216,14 +217,20 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXH
 		} `json:"result"`
 	}
 
-	err = c.sendRequest("fundrawtransaction",
-		fmt.Sprintf(`"%s", {
+	params := fmt.Sprintf(`"%s", {
 			"changeAddress": "%s",
 			"changePosition": 1,
 			"includeWatching": true,
 			"lockUnspents": true,
-			"subtractFeeFromOutputs": [0]
-		}`, initialTXHex, changeAddress), &response)
+			"subtractFeeFromOutputs": [0]`, initialTXHex, changeAddress)
+	if feeRate != nil {
+		params = params + fmt.Sprintf(
+			`,
+		"feeRate": %.8f`, *feeRate)
+	}
+	params = params + `}`
+
+	err = c.sendRequest("fundrawtransaction", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
 	}
