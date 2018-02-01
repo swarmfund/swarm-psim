@@ -137,6 +137,7 @@ eth_funnel:
   confirmations: 1
   threshold: 1
   gas_price: 1000000000
+  keys_to_derive: 10
 
 eth_withdraw:
   key: "hot_wallet_private_key"

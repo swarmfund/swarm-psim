@@ -5,13 +5,13 @@ import (
 
 	"crypto/ecdsa"
 
+	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip32"
-	"sync"
-	"context"
 )
 
 var (
@@ -22,11 +22,9 @@ type Wallet struct {
 	hd     bool
 	master *bip32.Key
 	keys   map[common.Address]ecdsa.PrivateKey
-
-	extendWait sync.WaitGroup
 }
 
-func NewHDWallet(hexseed string) (*Wallet, error) {
+func NewHDWallet(hexseed string, n uint64) (*Wallet, error) {
 	seed, err := hex.DecodeString(hexseed)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode seed")
@@ -51,10 +49,8 @@ func NewHDWallet(hexseed string) (*Wallet, error) {
 		keys:   make(map[common.Address]ecdsa.PrivateKey),
 	}
 
-	wallet.extendWait.Add(1)
-
 	// TODO check horizon for account sequence and extended keys as needed
-	if err := wallet.extend(2 << 10); err != nil {
+	if err := wallet.extend(n); err != nil {
 		return nil, errors.Wrap(err, "failed to extend master")
 	}
 
@@ -85,8 +81,8 @@ func (wallet *Wallet) Import(raw []byte) (common.Address, error) {
 	return address, nil
 }
 
-func (wallet *Wallet) extend(i uint) error {
-	for uint(len(wallet.keys)) < i {
+func (wallet *Wallet) extend(i uint64) error {
+	for uint64(len(wallet.keys)) < i {
 		child, err := wallet.master.NewChildKey(uint32(len(wallet.keys)))
 		if err != nil {
 			return errors.Wrap(err, "failed to extend child")
@@ -97,25 +93,17 @@ func (wallet *Wallet) extend(i uint) error {
 		}
 	}
 
-	wallet.extendWait.Done()
-
 	return nil
 }
 
-// TODO Use ctx
 func (wallet *Wallet) Addresses(ctx context.Context) (result []common.Address) {
-	wallet.extendWait.Wait()
-
 	for addr := range wallet.keys {
 		result = append(result, addr)
 	}
 	return result
 }
 
-// TODO pass ctx
 func (wallet *Wallet) SignTX(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
-	wallet.extendWait.Wait()
-
 	key, ok := wallet.keys[address]
 	if !ok {
 		return nil, ErrNoKey
@@ -127,10 +115,7 @@ func (wallet *Wallet) SignTXWithPrivate(key *ecdsa.PrivateKey, tx *types.Transac
 	return types.SignTx(tx, types.HomesteadSigner{}, key)
 }
 
-// TODO pass ctx
 func (wallet *Wallet) HasAddress(address common.Address) bool {
-	wallet.extendWait.Wait()
-
 	_, ok := wallet.keys[address]
 	return ok
 }
