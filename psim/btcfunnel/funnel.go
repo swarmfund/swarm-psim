@@ -2,19 +2,26 @@ package btcfunnel
 
 import (
 	"context"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-func (s *Service) funnelBTC(ctx context.Context) error {
+func (s *Service) funnelEverythingFromSmallAddresses(ctx context.Context) error {
 	balance, err := s.btcClient.GetWalletBalance(false)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Wallet balance")
+		return errors.Wrap(err, "Failed to get Wallet balance without WatchOnly Addresses")
 	}
 
 	if balance == 0 || balance < s.config.MinFunnelAmount {
 		// Too little money to funnel.
+		if balance > 0 {
+			s.log.WithFields(logan.F{
+				"balance_without_watch_only": balance,
+				"min_funnel_amount":          s.config.MinFunnelAmount,
+			}).Debug("Having non-zero BTC balance, but still less than MinFunnelAmount - skipping for now.")
+		}
 		return nil
 	}
 
@@ -24,7 +31,7 @@ func (s *Service) funnelBTC(ctx context.Context) error {
 
 	balanceWithWatchOnly, err := s.btcClient.GetWalletBalance(true)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Wallet balance with watch only", fields)
+		return errors.Wrap(err, "Failed to get Wallet balance with WatchOnly Addresses", fields)
 	}
 	hotBalance := balanceWithWatchOnly - balance
 	fields["hot_balance"] = fmt.Sprintf("%.8f", hotBalance)
@@ -42,15 +49,18 @@ func (s *Service) funnelBTC(ctx context.Context) error {
 		addrToAmount[s.config.ColdAddress] = amountToCold
 	}
 
-	txHash, err := s.btcClient.SendMany(addrToAmount)
+	txHash, err := s.sendBTC(addrToAmount)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send BTC to Hot/Cold Addresses", fields)
 	}
 	fields["funnel_tx_hash"] = txHash
 
 	s.log.WithFields(fields).Info("Funneled BTC to the Hot/Cold Address(es).")
-
 	return nil
+}
+
+func (s *Service) sendBTC(addrToAmount map[string]float64) (txHash string, err error) {
+	return s.btcClient.SendMany(addrToAmount)
 }
 
 // TODO Cover with tests.
@@ -62,7 +72,7 @@ func (s *Service) countAmounts(sendingAmount, hotBalance float64) (amountToHot, 
 		return 0, sendingAmount
 	}
 
-	if sendingAmount - availableToHot > s.config.DustOutputLimit {
+	if sendingAmount-availableToHot > s.config.DustOutputLimit {
 		// After fulfilling of the Hot, still have more than Dust to be sent to the Cold.
 		return availableToHot, sendingAmount - availableToHot
 	}

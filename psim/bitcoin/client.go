@@ -87,6 +87,78 @@ func (c Client) GetWalletBalance(includeWatchOnly bool) (float64, error) {
 	return balance, nil
 }
 
+// CreateAndFundRawTX creates TX, which pays provided amount
+// to the provided goalAddress, passing change to the provided changeAddress.
+// Node decides, which UTXOs to use for inputs for the TX during the FundRawTX request.
+//
+// The returned Transaction is not submitted into the network,
+// it is not even signed yet.
+// However, UTXOs used as inputs in this TX has been locked in the Node.
+//
+// If there is not enough unlocked BTC to fulfil the TX -
+// error with cause ErrInsufficientFunds is returned.
+//
+// Change position in Outputs is set to 1.
+//
+// Provided feeRate can be nil - in this case the Wallet of the Node determines the fee.
+func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
+	txHex, err := c.connector.CreateRawTX(map[string]float64{
+		goalAddress: amount,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to CreateAndFundRawTX")
+	}
+
+	// Fill TX with inputs - UTXOs.
+	fundResult, err := c.connector.FundRawTX(txHex, changeAddress, true, feeRate)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
+			"created_tx_hex": txHex,
+		})
+	}
+
+	return fundResult.Hex, nil
+}
+
+func (c Client) CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error) {
+	return c.connector.CreateRawTX(addrToAmount)
+}
+
+func (c Client) FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error) {
+	return c.connector.FundRawTX(initialTXHex, changeAddress, includeWatching, feeRate)
+}
+
+// SignAllTXInputs signs the inputs of the provided TX with the provided privateKey.
+// If the provided privateKey is nil - the TX will be tried to sign by Node, using
+// the private keys Node owns.
+func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey *string) (resultTXHex string, err error) {
+	tx, err := c.parseTX(initialTXHex)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to parse provided initialTXHex into btc.Tx")
+	}
+
+	if len(tx.MsgTx().TxIn) == 0 {
+		return "", errors.New("No TX Inputs to sign")
+	}
+
+	var inputUTXOs []Out
+	for _, in := range tx.MsgTx().TxIn {
+		inputUTXOs = append(inputUTXOs, Out{
+			TXHash:       in.PreviousOutPoint.Hash.String(),
+			Vout:         in.PreviousOutPoint.Index,
+			ScriptPubKey: scriptPubKey,
+			RedeemScript: &redeemScript,
+		})
+	}
+
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
+}
+
+// SendRawTX submits TX into the blockchain.
+func (c Client) SendRawTX(txHex string) (txHash string, err error) {
+	return c.connector.SendRawTX(txHex)
+}
+
 // SendToAddress sends provided amount of BTC to the provided goalAddress.
 // Amount in BTC.
 func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error) {
@@ -105,64 +177,6 @@ func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, 
 	}
 
 	return resultTXHash, nil
-}
-
-// CreateAndFundRawTX creates TX, which pays provided amount
-// to the provided goalAddress, passing change to the provided changeAddress.
-// Node decides, which UTXOs to use for inputs for the TX during the FundRawTX request.
-//
-// The returned Transaction is not submitted into the network,
-// it is not even signed yet.
-// However, UTXOs used as inputs in this TX has been locked.
-//
-// If there is not enough unlocked BTC to fulfil the TX -
-// error with cause ErrInsufficientFunds is returned.
-//
-// Change position in Outputs is set to 1.
-func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
-	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to CreateAndFundRawTX")
-	}
-
-	// Fill TX with inputs - UTXOs
-	txHex, err = c.connector.FundRawTX(txHex, changeAddress)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
-			"created_tx_hex": txHex,
-		})
-	}
-
-	return txHex, nil
-}
-
-// SignRawTX signs the inputs of the provided TX with the provided privateKey.
-func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
-	tx, err := c.parseTX(txHex)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
-	}
-
-	if len(tx.MsgTx().TxIn) == 0 {
-		return "", errors.New("No TX Inputs to sign")
-	}
-
-	var inputUTXOs []Out
-	for _, in := range tx.MsgTx().TxIn {
-		inputUTXOs = append(inputUTXOs, Out{
-			TXHash:       in.PreviousOutPoint.Hash.String(),
-			Vout:         in.PreviousOutPoint.Index,
-			ScriptPubKey: scriptPubKey,
-			RedeemScript: &redeemScript,
-		})
-	}
-
-	return c.connector.SignRawTX(txHex, inputUTXOs, privateKey)
-}
-
-// SendRawTX submits TX into the blockchain.
-func (c Client) SendRawTX(txHex string) (txHash string, err error) {
-	return c.connector.SendRawTX(txHex)
 }
 
 func (c Client) parseBlock(blockHex string) (*btcutil.Block, error) {
