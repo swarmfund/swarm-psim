@@ -33,8 +33,8 @@ type Connector interface {
 	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
-	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
-	FundRawTX(initialTXHex, changeAddress string, feeRate *float64) (resultTXHex string, err error)
+	CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error)
+	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
 	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey *string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
@@ -171,8 +171,8 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
 	}
 	params = params[:len(params)-1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr) // Confirmations, Comment, SubtractFeeFromAmount
-	err = c.sendRequest("sendmany", params, &response)
 
+	err = c.sendRequest("sendmany", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse SendMany request")
 	}
@@ -185,21 +185,33 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 	return response.Result, nil
 }
 
-func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error) {
+func (c *NodeConnector) CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	err = c.sendRequest("createrawtransaction", fmt.Sprintf(`[], {"%s": %.8f}`, goalAddress, amount), &response)
+	params := `[], {` // Inputs
+	for addr, amount := range addrToAmount {
+		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	}
+	params = params[:len(params)-1] + `}`
+
+	err = c.sendRequest("createrawtransaction", params, &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse create raw Transaction request")
+		return "", errors.Wrap(err, "Failed to send or parse createRawTransaction request")
 	}
 	if response.Error != nil {
-		return "", errors.Wrap(response.Error, "Response for create raw Transaction request contains error")
+		return "", errors.Wrap(response.Error, "Response for createRawTransaction request contains error")
 	}
 
 	return response.Result, nil
+}
+
+type FundResult struct {
+	Hex            string  `json:"hex"`
+	ChangePosition int     `json:"changepos"`
+	FeePaid        float64 `json:"fee"`
 }
 
 // FundRawTX runs fundrawtransaction request to the Bitcoin Node
@@ -209,20 +221,20 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 //
 // If Bitcoin Node returns -4:Insufficient funds error -
 // ErrInsufficientFunds is returned.
-func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
+//
+// If returned error is nil - result is definitely not nil.
+func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error) {
 	var response struct {
 		Response
-		Result struct {
-			Hex string `json:"hex"`
-		} `json:"result"`
+		Result FundResult `json:"result"`
 	}
 
 	params := fmt.Sprintf(`"%s", {
 			"changeAddress": "%s",
 			"changePosition": 1,
-			"includeWatching": true,
+			"includeWatching": %t,
 			"lockUnspents": true,
-			"subtractFeeFromOutputs": [0]`, initialTXHex, changeAddress)
+			"subtractFeeFromOutputs": [0]`, initialTXHex, changeAddress, includeWatching)
 	if feeRate != nil {
 		params = params + fmt.Sprintf(
 			`,
@@ -232,17 +244,17 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, feeRate *f
 
 	err = c.sendRequest("fundrawtransaction", params, &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
+		return nil, errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
 	}
 	if response.Error != nil {
 		if response.Error.Code == errCodeInsufficientFunds {
-			return "", ErrInsufficientFunds
+			return nil, ErrInsufficientFunds
 		}
 
-		return "", errors.Wrap(response.Error, "Response for fund raw Transaction request contains error")
+		return nil, errors.Wrap(response.Error, "Response for fund raw Transaction request contains error")
 	}
 
-	return response.Result.Hex, nil
+	return &response.Result, nil
 }
 
 // SignRawTX signs the inputs of the provided TX with the provided privateKey.
