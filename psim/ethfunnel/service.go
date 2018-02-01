@@ -76,7 +76,7 @@ func (s *Service) streamWalletAddresses() {
 
 	s.log.Info("Started streaming wallet Addresses.")
 
-	for _, addr := range s.wallet.Addresses() {
+	for _, addr := range s.wallet.Addresses(context.TODO()) {
 		s.addressesCh <- addr
 	}
 
@@ -164,7 +164,7 @@ func (s *Service) processAddresses(ctx context.Context) {
 
 		if err := s.processAddr(ctx, addr); err != nil {
 			entry.WithError(err).Error("Failed to process Address with ETH, putting Address back to channel.")
-			s.addressesCh <- addr
+			//s.addressesCh <- addr
 			continue
 		}
 	}
