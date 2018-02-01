@@ -35,7 +35,7 @@ type Connector interface {
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
 	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string, feeRate *float64) (resultTXHex string, err error)
-	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey *string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
 
@@ -245,7 +245,10 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, feeRate *f
 	return response.Result.Hex, nil
 }
 
-func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error) {
+// SignRawTX signs the inputs of the provided TX with the provided privateKey.
+// If the provided privateKey is nil - the TX will be tried to sign by Node, using
+// the private keys Node owns.
+func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey *string) (resultTXHex string, err error) {
 	var outsArray string
 	if outputsBeingSpent == nil {
 		outsArray = "[]"
@@ -266,10 +269,17 @@ func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, 
 		} `json:"result"`
 	}
 
-	err = c.sendRequest("signrawtransaction",
-		fmt.Sprintf(`"%s", %s, ["%s"]`, initialTXHex, outsArray, privateKey), &response)
+	privateKeys := `[`
+	if privateKey != nil {
+		privateKeys = privateKeys + fmt.Sprintf(`"%s"`, *privateKey)
+	}
+	privateKeys = privateKeys + `]`
+
+	params := fmt.Sprintf(`"%s", %s, %s`, initialTXHex, outsArray, privateKeys)
+
+	err = c.sendRequest("signrawtransaction", params, &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse sign raw Transaction request")
+		return "", errors.Wrap(err, "Failed to send or parse signRawTransaction request")
 	}
 	if response.Error != nil {
 		return "", errors.Wrap(response.Error, "Response for sign raw Transaction request contains error")

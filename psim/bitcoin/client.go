@@ -138,11 +138,15 @@ func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAdd
 	return txHex, nil
 }
 
+// TODO Methods Create and Fund
+
 // SignAllTXInputs signs the inputs of the provided TX with the provided privateKey.
-func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
-	tx, err := c.parseTX(txHex)
+// If the provided privateKey is nil - the TX will be tried to sign by Node, using
+// the private keys Node owns.
+func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey *string) (resultTXHex string, err error) {
+	tx, err := c.parseTX(initialTXHex)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
+		return "", errors.Wrap(err, "Failed to parse provided initialTXHex into btc.Tx")
 	}
 
 	if len(tx.MsgTx().TxIn) == 0 {
@@ -159,7 +163,7 @@ func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string,
 		})
 	}
 
-	return c.connector.SignRawTX(txHex, inputUTXOs, privateKey)
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
 }
 
 // SendRawTX submits TX into the blockchain.
