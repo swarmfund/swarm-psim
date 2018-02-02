@@ -69,7 +69,9 @@ type CommonOffchainHelper interface {
 	// 		return destinationAmount * ((10^N) / amount.One)
 	//
 	// where N - is the precision of the Offchain system (8 for Bitcoin - satoshis).
+	//
 	// Though wouldn't be so easy, if your precision is 18 (like for Ethereum) :/
+	// TODO Rename to ConvertToOffchain
 	ConvertAmount(destinationAmount int64) int64
 
 	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
