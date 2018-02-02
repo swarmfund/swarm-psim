@@ -11,8 +11,9 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
+// SaleStateCheckerInterface is an interface allows to perform check sale state operation
+// and get all required data for it
 type SaleStateCheckerInterface interface {
-	// Return sales from core DB
 	GetSales() ([]horizon.Sale, error)
 	GetHorizonInfo() (info *horizon.Info, err error)
 	BuildTx(info *horizon.Info, saleID uint64) (string, error)
@@ -25,7 +26,6 @@ type Service struct {
 	config  Config
 	checker SaleStateCheckerInterface
 	logger  *logan.Entry
-	errors  chan error
 }
 
 // New is constructor for bearer Service.

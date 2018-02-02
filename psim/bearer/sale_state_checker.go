@@ -7,27 +7,32 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
-type SalesStateChecker struct {
+// SaleStateChecker is a particular implementation of SaleStateCheckerInterface
+type SaleStateChecker struct {
 	connector *horizon.Connector
 	config    Config
 }
 
-func NewSalesStateChecker(connector *horizon.Connector, config Config) *SalesStateChecker {
-	return &SalesStateChecker{
+// NewSaleStateChecker is a constructor for SaleStateChecker
+func NewSaleStateChecker(connector *horizon.Connector, config Config) *SaleStateChecker {
+	return &SaleStateChecker{
 		connector: connector,
 		config:    config,
 	}
 }
 
-func (ssc *SalesStateChecker) GetSales() ([]horizon.Sale, error) {
+// GetSales returns sales from core DB
+func (ssc *SaleStateChecker) GetSales() ([]horizon.Sale, error) {
 	return ssc.connector.Sales().Sales()
 }
 
-func (ssc *SalesStateChecker) GetHorizonInfo() (info *horizon.Info, err error) {
+// GetHorizonInfo retrieves horizon info using horizon-connector
+func (ssc *SaleStateChecker) GetHorizonInfo() (info *horizon.Info, err error) {
 	return ssc.connector.Info()
 }
 
-func (ssc *SalesStateChecker) BuildTx(info *horizon.Info, saleID uint64) (string, error) {
+// BuildTx builds transaction with check sale state operation
+func (ssc *SaleStateChecker) BuildTx(info *horizon.Info, saleID uint64) (string, error) {
 	builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
 	envelope, err := builder.
 					 Transaction(ssc.config.Source).
@@ -38,6 +43,7 @@ func (ssc *SalesStateChecker) BuildTx(info *horizon.Info, saleID uint64) (string
 	return envelope, err
 }
 
-func (ssc *SalesStateChecker) SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult {
+// SubmitTx submits transaction to horizon, returns submit result
+func (ssc *SaleStateChecker) SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult {
 	return ssc.connector.Submitter().Submit(ctx, envelope)
 }

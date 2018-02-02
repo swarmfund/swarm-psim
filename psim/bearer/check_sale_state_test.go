@@ -28,7 +28,7 @@ func TestSalesStateChecker(t *testing.T) {
 		})
 		Convey("Failed to get horizon info", func() {
 			expectedError := errors.New("failed to get horizon info")
-			sale := horizon.Sale{1}
+			sale := horizon.Sale{ID: 1}
 			var sales []horizon.Sale
 			sales = append(sales, sale)
 			salesStateChecker.On("GetSales").Return(sales, nil).Once()
@@ -39,11 +39,11 @@ func TestSalesStateChecker(t *testing.T) {
 		})
 		Convey("Failed to marshal tx", func() {
 			expectedError := errors.New("failed to marshal tx")
-			sale := horizon.Sale{1}
+			sale := horizon.Sale{ID: 1}
 			var sales []horizon.Sale
 			sales = append(sales, sale)
 			salesStateChecker.On("GetSales").Return(sales, nil).Once()
-			info := horizon.Info{"Caput draconis", "MasterAccountID", 42}
+			info := horizon.Info{Passphrase: "Caput draconis", MasterAccountID: "MasterAccountID", TXExpirationPeriod: 42}
 			infoPtr := &info
 			salesStateChecker.On("GetHorizonInfo").Return(infoPtr, nil).Once()
 			salesStateChecker.On("BuildTx", infoPtr, sale.ID).Return("", expectedError).Once()
@@ -53,11 +53,11 @@ func TestSalesStateChecker(t *testing.T) {
 		})
 		Convey("Failed to submit tx", func() {
 			expectedError := errors.New("failed to submit tx")
-			sale := horizon.Sale{1}
+			sale := horizon.Sale{ID: 1}
 			var sales []horizon.Sale
 			sales = append(sales, sale)
 			salesStateChecker.On("GetSales").Return(sales, nil).Once()
-			info := horizon.Info{"Caput draconis", "MasterAccountID", 42}
+			info := horizon.Info{Passphrase: "Caput draconis", MasterAccountID: "MasterAccountID", TXExpirationPeriod: 42}
 			infoPtr := &info
 			salesStateChecker.On("GetHorizonInfo").Return(infoPtr, nil).Once()
 			envelope := "Tx build success"
@@ -68,11 +68,11 @@ func TestSalesStateChecker(t *testing.T) {
 			assert.Equal(t, expectedError, errors.Cause(err))
 		})
 		Convey("Success", func() {
-			sale := horizon.Sale{1}
+			sale := horizon.Sale{ID: 1}
 			var sales []horizon.Sale
 			sales = append(sales, sale)
 			salesStateChecker.On("GetSales").Return(sales, nil).Once()
-			info := horizon.Info{"Caput draconis", "MasterAccountID", 42}
+			info := horizon.Info{Passphrase: "Caput draconis", MasterAccountID: "MasterAccountID", TXExpirationPeriod: 42}
 			infoPtr := &info
 			salesStateChecker.On("GetHorizonInfo").Return(infoPtr, nil).Once()
 			envelope := "Tx build success"
