@@ -7,11 +7,9 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-var errNoSales = errors.New("no sales")
-
-// checkSaleState is create and submit `CheckSaleStateOp`.
-func (s *Service) checkSaleState(ctx context.Context) error {
-	sales, err := s.checker.GetSales()
+// CheckSalesState allows to perform check sale state operation for all sales in core DB
+func (s *Service) checkSalesState(ctx context.Context) error {
+	sales, err := s.helper.GetSales()
 	if err != nil {
 		return errors.Wrap(err, "failed to get sales")
 	}
@@ -20,18 +18,20 @@ func (s *Service) checkSaleState(ctx context.Context) error {
 		return nil
 	}
 
-	info, err := s.checker.GetHorizonInfo()
+	info, err := s.helper.GetHorizonInfo()
 	if err != nil {
 		return errors.Wrap(err, "failed to get horizon info")
 	}
 
 	for _, sale := range sales {
-		envelope, err := s.checker.BuildTx(info, sale.ID)
+		envelope, err := s.helper.BuildTx(info, sale.ID)
 		if err != nil {
-			return errors.Wrap(err, "failed to marshal tx")
+			return errors.Wrap(err, "failed to build tx", logan.F{
+				"sale_id": sale.ID,
+			})
 		}
 
-		result := s.checker.SubmitTx(ctx, envelope)
+		result := s.helper.SubmitTx(ctx, envelope)
 		if result.Err != nil {
 			return errors.Wrap(result.Err, "failed to submit tx", logan.F{
 				"submit_response_raw":      string(result.RawResponse),

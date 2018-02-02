@@ -2,6 +2,7 @@ package bearer
 
 import (
 	"context"
+
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
@@ -11,9 +12,9 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
-// SaleStateCheckerInterface is an interface allows to perform check sale state operation
+// CheckSalesStateHelperInterface is an interface allows to perform check sale state operation
 // and get all required data for it
-type SaleStateCheckerInterface interface {
+type CheckSalesStateHelperInterface interface {
 	GetSales() ([]horizon.Sale, error)
 	GetHorizonInfo() (info *horizon.Info, err error)
 	BuildTx(info *horizon.Info, saleID uint64) (string, error)
@@ -23,23 +24,23 @@ type SaleStateCheckerInterface interface {
 // Service is a main structure for bearer runner,
 // implements `app.Service` interface.
 type Service struct {
-	config  Config
-	checker SaleStateCheckerInterface
-	logger  *logan.Entry
+	config Config
+	helper CheckSalesStateHelperInterface
+	logger *logan.Entry
 }
 
-// New is constructor for bearer Service.
-func New(config Config, log *logan.Entry, checker SaleStateCheckerInterface) *Service {
+// New is a constructor for bearer Service.
+func New(config Config, log *logan.Entry, helper CheckSalesStateHelperInterface) *Service {
 	return &Service{
-		config:  config,
-		checker: checker,
-		logger:  log.WithField("service", conf.ServiceBearer),
+		config: config,
+		helper: helper,
+		logger: log.WithField("service", conf.ServiceBearer),
 	}
 }
 
-// Run will returns only when work is finished.
+// Run logs out info about service start and invokes run over incremental timer
 func (s *Service) Run(ctx context.Context) {
-	s.logger.Info("Starting.")
+	s.logger.Info("starting...")
 
 	app.RunOverIncrementalTimer(
 		ctx,
@@ -50,17 +51,14 @@ func (s *Service) Run(ctx context.Context) {
 		s.config.AbnormalPeriod)
 }
 
-// sendOperations is create and submit operations.
+// SendOperations sends operations to Horizon server and gets submission results from it
 func (s *Service) sendOperations(ctx context.Context) error {
-	err := s.checkSaleState(ctx)
-	if err == nil {
-		s.logger.Info("Operation submitted")
-		return nil
+	err := s.checkSalesState(ctx)
+	if err != nil {
+		return errors.Wrap(err, "cannot submit checkSalesState operation")
 	}
 
-	if err != errNoSales {
-		return errors.Wrap(err, "can not to submit checkSaleState operation")
-	}
+	s.logger.Info("Operation submitted")
 
 	tm := time.NewTimer(s.config.SleepPeriod)
 	select {
