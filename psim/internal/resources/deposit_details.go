@@ -15,7 +15,7 @@ type DepositDetails struct {
 func (d DepositDetails) Encode() string {
 	bytes, err := json.Marshal(&d)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal details"))
+		panic(errors.Wrap(err, "Failed to encode DepositDetails"))
 	}
 	return string(bytes)
 }

@@ -12,6 +12,15 @@ type issuanceRequestOpt struct {
 	Details   string
 }
 
+func (i issuanceRequestOpt) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"reference": i.Reference,
+		"receiver":  i.Receiver,
+		"amount":    i.Amount,
+		"details":   i.Details,
+	}
+}
+
 func (s *Service) craftIssuanceTX(opt issuanceRequestOpt) *xdrbuild.Transaction {
 	return s.builder.
 		Transaction(s.source).

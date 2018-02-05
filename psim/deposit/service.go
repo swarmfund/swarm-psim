@@ -14,6 +14,8 @@ import (
 	"gitlab.com/tokend/keypair"
 )
 
+var ErrNoBalanceID = errors.New("No BalanceID for the Account.")
+
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
 type AddressProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
@@ -48,13 +50,15 @@ type OffchainHelper interface {
 }
 
 // Service implements app.Service interface, it supervises Offchain blockchain
-// and send CoinEmissionRequests to Horizon if arrived deposit detected.
+// and send CoinEmissionRequests to Horizon if arrived Deposit detected.
 type Service struct {
-	log    *logan.Entry
+	log *logan.Entry
+
 	source keypair.Address
 	signer keypair.Full
 	// TODO Remove after moving logic of the second signature to the verifier.
-	additionalSigner   keypair.Full
+	additionalSigner keypair.Full
+
 	serviceName        string
 	lastProcessedBlock uint64
 	lastBlocksNotWatch uint64
@@ -66,7 +70,7 @@ type Service struct {
 	offchainHelper  OffchainHelper
 }
 
-// New is constructor for the btcsupervisor Service.
+// New is constructor for the deposit Service.
 func New(
 	log *logan.Entry,
 	source keypair.Address,
@@ -146,6 +150,10 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 	}
 
 	for _, tx := range block.TXs {
+		if app.IsCanceled(ctx) {
+			return nil
+		}
+
 		err := s.processTX(ctx, block.Hash, block.Timestamp, tx)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process TX", logan.F{
@@ -192,6 +200,7 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 		}
 
 		err := s.processDeposit(ctx, blockHash, blockTime, tx.Hash, i, out, *accountAddress)
+		// TODO Retry processing Deposit - don't go to following Deposits.
 		if err != nil {
 			return errors.Wrap(err, "Failed to process Deposit", fields)
 		}
@@ -210,14 +219,31 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		"account_address": accountAddress,
 	}).Debug("Processing deposit.")
 
+	balanceID, err := s.getBalanceID(accountAddress)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get BalanceID")
+	}
+
 	valueWithoutDepositFee := out.Value - s.offchainHelper.GetFixedDepositFee()
 	emissionAmount := s.offchainHelper.ConvertToSystem(valueWithoutDepositFee)
 
 	reference := s.offchainHelper.BuildReference(blockHash, txHash, out.Address, uint(outIndex), out.Value, 64)
 
-	err := s.sendCoinEmissionRequest(blockHash, txHash, out.Address, accountAddress, reference, emissionAmount)
+	issuance := issuanceRequestOpt{
+		Reference: reference,
+		Receiver:  balanceID,
+		Asset:     s.offchainHelper.GetAsset(),
+		Amount:    emissionAmount,
+		Details: resources.DepositDetails{
+			TXHash: txHash,
+			Price:  amount.One,
+		}.Encode(),
+	}
+
+	err = s.processIssuance(ctx, blockHash, out.Address, accountAddress, issuance)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
+			"balance_id":              balanceID,
 			"converted_system_amount": emissionAmount,
 			"reference":               reference,
 		})
@@ -226,46 +252,10 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 	return nil
 }
 
-func (s *Service) sendCoinEmissionRequest(blockHash, txHash, offchainAddress, accountAddress, reference string, emissionAmount uint64) error {
+func (s *Service) processIssuance(ctx context.Context, blockHash, offchainAddress, accountAddress string, issuance issuanceRequestOpt) error {
+	tx := s.craftIssuanceTX(issuance)
+
 	// TODO Verify
-
-	logger := s.log.WithFields(logan.F{
-		"block_hash":       blockHash,
-		"tx_hash":          txHash,
-		"offchain_address": offchainAddress,
-		"account_address":  accountAddress,
-		"reference":        reference,
-		"emission_amount":  emissionAmount,
-	})
-
-	// TODO Move getting BalanceID to separate method
-	balances, err := s.horizon.WithSigner(s.signer).Accounts().Balances(accountAddress)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get Account Balances from Horizon")
-	}
-
-	receiver := ""
-	for _, b := range balances {
-		if b.Asset == s.offchainHelper.GetAsset() {
-			receiver = b.BalanceID
-		}
-	}
-
-	// TODO Handle if no receiver.
-
-	logger = logger.WithField("receiver", receiver)
-
-	tx := s.craftIssuanceTX(issuanceRequestOpt{
-		Asset:     s.offchainHelper.GetAsset(),
-		Reference: reference,
-		Receiver:  receiver,
-		Amount:    emissionAmount,
-		Details: resources.DepositDetails{
-			TXHash: txHash,
-			Price:  amount.One,
-		}.Encode(),
-	})
-
 	// TODO Remove after moving logic of the second signature to the verifier.
 	tx = tx.Sign(s.additionalSigner)
 
@@ -274,7 +264,14 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash, offchainAddress, ac
 		return errors.Wrap(err, "Failed to marshal TX into envelope")
 	}
 
-	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
+	logger := s.log.WithFields(logan.F{
+		"block_hash":       blockHash,
+		"offchain_address": offchainAddress,
+		"account_address":  accountAddress,
+		"issuance":         issuance,
+	})
+
+	result := s.horizon.Submitter().Submit(ctx, envelope)
 	if result.Err != nil {
 		// TODO Detect reference duplication errors and never log them
 		// TODO Now any submit error is only logged and ignored - it's a problem.
@@ -282,10 +279,26 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash, offchainAddress, ac
 			"submit_response_raw":      string(result.RawResponse),
 			"submit_response_tx_code":  result.TXCode,
 			"submit_response_op_codes": result.OpCodes,
-		}).WithError(result.Err).Error("Failed to submit CoinEmissionRequest Transaction.")
+		}).WithError(result.Err).Error("Failed to submit CoinEmissionRequest Transaction to Horizon.")
 		return nil
 	}
 
 	logger.Info("CoinEmissionRequest was sent successfully.")
 	return nil
+}
+
+func (s *Service) getBalanceID(accountAddress string) (string, error) {
+	balances, err := s.horizon.WithSigner(s.signer).Accounts().Balances(accountAddress)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get Account Balances from Horizon")
+	}
+
+	for _, b := range balances {
+		if b.Asset == s.offchainHelper.GetAsset() {
+			return b.BalanceID, nil
+		}
+	}
+
+	// No BalanceID of the Offchain asset for the Account.
+	return "", ErrNoBalanceID
 }
