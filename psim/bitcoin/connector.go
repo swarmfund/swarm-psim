@@ -27,8 +27,10 @@ type Connector interface {
 	IsTestnet() bool
 	// GetBlockCount must return index of last known Block
 	GetBlockCount() (uint64, error)
+	// TODO Handle absent Block
 	GetBlockHash(blockIndex uint64) (string, error)
 	// GetBlock must return hex of Block
+	// TODO Handle absent Block
 	GetBlock(blockHash string) (string, error)
 	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
@@ -88,6 +90,7 @@ func (c *NodeConnector) GetBlockCount() (uint64, error) {
 }
 
 // GetBlockHash gets hash of Block by its index.
+// TODO Handle absent Block
 func (c *NodeConnector) GetBlockHash(blockIndex uint64) (string, error) {
 	var response struct {
 		Response
@@ -106,6 +109,7 @@ func (c *NodeConnector) GetBlockHash(blockIndex uint64) (string, error) {
 }
 
 // GetBlock gets raw Block by its hash and returns the raw Block encoded in hex.
+// TODO Handle absent Block
 func (c *NodeConnector) GetBlock(blockHash string) (string, error) {
 	var response struct {
 		Response

@@ -26,7 +26,10 @@ type OffchainHelper interface {
 	//AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
 
 	// TODO Comments
+	// GetLastKnownBlockNumber must return the number of last Block currently existing in the Offchain.
 	GetLastKnownBlockNumber() (uint64, error)
+	// GetBlock must retrieve the block with number `number` from the Offchain and parse it into the type Block.
+	// It's OK to have Outs in a Tx with Addresses equal to empty string (if output failed to parse or definitely not interested for us).
 	GetBlock(number uint64) (*Block, error)
 	GetMinDepositAmount() uint64
 	GetFixedDepositFee() uint64
@@ -49,9 +52,9 @@ type Service struct {
 
 	// TODO Interface
 	horizon         *horizon.Connector
+	addressProvider AddressProvider
 	builder         *xdrbuild.Builder
 	offchainHelper  OffchainHelper
-	addressProvider AddressProvider
 }
 
 // New is constructor for the btcsupervisor Service.
@@ -64,9 +67,9 @@ func New(
 	lastProcessedBlock,
 	lastBlocksNotWatch uint64,
 	horizon *horizon.Connector,
+	addressProvider AddressProvider,
 	builder *xdrbuild.Builder,
-	offchainHelper OffchainHelper,
-	addressProvider AddressProvider) *Service {
+	offchainHelper OffchainHelper) *Service {
 
 	result := &Service{
 		log:                log,
@@ -78,9 +81,9 @@ func New(
 		lastBlocksNotWatch: lastBlocksNotWatch,
 
 		horizon:         horizon,
+		addressProvider: addressProvider,
 		builder:         builder,
 		offchainHelper:  offchainHelper,
-		addressProvider: addressProvider,
 	}
 
 	return result
@@ -136,10 +139,9 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 	for _, tx := range block.TXs {
 		err := s.processTX(ctx, block.Hash, block.Timestamp, tx)
 		if err != nil {
-			// Tx hash is added into logs inside processTX.
 			return errors.Wrap(err, "Failed to process TX", logan.F{
-				"block":  block,
-				"tx_hex": tx,
+				"block": block,
+				"tx":    tx,
 			})
 		}
 	}
@@ -149,6 +151,10 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 
 func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx Tx) error {
 	for i, out := range tx.Outs {
+		if out.Address == "" {
+			continue
+		}
+
 		accountAddress := s.addressProvider.AddressAt(ctx, blockTime, out.Address)
 		if app.IsCanceled(ctx) {
 			return nil
@@ -160,24 +166,25 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 		}
 
 		fields := logan.F{
-			"block_hash":      blockHash,
-			"block_time":      blockTime,
-			"tx_hash":         tx.Hash,
 			"out_value":       out.Value,
 			"out_index":       i,
 			"offchain_addr":   out.Address,
-			"account_address": accountAddress,
+			"account_address": *accountAddress,
 		}
 
 		if out.Value < s.offchainHelper.GetMinDepositAmount() {
-			s.log.WithFields(fields).WithField("min_deposit_amount_from_config", s.offchainHelper.GetMinDepositAmount()).
+			s.log.WithFields(fields.Merge(logan.F{
+				"block_hash": blockHash,
+				"block_time": blockTime,
+				"tx_hash":    tx.Hash,
+			})).WithField("min_deposit_amount_from_config", s.offchainHelper.GetMinDepositAmount()).
 				Warn("Received deposit with too small amount.")
 			continue
 		}
 
 		err := s.processDeposit(ctx, blockHash, blockTime, tx.Hash, i, out, *accountAddress)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process deposit", fields)
+			return errors.Wrap(err, "Failed to process Deposit", fields)
 		}
 	}
 
@@ -203,6 +210,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 	if err != nil {
 		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
 			"converted_system_amount": emissionAmount,
+			"reference":               reference,
 		})
 	}
 
@@ -218,6 +226,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash, offchainAddress, ac
 		"offchain_address": offchainAddress,
 		"account_address":  accountAddress,
 		"reference":        reference,
+		"emission_amount":  emissionAmount,
 	})
 
 	// TODO Move getting BalanceID to separate method
@@ -243,7 +252,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash, offchainAddress, ac
 		Receiver:  receiver,
 		Amount:    emissionAmount,
 		Details: resources.DepositDetails{
-			Source: txHash,
+			TXHash: txHash,
 			Price:  amount.One,
 		}.Encode(),
 	})

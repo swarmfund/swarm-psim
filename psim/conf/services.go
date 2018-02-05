@@ -8,7 +8,11 @@ const (
 	ServiceETHWithdraw   = "eth_withdraw"
 
 	// btc
+
+	// DEPRECATED use ServiceBTCDeposit instead
 	ServiceBTCSupervisor     = "bitcoin_supervisor"
+	ServiceBTCDeposit        = "btc_deposit"
+
 	ServiceBTCVerify         = "btc_verify"
 	ServiceBTCFunnel         = "btc_funnel"
 	ServiceBTCWithdraw       = "btc_withdraw"

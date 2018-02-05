@@ -217,7 +217,7 @@ func (s *Service) sendCoinEmissionRequest(blockHash, txHash string, outIndex int
 		Receiver:  receiver,
 		Amount:    emissionAmount,
 		Details: resources.DepositDetails{
-			Source: txHash,
+			TXHash: txHash,
 			Price:  amount.One,
 		}.Encode(),
 	})

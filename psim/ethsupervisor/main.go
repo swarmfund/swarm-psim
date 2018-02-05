@@ -46,10 +46,9 @@ func init() {
 
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Supervisor.SignerKP)
 
-		log := app.Log(ctx)
 		state := addrstate.New(
 			ctx,
-			log.WithField("service", "addrstate"),
+			app.Log(ctx),
 			internal.StateMutator(config.BaseAsset, config.DepositAsset),
 			horizon.Listener(),
 		)

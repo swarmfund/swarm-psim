@@ -27,29 +27,39 @@ func (c Client) GetBlockCount() (uint64, error) {
 	return c.connector.GetBlockCount()
 }
 
-// GetBlock gets Block hash by index via Connector,
-// gets raw Block(hex) by hash from Connector
-// and tries to parse raw Block into btcutil Block structure.
+// GetBlock gets Block hash by provided blockIndex via Connector,
+// gets raw Block(in hex) by the hash from Connector
+// and tries to parse raw Block into btcutil.Block structure.
 func (c Client) GetBlock(blockIndex uint64) (*btcutil.Block, error) {
 	hash, err := c.connector.GetBlockHash(blockIndex)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Block hash")
 	}
+	// TODO Handle absent Block
 
-	return c.GetBlockByHash(hash)
+	block, err := c.GetBlockByHash(hash)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Block by its hash", logan.F{"block_hash": hash})
+	}
+	// TODO Handle absent Block
+
+	return block, nil
 }
 
-// TODO Comment
+// GetBlockByHash obtains raw Block(hex) by the provided blockHash from the connector
+// and parses the raw Block into btcutil.Block structure.
 func (c Client) GetBlockByHash(blockHash string) (*btcutil.Block, error) {
 	blockHex, err := c.connector.GetBlock(blockHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Block", logan.F{"block_hash": blockHash})
+		return nil, errors.Wrap(err, "Failed to get Block from connector")
 	}
+	// TODO Handle absent Block
 
 	block, err := c.parseBlock(blockHex)
 	if err != nil {
+		// TODO Make sure no overflow will happen
 		hexToLog := blockHex[:10] + ".." + blockHex[len(blockHex)-10:]
-		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.F{"block_hex": hexToLog})
+		return nil, errors.Wrap(err, "Failed to parse Block hex", logan.F{"shortened_block_hex": hexToLog})
 	}
 
 	return block, nil

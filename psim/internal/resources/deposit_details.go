@@ -8,7 +8,7 @@ import (
 )
 
 type DepositDetails struct {
-	Source string       `json:"source"`
+	TXHash string       `json:"tx_hash"`
 	Price  types.Amount `json:"price"`
 }
 

@@ -47,7 +47,7 @@ services:
   #- notifier
   #- stripe_supervisor
 
-#  - bitcoin_supervisor
+#  - btc_deposit
 #  - btc_funnel
 #  - btc_withdraw
 #  - btc_withdraw_verify
@@ -65,7 +65,7 @@ stripe_supervisor:
   signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK # exchange signer
 
 # BTC
-bitcoin_supervisor:
+btc_deposit:
   last_processed_block: 1260685
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
@@ -73,12 +73,8 @@ bitcoin_supervisor:
   deposit_asset: BTC
   fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
 
-  supervisor:
-    leadership_key: btc_supervisor
-    pprof: true
-    # Keys should probably differ between stripe and bitcoin
-    exchange: G_SOME_VALID_PUBLIC_KEY
-    signer: S_SOME_VALID_PRIVATE_KEY
+  exchange: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
 
   # TODO Remove after moving logic of the second signature to the verifier.
   additional_signer: S_SOME_VALID_PRIVATE_KEY

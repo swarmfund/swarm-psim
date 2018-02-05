@@ -173,7 +173,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		Receiver:  *receiver,
 		Amount:    emissionAmount.Uint64(),
 		Details: resources.DepositDetails{
-			Source: tx.Hash().Hex(),
+			TXHash: tx.Hash().Hex(),
 			Price:  amount.One,
 		}.Encode(),
 	})

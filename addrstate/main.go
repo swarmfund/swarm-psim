@@ -24,7 +24,7 @@ type Watcher struct {
 
 func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ TransactionQ) *Watcher {
 	w := &Watcher{
-		log:     log,
+		log:     log.WithField("service", "addrstate"),
 		mutator: mutator,
 		txQ:     txQ,
 

@@ -52,7 +52,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	addressProvider := addrstate.New(
 		ctx,
-		log.WithField("service", "addrstate"),
+		log,
 		internal.StateMutator,
 		horizonConnector.Listener(),
 	)
