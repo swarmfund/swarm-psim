@@ -19,22 +19,31 @@ type AddressProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
 }
 
-// TODO Comment
+// OffchainHelper is the interface for specific Offchain(BTC or ETH)
+// deposit and deposit-verify services to implement
+// and parametrise the Service.
 type OffchainHelper interface {
-	// TODO Method for getting errors from addrstate chan
-
-	//AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
-
-	// TODO Comments
 	// GetLastKnownBlockNumber must return the number of last Block currently existing in the Offchain.
 	GetLastKnownBlockNumber() (uint64, error)
-	// GetBlock must retrieve the block with number `number` from the Offchain and parse it into the type Block.
-	// It's OK to have Outs in a Tx with Addresses equal to empty string (if output failed to parse or definitely not interested for us).
+	// GetBlock must retrieve the Block with number `number` from the Offchain and parse it into the type Block.
+	// It's OK to have Outs in a Tx with Addresses equal to empty string (if output failed to parse or definitely not interesting for us).
 	GetBlock(number uint64) (*Block, error)
+	// GetMinDepositAmount must return minimal value for Deposit in Offchain precision.
 	GetMinDepositAmount() uint64
+	// GetFixedDepositFee must return the value of the fixed Deposit fee in Offchain precision.
+	// We substitute Deposit fee for future moving of money to hot wallets.
+	// This value is not static and configured due to different fee rates in Offchains.
 	GetFixedDepositFee() uint64
+	// ConvertToSystem must convert the value with the offchain precision to the system precision.
+	// The ONE value from the package amount shows current number of units in one system token.
 	ConvertToSystem(offchainAmount uint64) (systemAmount uint64)
+	// GetAsset must return the name of the Asset being issued in the system during the Deposits processing.
+	// Should be configured via config.
 	GetAsset() string
+	// BuildReference must return a unique identifier of the Deposit, build from Offchain data.
+	// Reference is submitted to core and is used to prevent multiple Deposits about the same Offchain TX.
+	// You probably won't use all of the provided arguments, but it's no problem
+	// for the abstract deposit service to provide all this values into implementations.
 	BuildReference(blockHash, txHash, offchainAddress string, outIndex uint, amount uint64, maxLen int) string
 }
 
