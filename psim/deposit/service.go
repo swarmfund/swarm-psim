@@ -296,7 +296,7 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		return errors.Wrap(err, "Failed to Verify Issuance TX")
 	}
 
-	checkErr := s.checkVerifiedEnvelope(*readyEnvelope)
+	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuance)
 	if checkErr != nil {
 		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
 	}
@@ -359,8 +359,42 @@ func (s *Service) getVerifierURL() (string, error) {
 	return services[0].Address, nil
 }
 
-// TODO
-func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope) (checkErr error) {
+func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuance issuanceRequestOpt) (checkErr error) {
+	if len(envelope.Tx.Operations) != 1 {
+		return errors.New("Must be exactly 1 Operation.")
+	}
+
+	opBody := envelope.Tx.Operations[0].Body
+
+	if opBody.Type != xdr.OperationTypeCreateIssuanceRequest {
+		return fmt.Errorf("Expected OperationType to be CreateIssuanceRequest(%d), but got (%d).",
+			xdr.OperationTypeCreateIssuanceRequest, opBody.Type)
+	}
+
+	op := envelope.Tx.Operations[0].Body.CreateIssuanceRequestOp
+
+	if op == nil {
+		return errors.New("CreateIssuanceRequestOp is nil.")
+	}
+
+	if string(op.Reference) != issuance.Reference {
+		return fmt.Errorf("Expected Reference to be (%s), but got (%s).", issuance.Reference, op.Reference)
+	}
+
+	req := op.Request
+
+	if req.Receiver.AsString() != issuance.Receiver {
+		return fmt.Errorf("Expected Receiver to be (%s), but got (%s).", issuance.Receiver, req.Receiver)
+	}
+
+	if string(req.Asset) != issuance.Asset {
+		return fmt.Errorf("Expected Asset to be (%s), but got (%s).", issuance.Asset, req.Asset)
+	}
+
+	if uint64(req.Amount) != issuance.Amount {
+		return fmt.Errorf("Expected Asset to be (%d), but got (%d).", issuance.Amount, req.Amount)
+	}
+
 	return nil
 }
 
