@@ -2,7 +2,6 @@ package verification
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -10,9 +9,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/go/xdrbuild"
-	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/tokend/keypair"
 )
 
 // ErrBadStatusFromVerifier is returned from SendRequestToVerifier in case status code is not 2XX.

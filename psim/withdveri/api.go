@@ -2,17 +2,13 @@ package withdveri
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 
 	"fmt"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/ape"
-	"gitlab.com/swarmfund/psim/ape/problems"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
 	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/verification"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 // TODO Pprof
