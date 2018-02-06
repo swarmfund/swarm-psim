@@ -326,6 +326,7 @@ func (s *Service) sendToVerifier(envelope, accountID string) (fullySignedTXEnvel
 
 	request := VerifyRequest{
 		AccountID: accountID,
+		Envelope:  envelope,
 	}
 
 	responseEnvelope, err := verification.SendRequestToVerifier(url, &request)

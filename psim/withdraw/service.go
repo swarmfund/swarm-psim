@@ -4,11 +4,7 @@ import (
 	"context"
 	"time"
 
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -17,12 +13,12 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/tokend/keypair"
 	"gitlab.com/swarmfund/psim/psim/verification"
+	"gitlab.com/tokend/keypair"
 )
 
 var (
-	ErrNoVerifierServices    = errors.New("No Withdraw Verify services were found.")
+	ErrNoVerifierServices = errors.New("No Withdraw Verify services were found.")
 )
 
 // RequestListener is the interface, which must be implemented

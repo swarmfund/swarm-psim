@@ -40,17 +40,6 @@ func (s *Service) serveAPI(ctx context.Context) {
 	return
 }
 
-func (s *Service) readAPIRequest(w http.ResponseWriter, r *http.Request, request interface{}) (success bool) {
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
-		s.log.WithError(err).Warn("Failed to parse request.")
-		ape.RenderErr(w, r, problems.BadRequest("Cannot parse JSON request."))
-		return false
-	}
-
-	return true
-}
-
 func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, neededRequestType int32) (request *horizon.Request, checkErr string, err error) {
 	request, err = withdraw.ObtainRequest(s.horizon.Client(), requestID)
 	if err != nil {
@@ -66,19 +55,4 @@ func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, ne
 	}
 
 	return request, "", nil
-}
-
-func (s *Service) marshalResponseEnvelope(w http.ResponseWriter, r *http.Request, envelope string) {
-	response := verification.EnvelopeResponse{
-		Envelope: envelope,
-	}
-
-	respBytes, err := json.Marshal(response)
-	if err != nil {
-		s.log.WithField("response_trying_to_render", response).WithError(err).Error("Failed to marshal EnvelopeResponse.")
-		ape.RenderErr(w, r, problems.ServerError(err))
-		return
-	}
-
-	w.Write(respBytes)
 }

@@ -1,15 +1,21 @@
 package verification
 
 import (
-	"encoding/json"
 	"bytes"
+	"context"
+	"encoding/json"
 	"io/ioutil"
-	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 	"net/http"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/keypair"
 )
 
+// ErrBadStatusFromVerifier is returned from SendRequestToVerifier in case status code is not 2XX.
 var ErrBadStatusFromVerifier = errors.New("Unsuccessful status code from Verify.")
 
 // EnvelopeResponse is used to pass TX Envelope encoded to base64 between PSIMs.

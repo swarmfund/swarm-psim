@@ -17,9 +17,6 @@ notificator:
   secret: string
   public: string
 
-stripe:
-  secret_key: "sk_test_eJjoMw46tfKnJqzxgrMbfPrj"
-
 bitcoin:
   # move node to separate object?
   node_host: swarm
@@ -45,7 +42,6 @@ services:
   #- notifier
   #- charger
   #- notifier
-  #- stripe_supervisor
 
 #  - btc_deposit
 #  - btc_funnel
@@ -55,14 +51,8 @@ services:
   #- eth_supervisor
 #  - eth_funnel
 
-  #- stripe_verify
   #- taxman
   #- rate_sync
-
-stripe_supervisor:
-  pprof: true
-  exchange: GDFI3OE5XRDYZIGPR75V4FNFNVRXP4PBDO6PXXCIG2UJYBUVXHBH2XVR
-  signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK # exchange signer
 
 # BTC
 btc_deposit:
@@ -184,9 +174,6 @@ taxman:
   # omit these default for production config
   port: 40539
   disable_verify: true
-
-stripe_verify:
-  signer: SDGU7S57HA45RWBTDAUR36CH5B6W2SYKFVCDU3IJ6T74S7FCXQVDZII7
 
 charger:
   host: localhost
