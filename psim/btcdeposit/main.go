@@ -6,13 +6,13 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/deposit"
-	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/btcdeposit/internal"
+	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/deposit"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
@@ -55,14 +55,15 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		log,
 		config.Source,
 		config.Signer,
-		config.AdditionalSigner,
 		conf.ServiceBTCDeposit,
+		conf.ServiceBTCDepositVerify,
 
 		config.LastProcessedBlock,
 		config.LastBlocksNotWatch,
 
 		horizonConnector,
 		addressProvider,
+		globalConfig.Discovery(),
 		builder,
 		NewBTCHelper(
 			log,

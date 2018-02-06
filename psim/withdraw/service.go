@@ -18,11 +18,11 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/swarmfund/psim/psim/verification"
 )
 
 var (
 	ErrNoVerifierServices    = errors.New("No Withdraw Verify services were found.")
-	ErrBadStatusFromVerifier = errors.New("Unsuccessful status code from Verify.")
 )
 
 // RequestListener is the interface, which must be implemented
@@ -207,58 +207,18 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 }
 
 func (s *Service) sendRequestToVerifier(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
-	rawRequestBody, err := json.Marshal(request)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to marshal RequestBody")
-	}
-
 	url, err := s.getVerifierURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")
 	}
 	url = url + urlSuffix
 
-	fields := logan.F{
-		"verify_url":       url,
-		"raw_request_body": string(rawRequestBody),
-	}
-
-	bodyReader := bytes.NewReader(rawRequestBody)
-	req, err := http.NewRequest("POST", url, bodyReader)
+	envelope, err := verification.SendRequestToVerifier(url, request)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create Review Request to Verify", fields)
+		return nil, errors.Wrap(err, "Failed to send request to Verifier", logan.F{"verifier_url": url})
 	}
 
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send the request", fields)
-	}
-	fields["status_code"] = resp.StatusCode
-
-	defer func() { _ = resp.Body.Close() }()
-	responseBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to read the body of response from Verify", fields)
-	}
-	fields["response_body"] = string(responseBytes)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.From(ErrBadStatusFromVerifier, fields)
-	}
-
-	envelopeResponse := EnvelopeResponse{}
-	err = json.Unmarshal(responseBytes, &envelopeResponse)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal response body", fields)
-	}
-
-	envelope := xdr.TransactionEnvelope{}
-	err = envelope.Scan(envelopeResponse.Envelope)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Scan TransactionEnvelope from response from Verify", fields)
-	}
-
-	return &envelope, nil
+	return envelope, nil
 }
 
 func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) error {

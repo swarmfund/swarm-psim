@@ -4,21 +4,34 @@ import (
 	"context"
 	"time"
 
+	"fmt"
+
+	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
+	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
 
-var ErrNoBalanceID = errors.New("No BalanceID for the Account.")
+var (
+	ErrNoBalanceID        = errors.New("No BalanceID for the Account.")
+	ErrNoVerifierServices = errors.New("No Withdraw Verify services were found.")
+)
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
 type AddressProvider interface {
 	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
+}
+
+// Discovery must be implemented by Discovery(Consul) client to pass into Service constructor.
+type Discovery interface {
+	DiscoverService(service string) ([]discovery.ServiceEntry, error)
 }
 
 // OffchainHelper is the interface for specific Offchain(BTC or ETH)
@@ -56,16 +69,16 @@ type Service struct {
 
 	source keypair.Address
 	signer keypair.Full
-	// TODO Remove after moving logic of the second signature to the verifier.
-	additionalSigner keypair.Full
 
-	serviceName        string
-	lastProcessedBlock uint64
-	lastBlocksNotWatch uint64
+	serviceName         string
+	verifierServiceName string
+	lastProcessedBlock  uint64
+	lastBlocksNotWatch  uint64
 
 	// TODO Interface
 	horizon         *horizon.Connector
 	addressProvider AddressProvider
+	discovery       Discovery
 	builder         *xdrbuild.Builder
 	offchainHelper  OffchainHelper
 }
@@ -75,26 +88,28 @@ func New(
 	log *logan.Entry,
 	source keypair.Address,
 	signer keypair.Full,
-	additionalSigner keypair.Full,
 	serviceName string,
+	verifierServiceName string,
 	lastProcessedBlock,
 	lastBlocksNotWatch uint64,
 	horizon *horizon.Connector,
 	addressProvider AddressProvider,
+	discovery Discovery,
 	builder *xdrbuild.Builder,
 	offchainHelper OffchainHelper) *Service {
 
 	result := &Service{
-		log:                log,
-		source:             source,
-		signer:             signer,
-		additionalSigner:   additionalSigner,
-		serviceName:        serviceName,
-		lastProcessedBlock: lastProcessedBlock,
-		lastBlocksNotWatch: lastBlocksNotWatch,
+		log:                 log,
+		source:              source,
+		signer:              signer,
+		serviceName:         serviceName,
+		verifierServiceName: verifierServiceName,
+		lastProcessedBlock:  lastProcessedBlock,
+		lastBlocksNotWatch:  lastBlocksNotWatch,
 
 		horizon:         horizon,
 		addressProvider: addressProvider,
+		discovery:       discovery,
 		builder:         builder,
 		offchainHelper:  offchainHelper,
 	}
@@ -255,10 +270,6 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 func (s *Service) processIssuance(ctx context.Context, blockHash, offchainAddress, accountAddress string, issuance issuanceRequestOpt) error {
 	tx := s.craftIssuanceTX(issuance)
 
-	// TODO Verify
-	// TODO Remove after moving logic of the second signature to the verifier.
-	tx = tx.Sign(s.additionalSigner)
-
 	envelope, err := tx.Marshal()
 	if err != nil {
 		return errors.Wrap(err, "Failed to marshal TX into envelope")
@@ -271,15 +282,19 @@ func (s *Service) processIssuance(ctx context.Context, blockHash, offchainAddres
 		"issuance":         issuance,
 	})
 
-	result := s.horizon.Submitter().Submit(ctx, envelope)
-	if result.Err != nil {
-		// TODO Detect reference duplication errors and never log them
-		// TODO Now any submit error is only logged and ignored - it's a problem.
-		logger.WithFields(logan.F{
-			"submit_response_raw":      string(result.RawResponse),
-			"submit_response_tx_code":  result.TXCode,
-			"submit_response_op_codes": result.OpCodes,
-		}).WithError(result.Err).Error("Failed to submit CoinEmissionRequest Transaction to Horizon.")
+	readyEnvelope, err := s.sendToVerifier(envelope, accountAddress)
+	if err != nil {
+		return errors.Wrap(err, "Failed to Verify Issuance TX")
+	}
+
+	checkErr := s.checkVerifiedEnvelope(*readyEnvelope)
+	if checkErr != nil {
+		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
+	}
+
+	err = s.submitEnvelope(ctx, *readyEnvelope)
+	if err != nil {
+		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
 		return nil
 	}
 
@@ -301,4 +316,59 @@ func (s *Service) getBalanceID(accountAddress string) (string, error) {
 
 	// No BalanceID of the Offchain asset for the Account.
 	return "", ErrNoBalanceID
+}
+
+func (s *Service) sendToVerifier(envelope, accountID string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {
+	url, err := s.getVerifierURL()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get URL of Verify")
+	}
+
+	request := VerifyRequest{
+		AccountID: accountID,
+	}
+
+	responseEnvelope, err := verification.SendRequestToVerifier(url, &request)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send request to Verifier", logan.F{"verifier_url": url})
+	}
+
+	return responseEnvelope, nil
+}
+
+func (s *Service) getVerifierURL() (string, error) {
+	services, err := s.discovery.DiscoverService(s.verifierServiceName)
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
+	}
+	if len(services) == 0 {
+		return "", ErrNoVerifierServices
+	}
+
+	return services[0].Address, nil
+}
+
+// TODO
+func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope) (checkErr error) {
+	return nil
+}
+
+func (s *Service) submitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) error {
+	envelopeBase64, err := xdr.MarshalBase64(envelope)
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal fully signed Envelope from Verifier")
+	}
+
+	result := s.horizon.Submitter().Submit(ctx, envelopeBase64)
+	if result.Err != nil {
+		// TODO Detect reference duplication errors and never log them
+		// TODO Now any submit error is only logged and ignored - it's a problem.
+		return errors.Wrap(result.Err, "Horizon submit response has error", logan.F{
+			"submit_response_raw":      string(result.RawResponse),
+			"submit_response_tx_code":  result.TXCode,
+			"submit_response_op_codes": result.OpCodes,
+		})
+	}
+
+	return nil
 }

@@ -16,7 +16,4 @@ type Config struct {
 
 	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
 	Source keypair.Address `fig:"exchange"`
-
-	// TODO Remove after moving logic of the second signature to the verifier.
-	AdditionalSigner keypair.Full `fig:"additional_signer" mapstructure:"signer"`
 }

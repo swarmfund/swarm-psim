@@ -9,7 +9,11 @@ const (
 
 	// btc
 	ServiceBTCDeposit        = "btc_deposit"
+
+	// DEPRECATED
 	ServiceBTCVerify         = "btc_verify"
+	ServiceBTCDepositVerify  = "btc_deposit_verify"
+
 	ServiceBTCFunnel         = "btc_funnel"
 	ServiceBTCWithdraw       = "btc_withdraw"
 	ServiceBTCWithdrawVerify = "btc_withdraw_verify"

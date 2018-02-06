@@ -12,6 +12,7 @@ import (
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/withdraw"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/verification"
 )
 
 // TODO Pprof
@@ -68,7 +69,7 @@ func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, ne
 }
 
 func (s *Service) marshalResponseEnvelope(w http.ResponseWriter, r *http.Request, envelope string) {
-	response := withdraw.EnvelopeResponse{
+	response := verification.EnvelopeResponse{
 		Envelope: envelope,
 	}
 
