@@ -14,7 +14,6 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
@@ -38,28 +37,34 @@ type Discovery interface {
 // deposit and deposit-verify services to implement
 // and parametrise the Service.
 type OffchainHelper interface {
+	// GetAsset must return the name of the Asset being issued in the system during the Deposits processing.
+	// Should be configured via config.
+	GetAsset() string
+	// GetMinDepositAmount must return minimal value for Deposit in Offchain precision.
+	GetMinDepositAmount() uint64
+	// GetFixedDepositFee must return the value of the fixed Deposit fee in Offchain precision.
+	// We substitute Deposit fee for future moving of money to hot wallets.
+	//
+	// This value is not static and configured because of dynamic fee rates in Offchains.
+	GetFixedDepositFee() uint64
+
+	// ConvertToSystem must convert the value with the offchain precision to the system precision.
+	// The ONE value from the package amount shows current number of units in one system token.
+	ConvertToSystem(offchainAmount uint64) (systemAmount uint64)
+	// BuildReference must return a unique identifier of the Deposit, build from Offchain data.
+	//
+	// Reference is submitted to core and is used to prevent multiple Deposits about the same Offchain TX.
+	// Be sure for the same arguments - the reference will always be the same, otherwise extra wrong Issuance will appear.
+	//
+	// You probably won't use all of the provided arguments, but it's no problem
+	// for the abstract deposit service to provide all this values into implementations.
+	BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string
+
 	// GetLastKnownBlockNumber must return the number of last Block currently existing in the Offchain.
 	GetLastKnownBlockNumber() (uint64, error)
 	// GetBlock must retrieve the Block with number `number` from the Offchain and parse it into the type Block.
 	// It's OK to have Outs in a Tx with Addresses equal to empty string (if output failed to parse or definitely not interesting for us).
 	GetBlock(number uint64) (*Block, error)
-	// GetMinDepositAmount must return minimal value for Deposit in Offchain precision.
-	GetMinDepositAmount() uint64
-	// GetFixedDepositFee must return the value of the fixed Deposit fee in Offchain precision.
-	// We substitute Deposit fee for future moving of money to hot wallets.
-	// This value is not static and configured due to different fee rates in Offchains.
-	GetFixedDepositFee() uint64
-	// ConvertToSystem must convert the value with the offchain precision to the system precision.
-	// The ONE value from the package amount shows current number of units in one system token.
-	ConvertToSystem(offchainAmount uint64) (systemAmount uint64)
-	// GetAsset must return the name of the Asset being issued in the system during the Deposits processing.
-	// Should be configured via config.
-	GetAsset() string
-	// BuildReference must return a unique identifier of the Deposit, build from Offchain data.
-	// Reference is submitted to core and is used to prevent multiple Deposits about the same Offchain TX.
-	// You probably won't use all of the provided arguments, but it's no problem
-	// for the abstract deposit service to provide all this values into implementations.
-	BuildReference(blockHash, txHash, offchainAddress string, outIndex uint, amount uint64, maxLen int) string
 }
 
 // Service implements app.Service interface, it supervises Offchain blockchain
@@ -84,6 +89,8 @@ type Service struct {
 }
 
 // New is constructor for the deposit Service.
+//
+// Make sure HorizonConnector provided to constructor is with signer.
 func New(
 	log *logan.Entry,
 	source keypair.Address,
@@ -156,10 +163,10 @@ func (s *Service) processNewBlocks(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
-	s.log.WithField("block_index", blockIndex).Debug("Processing block.")
+func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
+	s.log.WithField("block_number", blockNumber).Debug("Processing block.")
 
-	block, err := s.offchainHelper.GetBlock(blockIndex)
+	block, err := s.offchainHelper.GetBlock(blockNumber)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Block from BTCClient")
 	}
@@ -169,7 +176,7 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 			return nil
 		}
 
-		err := s.processTX(ctx, block.Hash, block.Timestamp, tx)
+		err := s.processTX(ctx, blockNumber, block.Timestamp, tx)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process TX", logan.F{
 				"block": block,
@@ -181,7 +188,7 @@ func (s *Service) processBlock(ctx context.Context, blockIndex uint64) error {
 	return nil
 }
 
-func (s *Service) processTX(ctx context.Context, blockHash string, blockTime time.Time, tx Tx) error {
+func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime time.Time, tx Tx) error {
 	for i, out := range tx.Outs {
 		if out.Address == "" {
 			continue
@@ -206,15 +213,15 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 
 		if out.Value < s.offchainHelper.GetMinDepositAmount() {
 			s.log.WithFields(fields.Merge(logan.F{
-				"block_hash": blockHash,
-				"block_time": blockTime,
-				"tx_hash":    tx.Hash,
+				"block_number": blockNumber,
+				"block_time":   blockTime,
+				"tx_hash":      tx.Hash,
 			})).WithField("min_deposit_amount_from_config", s.offchainHelper.GetMinDepositAmount()).
 				Warn("Received deposit with too small amount.")
 			continue
 		}
 
-		err := s.processDeposit(ctx, blockHash, blockTime, tx.Hash, i, out, *accountAddress)
+		err := s.processDeposit(ctx, blockNumber, blockTime, tx.Hash, uint(i), out, *accountAddress)
 		// TODO Retry processing Deposit - don't go to following Deposits.
 		if err != nil {
 			return errors.Wrap(err, "Failed to process Deposit", fields)
@@ -224,9 +231,9 @@ func (s *Service) processTX(ctx context.Context, blockHash string, blockTime tim
 	return nil
 }
 
-func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTime time.Time, txHash string, outIndex int, out Out, accountAddress string) error {
+func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockTime time.Time, txHash string, outIndex uint, out Out, accountAddress string) error {
 	s.log.WithFields(logan.F{
-		"block_hash":      blockHash,
+		"block_number":    blockNumber,
 		"tx_hash":         txHash,
 		"out_index":       outIndex,
 		"offchain_addr":   out.Address,
@@ -234,7 +241,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 		"account_address": accountAddress,
 	}).Debug("Processing deposit.")
 
-	balanceID, err := s.getBalanceID(accountAddress)
+	balanceID, err := GetBalanceID(s.horizon, accountAddress, s.offchainHelper.GetAsset())
 	if err != nil {
 		return errors.Wrap(err, "Failed to get BalanceID")
 	}
@@ -242,22 +249,24 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 	valueWithoutDepositFee := out.Value - s.offchainHelper.GetFixedDepositFee()
 	emissionAmount := s.offchainHelper.ConvertToSystem(valueWithoutDepositFee)
 
-	reference := s.offchainHelper.BuildReference(blockHash, txHash, out.Address, uint(outIndex), out.Value, 64)
+	reference := s.offchainHelper.BuildReference(blockNumber, txHash, out.Address, outIndex, 64)
 
 	issuance := issuanceRequestOpt{
 		Reference: reference,
 		Receiver:  balanceID,
 		Asset:     s.offchainHelper.GetAsset(),
 		Amount:    emissionAmount,
-		Details: resources.DepositDetails{
-			TXHash: txHash,
-			Price:  amount.One,
+		Details: ExternalDetails{
+			BlockNumber: blockNumber,
+			TXHash:      txHash,
+			OutIndex:    outIndex,
+			Price:       amount.One,
 		}.Encode(),
 	}
 
-	err = s.processIssuance(ctx, blockHash, out.Address, accountAddress, issuance)
+	err = s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuance)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send CoinEmissionRequest", logan.F{
+		return errors.Wrap(err, "Failed to process Issuance", logan.F{
 			"balance_id":              balanceID,
 			"converted_system_amount": emissionAmount,
 			"reference":               reference,
@@ -267,7 +276,7 @@ func (s *Service) processDeposit(ctx context.Context, blockHash string, blockTim
 	return nil
 }
 
-func (s *Service) processIssuance(ctx context.Context, blockHash, offchainAddress, accountAddress string, issuance issuanceRequestOpt) error {
+func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offchainAddress, accountAddress string, issuance issuanceRequestOpt) error {
 	tx := s.craftIssuanceTX(issuance)
 
 	envelope, err := tx.Marshal()
@@ -276,7 +285,7 @@ func (s *Service) processIssuance(ctx context.Context, blockHash, offchainAddres
 	}
 
 	logger := s.log.WithFields(logan.F{
-		"block_hash":       blockHash,
+		"block_number":     blockNumber,
 		"offchain_address": offchainAddress,
 		"account_address":  accountAddress,
 		"issuance":         issuance,
@@ -302,14 +311,15 @@ func (s *Service) processIssuance(ctx context.Context, blockHash, offchainAddres
 	return nil
 }
 
-func (s *Service) getBalanceID(accountAddress string) (string, error) {
-	balances, err := s.horizon.WithSigner(s.signer).Accounts().Balances(accountAddress)
+// TODO horizon as interface
+func GetBalanceID(horizon *horizon.Connector, accountAddress, asset string) (string, error) {
+	balances, err := horizon.Accounts().Balances(accountAddress)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Account Balances from Horizon")
 	}
 
 	for _, b := range balances {
-		if b.Asset == s.offchainHelper.GetAsset() {
+		if b.Asset == asset {
 			return b.BalanceID, nil
 		}
 	}

@@ -316,8 +316,8 @@
 [[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
-  packages = [".","v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/transaction","v2/types"]
-  revision = "4fa607325502c60658368eab2a3ee5d49afed029"
+  packages = ["v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/transaction","v2/types"]
+  revision = "ce5b5ebc893fe2ef7c741c802fa6b7adf5bff545"
 
 [[projects]]
   branch = "master"
@@ -382,6 +382,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "db004020b59ef3224fcd386d045c7b44afc75e5190ea8ca399e8320ead4861c6"
+  inputs-digest = "a1f539bd44f911fd0d8d2ee2fbb34d5211b46d283d5c3c5c01b0161b262e3696"
   solver-name = "gps-cdcl"
   solver-version = 1

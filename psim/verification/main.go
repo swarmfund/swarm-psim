@@ -39,7 +39,6 @@ func SendRequestToVerifier(url string, request interface{}) (*xdr.TransactionEnv
 	}
 
 	fields := logan.F{
-		"verify_url":       url,
 		"raw_request_body": string(rawRequestBody),
 	}
 

@@ -143,7 +143,7 @@ func (h CommonBTCHelper) GetAsset() string {
 	return h.depositAsset
 }
 
-func (h CommonBTCHelper) BuildReference(blockHash, txHash, offchainAddress string, outIndex uint, amount uint64, maxLen int) string {
+func (h CommonBTCHelper) BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
 	result := txHash + string(outIndex)
 
 	if len(result) > maxLen {

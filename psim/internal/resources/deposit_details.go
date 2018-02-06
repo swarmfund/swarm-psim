@@ -7,6 +7,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/types"
 )
 
+// DEPRECATED Use deposit.ExternalDetails instead
 type DepositDetails struct {
 	TXHash string       `json:"tx_hash"`
 	Price  types.Amount `json:"price"`
