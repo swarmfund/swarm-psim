@@ -44,6 +44,7 @@ services:
   #- notifier
 
 #  - btc_deposit
+#  - btc_deposit_verify
 #  - btc_funnel
 #  - btc_withdraw
 #  - btc_withdraw_verify
@@ -63,7 +64,7 @@ btc_deposit:
   deposit_asset: BTC
   fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
 
-  exchange: G_SOME_VALID_PUBLIC_KEY
+  source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
   # TODO Remove after moving logic of the second signature to the verifier.

@@ -15,6 +15,7 @@ import (
 
 	// btc
 	_ "gitlab.com/swarmfund/psim/psim/btcdeposit"
+	_ "gitlab.com/swarmfund/psim/psim/btcdepositveri"
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"

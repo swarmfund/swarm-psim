@@ -11,7 +11,7 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/psim/psim/deposit"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -20,7 +20,8 @@ type Service struct {
 
 	log *logan.Entry
 
-	signer keypair.Full
+	signer             keypair.Full
+	lastBlocksNotWatch uint64
 
 	// TODO Interface
 	horizon    *horizon.Connector
@@ -32,18 +33,19 @@ type Service struct {
 	discovery        *discovery.Client
 	discoveryService *discovery.Service
 
-	offchainHelper withdraw.CommonOffchainHelper
+	offchainHelper deposit.OffchainHelper
 }
 
 func New(
 	serviceName string,
 	log *logan.Entry,
 	signer keypair.Full,
+	lastBlocksNotWatch uint64,
 	horizon *horizon.Connector,
 	builder *xdrbuild.Builder,
 	listener net.Listener,
 	discoveryClient *discovery.Client,
-	offchainHelper withdraw.CommonOffchainHelper) *Service {
+	offchainHelper deposit.OffchainHelper) *Service {
 
 	discoveryRegisterPeriod := 5 * time.Second
 
@@ -52,7 +54,8 @@ func New(
 
 		log: log.WithField("service", serviceName),
 
-		signer: signer,
+		signer:             signer,
+		lastBlocksNotWatch: lastBlocksNotWatch,
 
 		horizon:    horizon,
 		xdrbuilder: builder,

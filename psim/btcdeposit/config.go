@@ -15,5 +15,5 @@ type Config struct {
 	FixedDepositFee    uint64 `fig:"fixed_deposit_fee"`
 
 	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
-	Source keypair.Address `fig:"exchange"`
+	Source keypair.Address `fig:"source"`
 }
