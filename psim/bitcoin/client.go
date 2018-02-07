@@ -141,7 +141,7 @@ func (c Client) FundRawTX(initialTXHex, changeAddress string, includeWatching bo
 // SignAllTXInputs signs the inputs of the provided TX with the provided privateKey.
 // If the provided privateKey is nil - the TX will be tried to sign by Node, using
 // the private keys Node owns.
-func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey *string) (resultTXHex string, err error) {
+func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
 	tx, err := c.parseTX(initialTXHex)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to parse provided initialTXHex into btc.Tx")
@@ -163,11 +163,11 @@ func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript 
 		})
 	}
 
-	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, []string{privateKey})
 }
 
-func (c Client) SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKey *string) (resultTXHex string, err error) {
-	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
+func (c Client) SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error) {
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKeys)
 }
 
 // SendRawTX submits TX into the blockchain.

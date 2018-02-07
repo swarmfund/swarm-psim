@@ -40,7 +40,7 @@ type Connector interface {
 
 	CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
-	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKey *string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 	GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*UTXO, error)
 }
@@ -217,8 +217,8 @@ func (c *NodeConnector) CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string
 
 	// Inputs
 	var inArrayParam string
-	if inputUTXOs == nil {
-		inArrayParam = "[]"
+	if len(inputUTXOs) == 0 {
+		inArrayParam = `[]`
 	} else {
 		bb, err := json.Marshal(inputUTXOs)
 		if err != nil {
@@ -298,7 +298,7 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, includeWat
 // SignRawTX signs the inputs of the provided TX with the provided privateKey.
 // If the provided privateKey is nil - the TX will be tried to sign by Node, using
 // the private keys Node owns.
-func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []InputUTXO, privateKey *string) (resultTXHex string, err error) {
+func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []InputUTXO, privateKeys []string) (resultTXHex string, err error) {
 	var outsArray string
 	if outputsBeingSpent == nil {
 		outsArray = "[]"
@@ -319,14 +319,18 @@ func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Input
 		} `json:"result"`
 	}
 
-	privateKeys := `[`
-	if privateKey != nil {
-		privateKeys = privateKeys + fmt.Sprintf(`"%s"`, *privateKey)
+	var privKeysParam string
+	if len(privateKeys) == 0 {
+		privKeysParam = `[]`
+	} else {
+		bb, err := json.Marshal(privateKeys)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal private keys into JSON array")
+		}
+		privKeysParam = string(bb)
 	}
-	privateKeys = privateKeys + `]`
 
-	params := fmt.Sprintf(`"%s", %s, %s`, initialTXHex, outsArray, privateKeys)
-
+	params := fmt.Sprintf(`"%s", %s, %s`, initialTXHex, outsArray, privKeysParam)
 	err = c.sendRequest("signrawtransaction", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse signRawTransaction request")
