@@ -7,7 +7,6 @@ import (
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/bitcoin/internal"
 )
 
 // Client uses Connector to request some Bitcoin Node
@@ -23,16 +22,16 @@ func NewClient(connector Connector) *Client {
 	}
 }
 
-// GetBlockCount returns index of the last known Block.
+// GetBlockCount returns the number of the last known Block.
 func (c Client) GetBlockCount() (uint64, error) {
 	return c.connector.GetBlockCount()
 }
 
-// GetBlock gets Block hash by provided blockIndex via Connector,
+// GetBlock gets Block hash by provided blockNumber via Connector,
 // gets raw Block(in hex) by the hash from Connector
 // and tries to parse raw Block into btcutil.Block structure.
-func (c Client) GetBlock(blockIndex uint64) (*btcutil.Block, error) {
-	hash, err := c.connector.GetBlockHash(blockIndex)
+func (c Client) GetBlock(blockNumber uint64) (*btcutil.Block, error) {
+	hash, err := c.connector.GetBlockHash(blockNumber)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Block hash")
 	}
@@ -232,6 +231,6 @@ func (c Client) GetNetParams() *chaincfg.Params {
 	}
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
-	return txHash + string(outIndex)
+func (c Client) GetTxUTXO(txHash string, outNumber uint) (*UTXO, error) {
+	return c.connector.GetTxUTXO(txHash, outNumber, false)
 }

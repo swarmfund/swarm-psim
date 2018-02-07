@@ -29,7 +29,7 @@ type Connector interface {
 	// GetBlockCount must return index of last known Block
 	GetBlockCount() (uint64, error)
 	// TODO Handle absent Block
-	GetBlockHash(blockIndex uint64) (string, error)
+	GetBlockHash(blockNumber uint64) (string, error)
 	// GetBlock must return hex of Block
 	// TODO Handle absent Block
 	GetBlock(blockHash string) (string, error)
@@ -42,6 +42,7 @@ type Connector interface {
 	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
 	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKey *string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
+	GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*UTXO, error)
 }
 
 type Out struct {
@@ -53,6 +54,16 @@ type InputUTXO struct {
 	Out
 	ScriptPubKey string  `json:"scriptPubKey"`
 	RedeemScript *string `json:"redeemScript,omitempty"`
+}
+
+type UTXO struct {
+	Confirmations uint    `json:"confirmations"`
+	Value         float64 `json:"value"`
+	ScriptPubKey  struct {
+		Hex       string   `json:"hex"`
+		Type      string   `json:"type"`
+		Addresses []string `json:"addresses"`
+	} `json:"scriptPubKey"`
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -98,13 +109,13 @@ func (c *NodeConnector) GetBlockCount() (uint64, error) {
 
 // GetBlockHash gets hash of Block by its index.
 // TODO Handle absent Block
-func (c *NodeConnector) GetBlockHash(blockIndex uint64) (string, error) {
+func (c *NodeConnector) GetBlockHash(blockNumber uint64) (string, error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	err := c.sendRequest("getblockhash", strconv.FormatUint(blockIndex, 10), &response)
+	err := c.sendRequest("getblockhash", strconv.FormatUint(blockNumber, 10), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse get Block hash request")
 	}
@@ -348,6 +359,28 @@ func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 		}
 
 		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error", fields)
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*UTXO, error) {
+	var response struct {
+		Response
+		Result *UTXO `json:"result"`
+	}
+
+	err := c.sendRequest("gettxout", fmt.Sprintf(`"%s", %d, %t`, txHash, vout, unconfirmed), &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send or parse Get TX UTXO request")
+	}
+	if response.Error != nil {
+		fields := logan.F{
+			"bitcoin_core_response_id":     response.ID,
+			"bitcoin_core_response_result": response.Result,
+		}
+
+		return nil, errors.Wrap(response.Error, "Response for Get TX UTXO request contains error", fields)
 	}
 
 	return response.Result, nil
