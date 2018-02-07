@@ -7,6 +7,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/bitcoin/internal"
 )
 
 // Client uses Connector to request some Bitcoin Node
@@ -112,7 +113,7 @@ func (c Client) GetWalletBalance(includeWatchOnly bool) (float64, error) {
 //
 // Provided feeRate can be nil - in this case the Wallet of the Node determines the fee.
 func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
-	txHex, err := c.connector.CreateRawTX(map[string]float64{
+	txHex, err := c.connector.CreateRawTX(nil, map[string]float64{
 		goalAddress: amount,
 	})
 	if err != nil {
@@ -130,8 +131,8 @@ func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAdd
 	return fundResult.Hex, nil
 }
 
-func (c Client) CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error) {
-	return c.connector.CreateRawTX(addrToAmount)
+func (c Client) CreateRawTX(inputUTXOs []Out, addrToAmount map[string]float64) (resultTXHex string, err error) {
+	return c.connector.CreateRawTX(inputUTXOs, addrToAmount)
 }
 
 func (c Client) FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error) {
@@ -151,16 +152,22 @@ func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript 
 		return "", errors.New("No TX Inputs to sign")
 	}
 
-	var inputUTXOs []Out
+	var inputUTXOs []InputUTXO
 	for _, in := range tx.MsgTx().TxIn {
-		inputUTXOs = append(inputUTXOs, Out{
-			TXHash:       in.PreviousOutPoint.Hash.String(),
-			Vout:         in.PreviousOutPoint.Index,
+		inputUTXOs = append(inputUTXOs, InputUTXO{
+			Out: Out {
+				TXHash:       in.PreviousOutPoint.Hash.String(),
+				Vout:         in.PreviousOutPoint.Index,
+			},
 			ScriptPubKey: scriptPubKey,
 			RedeemScript: &redeemScript,
 		})
 	}
 
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
+}
+
+func (c Client) SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKey *string) (resultTXHex string, err error) {
 	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
 }
 

@@ -25,6 +25,7 @@ var (
 // Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
 type Connector interface {
 	IsTestnet() bool
+
 	// GetBlockCount must return index of last known Block
 	GetBlockCount() (uint64, error)
 	// TODO Handle absent Block
@@ -32,18 +33,24 @@ type Connector interface {
 	// GetBlock must return hex of Block
 	// TODO Handle absent Block
 	GetBlock(blockHash string) (string, error)
+
 	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
-	CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error)
+
+	CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error)
 	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
-	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey *string) (resultTXHex string, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKey *string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 }
 
 type Out struct {
-	TXHash       string  `json:"txid"`
-	Vout         uint32  `json:"vout"`
+	TXHash string `json:"txid"`
+	Vout   uint32 `json:"vout"`
+}
+
+type InputUTXO struct {
+	Out
 	ScriptPubKey string  `json:"scriptPubKey"`
 	RedeemScript *string `json:"redeemScript,omitempty"`
 }
@@ -189,18 +196,34 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 	return response.Result, nil
 }
 
-func (c *NodeConnector) CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error) {
+// CreateRawTX accepts nil as inputUTXOs.
+// It is useful to pass empty inputUTXOs if you will later ask Wallet to Fund the TX (fill it with inputs).
+func (c *NodeConnector) CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	params := `[], {` // Inputs
-	for addr, amount := range addrToAmount {
-		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	// Inputs
+	var inArrayParam string
+	if inputUTXOs == nil {
+		inArrayParam = "[]"
+	} else {
+		bb, err := json.Marshal(inputUTXOs)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal inputUTXOs")
+		}
+		inArrayParam = string(bb)
 	}
-	params = params[:len(params)-1] + `}`
 
+	// Outputs
+	outsParam := `{`
+	for addr, amount := range outAddrToAmount {
+		outsParam += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	}
+	outsParam = outsParam[:len(outsParam)-1] + `}`
+
+	params := fmt.Sprintf(`%s, %s`, inArrayParam, outsParam)
 	err = c.sendRequest("createrawtransaction", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse createRawTransaction request")
@@ -264,7 +287,7 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, includeWat
 // SignRawTX signs the inputs of the provided TX with the provided privateKey.
 // If the provided privateKey is nil - the TX will be tried to sign by Node, using
 // the private keys Node owns.
-func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey *string) (resultTXHex string, err error) {
+func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []InputUTXO, privateKey *string) (resultTXHex string, err error) {
 	var outsArray string
 	if outputsBeingSpent == nil {
 		outsArray = "[]"
