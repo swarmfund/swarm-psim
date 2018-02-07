@@ -19,8 +19,9 @@ import (
 )
 
 var (
-	ErrNoBalanceID        = errors.New("No BalanceID for the Account.")
-	ErrNoVerifierServices = errors.New("No Withdraw Verify services were found.")
+	ErrNoBalanceID             = errors.New("No BalanceID for the Account.")
+	ErrNoVerifierServices      = errors.New("No Withdraw Verify services were found.")
+	OpCodeReferenceDuplication = "op_reference_duplication"
 )
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
@@ -301,13 +302,17 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
 	}
 
-	err = s.submitEnvelope(ctx, *readyEnvelope)
+	ok, err := s.submitEnvelope(ctx, *readyEnvelope)
 	if err != nil {
 		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
 		return nil
 	}
 
-	logger.Info("CoinEmissionRequest was sent successfully.")
+	if ok {
+		logger.Info("CoinEmissionRequest was sent successfully.")
+	} else {
+		logger.Debug("Reference duplication - already processed Deposit, skipping.")
+	}
 	return nil
 }
 
@@ -367,7 +372,7 @@ func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuan
 	opBody := envelope.Tx.Operations[0].Body
 
 	if opBody.Type != xdr.OperationTypeCreateIssuanceRequest {
-		return fmt.Errorf("Expected OperationType to be CreateIssuanceRequest(%d), but got (%d).",
+		return errors.Errorf("Expected OperationType to be CreateIssuanceRequest(%d), but got (%d).",
 			xdr.OperationTypeCreateIssuanceRequest, opBody.Type)
 	}
 
@@ -378,42 +383,43 @@ func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuan
 	}
 
 	if string(op.Reference) != issuance.Reference {
-		return fmt.Errorf("Expected Reference to be (%s), but got (%s).", issuance.Reference, op.Reference)
+		return errors.Errorf("Expected Reference to be (%s), but got (%s).", issuance.Reference, op.Reference)
 	}
 
 	req := op.Request
 
 	if req.Receiver.AsString() != issuance.Receiver {
-		return fmt.Errorf("Expected Receiver to be (%s), but got (%s).", issuance.Receiver, req.Receiver)
+		return errors.Errorf("Expected Receiver to be (%s), but got (%s).", issuance.Receiver, req.Receiver)
 	}
 
 	if string(req.Asset) != issuance.Asset {
-		return fmt.Errorf("Expected Asset to be (%s), but got (%s).", issuance.Asset, req.Asset)
+		return errors.Errorf("Expected Asset to be (%s), but got (%s).", issuance.Asset, req.Asset)
 	}
 
 	if uint64(req.Amount) != issuance.Amount {
-		return fmt.Errorf("Expected Asset to be (%d), but got (%d).", issuance.Amount, req.Amount)
+		return errors.Errorf("Expected Asset to be (%d), but got (%d).", issuance.Amount, req.Amount)
 	}
 
 	return nil
 }
 
-func (s *Service) submitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) error {
+func (s *Service) submitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) (bool, error) {
 	envelopeBase64, err := xdr.MarshalBase64(envelope)
 	if err != nil {
-		return errors.Wrap(err, "Failed to marshal fully signed Envelope from Verifier")
+		return false, errors.Wrap(err, "Failed to marshal fully signed Envelope from Verifier")
 	}
 
 	result := s.horizon.Submitter().Submit(ctx, envelopeBase64)
 	if result.Err != nil {
-		// TODO Detect reference duplication errors and never log them
-		// TODO Now any submit error is only logged and ignored - it's a problem.
-		return errors.Wrap(result.Err, "Horizon submit response has error", logan.F{
-			"submit_response_raw":      string(result.RawResponse),
-			"submit_response_tx_code":  result.TXCode,
-			"submit_response_op_codes": result.OpCodes,
+		if len(result.OpCodes) == 1 && result.OpCodes[0] == OpCodeReferenceDuplication {
+			// Deposit duplication - we already processed this deposit - just ignoring it.
+			return false, nil
+		}
+
+		return false, errors.Wrap(result.Err, "Horizon SubmitResult has error", logan.F{
+			"submit_result": result,
 		})
 	}
 
-	return nil
+	return true, nil
 }
