@@ -55,7 +55,7 @@ func (s *Service) funnelEverythingFromSmallAddresses(ctx context.Context) error 
 	}
 	fields["funnel_tx_hash"] = txHash
 
-	s.log.WithFields(fields).Info("Funneled BTC to the Hot/Cold Address(es).")
+	s.log.WithFields(fields).Info("Funneled BTC to the Hot/Cold Address(es) successfully.")
 	return nil
 }
 

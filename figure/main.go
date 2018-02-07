@@ -11,29 +11,34 @@ const (
 	tag = "fig"
 )
 
+// DEPRECATED Move to using gitlab.com/distributed_lab/figure
 type Figurator struct {
 	values map[string]interface{}
 	hooks  Hooks
 	target interface{}
 }
 
+// DEPRECATED Move to using gitlab.com/distributed_lab/figure
 func (f *Figurator) With(hooks ...Hooks) *Figurator {
 	merged := Merge(hooks...)
 	f.hooks = merged
 	return f
 }
 
+// DEPRECATED Move to using gitlab.com/distributed_lab/figure
 func Out(target interface{}) *Figurator {
 	return &Figurator{
 		target: target,
 	}
 }
 
+// DEPRECATED Move to using gitlab.com/distributed_lab/figure
 func (f *Figurator) From(values map[string]interface{}) *Figurator {
 	f.values = values
 	return f
 }
 
+// DEPRECATED Move to using gitlab.com/distributed_lab/figure
 func (f *Figurator) Please() error {
 	tpe := reflect.Indirect(reflect.ValueOf(f.target)).Type()
 	vle := reflect.Indirect(reflect.ValueOf(f.target))

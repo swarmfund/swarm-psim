@@ -67,17 +67,6 @@ func NewReject(requestID uint64, requestHash string, rejectReason RejectReason) 
 	}
 }
 
-// EnvelopeResponse is used to pass TX Envelope encoded to base64 between PSIMs.
-type EnvelopeResponse struct {
-	Envelope string `json:"envelope"`
-}
-
-func (r EnvelopeResponse) GetLoganFields() map[string]interface{} {
-	return map[string]interface{}{
-		"envelope": r.Envelope,
-	}
-}
-
 // ExternalDetails is used to marshal and unmarshal external
 // details of Withdrawal Details for ReviewRequest Operation
 // during approve.
