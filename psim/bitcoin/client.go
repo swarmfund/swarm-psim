@@ -154,9 +154,9 @@ func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript 
 	var inputUTXOs []InputUTXO
 	for _, in := range tx.MsgTx().TxIn {
 		inputUTXOs = append(inputUTXOs, InputUTXO{
-			Out: Out {
-				TXHash:       in.PreviousOutPoint.Hash.String(),
-				Vout:         in.PreviousOutPoint.Index,
+			Out: Out{
+				TXHash: in.PreviousOutPoint.Hash.String(),
+				Vout:   in.PreviousOutPoint.Index,
 			},
 			ScriptPubKey: scriptPubKey,
 			RedeemScript: &redeemScript,
@@ -233,4 +233,8 @@ func (c Client) GetNetParams() *chaincfg.Params {
 
 func (c Client) GetTxUTXO(txHash string, outNumber uint) (*UTXO, error) {
 	return c.connector.GetTxUTXO(txHash, outNumber, false)
+}
+
+func (c Client) EstimateFee() (float64, error) {
+	return c.connector.EstimateFee(3)
 }

@@ -43,6 +43,7 @@ type Connector interface {
 	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 	GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*UTXO, error)
+	EstimateFee(blocks int) (float64, error)
 }
 
 type Out struct {
@@ -385,6 +386,23 @@ func (c *NodeConnector) GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*
 		}
 
 		return nil, errors.Wrap(response.Error, "Response for Get TX UTXO request contains error", fields)
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) EstimateFee(blocks int) (float64, error) {
+	var response struct {
+		Response
+		Result float64 `json:"result"`
+	}
+
+	err := c.sendRequest("estimatefee", fmt.Sprintf(`%d`, blocks), &response)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to send or parse estimate fee request")
+	}
+	if response.Error != nil {
+		return 0, errors.Wrap(response.Error, "Response for estimate fee request contains error")
 	}
 
 	return response.Result, nil
