@@ -17,11 +17,10 @@ import (
 func (s *Service) fetchExistingBlocks(ctx context.Context) error {
 	s.log.Info("Started fetching existing Blocks.")
 
-	//lastExistingBlock, err := s.btcClient.GetBlockCount()
-	lastExistingBlock := uint64(1260532)
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed to GetBlockCount")
-	//}
+	lastExistingBlock, err := s.btcClient.GetBlockCount()
+	if err != nil {
+		return errors.Wrap(err, "Failed to GetBlockCount")
+	}
 
 	for s.lastProcessedBlock < lastExistingBlock {
 		if app.IsCanceled(ctx) {
@@ -31,25 +30,33 @@ func (s *Service) fetchExistingBlocks(ctx context.Context) error {
 		blockNumber := s.lastProcessedBlock + 1
 		s.log.WithField("block_number", blockNumber).Info("Processing existing Block.")
 
-		block, err := s.btcClient.GetBlock(blockNumber)
+		err := s.processBlock(blockNumber)
 		if err != nil {
-			return errors.Wrap(err, "Failed to GetBlock", logan.F{"block_number": blockNumber})
+			return errors.Wrap(err, "Failed to process Block")
 		}
-
-		err = s.streamOurOuts(block)
-		if err != nil {
-			return errors.Wrap(err, "Failed to stream our Outputs of the Block", logan.F{
-				"block_number": blockNumber,
-				"block":        block,
-			})
-		}
-
-		// Block was successfully processed
-		s.lastProcessedBlock = blockNumber
 	}
 
 	s.log.WithField("last_processed_block", s.lastProcessedBlock).Info("Finished fetching existing Blocks.")
 	close(s.outCh)
+	return nil
+}
+
+func (s *Service) processBlock(blockNumber uint64) error {
+	block, err := s.btcClient.GetBlock(blockNumber)
+	if err != nil {
+		return errors.Wrap(err, "Failed to GetBlock", logan.F{"block_number": blockNumber})
+	}
+
+	err = s.streamOurOuts(block)
+	if err != nil {
+		return errors.Wrap(err, "Failed to stream our Outputs of the Block", logan.F{
+			"block_number": blockNumber,
+			"block":        block,
+		})
+	}
+
+	// Block was successfully processed
+	s.lastProcessedBlock = blockNumber
 	return nil
 }
 
@@ -74,7 +81,10 @@ func (s *Service) streamOurOuts(block *btcutil.Block) error {
 				continue
 			}
 
-			// TODO Check len
+			if len(addrs) == 0 {
+				s.log.WithFields(fields).Error("Found Output with empty Addresses parsed from PKScript.")
+				continue
+			}
 			addr58 := addrs[0].String()
 			fields["addr"] = addr58
 
@@ -95,10 +105,30 @@ func (s *Service) streamOurOuts(block *btcutil.Block) error {
 	return nil
 }
 
-// TODO
+// TODO SYNCHRONIZE
 func (s *Service) fetchNewBlock(ctx context.Context) error {
-	// TODO
+	lastKnownBlock, err := s.btcClient.GetBlockCount()
+	if err != nil {
+		return errors.Wrap(err, "Failed to GetBlockCount")
+	}
 
-	// TODO go s.listenOutStream(ctx)
+	if lastKnownBlock <= s.lastProcessedBlock {
+		// No new (still unprocessed) Blocks.
+		return nil
+	}
+
+	// TODO SYNCHRONIZE
+	s.outCh = make(chan bitcoin.Out, 1000)
+	go s.listenOutStream(ctx)
+
+	blockNumber := s.lastProcessedBlock + 1
+	s.log.WithField("block_number", blockNumber).Info("Processing newly appeared Block.")
+
+	err = s.processBlock(blockNumber)
+	if err != nil {
+		return errors.Wrap(err, "Failed to process Block")
+	}
+
+	close(s.outCh)
 	return nil
 }

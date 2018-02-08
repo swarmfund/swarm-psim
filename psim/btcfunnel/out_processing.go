@@ -29,6 +29,8 @@ func (s Service) listenOutStream(ctx context.Context) {
 		case out, ok := <-s.outCh:
 			if !ok {
 				// No more Outs will come
+				s.log.Info("Stopped listening to stream of our Outputs - channel has been closed.")
+
 				app.RunUntilSuccess(ctx, s.log, "utxo_funnelling", s.funnelUTXOs, 5*time.Second)
 				s.utxos = nil
 				return

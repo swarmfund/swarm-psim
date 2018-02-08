@@ -83,7 +83,8 @@ func (s *Service) Run(ctx context.Context) {
 		return
 	}
 
-	app.RunOverIncrementalTimer(ctx, s.log, "btc_funnel_runner", s.fetchNewBlock, 5*time.Second, 5*time.Second)
+	s.log.Info("Started listening to newly appeared Blocks.")
+	app.RunOverIncrementalTimer(ctx, s.log, "new_blocks_fetcher", s.fetchNewBlock, 10*time.Second, 5*time.Second)
 }
 
 func (s *Service) deriveKeys() error {
