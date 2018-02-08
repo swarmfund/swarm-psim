@@ -11,7 +11,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
-	"github.com/constabulary/gb/testdata/src/h"
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
