@@ -9,6 +9,7 @@ import (
 	// import services for side effects
 
 	// eth
+	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
 	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"

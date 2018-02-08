@@ -92,6 +92,7 @@ type Service struct {
 // New is constructor for the deposit Service.
 //
 // Make sure HorizonConnector provided to constructor is with signer.
+// TODO use options struct instead of arguments
 func New(
 	log *logan.Entry,
 	source keypair.Address,
@@ -170,6 +171,11 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 	block, err := s.offchainHelper.GetBlock(blockNumber)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Block from BTCClient")
+	}
+
+	if block == nil {
+		// helper thinks it's 404, we don't care
+		return nil
 	}
 
 	for _, tx := range block.TXs {

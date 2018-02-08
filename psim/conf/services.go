@@ -6,6 +6,7 @@ const (
 	ServiceETHSupervisor = "eth_supervisor"
 	ServiceETHFunnel     = "eth_funnel"
 	ServiceETHWithdraw   = "eth_withdraw"
+	ServiceERC20Deposit  = "erc20_deposit"
 
 	// btc
 	ServiceBTCDeposit        = "btc_deposit"
