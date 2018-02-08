@@ -83,10 +83,13 @@ btc_deposit_verify:
   signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_funnel:
-  hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
-  cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # testnet faucet
-  min_funnel_amount: 0
-  max_hot_stock: 50
+  extended_private_key: xprv...
+  keys_to_derive: 10000 # number of key to derive from extended private key
+  hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb # hot wallet
+  cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF is testnet faucet
+  last_processed_block: 1260685
+  min_funnel_amount: 0 # float in BTC
+  max_hot_stock: 50 # float in BTC
   dust_output_limit: 0.005 # in BTC
 
 btc_withdraw:

@@ -83,9 +83,9 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 			err := runSafely(ctx, runner)
 
 			if err != nil {
-				log.WithStack(err).WithError(err).Error("Runner returned error.")
+				log.WithStack(err).WithError(err).Errorf("Runner '%s' returned error.", runnerName)
 
-				runAbnormalExecution(ctx, log, runner, abnormalPeriod)
+				runAbnormalExecution(ctx, log, runnerName, runner, abnormalPeriod)
 				if IsCanceled(ctx) {
 					log.Info("Context is canceled - stopping runner.")
 					return
@@ -118,7 +118,7 @@ func RunUntilSuccess(ctx context.Context, log *logan.Entry, runnerName string, r
 
 	for err != nil {
 		log.WithField("retry_number", incrementalTimer.iteration).WithField("next_retry_after", incrementalTimer.currentPeriod).
-			WithStack(err).WithError(err).Error("Runner returned error.")
+			WithStack(err).WithError(err).Errorf("Runner '%s' returned error.", runnerName)
 
 		select {
 		case <-ctx.Done():
@@ -134,7 +134,7 @@ func RunUntilSuccess(ctx context.Context, log *logan.Entry, runnerName string, r
 }
 
 // RunAbnormalExecution Only returns if runner returned nil error or ctx was canceled.
-func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func(context.Context) error, initialRetryPeriod time.Duration) {
+func runAbnormalExecution(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, initialRetryPeriod time.Duration) {
 	incrementalTimer := newIncrementalTimer(initialRetryPeriod, 10*time.Minute, 2)
 
 	for {
@@ -152,7 +152,7 @@ func runAbnormalExecution(ctx context.Context, log *logan.Entry, runner func(con
 				return
 			}
 			log.WithField("retry_number", incrementalTimer.iteration).WithField("next_retry_after", incrementalTimer.currentPeriod).
-				WithStack(err).WithError(err).Error("Runner returned error.")
+				WithStack(err).WithError(err).Errorf("Runner '%s' returned error.", runnerName)
 		}
 	}
 }
