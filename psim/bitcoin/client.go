@@ -27,6 +27,8 @@ func (c Client) GetBlockCount() (uint64, error) {
 	return c.connector.GetBlockCount()
 }
 
+// TODO Handle absent Block
+
 // GetBlock gets Block hash by provided blockNumber via Connector,
 // gets raw Block(in hex) by the hash from Connector
 // and tries to parse raw Block into btcutil.Block structure.
@@ -231,7 +233,7 @@ func (c Client) GetNetParams() *chaincfg.Params {
 	}
 }
 
-func (c Client) GetTxUTXO(txHash string, outNumber uint) (*UTXO, error) {
+func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {
 	return c.connector.GetTxUTXO(txHash, outNumber, false)
 }
 

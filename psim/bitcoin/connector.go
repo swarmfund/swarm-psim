@@ -42,29 +42,8 @@ type Connector interface {
 	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
 	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
-	GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*UTXO, error)
 	EstimateFee(blocks int) (float64, error)
-}
-
-type Out struct {
-	TXHash string `json:"txid"`
-	Vout   uint32 `json:"vout"`
-}
-
-type InputUTXO struct {
-	Out
-	ScriptPubKey string  `json:"scriptPubKey"`
-	RedeemScript *string `json:"redeemScript,omitempty"`
-}
-
-type UTXO struct {
-	Confirmations uint    `json:"confirmations"`
-	Value         float64 `json:"value"`
-	ScriptPubKey  struct {
-		Hex       string   `json:"hex"`
-		Type      string   `json:"type"`
-		Addresses []string `json:"addresses"`
-	} `json:"scriptPubKey"`
+	GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -247,12 +226,6 @@ func (c *NodeConnector) CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string
 	return response.Result, nil
 }
 
-type FundResult struct {
-	Hex            string  `json:"hex"`
-	ChangePosition int     `json:"changepos"`
-	FeePaid        float64 `json:"fee"`
-}
-
 // FundRawTX runs fundrawtransaction request to the Bitcoin Node
 // using flags `includeWatching` and `lockUnspents` as true.
 // Fee is subtracted from the Output 0. Change position in Outputs is set to 1.
@@ -369,7 +342,7 @@ func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 	return response.Result, nil
 }
 
-func (c *NodeConnector) GetTxUTXO(txHash string, vout uint, unconfirmed bool) (*UTXO, error) {
+func (c *NodeConnector) GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error) {
 	var response struct {
 		Response
 		Result *UTXO `json:"result"`
