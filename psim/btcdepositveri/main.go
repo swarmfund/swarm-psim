@@ -48,6 +48,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	return depositveri.New(
+		"bitcoin",
 		conf.ServiceBTCDepositVerify,
 		log,
 		config.Signer,

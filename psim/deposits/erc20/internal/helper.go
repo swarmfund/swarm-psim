@@ -1,4 +1,4 @@
-package erc20
+package internal
 
 import (
 	"context"
@@ -8,83 +8,18 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
+	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/hash"
-	"gitlab.com/swarmfund/go/xdrbuild"
-	"gitlab.com/swarmfund/psim/addrstate"
-	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposit"
-	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
-	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/tokend/keypair"
 )
 
-type Config struct {
-	Source        keypair.Address
-	Signer        keypair.Full
-	Cursor        uint64
-	Confirmations uint64
-	BaseAsset     string
-	DepositAsset  string
-}
-
-func init() {
-	app.RegisterService(conf.ServiceERC20Deposit, func(ctx context.Context) (app.Service, error) {
-		config := Config{}
-
-		err := figure.
-			Out(&config).
-			With(figure.BaseHooks, utils.ETHHooks).
-			From(app.Config(ctx).Get(conf.ServiceERC20Deposit)).
-			Please()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to figure out")
-		}
-
-		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
-
-		addrProvider := addrstate.New(
-			ctx,
-			app.Log(ctx),
-			internal.StateMutator(config.BaseAsset, config.DepositAsset),
-			horizon.Listener(),
-		)
-
-		info, err := horizon.Info()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get horizon info")
-		}
-		builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
-
-		ethclient := app.Config(ctx).Ethereum()
-
-		return deposit.New(
-			app.Log(ctx),
-			config.Source,
-			config.Signer,
-			conf.ServiceERC20Deposit,
-			// FIXME implement verifier
-			"",
-			config.Cursor,
-			config.Confirmations,
-			app.Config(ctx).Horizon().WithSigner(config.Signer),
-			addrProvider,
-			app.Config(ctx).Discovery(),
-			builder,
-			NewERC20Helper(ethclient, config),
-		), nil
-	})
-}
-
-func NewERC20Helper(eth *ethclient.Client, config Config) *ERC20Helper {
+func NewERC20Helper(eth *ethclient.Client, depositAsset string) *ERC20Helper {
 	return &ERC20Helper{
-		NewConfigHelper(config.DepositAsset, 0, 0),
+		NewConfigHelper(depositAsset, 0, 0),
 		NewConverter(),
 		NewReferenceBuilder(),
 		NewETHHelper(eth),
@@ -221,7 +156,6 @@ func (h *ETHHelper) GetBlock(number uint64) (*deposit.Block, error) {
 			receiver.Hex(),
 			gweiAmount.Uint64(),
 		})
-		fmt.Println("FOUND", receiver.Hex())
 	}
 
 	for hash, outputs := range transactions {

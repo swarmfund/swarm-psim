@@ -51,7 +51,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
-	return deposit.New(
+	return deposit.New(&deposit.Opts{
 		log,
 		config.Source,
 		config.Signer,
@@ -74,5 +74,5 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 			globalConfig.Bitcoin(),
 		),
-	), nil
+	}), nil
 }
