@@ -13,54 +13,58 @@ import (
 
 // FetchExistingBlocks fetches old Blocks and streams the Outputs in
 // the TXs of these Blocks which belong to our Addresses (see `s.addrToPriv`)
-// into `s.outCh`.
+// into `s.outsCh`.
 func (s *Service) fetchExistingBlocks(ctx context.Context) error {
 	s.log.Info("Started fetching existing Blocks.")
-
 	lastExistingBlock, err := s.btcClient.GetBlockCount()
 	if err != nil {
 		return errors.Wrap(err, "Failed to GetBlockCount")
 	}
 
+	outsCh := make(chan bitcoin.Out, outChanSize)
+	go s.listenOutsStream(ctx, outsCh)
+
+	var totalOurOutsStreamed int
 	for s.lastProcessedBlock < lastExistingBlock {
 		if app.IsCanceled(ctx) {
+			close(outsCh)
 			return nil
 		}
 
 		blockNumber := s.lastProcessedBlock + 1
 		s.log.WithField("block_number", blockNumber).Info("Processing existing Block.")
 
-		err := s.processBlock(blockNumber)
+		ourOutsStreamed, err := s.processBlock(blockNumber, outsCh)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Block")
+			close(outsCh)
+			return errors.Wrap(err, "Failed to process Block", logan.F{"block_number": blockNumber})
 		}
+
+		totalOurOutsStreamed += ourOutsStreamed
 	}
 
-	s.log.WithField("last_processed_block", s.lastProcessedBlock).Info("Finished fetching existing Blocks.")
-	close(s.outCh)
+	s.log.WithFields(logan.F{
+		"last_processed_block": s.lastProcessedBlock,
+		"our_outputs_found":    totalOurOutsStreamed,
+	}).Info("Finished fetching existing Blocks.")
+	close(outsCh)
 	return nil
 }
 
-func (s *Service) processBlock(blockNumber uint64) error {
+func (s *Service) processBlock(blockNumber uint64, outsCh chan<- bitcoin.Out) (ourOutsStreamed int, err error) {
 	block, err := s.btcClient.GetBlock(blockNumber)
 	if err != nil {
-		return errors.Wrap(err, "Failed to GetBlock", logan.F{"block_number": blockNumber})
+		return 0, errors.Wrap(err, "Failed to GetBlock")
 	}
 
-	err = s.streamOurOuts(block)
-	if err != nil {
-		return errors.Wrap(err, "Failed to stream our Outputs of the Block", logan.F{
-			"block_number": blockNumber,
-			"block":        block,
-		})
-	}
-
-	// Block was successfully processed
+	ourOutsStreamed = s.streamOurOuts(block, outsCh)
 	s.lastProcessedBlock = blockNumber
-	return nil
+	return ourOutsStreamed, nil
 }
 
-func (s *Service) streamOurOuts(block *btcutil.Block) error {
+func (s *Service) streamOurOuts(block *btcutil.Block, outsCh chan<- bitcoin.Out) int {
+	var ourOutsStreamed int
+
 	for _, tx := range block.Transactions() {
 		fields := logan.F{
 			"tx_hash": tx.Hash().String(),
@@ -95,17 +99,17 @@ func (s *Service) streamOurOuts(block *btcutil.Block) error {
 			}
 
 			// Found our TX Output.
-			s.outCh <- bitcoin.Out{
+			outsCh <- bitcoin.Out{
 				tx.Hash().String(),
 				uint32(i),
 			}
+			ourOutsStreamed += 1
 		}
 	}
 
-	return nil
+	return ourOutsStreamed
 }
 
-// TODO SYNCHRONIZE
 func (s *Service) fetchNewBlock(ctx context.Context) error {
 	lastKnownBlock, err := s.btcClient.GetBlockCount()
 	if err != nil {
@@ -117,18 +121,18 @@ func (s *Service) fetchNewBlock(ctx context.Context) error {
 		return nil
 	}
 
-	// TODO SYNCHRONIZE
-	s.outCh = make(chan bitcoin.Out, 1000)
-	go s.listenOutStream(ctx)
+	outsCh := make(chan bitcoin.Out, outChanSize)
+	go s.listenOutsStream(ctx, outsCh)
 
 	blockNumber := s.lastProcessedBlock + 1
 	s.log.WithField("block_number", blockNumber).Info("Processing newly appeared Block.")
 
-	err = s.processBlock(blockNumber)
+	_, err = s.processBlock(blockNumber, outsCh)
 	if err != nil {
-		return errors.Wrap(err, "Failed to process Block")
+		close(outsCh)
+		return errors.Wrap(err, "Failed to process Block", logan.F{"block_number": blockNumber})
 	}
 
-	close(s.outCh)
+	close(outsCh)
 	return nil
 }

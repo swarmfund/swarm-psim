@@ -19,20 +19,26 @@ const (
 
 var errNoScriptAddresses = errors.New("No Addresses in the ScriptPubKey of the UTXO.")
 
-func (s Service) listenOutStream(ctx context.Context) {
-	s.log.Info("Started listening to stream of our Outputs.")
+func (s Service) listenOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out) {
+	s.log.Debug("Started listening to stream of our Outputs.")
+	var ourUTXOs []UTXO
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case out, ok := <-s.outCh:
+		case out, ok := <-outsCh:
 			if !ok {
 				// No more Outs will come
-				s.log.Info("Stopped listening to stream of our Outputs - channel has been closed.")
+				s.log.Debug("Stopped listening to stream of our Outputs - channel has been closed.")
 
-				app.RunUntilSuccess(ctx, s.log, "utxo_funnelling", s.funnelUTXOs, 5*time.Second)
-				s.utxos = nil
+				app.RunUntilSuccess(ctx, s.log, "utxo_funnelling", func(ctx context.Context) error {
+					return s.funnelUTXOs(ctx, ourUTXOs)
+				}, 5*time.Second)
+				if app.IsCanceled(ctx) {
+					return
+				}
+
 				return
 			}
 
@@ -45,9 +51,9 @@ func (s Service) listenOutStream(ctx context.Context) {
 				}
 
 				if utxo != nil {
-					// This Out is unspent.
+					// This our Output is unspent (UTXO).
 					s.log.WithField("out", out).WithField("utxo", utxo).Info("Found our UTXO.")
-					s.utxos = append(s.utxos, UTXO{
+					ourUTXOs = append(ourUTXOs, UTXO{
 						UTXO: *utxo,
 						Out:  out,
 					})
@@ -59,19 +65,19 @@ func (s Service) listenOutStream(ctx context.Context) {
 	}
 }
 
-func (s Service) funnelUTXOs(ctx context.Context) error {
-	if len(s.utxos) == 0 {
+func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
+	if len(utxos) == 0 {
 		return nil
 	}
 
-	s.log.WithField("utxo_length", len(s.utxos)).Info("Started funnelling batch of our UTXOs.")
+	s.log.WithField("utxo_length", len(utxos)).Info("Started funnelling batch of our UTXOs.")
 
 	var utxoOuts []bitcoin.Out
 	var inputUTXOs []bitcoin.InputUTXO
 	var totalInAmount float64
 	var privateKeys []string
 
-	for _, utxo := range s.utxos {
+	for _, utxo := range utxos {
 		utxoOuts = append(utxoOuts, utxo.Out)
 
 		inputUTXOs = append(inputUTXOs, bitcoin.InputUTXO{
@@ -98,7 +104,10 @@ func (s Service) funnelUTXOs(ctx context.Context) error {
 	}
 	fields["hot_balance"] = hotBalance
 
-	txFee, err := s.estimateTXFee(len(inputUTXOs), 2)
+	txSize := txTemplateSize + inSize*len(utxos) + outSize*2
+	fields["tx_size"] = txSize
+
+	txFee, err := s.estimateTXFee(txSize)
 	if err != nil {
 		return errors.Wrap(err, "Failed to estimate TX Fee", fields)
 	}
@@ -111,8 +120,9 @@ func (s Service) funnelUTXOs(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to craft and send TX")
 	}
+	fields["tx_hash"] = txHash
 
-	s.log.WithFields(fields).WithField("tx_hash", txHash).Info("Funneled BTC successfully.")
+	s.log.WithFields(fields).Info("Funneled BTC successfully.")
 	return nil
 }
 
@@ -122,15 +132,13 @@ func (s Service) getHotBalance() (float64, error) {
 }
 
 // TODO Add maxPossibleFee to config and compare estimated fee with it
-func (s *Service) estimateTXFee(inputs, outputs int) (float64, error) {
+func (s *Service) estimateTXFee(txSize int) (float64, error) {
 	feePerKB, err := s.btcClient.EstimateFee()
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to EstimateFee")
 	}
 
 	// TODO Add maxPossibleFee to config and compare estimated fee with it
-
-	txSize := txTemplateSize + inSize*inputs + outSize*outputs
 
 	return feePerKB * float64(txSize), nil
 }

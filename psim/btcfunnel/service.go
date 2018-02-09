@@ -16,6 +16,10 @@ import (
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
+const (
+	outChanSize = 1000
+)
+
 // BTCClient is the interface to be implemented by a
 // Bitcoin client to parametrize the Service.
 type BTCClient interface {
@@ -44,8 +48,6 @@ type Service struct {
 
 	lastProcessedBlock uint64
 	addrToPriv         map[string]string
-	outCh              chan bitcoin.Out
-	utxos              []UTXO
 
 	btcClient BTCClient
 }
@@ -58,7 +60,6 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 
 		lastProcessedBlock: config.LastProcessedBlock,
 		addrToPriv:         make(map[string]string),
-		outCh:              make(chan bitcoin.Out, 1000),
 
 		btcClient: btcClient,
 	}
@@ -69,14 +70,12 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
-	s.log.Info("Deriving keys...")
 	err := s.deriveKeys()
 	if err != nil {
+		// Don't try again, because Keys derivation process does not depend on anything, so if failed once - will fail always.
 		s.log.WithError(err).Error("Failed to derive keys from the extended private key from config, stopping.")
 		return
 	}
-
-	go s.listenOutStream(ctx)
 
 	app.RunUntilSuccess(ctx, s.log, "existing_blocks_fetcher", s.fetchExistingBlocks, 5*time.Second)
 	if app.IsCanceled(ctx) {
@@ -88,6 +87,8 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) deriveKeys() error {
+	s.log.WithField("keys_to_derive", s.config.KeysToDerive).Info("Started keys deriving.")
+
 	extKey, err := hdkeychain.NewKeyFromString(s.config.ExtendedPrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create new ExtendedPrivateKey from the string representation")
@@ -126,5 +127,6 @@ func (s *Service) deriveKeys() error {
 		s.addrToPriv[addr.String()] = wif.String()
 	}
 
+	s.log.WithField("keys_to_derive", s.config.KeysToDerive).Info("Finished keys deriving.")
 	return nil
 }
