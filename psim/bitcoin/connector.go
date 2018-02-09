@@ -44,6 +44,7 @@ type Connector interface {
 	SendRawTX(txHex string) (txHash string, err error)
 	EstimateFee(blocks int) (float64, error)
 	GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error)
+	ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -376,6 +377,34 @@ func (c *NodeConnector) EstimateFee(blocks int) (float64, error) {
 	}
 	if response.Error != nil {
 		return 0, errors.Wrap(response.Error, "Response for estimate fee request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error) {
+	var response struct {
+		Response
+		Result []WalletUTXO `json:"result"`
+	}
+
+	var addressesString string
+	if addresses == nil {
+		addressesString = `[]`
+	} else {
+		bb, err := json.Marshal(addresses)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to marshal addresses into bytes")
+		}
+		addressesString = string(bb)
+	}
+
+	err := c.sendRequest("listunspent", fmt.Sprintf(`%d, %d, %s`, minConfirmations, maxConfirmations, addressesString), &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send or parse list unspent request")
+	}
+	if response.Error != nil {
+		return nil, errors.Wrap(response.Error, "Response for list unspent request contains error")
 	}
 
 	return response.Result, nil

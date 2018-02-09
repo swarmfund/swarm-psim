@@ -31,6 +31,26 @@ func (i InputUTXO) GetLoganFields() map[string]interface{} {
 	}
 }
 
+type WalletUTXO struct {
+	InputUTXO
+
+	Address       string  `json:"address"`
+	Amount        float64 `json:"amount"`
+	Confirmations uint    `json:"confirmations"`
+}
+
+func (w WalletUTXO) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"out":            w.Out,
+		"script_pub_key": w.ScriptPubKey,
+		"redeem_script":  w.RedeemScript,
+
+		"address":       w.Address,
+		"amount":        w.Amount,
+		"confirmations": w.Confirmations,
+	}
+}
+
 // UTXO is the structure of UTXO returned by BitcoinCore.
 // UTXO doesn't actually contains data about which Output of which TX this UTXO is connected with.
 type UTXO struct {

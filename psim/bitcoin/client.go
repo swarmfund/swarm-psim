@@ -240,3 +240,8 @@ func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {
 func (c Client) EstimateFee() (float64, error) {
 	return c.connector.EstimateFee(3)
 }
+
+// GetAddrUTXOs returns the list of UTXOs of the provided Address.
+func (c Client) GetAddrUTXOs(address string) ([]WalletUTXO, error) {
+	return c.connector.ListUnspent(1, 9999999, []string{address})
+}
