@@ -130,9 +130,18 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 	return nil
 }
 
-// TODO
 func (s Service) getHotBalance() (float64, error) {
-	return 0, nil
+	utxos, err := s.btcClient.GetAddrUTXOs(s.config.HotAddress)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to get UTXOs of the hot wallet Address", logan.F{"addr": s.config.HotAddress})
+	}
+
+	var totalAmount float64
+	for _, u := range utxos {
+		totalAmount += u.Amount
+	}
+
+	return totalAmount, nil
 }
 
 func (s *Service) countFunnelOuts(totalInAmount, hotBalance, txFee float64) map[string]float64 {

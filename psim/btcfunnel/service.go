@@ -30,6 +30,7 @@ type BTCClient interface {
 	GetBlock(blockNumber uint64) (*btcutil.Block, error)
 
 	GetTxUTXO(txHash string, outNumber uint32) (*bitcoin.UTXO, error)
+	GetAddrUTXOs(address string) ([]bitcoin.WalletUTXO, error)
 
 	CreateRawTX(inputUTXOs []bitcoin.Out, addrToAmount map[string]float64) (resultTXHex string, err error)
 	SignRawTX(initialTXHex string, inputUTXOs []bitcoin.InputUTXO, privateKeys []string) (resultTXHex string, err error)
