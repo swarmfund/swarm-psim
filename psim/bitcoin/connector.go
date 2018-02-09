@@ -25,27 +25,26 @@ var (
 // Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
 type Connector interface {
 	IsTestnet() bool
+
 	// GetBlockCount must return index of last known Block
 	GetBlockCount() (uint64, error)
 	// TODO Handle absent Block
-	GetBlockHash(blockIndex uint64) (string, error)
+	GetBlockHash(blockNumber uint64) (string, error)
 	// GetBlock must return hex of Block
 	// TODO Handle absent Block
 	GetBlock(blockHash string) (string, error)
+
 	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
-	CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error)
-	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
-	SignRawTX(initialTXHex string, inputUTXOs []Out, privateKey *string) (resultTXHex string, err error)
-	SendRawTX(txHex string) (txHash string, err error)
-}
 
-type Out struct {
-	TXHash       string  `json:"txid"`
-	Vout         uint32  `json:"vout"`
-	ScriptPubKey string  `json:"scriptPubKey"`
-	RedeemScript *string `json:"redeemScript,omitempty"`
+	CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error)
+	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error)
+	SendRawTX(txHex string) (txHash string, err error)
+	EstimateFee(blocks int) (float64, error)
+	GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error)
+	ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -91,13 +90,13 @@ func (c *NodeConnector) GetBlockCount() (uint64, error) {
 
 // GetBlockHash gets hash of Block by its index.
 // TODO Handle absent Block
-func (c *NodeConnector) GetBlockHash(blockIndex uint64) (string, error) {
+func (c *NodeConnector) GetBlockHash(blockNumber uint64) (string, error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	err := c.sendRequest("getblockhash", strconv.FormatUint(blockIndex, 10), &response)
+	err := c.sendRequest("getblockhash", strconv.FormatUint(blockNumber, 10), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse get Block hash request")
 	}
@@ -189,18 +188,34 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 	return response.Result, nil
 }
 
-func (c *NodeConnector) CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error) {
+// CreateRawTX accepts nil as inputUTXOs.
+// It is useful to pass empty inputUTXOs if you will later ask Wallet to Fund the TX (fill it with inputs).
+func (c *NodeConnector) CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	params := `[], {` // Inputs
-	for addr, amount := range addrToAmount {
-		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	// Inputs
+	var inArrayParam string
+	if len(inputUTXOs) == 0 {
+		inArrayParam = `[]`
+	} else {
+		bb, err := json.Marshal(inputUTXOs)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal inputUTXOs")
+		}
+		inArrayParam = string(bb)
 	}
-	params = params[:len(params)-1] + `}`
 
+	// Outputs
+	outsParam := `{`
+	for addr, amount := range outAddrToAmount {
+		outsParam += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	}
+	outsParam = outsParam[:len(outsParam)-1] + `}`
+
+	params := fmt.Sprintf(`%s, %s`, inArrayParam, outsParam)
 	err = c.sendRequest("createrawtransaction", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse createRawTransaction request")
@@ -210,12 +225,6 @@ func (c *NodeConnector) CreateRawTX(addrToAmount map[string]float64) (resultTXHe
 	}
 
 	return response.Result, nil
-}
-
-type FundResult struct {
-	Hex            string  `json:"hex"`
-	ChangePosition int     `json:"changepos"`
-	FeePaid        float64 `json:"fee"`
 }
 
 // FundRawTX runs fundrawtransaction request to the Bitcoin Node
@@ -264,7 +273,7 @@ func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, includeWat
 // SignRawTX signs the inputs of the provided TX with the provided privateKey.
 // If the provided privateKey is nil - the TX will be tried to sign by Node, using
 // the private keys Node owns.
-func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey *string) (resultTXHex string, err error) {
+func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []InputUTXO, privateKeys []string) (resultTXHex string, err error) {
 	var outsArray string
 	if outputsBeingSpent == nil {
 		outsArray = "[]"
@@ -285,14 +294,18 @@ func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, 
 		} `json:"result"`
 	}
 
-	privateKeys := `[`
-	if privateKey != nil {
-		privateKeys = privateKeys + fmt.Sprintf(`"%s"`, *privateKey)
+	var privKeysParam string
+	if len(privateKeys) == 0 {
+		privKeysParam = `[]`
+	} else {
+		bb, err := json.Marshal(privateKeys)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal private keys into JSON array")
+		}
+		privKeysParam = string(bb)
 	}
-	privateKeys = privateKeys + `]`
 
-	params := fmt.Sprintf(`"%s", %s, %s`, initialTXHex, outsArray, privateKeys)
-
+	params := fmt.Sprintf(`"%s", %s, %s`, initialTXHex, outsArray, privKeysParam)
 	err = c.sendRequest("signrawtransaction", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse signRawTransaction request")
@@ -325,6 +338,73 @@ func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 		}
 
 		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error", fields)
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error) {
+	var response struct {
+		Response
+		Result *UTXO `json:"result"`
+	}
+
+	err := c.sendRequest("gettxout", fmt.Sprintf(`"%s", %d, %t`, txHash, vout, unconfirmed), &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send or parse Get TX UTXO request")
+	}
+	if response.Error != nil {
+		fields := logan.F{
+			"bitcoin_core_response_id":     response.ID,
+			"bitcoin_core_response_result": response.Result,
+		}
+
+		return nil, errors.Wrap(response.Error, "Response for Get TX UTXO request contains error", fields)
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) EstimateFee(blocks int) (float64, error) {
+	var response struct {
+		Response
+		Result float64 `json:"result"`
+	}
+
+	err := c.sendRequest("estimatefee", fmt.Sprintf(`%d`, blocks), &response)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to send or parse estimate fee request")
+	}
+	if response.Error != nil {
+		return 0, errors.Wrap(response.Error, "Response for estimate fee request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error) {
+	var response struct {
+		Response
+		Result []WalletUTXO `json:"result"`
+	}
+
+	var addressesString string
+	if addresses == nil {
+		addressesString = `[]`
+	} else {
+		bb, err := json.Marshal(addresses)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to marshal addresses into bytes")
+		}
+		addressesString = string(bb)
+	}
+
+	err := c.sendRequest("listunspent", fmt.Sprintf(`%d, %d, %s`, minConfirmations, maxConfirmations, addressesString), &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send or parse list unspent request")
+	}
+	if response.Error != nil {
+		return nil, errors.Wrap(response.Error, "Response for list unspent request contains error")
 	}
 
 	return response.Result, nil

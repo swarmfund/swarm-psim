@@ -22,16 +22,18 @@ func NewClient(connector Connector) *Client {
 	}
 }
 
-// GetBlockCount returns index of the last known Block.
+// GetBlockCount returns the number of the last known Block.
 func (c Client) GetBlockCount() (uint64, error) {
 	return c.connector.GetBlockCount()
 }
 
-// GetBlock gets Block hash by provided blockIndex via Connector,
+// TODO Handle absent Block
+
+// GetBlock gets Block hash by provided blockNumber via Connector,
 // gets raw Block(in hex) by the hash from Connector
 // and tries to parse raw Block into btcutil.Block structure.
-func (c Client) GetBlock(blockIndex uint64) (*btcutil.Block, error) {
-	hash, err := c.connector.GetBlockHash(blockIndex)
+func (c Client) GetBlock(blockNumber uint64) (*btcutil.Block, error) {
+	hash, err := c.connector.GetBlockHash(blockNumber)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Block hash")
 	}
@@ -112,7 +114,7 @@ func (c Client) GetWalletBalance(includeWatchOnly bool) (float64, error) {
 //
 // Provided feeRate can be nil - in this case the Wallet of the Node determines the fee.
 func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
-	txHex, err := c.connector.CreateRawTX(map[string]float64{
+	txHex, err := c.connector.CreateRawTX(nil, map[string]float64{
 		goalAddress: amount,
 	})
 	if err != nil {
@@ -130,8 +132,8 @@ func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAdd
 	return fundResult.Hex, nil
 }
 
-func (c Client) CreateRawTX(addrToAmount map[string]float64) (resultTXHex string, err error) {
-	return c.connector.CreateRawTX(addrToAmount)
+func (c Client) CreateRawTX(inputUTXOs []Out, addrToAmount map[string]float64) (resultTXHex string, err error) {
+	return c.connector.CreateRawTX(inputUTXOs, addrToAmount)
 }
 
 func (c Client) FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error) {
@@ -141,7 +143,7 @@ func (c Client) FundRawTX(initialTXHex, changeAddress string, includeWatching bo
 // SignAllTXInputs signs the inputs of the provided TX with the provided privateKey.
 // If the provided privateKey is nil - the TX will be tried to sign by Node, using
 // the private keys Node owns.
-func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey *string) (resultTXHex string, err error) {
+func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
 	tx, err := c.parseTX(initialTXHex)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to parse provided initialTXHex into btc.Tx")
@@ -151,17 +153,23 @@ func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript 
 		return "", errors.New("No TX Inputs to sign")
 	}
 
-	var inputUTXOs []Out
+	var inputUTXOs []InputUTXO
 	for _, in := range tx.MsgTx().TxIn {
-		inputUTXOs = append(inputUTXOs, Out{
-			TXHash:       in.PreviousOutPoint.Hash.String(),
-			Vout:         in.PreviousOutPoint.Index,
+		inputUTXOs = append(inputUTXOs, InputUTXO{
+			Out: Out{
+				TXHash: in.PreviousOutPoint.Hash.String(),
+				Vout:   in.PreviousOutPoint.Index,
+			},
 			ScriptPubKey: scriptPubKey,
 			RedeemScript: &redeemScript,
 		})
 	}
 
-	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKey)
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, []string{privateKey})
+}
+
+func (c Client) SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error) {
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKeys)
 }
 
 // SendRawTX submits TX into the blockchain.
@@ -225,6 +233,15 @@ func (c Client) GetNetParams() *chaincfg.Params {
 	}
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
-	return txHash + string(outIndex)
+func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {
+	return c.connector.GetTxUTXO(txHash, outNumber, false)
+}
+
+func (c Client) EstimateFee() (float64, error) {
+	return c.connector.EstimateFee(3)
+}
+
+// GetAddrUTXOs returns the list of UTXOs of the provided Address.
+func (c Client) GetAddrUTXOs(address string) ([]WalletUTXO, error) {
+	return c.connector.ListUnspent(1, 9999999, []string{address})
 }
