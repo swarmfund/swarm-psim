@@ -107,10 +107,14 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 	txSize := txTemplateSize + inSize*len(utxos) + outSize*2
 	fields["tx_size"] = txSize
 
-	txFee, err := s.estimateTXFee(txSize)
+	feePerKB, err := s.btcClient.EstimateFee()
 	if err != nil {
-		return errors.Wrap(err, "Failed to estimate TX Fee", fields)
+		return errors.Wrap(err, "Failed to EstimateFee", fields)
 	}
+	// TODO Add maxPossibleFee to config and compare estimated fee with it
+	fields["fee_per_kb"] = feePerKB
+
+	txFee := feePerKB * float64(txSize)
 	fields["tx_fee"] = txFee
 
 	funnelOuts := s.countFunnelOuts(totalInAmount, hotBalance, txFee)
@@ -129,18 +133,6 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 // TODO
 func (s Service) getHotBalance() (float64, error) {
 	return 0, nil
-}
-
-// TODO Add maxPossibleFee to config and compare estimated fee with it
-func (s *Service) estimateTXFee(txSize int) (float64, error) {
-	feePerKB, err := s.btcClient.EstimateFee()
-	if err != nil {
-		return 0, errors.Wrap(err, "Failed to EstimateFee")
-	}
-
-	// TODO Add maxPossibleFee to config and compare estimated fee with it
-
-	return feePerKB * float64(txSize), nil
 }
 
 func (s *Service) countFunnelOuts(totalInAmount, hotBalance, txFee float64) map[string]float64 {
