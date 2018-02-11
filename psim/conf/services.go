@@ -8,8 +8,8 @@ const (
 	ServiceETHWithdraw   = "eth_withdraw"
 
 	// btc
-	ServiceBTCSupervisor     = "bitcoin_supervisor"
-	ServiceBTCVerify         = "btc_verify"
+	ServiceBTCDeposit        = "btc_deposit"
+	ServiceBTCDepositVerify  = "btc_deposit_verify"
 	ServiceBTCFunnel         = "btc_funnel"
 	ServiceBTCWithdraw       = "btc_withdraw"
 	ServiceBTCWithdrawVerify = "btc_withdraw_verify"

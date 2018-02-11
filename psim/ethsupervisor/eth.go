@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
@@ -16,7 +17,12 @@ import (
 
 // TODO defer
 func (s *Service) processBlocks(ctx context.Context) {
+	// TODO Listen to both s.blockCh and ctx.Done() in select.
 	for blockNumber := range s.blocksCh {
+		if app.IsCanceled(ctx) {
+			return
+		}
+
 		entry := s.Log.WithField("block_number", blockNumber)
 		entry.Debug("Processing block.")
 
@@ -33,9 +39,14 @@ func (s *Service) processBlocks(ctx context.Context) {
 		}
 
 		for _, tx := range block.Transactions() {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
 			if tx == nil {
 				continue
 			}
+
 			s.txCh <- internal.Transaction{
 				Timestamp:   time.Unix(block.Time().Int64(), 0),
 				BlockNumber: block.NumberU64(),
@@ -51,7 +62,13 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
+
+		// TODO Listen to both ticker.C and ctx.Done() in select.
 		for ; ; <-ticker.C {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
 			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
 				s.Log.WithError(err).Error("failed to get block count")
@@ -61,6 +78,10 @@ func (s *Service) watchHeight(ctx context.Context) {
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
 			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
+				if app.IsCanceled(ctx) {
+					return
+				}
+
 				s.blocksCh <- cursor.Uint64()
 				cursor.Add(cursor, big.NewInt(1))
 			}
@@ -70,6 +91,10 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 func (s *Service) processTXs(ctx context.Context) {
 	for tx := range s.txCh {
+		if app.IsCanceled(ctx) {
+			return
+		}
+
 		entry := s.Log.WithField("tx", tx.Hash().Hex())
 
 		for {
@@ -103,14 +128,25 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 
 	// address is watched
 	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
+	if app.IsCanceled(ctx) {
+		return nil
+	}
+
 	if address == nil {
 		return nil
 	}
 
-	entry := s.Log.WithField("tx_hash", tx.Hash().Hex())
+	entry := s.Log.WithFields(logan.F{
+		"tx_hash":     tx.Hash().Hex(),
+		"eth_address": tx.To().String(),
+	})
 	entry.Info("Found deposit.")
 
 	receiver := s.state.Balance(ctx, *address)
+	if app.IsCanceled(ctx) {
+		return nil
+	}
+
 	if receiver == nil {
 		entry.Error("balance not found, skipping tx")
 		return nil
@@ -137,7 +173,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		Receiver:  *receiver,
 		Amount:    emissionAmount.Uint64(),
 		Details: resources.DepositDetails{
-			Source: tx.Hash().Hex(),
+			TXHash: tx.Hash().Hex(),
 			Price:  amount.One,
 		}.Encode(),
 	})

@@ -5,6 +5,8 @@ import (
 
 	"crypto/ecdsa"
 
+	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -22,7 +24,7 @@ type Wallet struct {
 	keys   map[common.Address]ecdsa.PrivateKey
 }
 
-func NewHDWallet(hexseed string) (*Wallet, error) {
+func NewHDWallet(hexseed string, n uint64) (*Wallet, error) {
 	seed, err := hex.DecodeString(hexseed)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode seed")
@@ -48,7 +50,7 @@ func NewHDWallet(hexseed string) (*Wallet, error) {
 	}
 
 	// TODO check horizon for account sequence and extended keys as needed
-	if err := wallet.extend(2 << 10); err != nil {
+	if err := wallet.extend(n); err != nil {
 		return nil, errors.Wrap(err, "failed to extend master")
 	}
 
@@ -79,8 +81,8 @@ func (wallet *Wallet) Import(raw []byte) (common.Address, error) {
 	return address, nil
 }
 
-func (wallet *Wallet) extend(i uint) error {
-	for uint(len(wallet.keys)) < i {
+func (wallet *Wallet) extend(i uint64) error {
+	for uint64(len(wallet.keys)) < i {
 		child, err := wallet.master.NewChildKey(uint32(len(wallet.keys)))
 		if err != nil {
 			return errors.Wrap(err, "failed to extend child")
@@ -90,10 +92,11 @@ func (wallet *Wallet) extend(i uint) error {
 			return errors.Wrap(err, "failed to import key")
 		}
 	}
+
 	return nil
 }
 
-func (wallet *Wallet) Addresses() (result []common.Address) {
+func (wallet *Wallet) Addresses(ctx context.Context) (result []common.Address) {
 	for addr := range wallet.keys {
 		result = append(result, addr)
 	}

@@ -23,7 +23,7 @@ func init() {
 			return nil, errors.Wrap(err, "failed to figure out")
 		}
 
-		wallet, err := eth.NewHDWallet(config.Seed)
+		wallet, err := eth.NewHDWallet(config.Seed, 10)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init wallet")
 		}
