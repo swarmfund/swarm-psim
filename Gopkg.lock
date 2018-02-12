@@ -64,8 +64,8 @@
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
   packages = ["."]
-  revision = "13ba9278e2adf1537fd94143a6b6a1c0dc008ac7"
-  version = "v0.4.2"
+  revision = "95dff72a491a53aee9321f4a2806e693514697da"
+  version = "v0.4.3"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -284,10 +284,10 @@
   revision = "e69e2ec9bca34e913339896c87ce94b86e2fb3cd"
 
 [[projects]]
+  branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "4b0eba4ac8e5a5b02f39a6c6660a93d557edd735"
-  version = "v1.1"
+  revision = "39e395366b85671855be2cb4c3cfae679755566c"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -382,6 +382,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a1f539bd44f911fd0d8d2ee2fbb34d5211b46d283d5c3c5c01b0161b262e3696"
+  inputs-digest = "ea0ef9e3544ea5b950b028d632a6edbd5218050c8e311df19051ab54941e17e2"
   solver-name = "gps-cdcl"
   solver-version = 1

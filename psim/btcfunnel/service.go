@@ -24,6 +24,7 @@ const (
 // Bitcoin client to parametrize the Service.
 type BTCClient interface {
 	GetNetParams() *chaincfg.Params
+	GetNetworkName() string
 	EstimateFee() (float64, error)
 
 	GetBlockCount() (uint64, error)
@@ -37,6 +38,10 @@ type BTCClient interface {
 	SendRawTX(txHex string) (txHash string, err error)
 }
 
+type NotificationSender interface {
+	Send(message string) error
+}
+
 type UTXO struct {
 	bitcoin.UTXO
 	bitcoin.Out
@@ -47,14 +52,16 @@ type Service struct {
 	config Config
 	log    *logan.Entry
 
-	lastProcessedBlock uint64
-	addrToPriv         map[string]string
+	lastProcessedBlock    uint64
+	addrToPriv            map[string]string
+	lastMinBalanceAlarmAt time.Time
 
-	btcClient BTCClient
+	btcClient          BTCClient
+	notificationSender NotificationSender
 }
 
 // New is constructor for btcfunnel Service.
-func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
+func New(config Config, log *logan.Entry, btcClient BTCClient, notificationSender NotificationSender) *Service {
 	return &Service{
 		config: config,
 		log:    log,
@@ -62,7 +69,8 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 		lastProcessedBlock: config.LastProcessedBlock,
 		addrToPriv:         make(map[string]string),
 
-		btcClient: btcClient,
+		btcClient:          btcClient,
+		notificationSender: notificationSender,
 	}
 }
 
@@ -70,6 +78,8 @@ func New(config Config, log *logan.Entry, btcClient BTCClient) *Service {
 // Run will return only when work is finished.
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
+
+	go s.monitorLowBalance(ctx)
 
 	err := s.deriveKeys()
 	if err != nil {
