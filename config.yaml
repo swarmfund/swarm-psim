@@ -36,9 +36,9 @@ discovery:
   port: 8500
 
 notifications_slack:
-  url: https://hooks.slack.com/services/SOMErandomTOKEN
-  channel_name: \#channel_name
-  icon_emoji: :mega:
+  url: https://hooks.slack.com/services/....
+  channel_name: "#channel_name"
+  icon_emoji: ":mega:"
 
 # services
 
@@ -81,9 +81,9 @@ btc_deposit_verify:
 
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
-  min_deposit_amount: 500000 # satoshis (0.005 BTC)
+  min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
   deposit_asset: BTC
-  fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
+  fixed_deposit_fee: 100000 # 0.001 BTC (integer in satoshis)
 
   signer: S_SOME_VALID_PRIVATE_KEY
 
@@ -93,9 +93,10 @@ btc_funnel:
   hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb # hot wallet
   cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF is testnet faucet
   last_processed_block: 1260685
-  min_funnel_amount: 0 # float in BTC
-  max_hot_stock: 50 # float in BTC
-  dust_output_limit: 0.005 # in BTC
+  min_funnel_amount: 0 # (float in BTC)
+  max_hot_stock: 50 # (float in BTC)
+  dust_output_limit: 0.005 # (float in BTC)
+  min_amount_alarm_threshold: 100 # (float in BTC)
 
 btc_withdraw:
   btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
@@ -104,7 +105,7 @@ btc_withdraw:
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
   hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
 
-  min_withdraw_amount: 10000 # satoshis (0.0001 BTC)
+  min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
 
   signer: S_SOME_VALID_PRIVATE_KEY
 
@@ -118,7 +119,7 @@ btc_withdraw_verify:
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
   hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
 
-  min_withdraw_amount: 10000 # satoshis (0.0001 BTC)
+  min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
