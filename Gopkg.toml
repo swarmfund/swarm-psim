@@ -105,6 +105,10 @@
   version = "1.0.0"
 
 [[constraint]]
+  name = "gitlab.com/distributed_lab/figure"
+  branch = "master"
+
+[[constraint]]
   name = "gitlab.com/tokend/go"
   version = "1.2.2"
 
