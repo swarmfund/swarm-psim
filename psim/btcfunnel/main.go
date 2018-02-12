@@ -4,9 +4,9 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"context"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/figure"
 	"fmt"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/figure"
 )
 
 func init() {

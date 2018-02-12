@@ -49,9 +49,6 @@ type UTXO struct {
 
 // Service implements app.Service to be registered in the app.
 type Service struct {
-	// TODO Config
-	minBalanceAlarmPeriod time.Duration
-
 	config Config
 	log    *logan.Entry
 
@@ -66,9 +63,6 @@ type Service struct {
 // New is constructor for btcfunnel Service.
 func New(config Config, log *logan.Entry, btcClient BTCClient, notificationSender NotificationSender) *Service {
 	return &Service{
-		// TODO Config
-		minBalanceAlarmPeriod: 2 * time.Minute,
-
 		config: config,
 		log:    log,
 

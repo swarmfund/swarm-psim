@@ -96,7 +96,8 @@ btc_funnel:
   min_funnel_amount: 0 # (float in BTC)
   max_hot_stock: 50 # (float in BTC)
   dust_output_limit: 0.005 # (float in BTC)
-  min_amount_alarm_threshold: 100 # (float in BTC)
+  min_balance_alarm_threshold: 100 # (float in BTC)
+  min_balance_alarm_period: 1h
 
 btc_withdraw:
   btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
