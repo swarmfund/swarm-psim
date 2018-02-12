@@ -3,9 +3,11 @@ package conf
 // All services existing in PSIM
 const (
 	// eth
-	ServiceETHSupervisor = "eth_supervisor"
-	ServiceETHFunnel     = "eth_funnel"
-	ServiceETHWithdraw   = "eth_withdraw"
+	ServiceETHSupervisor      = "eth_supervisor"
+	ServiceETHFunnel          = "eth_funnel"
+	ServiceETHWithdraw        = "eth_withdraw"
+	ServiceERC20Deposit       = "erc20_deposit"
+	ServiceERC20DepositVerify = "erc20_deposit_verify"
 
 	// btc
 	ServiceBTCDeposit        = "btc_deposit"

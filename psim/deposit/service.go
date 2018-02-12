@@ -20,7 +20,7 @@ import (
 
 var (
 	ErrNoBalanceID             = errors.New("No BalanceID for the Account.")
-	ErrNoVerifierServices      = errors.New("No Withdraw Verify services were found.")
+	ErrNoVerifierServices      = errors.New("No Deposit Verify services were found.")
 	OpCodeReferenceDuplication = "op_reference_duplication"
 )
 
@@ -92,37 +92,36 @@ type Service struct {
 // New is constructor for the deposit Service.
 //
 // Make sure HorizonConnector provided to constructor is with signer.
-func New(
-	log *logan.Entry,
-	source keypair.Address,
-	signer keypair.Full,
-	serviceName string,
-	verifierServiceName string,
-	lastProcessedBlock,
-	lastBlocksNotWatch uint64,
-	horizon *horizon.Connector,
-	addressProvider AddressProvider,
-	discovery Discovery,
-	builder *xdrbuild.Builder,
-	offchainHelper OffchainHelper) *Service {
-
-	result := &Service{
-		log:                 log,
-		source:              source,
-		signer:              signer,
-		serviceName:         serviceName,
-		verifierServiceName: verifierServiceName,
-		lastProcessedBlock:  lastProcessedBlock,
-		lastBlocksNotWatch:  lastBlocksNotWatch,
-
-		horizon:         horizon,
-		addressProvider: addressProvider,
-		discovery:       discovery,
-		builder:         builder,
-		offchainHelper:  offchainHelper,
+func New(opts *Opts) *Service {
+	return &Service{
+		log:                 opts.Log,
+		source:              opts.Source,
+		signer:              opts.Signer,
+		serviceName:         opts.ServiceName,
+		verifierServiceName: opts.VerifierServiceName,
+		lastProcessedBlock:  opts.LastProcessedBlock,
+		lastBlocksNotWatch:  opts.LastBlocksNotWatch,
+		horizon:             opts.Horizon,
+		addressProvider:     opts.AddressProvider,
+		discovery:           opts.Discovery,
+		builder:             opts.Builder,
+		offchainHelper:      opts.OffchainHelper,
 	}
+}
 
-	return result
+type Opts struct {
+	Log                 *logan.Entry
+	Source              keypair.Address
+	Signer              keypair.Full
+	ServiceName         string
+	VerifierServiceName string
+	LastProcessedBlock  uint64
+	LastBlocksNotWatch  uint64
+	Horizon             *horizon.Connector
+	AddressProvider     AddressProvider
+	Discovery           Discovery
+	Builder             *xdrbuild.Builder
+	OffchainHelper      OffchainHelper
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -170,6 +169,11 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 	block, err := s.offchainHelper.GetBlock(blockNumber)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Block from BTCClient")
+	}
+
+	if block == nil {
+		// helper thinks it's 404, we don't care
+		return nil
 	}
 
 	for _, tx := range block.TXs {

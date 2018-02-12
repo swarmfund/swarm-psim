@@ -156,7 +156,7 @@ func (s *Service) validateIssuanceOp(op xdr.CreateIssuanceRequestOp, accountAddr
 	}
 
 	// TODO move "bitcoin" to some config
-	offchainAddress, err := s.getOffchainAddress(accountAddress, "bitcoin")
+	offchainAddress, err := s.getOffchainAddress(accountAddress, s.externalSystem)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Offchain Address of the Account")
 	}

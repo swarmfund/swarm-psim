@@ -22,6 +22,7 @@ type Service struct {
 
 	signer             keypair.Full
 	lastBlocksNotWatch uint64
+	externalSystem     string
 
 	// TODO Interface
 	horizon    *horizon.Connector
@@ -37,6 +38,7 @@ type Service struct {
 }
 
 func New(
+	externalSystem string,
 	serviceName string,
 	log *logan.Entry,
 	signer keypair.Full,
@@ -50,7 +52,8 @@ func New(
 	discoveryRegisterPeriod := 5 * time.Second
 
 	return &Service{
-		serviceName: serviceName,
+		externalSystem: externalSystem,
+		serviceName:    serviceName,
 
 		log: log.WithField("service", serviceName),
 
