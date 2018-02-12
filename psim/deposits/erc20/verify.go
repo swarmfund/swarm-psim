@@ -51,7 +51,7 @@ func init() {
 			builder,
 			listener,
 			app.Config(ctx).Discovery(),
-			internal.NewERC20Helper(eth, config.DepositAsset),
+			internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
 		), nil
 	})
 }

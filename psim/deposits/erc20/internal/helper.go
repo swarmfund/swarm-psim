@@ -17,12 +17,12 @@ import (
 	"gitlab.com/swarmfund/psim/psim/deposit"
 )
 
-func NewERC20Helper(eth *ethclient.Client, depositAsset string) *ERC20Helper {
+func NewERC20Helper(eth *ethclient.Client, depositAsset string, token common.Address) *ERC20Helper {
 	return &ERC20Helper{
 		NewConfigHelper(depositAsset, 0, 0),
 		NewConverter(),
 		NewReferenceBuilder(),
-		NewETHHelper(eth),
+		NewETHHelper(eth, token),
 	}
 }
 
@@ -93,11 +93,12 @@ func (h *ReferenceBuilder) BuildReference(blockNumber uint64, txHash, offchainAd
 }
 
 type ETHHelper struct {
-	eth *ethclient.Client
+	eth   *ethclient.Client
+	token common.Address
 }
 
-func NewETHHelper(eth *ethclient.Client) *ETHHelper {
-	return &ETHHelper{eth}
+func NewETHHelper(eth *ethclient.Client, token common.Address) *ETHHelper {
+	return &ETHHelper{eth, token}
 }
 
 func (h *ETHHelper) GetLastKnownBlockNumber() (uint64, error) {
@@ -112,9 +113,7 @@ func (h *ETHHelper) GetBlock(number uint64) (*deposit.Block, error) {
 	logs, err := h.eth.FilterLogs(context.TODO(), ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetUint64(number),
 		ToBlock:   new(big.Int).SetUint64(number),
-		Addresses: []common.Address{
-			common.HexToAddress("0xd159bded8d0c82ab6a6610d7e26235a535d3f64e"),
-		},
+		Addresses: []common.Address{h.token},
 		Topics: [][]common.Hash{
 			{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 		},
