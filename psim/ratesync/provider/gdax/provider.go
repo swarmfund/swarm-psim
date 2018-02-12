@@ -1,4 +1,4 @@
-package gdaxCondnector
+package gdaxProvider
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 
-	"fmt"
 	ws "github.com/gorilla/websocket"
 	"github.com/preichenberger/go-gdax"
 	"gitlab.com/swarmfund/go/amount"
@@ -28,57 +27,40 @@ type gdaxProvider struct {
 	pricesChannel chan price.PricePoint
 }
 
-// StartNewGdaxProvider creates new gdaxProvider and runs it safely and concurrently
+// StartNewGdaxProvider creates new gdaxProvider and runs it concurrently
 func StartNewGdaxProvider(ctx context.Context, log *logan.Entry, baseAsset, quoteAsset string) <-chan price.PricePoint {
-	gdaxProvider := gdaxProvider{
+	provider := gdaxProvider{
 		logger:        log.WithField("connector", "gdax"),
 		baseAsset:     baseAsset,
 		quoteAsset:    quoteAsset,
 		pricesChannel: make(chan price.PricePoint),
 	}
 
-	go gdaxProvider.runSafely(ctx)
+	go provider.runOnce(ctx)
 
-	return gdaxProvider.pricesChannel
+	return provider.pricesChannel
 }
 
 func (p *gdaxProvider) runOnce(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.Wrap(errors.WithStack(errors.FromPanic(r)), "connector panicked")
+			p.logger.WithError(errors.FromPanic(r)).Error("connector panicked")
 			return
 		}
 	}()
 	defer close(p.pricesChannel)
 
-	var prices price.Prices
-	prices, err = p.exchange.GetPrices(p.baseAsset, p.quoteAsset)
-	if err != nil {
-		return errors.Wrap(err, "failed to get prices")
-	}
-
-	for _, item := range prices {
-		select {
-		case p.pricesChannel <- item:
-			continue
-		case <-ctx.Done():
-			return nil
-		}
-	}
-
-	return nil
-}
-
-func (p *gdaxProvider) GetPrices(baseAsset, quoteAsset string) (<-chan price.PricePoint, error) {
-	assetPair := baseAsset + "-" + quoteAsset
+	assetPair := p.baseAsset + "-" + p.quoteAsset
 	if !contains(assetPairs, assetPair) {
-		return nil, fmt.Errorf("uknown asset pair: %v", assetPair)
+		p.logger.Error("unknown asset pair: ", assetPair)
+		return
 	}
 
 	var wsDialer ws.Dialer
-	wsConn, _, err := wsDialer.Dial("wss://ws-feed.gdax.com", nil)
+	wsConn, _, err := wsDialer.Dial(url, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create a client connection")
+		p.logger.WithError(err).Error("failed to create a client connection")
+		return
 	}
 
 	subscribe := gdax.Message{
@@ -93,27 +75,35 @@ func (p *gdaxProvider) GetPrices(baseAsset, quoteAsset string) (<-chan price.Pri
 		},
 	}
 	if err := wsConn.WriteJSON(subscribe); err != nil {
-		return nil, errors.Wrap(err, "failed to encode request message")
+		p.logger.WithError(err).Error("failed to encode request message")
+		return
 	}
 
 	for {
-		var jp jsonAssetPrice
-		if err := wsConn.ReadJSON(&jp); err != nil {
-			return nil, errors.Wrap(err, "failed to decode response message")
-		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			var jp jsonAssetPrice
+			if err := wsConn.ReadJSON(&jp); err != nil {
+				p.logger.WithError(err).Error("failed to decode response message")
+				return
+			}
 
-		if jp.LastUpdated.Unix() <= 0 {
-			continue
-		}
+			if jp.LastUpdated.Unix() <= 0 {
+				continue
+			}
 
-		jps := jsonPrices{jp}
-		prices, err := jps.Prices()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed  to unmarshal prices")
-		}
+			jps := jsonPrices{jp}
+			prices, err := jps.Prices()
+			if err != nil {
+				p.logger.WithError(err).Error("failed to unmarshal prices")
+				return
+			}
 
-		for _, item := range prices {
-			p.PricesChannel <- item
+			for _, item := range prices {
+				p.pricesChannel <- item
+			}
 		}
 	}
 }
