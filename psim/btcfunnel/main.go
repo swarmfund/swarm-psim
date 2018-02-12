@@ -30,5 +30,5 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	// TODO Validate config. Some values can't be zero.
 
-	return New(config, log, globalConfig.Bitcoin()), nil
+	return New(config, log, globalConfig.Bitcoin(), globalConfig.NotificationSender()), nil
 }
