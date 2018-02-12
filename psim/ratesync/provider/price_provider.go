@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Connector is an interface for retrieving asset prices from external services
-type Connector interface {
+// ExchangeConnector is an interface for retrieving asset prices from external services
+type ExchangeConnector interface {
 	GetName() string
 	GetPrices(baseAsset, quoteAsset string) (price.Prices, error)
 }
@@ -20,12 +20,12 @@ type pricesProvider struct {
 	baseAsset     string
 	quoteAsset    string
 	pricesChannel chan price.PricePoint
-	exchange      Connector
+	exchange      ExchangeConnector
 	period        time.Duration
 }
 
 // StartNewPricesProvider creates new pricesProvider and runs it safely and concurrently
-func StartNewPricesProvider(ctx context.Context, log *logan.Entry, baseAsset, quoteAsset string, exchange Connector, period time.Duration) <-chan price.PricePoint {
+func StartNewPricesProvider(ctx context.Context, log *logan.Entry, baseAsset, quoteAsset string, exchange ExchangeConnector, period time.Duration) <-chan price.PricePoint {
 	priceProvider := pricesProvider{
 		logger:        log.WithField("connector", exchange.GetName()),
 		baseAsset:     baseAsset,

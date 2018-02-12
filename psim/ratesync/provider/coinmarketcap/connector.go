@@ -17,25 +17,25 @@ var assetPairs = map[string]string{
 	"SWM/USD": "https://api.coinmarketcap.com/v1/ticker/swarm-fund/?convert=USD",
 }
 
-// CoinMarCapConnector is a connector for coinmarketcap.com
-type CoinMarCapConnector struct {
+// Connector is a connector for coinmarketcap.com
+type Connector struct {
 	Name string
 }
 
-// NewCoinMarCapConnector is a constructor for CoinMarCapConnector
-func NewCoinMarCapConnector() *CoinMarCapConnector {
-	return &CoinMarCapConnector{
+// NewConnector is a constructor for Connector
+func NewConnector() *Connector {
+	return &Connector{
 		Name: "coinmarketcap",
 	}
 }
 
 // GetName retrieves the name of connector
-func (c *CoinMarCapConnector) GetName() string {
+func (c *Connector) GetName() string {
 	return c.Name
 }
 
 // GetPrices retrieves prices from external service and returns structured prices
-func (c *CoinMarCapConnector) GetPrices(baseAsset, quoteAsset string) (price.Prices, error) {
+func (c *Connector) GetPrices(baseAsset, quoteAsset string) (price.Prices, error) {
 	assetPair := baseAsset + "/" + quoteAsset
 	if _, ok := assetPairs[assetPair]; !ok {
 		return nil, fmt.Errorf("uknown asset pair: %v", assetPair)
@@ -89,7 +89,7 @@ func (jps jsonPrices) Prices() (price.Prices, error) {
 
 		result = append(result, price.PricePoint{
 			Price: p,
-			Time:  time.Unix(jp.LastUpdated, 0),
+			Time:  time.Unix(jp.LastUpdated, 0).UTC(),
 		})
 	}
 	return result, nil

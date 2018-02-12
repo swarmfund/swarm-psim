@@ -16,25 +16,25 @@ var assetPairs = map[string]string{
 	"ETH/USD": "https://api.bitfinex.com/v1/pubticker/ethusd",
 }
 
-// BitfinexConnector is a connector for bitfinex.com
-type BitfinexConnector struct {
+// Connector is a connector for bitfinex.com
+type Connector struct {
 	Name string
 }
 
-// NewBitfinexConnector is a constructor for BitfinexConnector
-func NewBitfinexConnector() *BitfinexConnector {
-	return &BitfinexConnector{
+// NewConnector is a constructor for Connector
+func NewConnector() *Connector {
+	return &Connector{
 		Name: "bitfinex",
 	}
 }
 
 // GetName retrieves the name of connector
-func (c *BitfinexConnector) GetName() string {
+func (c *Connector) GetName() string {
 	return c.Name
 }
 
 // GetPrices retrieves prices from external service and returns structured prices
-func (c *BitfinexConnector) GetPrices(baseAsset, quoteAsset string) (price.Prices, error) {
+func (c *Connector) GetPrices(baseAsset, quoteAsset string) (price.Prices, error) {
 	assetPair := baseAsset + "/" + quoteAsset
 	if _, ok := assetPairs[assetPair]; !ok {
 		return nil, fmt.Errorf("uknown asset pair: %v", assetPair)
@@ -89,7 +89,7 @@ func (jps jsonPrices) Prices() (price.Prices, error) {
 
 		result = append(result, price.PricePoint{
 			Price: p,
-			Time:  time.Unix(int64(jp.LastUpdated), 0),
+			Time:  time.Unix(int64(jp.LastUpdated), 0).UTC(),
 		})
 	}
 	return result, nil
