@@ -35,6 +35,11 @@ discovery:
   host: localhost
   port: 8500
 
+notifications_slack:
+  url: https://hooks.slack.com/services/SOMErandomTOKEN
+  channel_name: \#channel_name
+  icon_emoji: :mega:
+
 # services
 
 services:
