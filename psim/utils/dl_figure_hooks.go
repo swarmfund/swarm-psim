@@ -33,6 +33,19 @@ var (
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}
 		},
+		"*common.Address": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				if !common.IsHexAddress(v) {
+					// provide value does not look like valid address
+					return reflect.Value{}, errors.New("invalid address")
+				}
+				addr := common.HexToAddress(v)
+				return reflect.ValueOf(&addr), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
 		"keypair.Address": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {
 			case string:

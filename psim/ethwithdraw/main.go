@@ -18,7 +18,8 @@ const (
 )
 
 var (
-	txGas = big.NewInt(21000)
+	txGas       = big.NewInt(21000)
+	contractGas = big.NewInt(200000)
 	// DEPRECATED Now uses 12. Move to amount.One
 	ethPrecision = new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1000000))
 )
