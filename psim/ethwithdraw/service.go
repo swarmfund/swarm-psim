@@ -10,6 +10,9 @@ import (
 
 	"bytes"
 
+	"strings"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -18,6 +21,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/ethwithdraw/internal"
 )
 
 type Service struct {
@@ -26,9 +30,9 @@ type Service struct {
 	config     Config
 	eth        *ethclient.Client
 	withdrawCh chan Withdraw
-
-	address common.Address
-	wallet  Wallet
+	token      *internal.ERC20
+	address    common.Address
+	wallet     Wallet
 }
 
 func NewService(
@@ -119,9 +123,9 @@ func (s *Service) processRequests(ctx context.Context) {
 
 func (s *Service) processRequest(ctx context.Context, withdrawReq *Withdraw) (err error) {
 	defer func() {
-		//if rvr := recover(); rvr != nil {
-		//	err = errors.FromPanic(rvr)
-		//}
+		if rvr := recover(); rvr != nil {
+			err = errors.Wrap(errors.FromPanic(rvr), "request processing panicked")
+		}
 	}()
 
 	// craft ethereum transaction
@@ -141,7 +145,10 @@ func (s *Service) processRequest(ctx context.Context, withdrawReq *Withdraw) (er
 	}
 
 	// submit eth tx
-	s.submitETH(ctx, withdrawReq.ETH)
+	if s.token == nil {
+		// token flow is broken, tx will be submitted already
+		s.submitETH(ctx, withdrawReq.ETH)
+	}
 
 	// wait while tx is mined
 	s.ensureMined(ctx, withdrawReq.ETH.Hash())
@@ -203,39 +210,76 @@ func (s *Service) submitETH(ctx context.Context, tx *types.Transaction) {
 }
 
 func (s *Service) craftETH(ctx context.Context, withdraw *Withdraw) (*types.Transaction, error) {
-	txFee := new(big.Int).Mul(txGas, s.config.GasPrice)
+	// FIXME
+	destination := common.HexToAddress(withdraw.Request.Details.Withdraw.ExternalDetails["address"].(string))
+	withdrawAmount := big.NewInt(int64(withdraw.Request.Details.Withdraw.DestinationAmount))
 
-	nonce, err := s.eth.PendingNonceAt(ctx, s.address)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get nonce")
+	if s.token != nil {
+		// token withdraw
+
+		nonce, err := s.eth.PendingNonceAt(ctx, s.address)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get nonce")
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		txOpts := bind.TransactOpts{
+			From:  s.address,
+			Nonce: big.NewInt(int64(nonce)),
+			Signer: func(_ types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+				return s.wallet.SignTX(address, tx)
+			},
+			GasPrice: s.config.GasPrice,
+			GasLimit: contractGas,
+			Context:  ctx,
+		}
+
+		tx, err := s.token.Transfer(&txOpts, destination, withdrawAmount)
+		fmt.Println(err)
+		if err != nil {
+			if !strings.Contains(err.Error(), "context canceled") {
+				return nil, errors.Wrap(err, "failed to submit token tx")
+			}
+		}
+		return tx, nil
+	} else {
+		// plain ether
+
+		txFee := new(big.Int).Mul(txGas, s.config.GasPrice)
+
+		nonce, err := s.eth.PendingNonceAt(ctx, s.address)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get nonce")
+		}
+
+		value := new(big.Int).Sub(
+			new(big.Int).Mul(
+				withdrawAmount,
+				ethPrecision,
+			),
+			txFee,
+		)
+
+		tx, err := s.wallet.SignTX(
+			s.address,
+			types.NewTransaction(
+				nonce,
+				destination,
+				value,
+				txGas,
+				s.config.GasPrice,
+				nil,
+			),
+		)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to sign tx")
+		}
+
+		return tx, nil
 	}
-
-	value := new(big.Int).Sub(
-		new(big.Int).Mul(
-			big.NewInt(int64(withdraw.Request.Details.Withdraw.DestinationAmount)),
-			ethPrecision,
-		),
-		txFee,
-	)
-
-	tx, err := s.wallet.SignTX(
-		s.address,
-		types.NewTransaction(
-			nonce,
-			// FIXME
-			common.HexToAddress(withdraw.Request.Details.Withdraw.ExternalDetails["address"].(string)),
-			value,
-			txGas,
-			s.config.GasPrice,
-			nil,
-		),
-	)
-
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign tx")
-	}
-
-	return tx, nil
 }
 
 func (s *Service) approveWithdraw(ctx context.Context, withdrawReq *Withdraw) error {
@@ -285,6 +329,16 @@ func (s *Service) approveWithdraw(ctx context.Context, withdrawReq *Withdraw) er
 func (s *Service) Run(ctx context.Context) {
 	// TODO check there is no pending transactions in the pool
 	// TODO check all approved withdraw requests are really approved
+
+	if s.config.Token != nil {
+		// withdraw token has been configured, instantiating contract
+		token, err := internal.NewERC20(*s.config.Token, s.eth)
+		if err != nil {
+			s.log.WithError(err).Error("failed to initialize contract")
+			return
+		}
+		s.token = token
+	}
 
 	go s.listenRequests()
 	go s.processRequests(ctx)
