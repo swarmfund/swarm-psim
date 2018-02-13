@@ -154,35 +154,21 @@ forfeit_listener:
   exchange: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
 
 rate_sync:
-  pprof: true
-  master: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
-  #signer: SDKYSN7P6Y75ZYWSGKSVSSX6AYTPRQPSUJH5RFITUS7ORZXNR5YYAFXL
-  #signer: SAACSTRCVL33FH3K4VT6YDHDUQPCCMFSQGZREH5NUQBE46FWJSALNAB5
-  signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
-  provider: noor
-  noor:
-    host: "40.69.204.168"
-    port: 8001
-    pairs:
-      - quote: USD
-        code: XAAU
-        symbol: "BullionCoin Gold 100 Units"
-        weight: 1
-      - quote: USD
-        code: XAAG
-        symbol: "BullionCoin Silver 1 000 Units"
-        weight: 50
-  assets:
-    - quote: USD
-      hub: "17"
-      ticker: GMGBR1
-      code: XAAU
-      to_coin: 1
-    - quote: USD
-      hub: "17"
-      ticker: SMGBR5
-      code: XAAG
-      to_coin: 50
+  base_asset: "ETH"
+  quote_asset: "USD"
+  providers:
+    - name: "bitfinex"
+      period: 15s
+    - name: "coinmarketcap"
+      period: 15s
+    - name: "bitstamp"
+      period: 15s
+    - name: gdax
+      period: 1s # does not apply any changes as we are using sockets
+  providers_to_agree: 3
+  max_price_delta_percent: "10"
+  source: "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636"
+  signer: "SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2"
 
 taxman:
   source: GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4
