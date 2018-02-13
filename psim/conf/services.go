@@ -6,6 +6,7 @@ const (
 	ServiceETHSupervisor      = "eth_supervisor"
 	ServiceETHFunnel          = "eth_funnel"
 	ServiceETHWithdraw        = "eth_withdraw"
+	ServiceETHWithdrawVerify  = "eth_withdraw_verify"
 	ServiceERC20Deposit       = "erc20_deposit"
 	ServiceERC20DepositVerify = "erc20_deposit_verify"
 

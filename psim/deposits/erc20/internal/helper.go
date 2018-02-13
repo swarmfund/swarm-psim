@@ -167,6 +167,7 @@ func (h *ETHHelper) GetBlock(number uint64) (*deposit.Block, error) {
 	return &block, nil
 }
 
+// TODO move to utils
 func toGwei(amount *big.Int) *big.Int {
 	return new(big.Int).Div(amount, new(big.Int).SetInt64(1000000000))
 }

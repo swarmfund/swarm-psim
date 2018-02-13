@@ -70,7 +70,7 @@ type CommonOffchainHelper interface {
 	// TODO Rename to ConvertToOffchain
 	ConvertAmount(destinationAmount int64) int64
 
-	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
+	// SignTX must sign the provided TX. Provided offchain TX has all the data for transaction, except the signatures.
 	SignTX(tx string) (string, error)
 }
 
@@ -80,9 +80,9 @@ type OffchainHelper interface {
 	CommonOffchainHelper
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
-	// This TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
+	// This offchain TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
 	CreateTX(withdrawAddr string, withdrawAmount int64) (tx string, err error)
-	// SendTX must spread the TX into Offchain network and return hash of already transmitted TX.
+	// SendTX must spread the offchain TX into Offchain network and return hash of already transmitted TX.
 	SendTX(tx string) (txHash string, err error)
 }
 
@@ -227,16 +227,17 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 	if err != nil {
 		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
 	}
-	submitResult := s.horizon.Submitter().Submit(ctx, envelopeBase64)
 
+	submitResult := s.horizon.Submitter().Submit(ctx, envelopeBase64)
 	if submitResult.Err != nil {
-		return errors.Wrap(err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
+		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
 	}
 
 	return nil
 }
 
 func (s *Service) getVerifierURL() (string, error) {
+	time.Sleep(10 * time.Second)
 	services, err := s.discovery.DiscoverService(s.verifierServiceName)
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
