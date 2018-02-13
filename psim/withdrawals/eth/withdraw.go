@@ -39,9 +39,12 @@ func init() {
 			return nil, errors.Wrap(err, "failed to import key")
 		}
 
-		token, err := internal.NewToken(*config.Token, internal.ERC20ABI)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to init token")
+		var token *internal.Token
+		if config.Token != nil {
+			token, err = internal.NewToken(*config.Token, internal.ERC20ABI)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to init token")
+			}
 		}
 
 		return withdraw.New(

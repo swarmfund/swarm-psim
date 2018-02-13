@@ -1,6 +1,8 @@
 package eth
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"gitlab.com/tokend/keypair"
 )
@@ -14,7 +16,7 @@ type WithdrawConfig struct {
 	// Key hex encode private key
 	Key string
 	// GasPrice transaction gas price in gwei
-	GasPrice int64
+	GasPrice *big.Int
 	// Token optional token address, configuring it will trigger ERC20 flow
 	Token *common.Address
 }
@@ -30,7 +32,7 @@ type VerifyConfig struct {
 	// Key hex encode private key
 	Key string
 	// GasPrice transaction gas price in gwei
-	GasPrice int64
+	GasPrice *big.Int
 	// Token optional token address, configuring it will trigger ERC20 flow
 	Token *common.Address
 }

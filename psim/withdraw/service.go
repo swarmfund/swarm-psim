@@ -237,7 +237,7 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 }
 
 func (s *Service) getVerifierURL() (string, error) {
-	time.Sleep(10 * time.Second)
+	time.Sleep(15 * time.Second)
 	services, err := s.discovery.DiscoverService(s.verifierServiceName)
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
