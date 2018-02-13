@@ -34,41 +34,6 @@ var (
 			}
 			return reflect.ValueOf(result), nil
 		},
-		"int64": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToInt64E(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse int64")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"uint": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToUintE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse uint")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"uint32": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToUint32E(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse uint32")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"uint64": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToUint64E(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse uint64")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		"float64": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToFloat64E(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse float64")
-			}
-			return reflect.ValueOf(result), nil
-		},
 		"bool": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToBoolE(value)
 			if err != nil {
@@ -89,16 +54,6 @@ var (
 				return reflect.Value{}, errors.Wrap(err, "failed to parse duration")
 			}
 			return reflect.ValueOf(result), nil
-		},
-		"*time.Duration": func(value interface{}) (reflect.Value, error) {
-			if value == nil {
-				return reflect.ValueOf(nil), nil
-			}
-			result, err := cast.ToDurationE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse duration")
-			}
-			return reflect.ValueOf(&result), nil
 		},
 		"*big.Int": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {

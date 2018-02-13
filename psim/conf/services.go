@@ -22,6 +22,7 @@ const (
 
 	ServiceOperationNotifier = "notifier"
 	ServiceBearer            = "bearer"
+	ServiceRateSync          = "rate_sync"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.
