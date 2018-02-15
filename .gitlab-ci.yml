@@ -17,6 +17,7 @@ variables:
 stages:
   - build
   - test
+  - deploy
 
 # build and publish docker image to the registry
 build:
@@ -35,3 +36,12 @@ test:
   script:
     - docker build --pull -t $IMAGE_TEST_NAME -f $TEST_DOCKERFILE .
     - docker run $IMAGE_TEST_NAME ./...
+
+deploy:
+  image: williamyeh/ansible:ubuntu16.04
+  stage: deploy
+#  only:
+#    - staging
+  script:
+    # TODO add host fingerprint
+    - ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i $DEPLOYMENT_INV -e @$DEPLOYMENT_SECRETS -e psim_revison=$CI_COMMIT_SHA $DEPLOYMENT_DIR/psim.yml
