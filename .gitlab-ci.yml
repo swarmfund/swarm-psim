@@ -12,7 +12,7 @@ variables:
   IMAGE_TEST_NAME: $IMAGE_NAME:$CI_COMMIT_SHA-test
   DEPLOYMENT_DIR: /root/deployment
   DEPLOYMENT_INV: $DEPLOYMENT_DIR/$CI_COMMIT_REF_NAME.ini
-  DEPLOYMENT_SECRETS: $DEPLOYMENT_DIR/secrets/staging.yml
+  DEPLOYMENT_SECRETS: $DEPLOYMENT_DIR/secrets/$CI_COMMIT_REF_NAME.yml
 
 stages:
   - build
@@ -41,8 +41,8 @@ build:
 deploy:
   image: williamyeh/ansible:ubuntu16.04
   stage: deploy
-#  only:
-#    - staging
+  only:
+    - staging
   script:
     # TODO add host fingerprint
     - ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i $DEPLOYMENT_INV -e @$DEPLOYMENT_SECRETS -e psim_revison=$CI_COMMIT_SHA $DEPLOYMENT_DIR/psim.yml
