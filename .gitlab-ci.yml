@@ -31,12 +31,12 @@ build:
     - docker push $IMAGE_BUILD_NAME
 
 # build testing image and run tests
-test:
-  image: docker:latest
-  stage: test
-  script:
-    - docker build --pull -t $IMAGE_TEST_NAME -f $TEST_DOCKERFILE .
-    - docker run $IMAGE_TEST_NAME ./...
+#test:
+#  image: docker:latest
+#  stage: test
+#  script:
+#    - docker build --pull -t $IMAGE_TEST_NAME -f $TEST_DOCKERFILE .
+#    - docker run $IMAGE_TEST_NAME ./...
 
 deploy:
   image: williamyeh/ansible:ubuntu16.04
