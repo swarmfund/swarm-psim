@@ -13,3 +13,4 @@ type Info = resources.Info
 type Signer = resources.Signer
 type Asset = resources.Asset
 type Amount = resources.Amount
+type Sale = resources.Sale
