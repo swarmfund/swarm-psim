@@ -1,12 +1,12 @@
-FROM golang:1.9-alpine
+FROM golang:1.9
 
 WORKDIR /go/src/gitlab.com/swarmfund/psim
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /binary -v gitlab.com/swarmfund/psim/psim/cmd/psim
+RUN GOOS=linux go build -ldflags "-s" -o /binary gitlab.com/swarmfund/psim/psim/cmd/psim
 
+# can't use alpine because of ethereum cgo extensions
 FROM ubuntu:latest
 COPY --from=0 /binary .
-RUN apk update \
- && apk add ca-certificates \
- && rm -rf /var/cache/apk/*
+RUN apt-get update \
+ && apt-get install -y ca-certificates
 ENTRYPOINT ["./binary", "--config", "/config.yaml"]

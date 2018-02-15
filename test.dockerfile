@@ -1,4 +1,4 @@
-FROM golang:1.9-alpine
+FROM golang:1.9
 
 WORKDIR /go/src/gitlab.com/swarmfund/psim
 COPY . .
