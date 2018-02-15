@@ -16,7 +16,8 @@ variables:
 
 stages:
   - build
-  - test
+  # TODO enable tests
+  #- test
   - deploy
 
 # build and publish docker image to the registry
