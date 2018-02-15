@@ -7,7 +7,7 @@ variables:
   TEST_DOCKERFILE: test.dockerfile
   # dockerfile for building artifact image
   BUILD_DOCKERFILE: build.dockerfile
-  IMAGE_NAME: registry.gitlab.com/swarmfund/api
+  IMAGE_NAME: registry.gitlab.com/swarmfund/psim
   IMAGE_BUILD_NAME: $IMAGE_NAME:$CI_COMMIT_SHA
   IMAGE_TEST_NAME: $IMAGE_NAME:$CI_COMMIT_SHA-test
   DEPLOYMENT_DIR: /root/deployment
