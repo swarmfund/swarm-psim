@@ -3,47 +3,53 @@ package bearer
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/keypair"
 )
 
 // CheckSalesStateHelper is a particular implementation of CheckSalesStateHelperInterface
 type CheckSalesStateHelper struct {
+	SalesQ
 	connector *horizon.Connector
-	config    Config
+	builder   *xdrbuild.Builder
+	source    keypair.Address
+	signer    keypair.Full
 }
 
-// NewCheckSalesStateHelper is a constructor for CheckSalesStateHelper
-func NewCheckSalesStateHelper(connector *horizon.Connector, config Config) *CheckSalesStateHelper {
+func NewCheckSalesStateHelper(
+	connector *horizon.Connector, builder *xdrbuild.Builder, source keypair.Address, signer keypair.Full,
+) *CheckSalesStateHelper {
 	return &CheckSalesStateHelper{
+		SalesQ:    connector.Sales(),
 		connector: connector,
-		config:    config,
+		builder:   builder,
+		source:    source,
+		signer:    signer,
 	}
 }
 
-// GetSales returns sales from core DB
-func (ssc *CheckSalesStateHelper) GetSales() ([]horizon.Sale, error) {
-	return ssc.connector.Sales().Sales()
-}
-
-// GetHorizonInfo retrieves horizon info using horizon-connector
-func (ssc *CheckSalesStateHelper) GetHorizonInfo() (info *horizon.Info, err error) {
-	return ssc.connector.Info()
-}
-
-// BuildTx builds transaction with check sale state operation
-func (ssc *CheckSalesStateHelper) BuildTx(info *horizon.Info, saleID uint64) (string, error) {
-	builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
-	envelope, err := builder.
-		Transaction(ssc.config.Source).
-		Op(xdrbuild.CheckSaleOp{SaleID: saleID}).
-		Sign(ssc.config.Signer).
+func (h *CheckSalesStateHelper) CloseSale(id uint64) (bool, error) {
+	envelope, err := h.builder.
+		Transaction(h.source).
+		Op(xdrbuild.CheckSaleOp{
+			SaleID: id,
+		}).
+		Sign(h.signer).
 		Marshal()
-
-	return envelope, err
-}
-
-// SubmitTx submits transaction to horizon, returns submit result
-func (ssc *CheckSalesStateHelper) SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult {
-	return ssc.connector.Submitter().Submit(ctx, envelope)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to marshal tx")
+	}
+	result := h.connector.Submitter().Submit(context.TODO(), envelope)
+	if result.Err != nil {
+		if len(result.OpCodes) == 1 {
+			switch result.OpCodes[0] {
+			case "op_not_ready":
+				return false, nil
+			}
+		}
+		return false, errors.Wrap(result.Err, "failed to submit tx", result.GetLoganFields())
+	}
+	return true, nil
 }

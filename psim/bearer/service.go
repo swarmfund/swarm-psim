@@ -12,13 +12,18 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
+type SalesQ interface {
+	Sales() ([]horizon.Sale, error)
+}
+
 // CheckSalesStateHelperInterface is an interface allows to perform check sale state operation
 // and get all required data for it
 type CheckSalesStateHelperInterface interface {
-	GetSales() ([]horizon.Sale, error)
-	GetHorizonInfo() (info *horizon.Info, err error)
-	BuildTx(info *horizon.Info, saleID uint64) (string, error)
-	SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult
+	SalesQ
+	CloseSale(id uint64) (bool, error)
+	//GetHorizonInfo() (info *horizon.Info, err error)
+	//BuildTx(info *horizon.Info, saleID uint64) (string, error)
+	//SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
 // Service is a main structure for bearer runner,
@@ -27,6 +32,7 @@ type Service struct {
 	config Config
 	helper CheckSalesStateHelperInterface
 	logger *logan.Entry
+	ticker *time.Ticker
 }
 
 // New is a constructor for bearer Service.
@@ -35,6 +41,7 @@ func New(config Config, log *logan.Entry, helper CheckSalesStateHelperInterface)
 		config: config,
 		helper: helper,
 		logger: log.WithField("service", conf.ServiceBearer),
+		ticker: time.NewTicker(config.SleepPeriod),
 	}
 }
 
@@ -46,25 +53,48 @@ func (s *Service) Run(ctx context.Context) {
 		ctx,
 		s.logger,
 		conf.ServiceBearer,
-		s.sendOperations,
+		s.worker,
 		0,
 		s.config.AbnormalPeriod)
 }
 
 // SendOperations sends operations to Horizon server and gets submission results from it
-func (s *Service) sendOperations(ctx context.Context) error {
-	err := s.checkSalesState(ctx)
-	if err != nil {
+func (s *Service) worker(ctx context.Context) error {
+	if err := s.checkSalesState(ctx); err != nil {
 		return errors.Wrap(err, "cannot submit checkSalesState operation")
 	}
 
-	s.logger.Info("Operation submitted")
+	s.logger.Info("successful iteration")
 
-	tm := time.NewTimer(s.config.SleepPeriod)
 	select {
 	case <-ctx.Done():
-		return nil
-	case <-tm.C:
-		return nil
+		s.logger.Info("bye-bye")
+	case <-s.ticker.C:
 	}
+
+	return nil
+}
+
+func (s *Service) checkSalesState(ctx context.Context) error {
+	sales, err := s.helper.Sales()
+	if err != nil {
+		return errors.Wrap(err, "failed to get sales")
+	}
+
+	for _, sale := range sales {
+		fields := logan.F{
+			"sale_id": sale.ID,
+		}
+		closed, err := s.helper.CloseSale(sale.ID)
+		if err != nil {
+			return errors.Wrap(err, "failed to close sale", fields)
+		}
+		if closed {
+			s.logger.WithFields(fields).Info("sale closed")
+		} else {
+			s.logger.WithFields(fields).Info("sale not ready yet")
+		}
+	}
+
+	return nil
 }
