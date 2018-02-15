@@ -11,6 +11,7 @@ type Transaction struct {
 	CreatedAt     time.Time `json:"created_at"`
 	PagingToken   string    `json:"paging_token"`
 	ResultMetaXDR string    `json:"result_meta_xdr"`
+	EnvelopeXDR   string    `json:"envelope_xdr"`
 }
 
 func (tx *Transaction) LedgerChanges() []xdr.LedgerEntryChange {
@@ -25,4 +26,12 @@ func (tx *Transaction) LedgerChanges() []xdr.LedgerEntryChange {
 		}
 	}
 	return result
+}
+
+func (tx *Transaction) Envelope() *xdr.TransactionEnvelope {
+	var envelope xdr.TransactionEnvelope
+	if err := xdr.SafeUnmarshalBase64(tx.EnvelopeXDR, &envelope); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal"))
+	}
+	return &envelope
 }

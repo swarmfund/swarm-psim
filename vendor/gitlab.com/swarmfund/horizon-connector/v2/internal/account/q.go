@@ -37,6 +37,27 @@ func (q *Q) Signers(address string) ([]resources.Signer, error) {
 	return result.Signers, nil
 }
 
+// ByBalance return account address by balance
+// TODO probably move to balances q
+func (q *Q) ByBalance(balanceID string) (*string, error) {
+	endpoint := fmt.Sprintf("/balances/%s/account", balanceID)
+	response, err := q.client.Get(endpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if response == nil {
+		return nil, nil
+	}
+
+	// actually it's different struct (HistoryAccount) but it works since we only need account_id
+	var account resources.Account
+	if err := json.Unmarshal(response, &account); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal")
+	}
+	return &account.AccountID, nil
+}
+
 func (q *Q) ByAddress(address string) (*resources.Account, error) {
 	endpoint := fmt.Sprintf("/accounts/%s", address)
 	response, err := q.client.Get(endpoint)
