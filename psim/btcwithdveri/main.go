@@ -41,7 +41,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	horizonConnector := globalConfig.Horizon()
+	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
 
 	horizonInfo, err := horizonConnector.Info()
 	if err != nil {

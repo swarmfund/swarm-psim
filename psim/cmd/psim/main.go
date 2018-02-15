@@ -9,19 +9,23 @@ import (
 	// import services for side effects
 
 	// eth
+	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
 	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
-	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
+	//_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/eth"
 
 	// btc
+	_ "gitlab.com/swarmfund/psim/psim/btcdeposit"
+	_ "gitlab.com/swarmfund/psim/psim/btcdepositveri"
 	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
-	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
+	_ "gitlab.com/swarmfund/psim/psim/ratesync"
 )
 
 var (

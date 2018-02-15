@@ -12,6 +12,7 @@ import (
 	"gitlab.com/distributed_lab/notificator-server/client"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"gitlab.com/swarmfund/psim/psim/notifications"
 )
 
 // TODO: viper's Get* methods won't throw error if value is invalid
@@ -25,6 +26,7 @@ type Config interface {
 	Discovery() *discovery.Client
 	// TODO Panic instead of returning errors.
 	Log() (*logan.Entry, error)
+	// TODO Consider creating HorizonWithSigner() method.
 	Horizon() *horizon.Connector
 	Services() []string
 	// TODO Panic instead of returning errors.
@@ -33,6 +35,7 @@ type Config interface {
 	Bitcoin() *bitcoin.Client
 	// TODO Panic instead of returning errors.
 	Notificator() (*notificator.Connector, error)
+	NotificationSender() *notifications.SlackSender
 }
 
 type ViperConfig struct {
