@@ -3,7 +3,7 @@ package ratesync
 import (
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/distributed_lab/logan/v2/errors"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/keypair"
 	"reflect"
 	"time"
@@ -46,7 +46,7 @@ var rateSyncFigureHooks = figure.Hooks{
 				With(figure.BaseHooks).
 				Please()
 			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to figureout provider")
+				return reflect.Value{}, errors.Wrap(err, "failed to figure out provider")
 			}
 			result[i] = provider
 		}

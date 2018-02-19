@@ -47,7 +47,7 @@ func (_m *mockRatesProvider) GetPoints() ([]provider.PricePoint, error) {
 	return r0, r1
 }
 
-// RemoveDeprecatedPoints provides a mock function with given fields: minAllowedTime
-func (_m *mockRatesProvider) RemoveDeprecatedPoints(minAllowedTime time.Time) {
+// RemoveOldPoints provides a mock function with given fields: minAllowedTime
+func (_m *mockRatesProvider) RemoveOldPoints(minAllowedTime time.Time) {
 	_m.Called(minAllowedTime)
 }

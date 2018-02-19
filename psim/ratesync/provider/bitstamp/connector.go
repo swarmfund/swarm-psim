@@ -5,6 +5,10 @@ import (
 	"gitlab.com/swarmfund/psim/psim/ratesync/provider/base"
 )
 
+const (
+	Name = "bitstamp"
+)
+
 // Connector is a connector for bitfinex.com
 type Connector struct {
 	*base.Connector
@@ -14,7 +18,7 @@ type Connector struct {
 func New() *Connector {
 	return &Connector{
 		Connector: &base.Connector{
-			Name: "bitstamp",
+			Name: Name,
 			Endpoints: map[string]string{
 				"BTC/USD": "https://www.bitstamp.net/api/v2/ticker/btcusd",
 				"ETH/USD": "https://www.bitstamp.net/api/v2/ticker/ethusd",

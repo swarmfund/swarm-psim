@@ -9,15 +9,15 @@ type mockPriceClusterer struct {
 }
 
 // GetClusterForPoint provides a mock function with given fields: point
-func (_m *mockPriceClusterer) GetClusterForPoint(point pricePoint) []pricePoint {
+func (_m *mockPriceClusterer) GetClusterForPoint(point providerPricePoint) []providerPricePoint {
 	ret := _m.Called(point)
 
-	var r0 []pricePoint
-	if rf, ok := ret.Get(0).(func(pricePoint) []pricePoint); ok {
+	var r0 []providerPricePoint
+	if rf, ok := ret.Get(0).(func(providerPricePoint) []providerPricePoint); ok {
 		r0 = rf(point)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]pricePoint)
+			r0 = ret.Get(0).([]providerPricePoint)
 		}
 	}
 

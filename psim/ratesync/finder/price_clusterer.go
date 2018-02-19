@@ -1,23 +1,24 @@
 package finder
 
 type priceClustererImpl struct {
-	points []pricePoint
+	points []providerPricePoint
 }
 
-func newPriceClusterer(points []pricePoint) *priceClustererImpl {
+func newPriceClusterer(points []providerPricePoint) *priceClustererImpl {
 	return &priceClustererImpl{
 		points: points,
 	}
 }
 
 type candidatePoint struct {
-	pricePoint
+	providerPricePoint
 	distance int64
 }
 
-// GetClusterForPoint - returns cluster of nearest points for specified point
-func (p *priceClustererImpl) GetClusterForPoint(point pricePoint) []pricePoint {
-	candidates := map[string]candidatePoint{}
+// GetClusterForPoint for each Provider finds the Point amount p.points, which is
+// the closet to the provided point.
+func (p *priceClustererImpl) GetClusterForPoint(point providerPricePoint) []providerPricePoint {
+	providerToCandidate := map[string]candidatePoint{}
 
 	for i := range p.points {
 		// no need to process points of provider for which cluster is requested
@@ -25,35 +26,35 @@ func (p *priceClustererImpl) GetClusterForPoint(point pricePoint) []pricePoint {
 			continue
 		}
 
-
 		candidate := candidatePoint{
-			pricePoint: p.points[i],
-			distance: calcDistance(point, p.points[i]),
+			providerPricePoint: p.points[i],
+			distance:           calcDistance(point, p.points[i]),
 		}
 
-		bestPoint, ok := candidates[candidate.ProviderID]
+		bestPoint, ok := providerToCandidate[candidate.ProviderID]
 		if !ok {
-			candidates[candidate.ProviderID] = candidate
+			providerToCandidate[candidate.ProviderID] = candidate
 			continue
 		}
 
 		if bestPoint.distance > candidate.distance {
-			candidates[candidate.ProviderID] = candidate
+			// candidate if better than bestPoint - found new best Point
+			providerToCandidate[candidate.ProviderID] = candidate
 		}
 	}
 
-	result := []pricePoint{
+	result := []providerPricePoint{
 		point,
 	}
 
-	for key := range candidates {
-		result = append(result, candidates[key].pricePoint)
+	for key := range providerToCandidate {
+		result = append(result, providerToCandidate[key].providerPricePoint)
 	}
 
 	return result
 }
 
-func calcDistance(from, to pricePoint) (int64) {
+func calcDistance(from, to providerPricePoint) int64 {
 	if from.ProviderID == to.ProviderID {
 		panic("Unexpected state: trying to calculate distance for points from same provider")
 	}
@@ -65,4 +66,3 @@ func calcDistance(from, to pricePoint) (int64) {
 
 	return delta
 }
-

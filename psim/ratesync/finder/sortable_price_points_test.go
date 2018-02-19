@@ -11,7 +11,7 @@ import (
 func TestSortablePricePoints(t *testing.T) {
 
 	Convey("Given array of price points", t, func() {
-		input := []pricePoint{
+		input := []providerPricePoint{
 			{PricePoint: provider.PricePoint{Time: time.Unix(3, 0), Price: 12}},
 			{PricePoint: provider.PricePoint{Time: time.Unix(0, 0), Price: 15}},
 			{PricePoint: provider.PricePoint{Time: time.Unix(1, 0), Price: 11}},
@@ -19,7 +19,7 @@ func TestSortablePricePoints(t *testing.T) {
 		}
 
 		Convey("Sort by time", func() {
-			expected := []pricePoint{
+			expected := []providerPricePoint{
 				{PricePoint: provider.PricePoint{Time: time.Unix(3, 0), Price: 12}},
 				{PricePoint: provider.PricePoint{Time: time.Unix(2, 0), Price: 13}},
 				{PricePoint: provider.PricePoint{Time: time.Unix(1, 0), Price: 11}},
@@ -32,7 +32,7 @@ func TestSortablePricePoints(t *testing.T) {
 			}
 		})
 		Convey("Sort by price", func() {
-			expected := []pricePoint{
+			expected := []providerPricePoint{
 				{PricePoint: provider.PricePoint{Time: time.Unix(0, 0), Price: 15}},
 				{PricePoint: provider.PricePoint{Time: time.Unix(2, 0), Price: 13}},
 				{PricePoint: provider.PricePoint{Time: time.Unix(3, 0), Price: 12}},

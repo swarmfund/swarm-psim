@@ -4,7 +4,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
 )
 
-type pricePoint struct {
+type providerPricePoint struct {
 	ProviderID string
 	provider.PricePoint
 }

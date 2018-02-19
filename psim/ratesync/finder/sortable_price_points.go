@@ -1,6 +1,6 @@
 package finder
 
-type sortablePricePointsByTime []pricePoint
+type sortablePricePointsByTime []providerPricePoint
 
 func (s sortablePricePointsByTime) Len() int {
 	return len(s)
@@ -17,7 +17,7 @@ func (s sortablePricePointsByTime) Swap(i, j int) {
 }
 
 
-type sortablePricePointsByPrice []pricePoint
+type sortablePricePointsByPrice []providerPricePoint
 
 func (s sortablePricePointsByPrice) Len() int {
 	return len(s)

@@ -1,43 +1,49 @@
 package finder
 
 import (
+	"sort"
+	"time"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
-	"sort"
-	"time"
 )
 
 //go:generate mockery -case underscore -testonly -inpkg -name ratesProvider
-type RatesProvider interface {
-	// GetName - returns name of the provider
+type PriceProvider interface {
+	// GetName - returns name of the Provider
 	GetName() string
-	// GetPoints - returns points available
+	// GetPoints - returns Points available
 	GetPoints() []provider.PricePoint
-	// RemoveDeprecatedPoints - removes points which were created before minAllowedTime
-	RemoveDeprecatedPoints(minAllowedTime time.Time)
+	// RemoveOldPoints - removes points which were created before minAllowedTime
+	RemoveOldPoints(minAllowedTime time.Time)
 }
 
 //go:generate mockery -case underscore -testonly -inpkg -name priceClusterer
 type priceClusterer interface {
 	// GetClusterForPoint - returns cluster of nearest points for specified point
-	GetClusterForPoint(point pricePoint) []pricePoint
+	GetClusterForPoint(point providerPricePoint) []providerPricePoint
 }
 
-type priceClustererProvider func(points []pricePoint) priceClusterer
+type priceClustererProvider func(points []providerPricePoint) priceClusterer
 
 type priceFinder struct {
 	log            *logan.Entry
-	ratesProviders []RatesProvider
+	priceProviders []PriceProvider
 	priceClustererProvider
 
+	//in range [0, 100*ONE]
 	maxPercentPriceDelta        int64
 	minNumberOfProvidersToAgree int
 }
 
-func NewPriceFinder(log *logan.Entry, ratesProviders []RatesProvider, maxPercentPriceDelta int64,
+func NewPriceFinder(
+	log *logan.Entry,
+	priceProviders []PriceProvider,
+	maxPercentPriceDelta int64,
 	minNumberOfProvidersToAgree int) (*priceFinder, error) {
+
 	if !isPercentValid(maxPercentPriceDelta) {
 		return nil, errors.New("maxPercentPriceDelta must be in range [0, 100*ONE]")
 	}
@@ -46,73 +52,84 @@ func NewPriceFinder(log *logan.Entry, ratesProviders []RatesProvider, maxPercent
 		return nil, errors.New("minNumberOfProvidersToAgree must be > 0")
 	}
 
-	if len(ratesProviders) == 0 {
-		return nil, errors.New("Unexpected number of rate providers")
+	if len(priceProviders) == 0 {
+		return nil, errors.New("Unexpected number of PriceProviders.")
 	}
 
 	result := &priceFinder{
-		ratesProviders:              ratesProviders,
+		log:            log,
+		priceProviders: priceProviders,
+		priceClustererProvider: func(points []providerPricePoint) priceClusterer {
+			return newPriceClusterer(points)
+		},
 		maxPercentPriceDelta:        maxPercentPriceDelta,
 		minNumberOfProvidersToAgree: minNumberOfProvidersToAgree,
-		priceClustererProvider: priceClustererProvider(func(points []pricePoint) priceClusterer {
-			return newPriceClusterer(points)
-		}),
-		log: log,
 	}
 
 	return result, nil
 }
 
 func isPercentValid(percent int64) bool {
-	return 0 <= percent && percent <= 100*amount.One
+	return percent >= 0 && percent <= 100*amount.One
 }
 
-// TryFind - tries to find most recent price point which priceDelta is <= maxPercentPriceDelta
+// TryFind - tries to find most recent Price Point which priceDelta is <= maxPercentPriceDelta
 // for percent of providers >= minPercentOfNodeToParticipate
 func (p *priceFinder) TryFind() (*provider.PricePoint, error) {
-	allPoints, err := p.getAll()
+	allPoints, err := p.getAllProvidersPoints()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get points available")
+		return nil, errors.Wrap(err, "Failed to get Points from all Providers")
 	}
 
 	sort.Sort(sortablePricePointsByTime(allPoints))
 	clusterer := p.priceClustererProvider(allPoints)
 
 	for i := range allPoints {
+		// Cluster is a list of the closest PricePoints from Providers.
 		cluster := clusterer.GetClusterForPoint(allPoints[i])
 		candidate := median(cluster)
+
 		if p.isMeetsReq(candidate, cluster) {
-			p.log.WithField("point", candidate).WithField("cluster", cluster).Info("Found point meeting restrictions")
+			p.log.WithFields(logan.F{
+				"point":   candidate,
+				"cluster": cluster,
+			}).Info("Found Point meeting restrictions.")
 			return &candidate.PricePoint, nil
 		}
 	}
 
-	p.log.Info("Failed to find point meeting restrictions")
+	p.log.Info("Hasn't found PricePoint meeting restrictions.")
 	return nil, nil
 }
 
-// RemoveDeprecatedPoints - removes points which were created before minAllowedTime
-func (p *priceFinder) RemoveDeprecatedPoints(minAllowedTime time.Time) {
-	for i := range p.ratesProviders {
-		p.ratesProviders[i].RemoveDeprecatedPoints(minAllowedTime)
+// RemoveOldPoints - removes points which were created before minAllowedTime
+func (p *priceFinder) RemoveOldPoints(minAllowedTime time.Time) {
+	for i := range p.priceProviders {
+		p.priceProviders[i].RemoveOldPoints(minAllowedTime)
 	}
 }
 
-func median(data []pricePoint) pricePoint {
-	sort.Sort(sortablePricePointsByPrice(data))
+// Median returns one of the provided points.
+func median(points []providerPricePoint) providerPricePoint {
+	sort.Sort(sortablePricePointsByPrice(points))
 	// we can not select mean from two median points as point must exist
-	return data[len(data)/2]
+	return points[len(points)/2]
 }
 
-func (p *priceFinder) getAll() ([]pricePoint, error) {
-	var result []pricePoint
-	for _, ratesProvider := range p.ratesProviders {
-		pricePoints := ratesProvider.GetPoints()
+func (p *priceFinder) getAllProvidersPoints() ([]providerPricePoint, error) {
+	var result []providerPricePoint
 
-		p.log.WithField("provider", ratesProvider.GetName()).WithField("points", pricePoints).Info("Getting points to find consensus on new one")
+	for _, priceProvider := range p.priceProviders {
+		pricePoints := priceProvider.GetPoints()
+
+		p.log.WithFields(logan.F{
+			"provider": priceProvider.GetName(),
+			"points":   pricePoints,
+		}).Info("Getting PricePoints to find consensus on new one.")
+
 		for i := range pricePoints {
-			result = append(result, pricePoint{
-				ProviderID: ratesProvider.GetName(),
+			result = append(result, providerPricePoint{
+				ProviderID: priceProvider.GetName(),
 				PricePoint: pricePoints[i],
 			})
 		}
@@ -122,31 +139,37 @@ func (p *priceFinder) getAll() ([]pricePoint, error) {
 	return result, nil
 }
 
-func (p *priceFinder) isMeetsReq(candidate pricePoint, cluster []pricePoint) bool {
-	if p.minNumberOfProvidersToAgree > len(cluster) {
-		p.log.WithField("min number of providers", p.minNumberOfProvidersToAgree).WithField("cluster size", len(cluster)).
-			Debug("Cluster too small - skipping")
+// IsMeetsReq shows whether a candidate meets requirements.
+// Returns true if cluster contains at least minNumberOfProvidersToAgree PricePoints, which agree with candidate.
+func (p *priceFinder) isMeetsReq(candidate providerPricePoint, cluster []providerPricePoint) bool {
+	if len(cluster) < p.minNumberOfProvidersToAgree {
+		p.log.WithFields(logan.F{
+			"min_number_of_providers": p.minNumberOfProvidersToAgree,
+			"cluster_size":            len(cluster),
+		}).Debug("Cluster too small - skipping.")
 		return false
 	}
 
 	providersAgreed := 0
 	for _, providerPricePoint := range cluster {
 		if p.isMeetsPriceDeltaReq(candidate, providerPricePoint) {
-			p.log.WithField("providerPricePoint", providerPricePoint).Debug("Agreed")
+			p.log.WithField("provider_price_point", providerPricePoint).Debug("Agreed.")
 			providersAgreed++
 		} else {
-			p.log.WithField("providerPricePoint", providerPricePoint).Debug("Disagreed")
+			p.log.WithField("provider_price_point", providerPricePoint).Debug("Disagreed.")
 		}
 	}
 
 	return providersAgreed >= p.minNumberOfProvidersToAgree
 }
 
-func (p *priceFinder) isMeetsPriceDeltaReq(candidate, point pricePoint) bool {
+func (p *priceFinder) isMeetsPriceDeltaReq(candidate, point providerPricePoint) bool {
 	percentInDelta, isOverflow := candidate.GetPercentDeltaToMinPrice(point.PricePoint)
 	if isOverflow {
-		p.log.WithField("candidate_price", candidate.Price).
-			WithField("point_price", point.Price).Warn("Overflow on price delta calculation")
+		p.log.WithFields(logan.F{
+			"candidate_price": candidate.Price,
+			"point_price":     point.Price,
+		}).Warn("Overflow on price delta calculation.")
 		return false
 	}
 

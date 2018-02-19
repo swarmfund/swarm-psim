@@ -13,10 +13,17 @@ type jsonAssetPrice struct {
 	LastUpdated int64  `json:"last_updated,string"`
 }
 
-// jsonPrices is an array of jsonAssetPrice
+func (jp jsonAssetPrice) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"price_usd":    jp.PriceUsd,
+		"last_updated": jp.LastUpdated,
+	}
+}
+
+// JsonPrices is an array of jsonAssetPrice
 type jsonPrices []jsonAssetPrice
 
-// ToPrices returns unmarshaled array of PricePoint with appropriate representation of price and time
+// ToPrices returns unmarshaled slice of PricePoint with appropriate representation of Price and time
 func (jps jsonPrices) ToPrices() ([]provider.PricePoint, error) {
 	var result []provider.PricePoint
 	for _, jp := range jps {
@@ -31,4 +38,10 @@ func (jps jsonPrices) ToPrices() ([]provider.PricePoint, error) {
 		})
 	}
 	return result, nil
+}
+
+func (jps jsonPrices) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"prices": jps,
+	}
 }

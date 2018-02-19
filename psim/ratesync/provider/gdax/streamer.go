@@ -13,6 +13,9 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
+const (
+	Name = "gdax"
+)
 
 var assetPairs = map[string]bool{
 	"BTC-USD": true,
@@ -34,14 +37,13 @@ func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset, quo
 	}
 
 	p := streamer{
-		logger:        log.WithField("connector", "gdax"),
+		logger:        log.WithField("prices_streamer", Name),
 		assetPair:     assetPair,
 		pricesChannel: make(chan provider.PricePoint, 10),
 	}
 
 	// if runOnce returned - we have been disconnected from the provider, so it's better to wait before trying to connect again
-	go app.RunOverIncrementalTimer(ctx, p.logger, "gdax", p.runOnce,
-		time.Second * 5, time.Minute)
+	go app.RunOverIncrementalTimer(ctx, p.logger, Name, p.runOnce, time.Second * 5, time.Minute)
 
 	return p.pricesChannel, nil
 }

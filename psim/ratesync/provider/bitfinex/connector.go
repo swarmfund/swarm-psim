@@ -1,8 +1,12 @@
 package bitfinex
 
 import (
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
 	"gitlab.com/swarmfund/psim/psim/ratesync/provider/base"
+	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+)
+
+const (
+	Name = "bitfinex"
 )
 
 // Connector is a connector for bitfinex.com
@@ -14,7 +18,7 @@ type Connector struct {
 func New() *Connector {
 	return &Connector{
 		Connector: &base.Connector{
-			Name: "bitfinex",
+			Name: Name,
 			Endpoints: map[string]string{
 				"BTC/USD": "https://api.bitfinex.com/v1/pubticker/btcusd",
 				"ETH/USD": "https://api.bitfinex.com/v1/pubticker/ethusd",

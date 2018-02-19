@@ -14,11 +14,18 @@ type jsonAssetPrice struct {
 	LastUpdated int64  `json:"timestamp,string"`
 }
 
-// ToPrices returns unmarshaled array of PricePoint with appropriate representation of price and time
+func (jp jsonAssetPrice) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"price_usd":    jp.PriceUsd,
+		"last_updated": jp.LastUpdated,
+	}
+}
+
+// ToPrices returns unmarshaled array of PricePoint with appropriate representation of Price and time
 func (jp *jsonAssetPrice) ToPrices() ([]provider.PricePoint, error) {
 	price, err := amount.Parse(jp.PriceUsd)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse amount", logan.F{
+		return nil, errors.Wrap(err, "Failed to parse amount", logan.F{
 			"raw_amount": jp.PriceUsd,
 		})
 	}

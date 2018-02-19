@@ -3,6 +3,8 @@ package ratesync
 import (
 	"context"
 
+	"time"
+
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -17,7 +19,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/ratesync/provider/coinmarketcap"
 	"gitlab.com/swarmfund/psim/psim/ratesync/provider/gdax"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"time"
 )
 
 func init() {
@@ -49,44 +50,51 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	priceFinder, err := newPriceFinder(ctx, log, config)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to init price finder")
+		return nil, errors.Wrap(err, "Failed to init PriceFinder")
 	}
 
 	return &service{
-		baseAsset:   config.BaseAsset,
-		quoteAsset:  config.QuoteAsset,
-		log:         log.WithField("runner", "ratesync"),
+		baseAsset:  config.BaseAsset,
+		quoteAsset: config.QuoteAsset,
+
+		log:         log.WithField("runner", "price_setter"),
 		source:      config.Source,
 		signer:      config.SignerKP,
 		connector:   horizonConnector.Submitter(),
-		builder:     xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
+		txBuilder:   xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
 		priceFinder: priceFinder,
 	}, nil
 }
 
 func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (priceFinder, error) {
-	usedProviders := map[string]bool{}
-	var ratesProviders []finder.RatesProvider
+	// Set of PriceProviders
+	usedProviders := map[string]struct{}{}
+	var priceProviders []finder.PriceProvider
+
 	for _, providerData := range config.Providers {
 		if _, contains := usedProviders[providerData.Name]; contains {
-			return nil, errors.New("Duplication of providers not allowed: " + providerData.Name)
+			return nil, errors.From(errors.New("Duplication of PriceProviders not allowed."), logan.F{
+				"provider_name": providerData.Name,
+			})
 		}
 
-		usedProviders[providerData.Name] = true
-		specificProvider, err := getSpecificProvider(ctx, log, config, providerData)
+		usedProviders[providerData.Name] = struct{}{}
+		specificProvider, err := startSpecificProvider(ctx, log, config, providerData)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to init specific price provider")
+			return nil, errors.Wrap(err, "Failed to init specific PriceProvider")
 		}
 
-		ratesProviders = append(ratesProviders, specificProvider)
+		priceProviders = append(priceProviders, specificProvider)
 	}
 
 	maxPriceDelta, err := amount.Parse(config.MaxPriceDeltaPercent)
 	if err != nil {
-		return nil, errors.New("failed to parse max price delta " + config.MaxPriceDeltaPercent)
+		return nil, errors.From(errors.New("Failed to parse maxPriceDelta."), logan.F{
+			"raw_max_price_delta_percent_from_config": config.MaxPriceDeltaPercent,
+		})
 	}
 
-	priceFinder, err := finder.NewPriceFinder(log, ratesProviders, maxPriceDelta, config.ProvidersToAgree)
+	priceFinder, err := finder.NewPriceFinder(log, priceProviders, maxPriceDelta, config.ProvidersToAgree)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init price finder")
 	}
@@ -94,29 +102,36 @@ func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (price
 	return priceFinder, nil
 }
 
-func getSpecificProvider(ctx context.Context, log *logan.Entry, config Config, providerData Provider) (finder.RatesProvider, error) {
+func startSpecificProvider(ctx context.Context, log *logan.Entry, config Config, providerData Provider) (finder.PriceProvider, error) {
 	switch providerData.Name {
-	case "bitfinex":
-		return providerFromConnector(ctx, log, config, bitfinex.New(), providerData.Period), nil
-	case "bitstamp":
-		return providerFromConnector(ctx, log, config, bitstamp.New(), providerData.Period), nil
-	case "coinmarketcap":
-		return providerFromConnector(ctx, log, config, coinmarketcap.New(), providerData.Period), nil
-	case "gdax":
-		streamer, err := gdax.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset)
+	case bitfinex.Name:
+		return priceProviderFromConnector(ctx, log, config, bitfinex.New(), providerData.Period), nil
+	case bitstamp.Name:
+		return priceProviderFromConnector(ctx, log, config, bitstamp.New(), providerData.Period), nil
+	case coinmarketcap.Name:
+		return priceProviderFromConnector(ctx, log, config, coinmarketcap.New(), providerData.Period), nil
+	case gdax.Name:
+		// Gdax exchange provides Prices over socket, so Connector which does htt.Get over ticker is unsuitable here.
+		pointsStream, err := gdax.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create gdax steamer")
+			return nil, errors.Wrap(err, "Failed to create and start Gdax Streamer")
 		}
 
-		return provider.StartNewProvider(ctx, providerData.Name, streamer, log), nil
+		return provider.StartNewProvider(ctx, providerData.Name, pointsStream, log), nil
 	default:
-		return nil, errors.New("Unexpected provider: " + providerData.Name)
+		return nil, errors.From(errors.New("Unexpected PriceProvider name"), logan.F{
+			"provider_name": providerData.Name,
+		})
 	}
 }
 
-func providerFromConnector(ctx context.Context, log *logan.Entry,
-	config Config, connector provider.Connector, period time.Duration) finder.RatesProvider {
+func priceProviderFromConnector(
+	ctx context.Context,
+	log *logan.Entry,
+	config Config,
+	connector provider.Connector,
+	period time.Duration) finder.PriceProvider {
 
-	streamer := provider.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset, connector, period)
-	return provider.StartNewProvider(ctx, connector.GetName(), streamer, log)
+	pointsStream := provider.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset, connector, period)
+	return provider.StartNewProvider(ctx, connector.GetName(), pointsStream, log)
 }

@@ -30,7 +30,7 @@ func TestPriceFinder(t *testing.T) {
 			_, err := newPriceFinder(log, nil, 0, 101*amount.One, nil)
 			So(err, ShouldNotBeNil)
 		})
-		Convey("Empty ratesProviders", func() {
+		Convey("Empty priceProviders", func() {
 			_, err := newPriceFinder(log, nil, 0, 0, nil)
 			So(err, ShouldNotBeNil)
 		})
@@ -42,7 +42,7 @@ func TestPriceFinder(t *testing.T) {
 		minPercentOfProviderToAgree := int64(51 * amount.One)
 		priceClustererMock := mockPriceClusterer{}
 		priceFinder, err := newPriceFinder(log, []ratesProvider{&mockedRatesProvider}, maxPercentPriceDelta,
-			minPercentOfProviderToAgree, func(points []pricePoint) priceClusterer {
+			minPercentOfProviderToAgree, func(points []providerPricePoint) priceClusterer {
 				return &priceClustererMock
 			})
 		So(err, ShouldBeNil)
@@ -105,7 +105,7 @@ func testPriceFinding(t *testing.T, maxPercentPriceDelta int64, minPercentOfProv
 	}
 
 	priceFinder, err := newPriceFinder(logan.New().WithField("service", "price_finder"), ratesProviders,
-		maxPercentPriceDelta, minPercentOfProvidersToAgree, func(points []pricePoint) priceClusterer {
+		maxPercentPriceDelta, minPercentOfProvidersToAgree, func(points []providerPricePoint) priceClusterer {
 			return newPriceClusterer(points)
 		})
 	So(err, ShouldBeNil)

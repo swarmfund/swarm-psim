@@ -14,6 +14,10 @@ type Connector interface {
 	GetPrices(baseAsset, quoteAsset string) ([]PricePoint, error)
 }
 
+// Streamer obtains PricePoints with the GetPrices method of the Connector from time to time
+// and streams these PricePoints into the pricesChannel.
+//
+// Streamer is a common Streamer of Prices for a PriceProvider.
 type streamer struct {
 	logger        *logan.Entry
 	baseAsset     string
@@ -23,11 +27,17 @@ type streamer struct {
 	period        time.Duration
 }
 
-// StartNewPriceStreamer creates new streamer and runs it safely and concurrently
-func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset,
-	quoteAsset string, exchange Connector, period time.Duration) <-chan PricePoint {
+// StartNewPriceStreamer creates new Streamer and runs it safely and concurrently
+func StartNewPriceStreamer(
+	ctx context.Context,
+	log *logan.Entry,
+	baseAsset,
+	quoteAsset string,
+	exchange Connector,
+	period time.Duration) <-chan PricePoint {
+
 	streamer := streamer{
-		logger:        log.WithField("streamer", exchange.GetName()),
+		logger:        log.WithField("price_streamer", exchange.GetName()),
 		baseAsset:     baseAsset,
 		quoteAsset:    quoteAsset,
 		pricesChannel: make(chan PricePoint, 10),
@@ -35,18 +45,18 @@ func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset,
 		period:        period,
 	}
 
-	streamer.logger.Debug("Starting new streamer")
-	go app.RunOverIncrementalTimer(ctx, streamer.logger, exchange.GetName(),
-		streamer.runOnce, period, time.Minute)
+	streamer.logger.Debug("Starting new Streamer.")
+	go app.RunOverIncrementalTimer(ctx, streamer.logger, exchange.GetName(), streamer.runOnce, period, time.Minute)
 
 	return streamer.pricesChannel
 }
 
 func (p *streamer) runOnce(ctx context.Context) (err error) {
 	var prices []PricePoint
+
 	prices, err = p.exchange.GetPrices(p.baseAsset, p.quoteAsset)
 	if err != nil {
-		return errors.Wrap(err, "failed to get prices")
+		return errors.Wrap(err, "Failed to get Prices from Exchange Connector")
 	}
 
 	for _, item := range prices {
