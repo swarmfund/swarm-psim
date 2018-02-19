@@ -7,10 +7,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/deposit"
-	"gitlab.com/tokend/keypair"
-	"gitlab.com/swarmfund/psim/psim/verify"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/deposit"
+	"gitlab.com/swarmfund/psim/psim/verifier"
+	"gitlab.com/tokend/keypair"
 )
 
 func New(
@@ -26,7 +26,7 @@ func New(
 	discoveryClient *discovery.Client,
 	offchainHelper deposit.OffchainHelper) app.Service {
 
-	verifier := newVerifier(
+	v := newVerifier(
 		serviceName,
 		externalSystem,
 		log,
@@ -35,7 +35,13 @@ func New(
 		offchainHelper,
 	)
 
-	return verify.New(serviceName,
+	return verifier.New(
+		serviceName,
 		"my_awesome_super_duper_random_id_deposit",
-			log, verifier, builder, signer, listener, discoveryClient)
+		log,
+		v,
+		builder,
+		signer,
+		listener,
+		discoveryClient)
 }

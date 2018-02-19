@@ -16,7 +16,7 @@ import (
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/deposit"
 	"gitlab.com/swarmfund/psim/psim/verification"
-	"gitlab.com/swarmfund/psim/psim/verify"
+	"gitlab.com/swarmfund/psim/psim/verifier"
 )
 
 var errNoExtAccount = errors.New("External system Account was not found.")
@@ -47,7 +47,7 @@ func newVerifier(
 	}
 }
 
-func (v *Verifier) ReadRequest(w http.ResponseWriter, r *http.Request) (verify.Request, bool) {
+func (v *Verifier) ReadRequest(w http.ResponseWriter, r *http.Request) (verifier.Request, bool) {
 	req := deposit.VerifyRequest{}
 	if ok := verification.ReadAPIRequest(v.log, w, r, &req); !ok {
 		return nil, false
@@ -69,7 +69,7 @@ func (v *Verifier) ReadRequest(w http.ResponseWriter, r *http.Request) (verify.R
 	}, true
 }
 
-func (v *Verifier) VerifyRequest(r verify.Request) (verifyErr, err error) {
+func (v *Verifier) VerifyRequest(r verifier.Request) (verifyErr, err error) {
 	checkErr, err := v.validateDeposit(r.(request))
 	if err != nil {
 		return nil, err
