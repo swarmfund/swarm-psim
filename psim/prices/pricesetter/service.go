@@ -48,7 +48,7 @@ func (s *service) findAndSubmitPricePoint(ctx context.Context) error {
 	}
 
 	if pointToSubmit == nil {
-		s.log.Warn("Has not found PricePoint to submit")
+		s.log.Warn("Has not found PricePoint to submit.")
 		return nil
 	}
 

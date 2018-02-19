@@ -9,17 +9,17 @@ import (
 
 	ws "github.com/gorilla/websocket"
 	"github.com/preichenberger/go-gdax"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
 const (
 	Name = "gdax"
 )
 
-var assetPairs = map[string]bool{
-	"BTC-USD": true,
-	"ETH-USD": true,
+var assetPairs = map[string]struct{}{
+	"BTC-USD": {},
+	"ETH-USD": {},
 }
 
 type streamer struct {
@@ -33,7 +33,10 @@ func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset, quo
 	assetPair := baseAsset + "-" + quoteAsset
 	_, ok := assetPairs[assetPair]
 	if !ok {
-		return nil, errors.New("Provided asset pair is not supported")
+		return nil, errors.From(errors.New("Provided asset pair is not supported."), logan.F{
+			"asset_pair":            assetPair,
+			"supported_asset_pairs": assetPairs,
+		})
 	}
 
 	p := streamer{
@@ -43,7 +46,7 @@ func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset, quo
 	}
 
 	// if runOnce returned - we have been disconnected from the provider, so it's better to wait before trying to connect again
-	go app.RunOverIncrementalTimer(ctx, p.logger, Name, p.runOnce, time.Second * 5, time.Minute)
+	go app.RunOverIncrementalTimer(ctx, p.logger, Name, p.runOnce, time.Second*5, time.Minute)
 
 	return p.pricesChannel, nil
 }

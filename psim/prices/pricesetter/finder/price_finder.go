@@ -126,7 +126,7 @@ func (p *priceFinder) getAllProvidersPoints() ([]providerPricePoint, error) {
 		p.log.WithFields(logan.F{
 			"provider": priceProvider.GetName(),
 			"points":   pricePoints,
-		}).Info("Getting PricePoints to find consensus on new one.")
+		}).Debug("Getting PricePoints to find consensus on new one.")
 
 		for i := range pricePoints {
 			result = append(result, providerPricePoint{
