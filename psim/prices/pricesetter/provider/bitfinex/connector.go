@@ -1,8 +1,8 @@
 package bitfinex
 
 import (
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider/base"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/base"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
 const (

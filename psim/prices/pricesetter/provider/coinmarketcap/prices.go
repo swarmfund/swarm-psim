@@ -3,7 +3,7 @@ package coinmarketcap
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 	"time"
 )
 

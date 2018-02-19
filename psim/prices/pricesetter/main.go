@@ -1,4 +1,4 @@
-package ratesync
+package pricesetter
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/ratesync/finder"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider/bitfinex"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider/bitstamp"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider/coinmarketcap"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider/gdax"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/finder"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/bitfinex"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/bitstamp"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/coinmarketcap"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/gdax"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
-	app.RegisterService(conf.ServiceRateSync, setupFn)
+	app.RegisterService(conf.ServicePriceSetter, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -32,12 +32,12 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceRateSync)).
-		With(figure.BaseHooks, utils.ETHHooks, rateSyncFigureHooks).
+		From(app.Config(ctx).GetRequired(conf.ServicePriceSetter)).
+		With(figure.BaseHooks, utils.ETHHooks, priceSetterFigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceRateSync,
+			"service": conf.ServicePriceSetter,
 		})
 	}
 

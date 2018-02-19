@@ -22,7 +22,7 @@ const (
 
 	ServiceOperationNotifier = "notifier"
 	ServiceBearer            = "bearer"
-	ServiceRateSync          = "rate_sync"
+	ServicePriceSetter       = "price_setter"
 	ServiceAirdrop           = "airdrop"
 )
 

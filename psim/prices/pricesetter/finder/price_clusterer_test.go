@@ -2,7 +2,7 @@ package finder
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/pricesetter/provider"
 	"testing"
 	"math/rand"
 )

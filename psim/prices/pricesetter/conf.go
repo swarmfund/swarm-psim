@@ -1,4 +1,4 @@
-package ratesync
+package pricesetter
 
 import (
 	"github.com/spf13/cast"
@@ -25,8 +25,8 @@ type Config struct {
 	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`
 }
 
-var rateSyncFigureHooks = figure.Hooks{
-	"[]ratesync.Provider": func(raw interface{}) (reflect.Value, error) {
+var priceSetterFigureHooks = figure.Hooks{
+	"[]pricesetter.Provider": func(raw interface{}) (reflect.Value, error) {
 		providers, ok := raw.([]interface{})
 		if !ok {
 			return reflect.Value{}, errors.New("Unexpected type for providers")

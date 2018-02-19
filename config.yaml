@@ -58,7 +58,7 @@ services:
 #  - eth_funnel
 
   #- taxman
-  #- rate_sync
+  #- price_setter
 
 # BTC
 btc_deposit:
@@ -160,7 +160,7 @@ forfeit_listener:
   signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
   exchange: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
 
-rate_sync:
+price_setter:
   base_asset: "ETH"
   quote_asset: "USD"
   providers:

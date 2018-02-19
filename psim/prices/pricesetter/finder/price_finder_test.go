@@ -6,7 +6,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/pricesetter/provider"
 	"time"
 	"fmt"
 )

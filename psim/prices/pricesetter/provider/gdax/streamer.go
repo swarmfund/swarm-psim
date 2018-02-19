@@ -9,7 +9,7 @@ import (
 
 	ws "github.com/gorilla/websocket"
 	"github.com/preichenberger/go-gdax"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 

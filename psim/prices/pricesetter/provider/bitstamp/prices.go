@@ -1,18 +1,17 @@
-package bitfinex
+package bitstamp
 
 import (
-	"time"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"time"
 )
 
 // jsonAssetPrice is middle-layer structure for custom JSON unmarshalling
 type jsonAssetPrice struct {
-	PriceUsd    string  `json:"last_price"`
-	LastUpdated float64 `json:"timestamp,string"`
+	PriceUsd    string `json:"last"`
+	LastUpdated int64  `json:"timestamp,string"`
 }
 
 func (jp jsonAssetPrice) GetLoganFields() map[string]interface{} {
@@ -22,11 +21,11 @@ func (jp jsonAssetPrice) GetLoganFields() map[string]interface{} {
 	}
 }
 
-// ToPrices returns unmarshaled array of PricePoint with appropriate representation of price and time
+// ToPrices returns unmarshaled array of PricePoint with appropriate representation of Price and time
 func (jp *jsonAssetPrice) ToPrices() ([]provider.PricePoint, error) {
 	price, err := amount.Parse(jp.PriceUsd)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse amount", logan.F{
+		return nil, errors.Wrap(err, "Failed to parse amount", logan.F{
 			"raw_amount": jp.PriceUsd,
 		})
 	}
@@ -34,7 +33,7 @@ func (jp *jsonAssetPrice) ToPrices() ([]provider.PricePoint, error) {
 	return []provider.PricePoint{
 		{
 			Price: price,
-			Time:  time.Unix(int64(jp.LastUpdated), 0).UTC(),
+			Time:  time.Unix(jp.LastUpdated, 0).UTC(),
 		},
 	}, nil
 }

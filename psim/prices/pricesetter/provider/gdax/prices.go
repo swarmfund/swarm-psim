@@ -2,9 +2,10 @@ package gdax
 
 import (
 	"time"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
-	"gitlab.com/swarmfund/go/amount"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
 // jsonAssetPrice is middle-layer structure for custom JSON unmarshalling
@@ -32,4 +33,3 @@ func (jps jsonPrices) Prices() ([]provider.PricePoint, error) {
 	}
 	return result, nil
 }
-

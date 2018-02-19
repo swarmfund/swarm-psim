@@ -1,7 +1,7 @@
 package finder
 
 import (
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
 type providerPricePoint struct {

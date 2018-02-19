@@ -1,4 +1,4 @@
-package ratesync
+package pricesetter
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 	"gitlab.com/tokend/keypair"
 )
 
