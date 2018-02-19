@@ -5,20 +5,21 @@ import (
 	"net"
 	"time"
 
+	"net/http"
+
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3/fields"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/tokend/keypair"
-	"net/http"
-	"gitlab.com/swarmfund/go/xdr"
 )
 
 type Verifier interface {
 	ReadRequest(w http.ResponseWriter, r *http.Request) (Request, bool)
-	VerifyRequest(r Request) (checkErr, err error)
+	VerifyRequest(r Request) (verifyErr, err error)
 }
 
 type Request interface {
