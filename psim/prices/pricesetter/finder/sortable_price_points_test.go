@@ -1,11 +1,12 @@
 package finder
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/swarmfund/psim/psim/pricesetter/provider"
 	"sort"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
 func TestSortablePricePoints(t *testing.T) {

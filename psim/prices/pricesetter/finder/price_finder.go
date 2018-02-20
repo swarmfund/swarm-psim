@@ -10,8 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
-// TODO Rename ratesProvider to pricesProvider
-//go:generate mockery -case underscore -testonly -inpkg -name ratesProvider
+//go:generate mockery -case underscore -testonly -inpkg -name PriceProvider
 type PriceProvider interface {
 	// GetName - returns name of the Provider
 	GetName() string

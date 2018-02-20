@@ -1,60 +1,59 @@
 package finder
 
 import (
+	"fmt"
 	"testing"
+	"time"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/pricesetter/provider"
-	"time"
-	"fmt"
+	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
 )
 
 func TestPriceFinder(t *testing.T) {
 	log := logan.New().WithField("service", "price_finder")
 	Convey("Create price finder", t, func() {
 		Convey("maxPercentPriceDelta < 0", func() {
-			_, err := newPriceFinder(log, nil, -1, 1, nil)
+			_, err := NewPriceFinder(log, nil, -1, 1)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("maxPercentPriceDelta > 100", func() {
-			_, err := newPriceFinder(log, nil, 101*amount.One, 1, nil)
+			_, err := NewPriceFinder(log, nil, 101*amount.One, 1)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("minPercentOfProvidersToAgree < 0", func() {
-			_, err := newPriceFinder(log, nil, 1, -1, nil)
+			_, err := NewPriceFinder(log, nil, 1, -1)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("minPercentOfProvidersToAgree > 100", func() {
-			_, err := newPriceFinder(log, nil, 0, 101*amount.One, nil)
+			_, err := NewPriceFinder(log, nil, 0, 101*amount.One)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("Empty priceProviders", func() {
-			_, err := newPriceFinder(log, nil, 0, 0, nil)
+			_, err := NewPriceFinder(log, nil, 0, 0)
 			So(err, ShouldNotBeNil)
 		})
 	})
-	Convey("Given valid price finder", t, func() {
-		mockedRatesProvider := mockRatesProvider{}
-		defer mockedRatesProvider.AssertExpectations(t)
+	Convey("Given valid PriceFinder", t, func() {
+		mockedPriceProvider := MockPriceProvider{}
+		defer mockedPriceProvider.AssertExpectations(t)
 		maxPercentPriceDelta := int64(10 * amount.One)
-		minPercentOfProviderToAgree := int64(51 * amount.One)
-		priceClustererMock := mockPriceClusterer{}
-		priceFinder, err := newPriceFinder(log, []ratesProvider{&mockedRatesProvider}, maxPercentPriceDelta,
-			minPercentOfProviderToAgree, func(points []providerPricePoint) priceClusterer {
-				return &priceClustererMock
-			})
+
+		priceFinder, err := NewPriceFinder(log, []PriceProvider{&mockedPriceProvider}, maxPercentPriceDelta, 3)
 		So(err, ShouldBeNil)
+
 		Convey("Failed to get prices", func() {
-			mockedRatesProvider.On("GetName").Return("mocked_provider").Once()
+			mockedPriceProvider.On("GetName").Return("mocked_provider").Once()
 			expectedError := errors.New("Failed to get points")
-			mockedRatesProvider.On("GetPoints").Return(nil, expectedError).Once()
+			mockedPriceProvider.On("GetPoints").Return(nil, expectedError).Once()
+
 			_, err := priceFinder.TryFind()
 			So(errors.Cause(err), ShouldEqual, expectedError)
 		})
-		Convey("No price points available", func() {
-			mockedRatesProvider.On("GetPoints").Return(nil, nil).Once()
+		Convey("No PricePoints available", func() {
+			mockedPriceProvider.On("GetPoints").Return(nil, nil).Once()
 			result, err := priceFinder.TryFind()
 			So(err, ShouldBeNil)
 			So(result, ShouldBeNil)
@@ -92,22 +91,20 @@ func TestPriceFinder(t *testing.T) {
 	})
 }
 
-func testPriceFinding(t *testing.T, maxPercentPriceDelta int64, minPercentOfProvidersToAgree int64,
+func testPriceFinding(t *testing.T, maxPercentPriceDelta int64, minPercentOfProvidersToAgree int,
 	rates [][]provider.PricePoint, expectedResult *provider.PricePoint) {
-	ratesProviders := make([]ratesProvider, len(rates))
-	for i := range ratesProviders {
-		ratesProviderMock := mockRatesProvider{}
+	priceProviders := make([]PriceProvider, len(rates))
+	for i := range priceProviders {
+		priceProviderMock := MockPriceProvider{}
 		//noinspection GoDeferInLoop
-		defer ratesProviderMock.AssertExpectations(t)
-		ratesProviderMock.On("GetPoints").Return(rates[i], nil).Once()
-		ratesProviderMock.On("GetName").Return(fmt.Sprintf("rates_provider_%d", i))
-		ratesProviders[i] = &ratesProviderMock
+		defer priceProviderMock.AssertExpectations(t)
+		priceProviderMock.On("GetPoints").Return(rates[i], nil).Once()
+		priceProviderMock.On("GetName").Return(fmt.Sprintf("rates_provider_%d", i))
+		priceProviders[i] = &priceProviderMock
 	}
 
-	priceFinder, err := newPriceFinder(logan.New().WithField("service", "price_finder"), ratesProviders,
-		maxPercentPriceDelta, minPercentOfProvidersToAgree, func(points []providerPricePoint) priceClusterer {
-			return newPriceClusterer(points)
-		})
+	priceFinder, err := NewPriceFinder(logan.New().WithField("service", "price_finder"), priceProviders,
+		maxPercentPriceDelta, minPercentOfProvidersToAgree)
 	So(err, ShouldBeNil)
 	actualPoint, err := priceFinder.TryFind()
 	So(err, ShouldBeNil)
