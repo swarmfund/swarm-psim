@@ -29,7 +29,7 @@ func (p PricePoint) GetPercentDeltaToMinPrice(other PricePoint) (int64, bool) {
 
 func (p PricePoint) GetLoganFields() map[string]interface{} {
 	return map[string]interface{} {
-		"prince": p.Price,
+		"price": p.Price,
 		"time":   p.Time.String(),
 	}
 }

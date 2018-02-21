@@ -1,11 +1,11 @@
 package finder
 
-type priceClustererImpl struct {
+type priceClusterizerImpl struct {
 	points []providerPricePoint
 }
 
-func newPriceClusterer(points []providerPricePoint) *priceClustererImpl {
-	return &priceClustererImpl{
+func newPriceClusterizer(points []providerPricePoint) *priceClusterizerImpl {
+	return &priceClusterizerImpl{
 		points: points,
 	}
 }
@@ -15,9 +15,9 @@ type candidatePoint struct {
 	distance int64
 }
 
-// GetClusterForPoint for each Provider finds the Point amount p.points, which is
+// GetClusterForPoint for each Provider finds the Point among p.points, which is
 // the closet to the provided point.
-func (p *priceClustererImpl) GetClusterForPoint(point providerPricePoint) []providerPricePoint {
+func (p *priceClusterizerImpl) GetClusterForPoint(point providerPricePoint) []providerPricePoint {
 	providerToCandidate := map[string]candidatePoint{}
 
 	for i := range p.points {

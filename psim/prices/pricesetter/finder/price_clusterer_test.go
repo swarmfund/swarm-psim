@@ -1,13 +1,14 @@
 package finder
 
 import (
+	"math/rand"
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
-	"testing"
-	"math/rand"
 )
 
-func TestPriceClusterer(t *testing.T) {
+func TestPriceClusterizer(t *testing.T) {
 	Convey("Panic when trying to calc distance to point from same provider", t, func() {
 		So(func() {
 			calcDistance(providerPricePoint{}, providerPricePoint{})
@@ -18,7 +19,7 @@ func TestPriceClusterer(t *testing.T) {
 			totalNumberOfPoints := rand.Int31n(1000)
 			providers := []string{"p1", "p2", "p3", "p4", "p5"}
 			input := make([]providerPricePoint, totalNumberOfPoints)
-			for i := range input{
+			for i := range input {
 				input[i] = providerPricePoint{
 					ProviderID: providers[rand.Intn(len(providers))],
 					PricePoint: provider.PricePoint{
@@ -27,8 +28,8 @@ func TestPriceClusterer(t *testing.T) {
 				}
 			}
 
-			clusterer := newPriceClusterer(input)
-			result := clusterer.GetClusterForPoint(input[rand.Intn(len(input))])
+			clusterizer := newPriceClusterizer(input)
+			result := clusterizer.GetClusterForPoint(input[rand.Intn(len(input))])
 			So(len(result), ShouldEqual, len(providers))
 
 			usedProviders := map[string]bool{}
