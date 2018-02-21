@@ -1,12 +1,14 @@
 package finder
 
+import "gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+
 type priceClusterizerImpl struct {
-	points []providerPricePoint
+	providersPoints []providerPricePoint
 }
 
 func newPriceClusterizer(points []providerPricePoint) *priceClusterizerImpl {
 	return &priceClusterizerImpl{
-		points: points,
+		providersPoints: points,
 	}
 }
 
@@ -17,35 +19,29 @@ type candidatePoint struct {
 
 // GetClusterForPoint for each Provider finds the Point among p.points, which is
 // the closet to the provided point.
-func (p *priceClusterizerImpl) GetClusterForPoint(point providerPricePoint) []providerPricePoint {
+func (p *priceClusterizerImpl) GetClusterForPoint(point provider.PricePoint) []providerPricePoint {
 	providerToCandidate := map[string]candidatePoint{}
 
-	for i := range p.points {
-		// no need to process points of provider for which cluster is requested
-		if p.points[i].ProviderID == point.ProviderID {
-			continue
-		}
-
+	for i := range p.providersPoints {
 		candidate := candidatePoint{
-			providerPricePoint: p.points[i],
-			distance:           calcDistance(point, p.points[i]),
+			providerPricePoint: p.providersPoints[i],
+			distance:           calcDistance(point, p.providersPoints[i].PricePoint),
 		}
 
 		bestPoint, ok := providerToCandidate[candidate.ProviderID]
 		if !ok {
+			// Still no best Point for this Provider
 			providerToCandidate[candidate.ProviderID] = candidate
 			continue
 		}
 
 		if bestPoint.distance > candidate.distance {
-			// candidate if better than bestPoint - found new best Point
+			// candidate if better than bestPoint for the Provider - found new best Point
 			providerToCandidate[candidate.ProviderID] = candidate
 		}
 	}
 
-	result := []providerPricePoint{
-		point,
-	}
+	var result []providerPricePoint
 
 	for key := range providerToCandidate {
 		result = append(result, providerToCandidate[key].providerPricePoint)
@@ -54,12 +50,8 @@ func (p *priceClusterizerImpl) GetClusterForPoint(point providerPricePoint) []pr
 	return result
 }
 
-func calcDistance(from, to providerPricePoint) int64 {
-	if from.ProviderID == to.ProviderID {
-		panic("Unexpected state: trying to calculate distance for points from same provider")
-	}
-
-	delta := from.Price - to.Price
+func calcDistance(p1, p2 provider.PricePoint) int64 {
+	delta := p1.Price - p2.Price
 	if delta < 0 {
 		return -delta
 	}

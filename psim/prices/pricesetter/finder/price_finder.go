@@ -22,8 +22,9 @@ type PriceProvider interface {
 
 //go:generate mockery -case underscore -testonly -inpkg -name priceClusterizer
 type priceClusterizer interface {
-	// GetClusterForPoint - returns cluster of nearest points for specified point
-	GetClusterForPoint(point providerPricePoint) []providerPricePoint
+	// GetClusterForPoint - returns cluster of nearest Points for specified Point.
+	// The provided point must *not* be included into the cluster.
+	GetClusterForPoint(point provider.PricePoint) []providerPricePoint
 }
 
 type priceClusterizerProvider func(points []providerPricePoint) priceClusterizer
@@ -74,7 +75,7 @@ func isPercentValid(percent int64) bool {
 }
 
 // TODO
-// TryFind - tries to find most recent Price Point which priceDelta is <= maxPercentPriceDelta
+// TryFind - tries to find most recent PricePoint which priceDelta is <= maxPercentPriceDelta
 // for percent of providers >= minPercentOfNodeToParticipate
 func (p *priceFinder) TryFind() (*provider.PricePoint, error) {
 	allPoints, err := p.getAllProvidersPoints()
@@ -87,7 +88,7 @@ func (p *priceFinder) TryFind() (*provider.PricePoint, error) {
 
 	for i := range allPoints {
 		// TODO
-		cluster := clusterizer.GetClusterForPoint(allPoints[i])
+		cluster := clusterizer.GetClusterForPoint(allPoints[i].PricePoint)
 		candidate := median(cluster)
 
 		if p.meetsReq(candidate, cluster) {
