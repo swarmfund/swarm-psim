@@ -16,10 +16,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/agl/ed25519"
-  packages = [
-    ".",
-    "edwards25519"
-  ]
+  packages = [".","edwards25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
@@ -31,13 +28,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcd"
-  packages = [
-    "btcec",
-    "chaincfg",
-    "chaincfg/chainhash",
-    "txscript",
-    "wire"
-  ]
+  packages = ["btcec","chaincfg","chaincfg/chainhash","txscript","wire"]
   revision = "2e60448ffcc6bf78332d1fe590260095f554dd78"
 
 [[projects]]
@@ -49,12 +40,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcutil"
-  packages = [
-    ".",
-    "base58",
-    "bech32",
-    "hdkeychain"
-  ]
+  packages = [".","base58","bech32","hdkeychain"]
   revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
 
 [[projects]]
@@ -71,35 +57,15 @@
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
-  packages = [
-    ".",
-    "accounts",
-    "accounts/keystore",
-    "common",
-    "common/hexutil",
-    "common/math",
-    "common/mclock",
-    "core/types",
-    "crypto",
-    "crypto/randentropy",
-    "crypto/secp256k1",
-    "crypto/sha3",
-    "ethclient",
-    "event",
-    "log",
-    "params",
-    "rlp",
-    "rpc",
-    "trie"
-  ]
+  packages = [".","accounts","accounts/abi","accounts/keystore","common","common/hexutil","common/math","common/mclock","core/types","crypto","crypto/randentropy","crypto/secp256k1","crypto/sha3","ethclient","event","log","params","rlp","rpc","trie"]
   revision = "4bb3c89d44e372e6a9ab85a8be0c9345265c763a"
   version = "v1.7.3"
 
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
   packages = ["."]
-  revision = "95dff72a491a53aee9321f4a2806e693514697da"
-  version = "v0.4.3"
+  revision = "57846a82817615f185b10cc40de8dc60c1ca5ae1"
+  version = "v0.4.5"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -170,17 +136,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [
-    ".",
-    "hcl/ast",
-    "hcl/parser",
-    "hcl/scanner",
-    "hcl/strconv",
-    "hcl/token",
-    "json/parser",
-    "json/scanner",
-    "json/token"
-  ]
+  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
@@ -222,12 +178,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/multiplay/go-slack"
-  packages = [
-    ".",
-    "chat",
-    "lrhook",
-    "webhook"
-  ]
+  packages = [".","chat","lrhook","webhook"]
   revision = "2ca6009c6de1deb2a2f77a80ee09194b66c3473f"
 
 [[projects]]
@@ -268,11 +219,7 @@
 
 [[projects]]
   name = "github.com/pressly/chi"
-  packages = [
-    ".",
-    "middleware",
-    "render"
-  ]
+  packages = [".","middleware","render"]
   revision = "967844826e58cf31213a7dfb82455d242ad85101"
   version = "v3.0.0"
 
@@ -314,10 +261,7 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [
-    ".",
-    "mem"
-  ]
+  packages = [".","mem"]
   revision = "8d919cbe7e2627e417f3e45c3c0e489a5b7e2536"
   version = "v1.0.0"
 
@@ -365,48 +309,7 @@
 
 [[projects]]
   name = "github.com/stripe/stripe-go"
-  packages = [
-    ".",
-    "account",
-    "balance",
-    "bankaccount",
-    "bitcoinreceiver",
-    "bitcointransaction",
-    "card",
-    "charge",
-    "client",
-    "countryspec",
-    "coupon",
-    "customer",
-    "discount",
-    "dispute",
-    "ephemeralkey",
-    "event",
-    "exchangerate",
-    "fee",
-    "feerefund",
-    "fileupload",
-    "form",
-    "invoice",
-    "invoiceitem",
-    "loginlink",
-    "order",
-    "orderitem",
-    "orderreturn",
-    "paymentsource",
-    "payout",
-    "plan",
-    "product",
-    "recipient",
-    "refund",
-    "reversal",
-    "sku",
-    "source",
-    "sub",
-    "subitem",
-    "token",
-    "transfer"
-  ]
+  packages = [".","account","balance","bankaccount","bitcoinreceiver","bitcointransaction","card","charge","client","countryspec","coupon","customer","discount","dispute","ephemeralkey","event","exchangerate","fee","feerefund","fileupload","form","invoice","invoiceitem","loginlink","order","orderitem","orderreturn","paymentsource","payout","plan","product","recipient","refund","reversal","sku","source","sub","subitem","token","transfer"]
   revision = "a705fb222df92bba0cbc4c190bcbebf7dfe0b0cc"
   version = "v28.6.1"
 
@@ -430,11 +333,7 @@
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
-  packages = [
-    "v3",
-    "v3/errors",
-    "v3/fields"
-  ]
+  packages = ["v2/errors","v2/fields","v3","v3/errors","v3/fields"]
   revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
   version = "v3.4"
 
@@ -453,93 +352,43 @@
 [[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/go"
-  packages = [
-    "amount",
-    "crc16",
-    "hash",
-    "keypair",
-    "network",
-    "signcontrol",
-    "strkey",
-    "xdr",
-    "xdrbuild",
-    "xdrbuild/internal"
-  ]
+  packages = ["amount","crc16","hash","keypair","network","signcontrol","strkey","xdr","xdrbuild","xdrbuild/internal"]
   revision = "446dfd6c217a16786f5e6da05f9bcdce4b6f404e"
 
 [[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
-  packages = [
-    ".",
-    "v2",
-    "v2/internal",
-    "v2/internal/account",
-    "v2/internal/asset",
-    "v2/internal/errors",
-    "v2/internal/listener",
-    "v2/internal/operation",
-    "v2/internal/resources",
-    "v2/internal/responses",
-    "v2/internal/sale",
-    "v2/internal/transaction",
-    "v2/types"
-  ]
-  revision = "a36e5ee502617e499596afbb18316be5bed41327"
+  packages = ["v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/sale","v2/internal/transaction","v2/types"]
+  revision = "f6a04e75bbcf25ead15e52cc6eaa0383c0c41d6d"
 
 [[projects]]
   branch = "master"
   name = "gitlab.com/tokend/keypair"
-  packages = [
-    ".",
-    "internal",
-    "internal/crc16",
-    "internal/strkey"
-  ]
+  packages = [".","internal","internal/crc16","internal/strkey"]
   revision = "c148f15306edac6a1ad994d8b218e8ae61a0b2c1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = [
-    "ed25519",
-    "ed25519/internal/edwards25519",
-    "pbkdf2",
-    "ripemd160",
-    "scrypt",
-    "ssh/terminal"
-  ]
+  packages = ["ed25519","ed25519/internal/edwards25519","pbkdf2","ripemd160","scrypt","ssh/terminal"]
   revision = "b080dc9a8c480b08e698fb1219160d598526310f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = [
-    "context",
-    "websocket"
-  ]
+  packages = ["context","websocket"]
   revision = "c7086645de248775cbf2373cf5ca4d2fa664b8c1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix","windows"]
   revision = "4ff8c001ce4cc464e644b922325097228fce14d8"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = [
-    "internal/gen",
-    "internal/triegen",
-    "internal/ucd",
-    "transform",
-    "unicode/cldr",
-    "unicode/norm"
-  ]
+  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
   revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]
@@ -575,6 +424,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c76ac734cce7a1f10e28d6e0040081cbdecf0c7f91cc93d971da3cee07d8e5a9"
+  inputs-digest = "2016faac64eb4a24fa570042478833edcbcd213b4112a40f1a24ae76376a0aa6"
   solver-name = "gps-cdcl"
   solver-version = 1
