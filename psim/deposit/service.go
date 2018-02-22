@@ -14,14 +14,14 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 var (
-	ErrNoBalanceID             = errors.New("No BalanceID for the Account.")
-	ErrNoVerifierServices      = errors.New("No Deposit Verify services were found.")
+	ErrNoBalanceID        = errors.New("No BalanceID for the Account.")
+	ErrNoVerifierServices = errors.New("No Deposit Verify services were found.")
 )
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
@@ -306,7 +306,12 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
 	}
 
-	ok, err := issuance.SubmitEnvelope(ctx, *readyEnvelope, s.horizon.Submitter())
+	envelopeBase64, err := xdr.MarshalBase64(*readyEnvelope)
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
+	}
+
+	ok, err := issuance.SubmitEnvelope(ctx, envelopeBase64, s.horizon.Submitter())
 	if err != nil {
 		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
 		return nil

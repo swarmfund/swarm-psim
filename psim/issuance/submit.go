@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
@@ -17,13 +16,8 @@ type TXSubmitter interface {
 	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
-func SubmitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope, submitter TXSubmitter) (bool, error) {
-	envelopeBase64, err := xdr.MarshalBase64(envelope)
-	if err != nil {
-		return false, errors.Wrap(err, "Failed to marshal fully signed Envelope")
-	}
-
-	result := submitter.Submit(ctx, envelopeBase64)
+func SubmitEnvelope(ctx context.Context, envelope string, submitter TXSubmitter) (bool, error) {
+	result := submitter.Submit(ctx, envelope)
 	if result.Err != nil {
 		if len(result.OpCodes) == 1 && result.OpCodes[0] == OpCodeReferenceDuplication {
 			// Deposit duplication - we already processed this deposit - just ignoring it.

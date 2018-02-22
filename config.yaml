@@ -217,3 +217,7 @@ bearer:
   signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
   abnormal_period: 1m
   sleep_period: 5m
+
+airdrop:
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
