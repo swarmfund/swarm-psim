@@ -58,6 +58,13 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 
 		cursor := ""
 		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				break
+			}
+
 			transactions, meta, err := q.tx.Transactions(cursor)
 			if err != nil {
 				errChan <- errors.Wrap(err, "Failed to obtain Transactions", logan.F{"cursor": cursor})
@@ -67,7 +74,7 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 			for _, tx := range transactions {
 				ohaigo := tx
 
-				txStream <- resources.TransactionEvent{
+				ok := q.streamTxEvent(ctx, resources.TransactionEvent{
 					Transaction: &ohaigo,
 					// emulating discrete transactions stream by spoofing meta
 					// to not let bump cursor too much before actually consuming all transactions
@@ -76,18 +83,35 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 							ClosedAt: tx.CreatedAt,
 						},
 					},
+				}, txStream)
+				if !ok {
+					// Ctx was canceled
+					return
 				}
 
 				cursor = tx.PagingToken
 			}
 
 			// letting consumer know about current ledger cursor
-			txStream <- resources.TransactionEvent{
+			ok := q.streamTxEvent(ctx, resources.TransactionEvent{
 				Transaction: nil,
 				Meta:        *meta,
+			}, txStream)
+			if !ok {
+				// Ctx was canceled
+				return
 			}
 		}
 	}()
 
 	return txStream, errChan
+}
+
+func (q *Q) streamTxEvent(ctx context.Context, txEvent resources.TransactionEvent, txStream chan<- resources.TransactionEvent) bool {
+	select {
+	case <- ctx.Done():
+		return false
+	case txStream <- txEvent:
+		return true
+	}
 }
