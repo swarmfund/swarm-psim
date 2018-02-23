@@ -42,9 +42,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	return NewService(
 		log,
+		config,
 		builder,
 		horizonConnector.Submitter(),
-		config.Source,
-		config.Signer,
+		horizonConnector.Listener(),
 	), nil
 }

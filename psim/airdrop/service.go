@@ -3,44 +3,60 @@ package airdrop
 import (
 	"context"
 
+	"sync"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/tokend/keypair"
 )
 
 type TXSubmitter interface {
 	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
-type Service struct {
-	log         *logan.Entry
-	builder     *xdrbuild.Builder
-	txSubmitter *horizon.Submitter
+type TXStreamer interface {
+	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
+}
 
-	source keypair.Address
-	signer keypair.Full
+type Service struct {
+	log     *logan.Entry
+	config  Config
+	builder *xdrbuild.Builder
+
+	txSubmitter TXSubmitter
+	txStreamer  TXStreamer
+
+	createdAccounts        map[string]struct{}
+	generalAccountsCh      chan string
+	pendingGeneralAccounts SyncSet
 }
 
 func NewService(
-	log         *logan.Entry,
-	builder     *xdrbuild.Builder,
-	txSubmitter *horizon.Submitter,
-	source keypair.Address,
-	signer keypair.Full,
+	log *logan.Entry,
+	config Config,
+	builder *xdrbuild.Builder,
+	txSubmitter TXSubmitter,
+	txStreamer TXStreamer,
 ) *Service {
 
 	return &Service{
-		log: log,
+		log:     log,
+		config:  config,
 		builder: builder,
-		txSubmitter: txSubmitter,
 
-		source: source,
-		signer: signer,
+		txSubmitter: txSubmitter,
+		txStreamer:  txStreamer,
+
+		createdAccounts:        make(map[string]struct{}),
+		generalAccountsCh:      make(chan string, 100),
+		pendingGeneralAccounts: SyncSet{mu: sync.Mutex{}},
 	}
 }
 
-// TODO
 func (s *Service) Run(ctx context.Context) {
-	// TODO
+	go s.listenLedgerChangesInfinitely(ctx)
+
+	go s.consumeGeneralAccounts(ctx)
+
+	go s.processPendingGeneralAccounts(ctx)
 }

@@ -8,8 +8,16 @@ import (
 	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
-func (s *Service) processIssuance(ctx context.Context, accountAddress string, issuanceOpt issuance.RequestOpt) error {
-	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.source, s.signer)
+func (s *Service) processIssuance(ctx context.Context, accountAddress, balanceID string) error {
+	issuanceOpt := issuance.RequestOpt{
+		Reference: s.buildReference(accountAddress),
+		Receiver:  balanceID,
+		Asset:     s.config.Asset,
+		Amount:    s.config.Amount,
+		Details:   "",
+	}
+
+	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.config.Source, s.config.Signer)
 
 	envelope, err := tx.Marshal()
 	if err != nil {
@@ -32,4 +40,21 @@ func (s *Service) processIssuance(ctx context.Context, accountAddress string, is
 		logger.Debug("Reference duplication - already processed Deposit, skipping.")
 	}
 	return nil
+}
+
+func (s *Service) buildReference(accountAddress string) string {
+	result := accountAddress + "-airdrop" // accountAddress should be 56 runes length
+
+	// Just in case.
+	if len(result) > 64 {
+		result = result[:64]
+	}
+
+	// Just in case.
+	if len(result) < 64 {
+		filler := "----------------------------------------------------------------" // len = 64
+		result = result + filler[:64-len(result)]
+	}
+
+	return result
 }

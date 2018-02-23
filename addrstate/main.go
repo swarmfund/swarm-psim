@@ -47,7 +47,7 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	for w.head.Before(ts) {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-w.headUpdate:
 			// Make the for check again
@@ -119,13 +119,13 @@ func (w *Watcher) run(ctx context.Context) {
 	errs := w.txQ.Transactions(events)
 	for {
 		select {
-		case event := <-events:
-			if tx := event.Transaction; tx != nil {
+		case txEvent := <-events:
+			if tx := txEvent.Transaction; tx != nil {
 				for _, change := range tx.LedgerChanges() {
 					w.state.Mutate(tx.CreatedAt, w.mutator(change))
 				}
 			}
-			w.head = event.Meta.LatestLedger.ClosedAt
+			w.head = txEvent.Meta.LatestLedger.ClosedAt
 			w.headUpdate <- struct{}{}
 		case err := <-errs:
 			w.log.WithError(err).Warn("failed to get transaction")
