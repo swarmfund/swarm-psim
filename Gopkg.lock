@@ -359,7 +359,7 @@
   branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
   packages = ["v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/sale","v2/internal/transaction","v2/internal/user","v2/types"]
-  revision = "5ff15aaa8ce2b393348e28e84e23c326bdefea0f"
+  revision = "055fad61a8626fedaeb25718a01fa4924f99e6c7"
 
 [[projects]]
   branch = "master"

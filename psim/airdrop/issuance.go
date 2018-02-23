@@ -14,7 +14,7 @@ func (s *Service) processIssuance(ctx context.Context, accountAddress, balanceID
 		Receiver:  balanceID,
 		Asset:     s.config.Asset,
 		Amount:    s.config.Amount,
-		Details:   "",
+		Details:   `{"cause": "airdrop"}`,
 	}
 
 	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.config.Source, s.config.Signer)

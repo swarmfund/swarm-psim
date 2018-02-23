@@ -47,5 +47,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		horizonConnector.Submitter(),
 		horizonConnector.Listener(),
+		horizonConnector.Users(),
+		horizonConnector.Accounts(),
 	), nil
 }

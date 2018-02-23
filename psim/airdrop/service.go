@@ -16,13 +16,24 @@ type TXStreamer interface {
 	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
 }
 
+type UsersConnector interface {
+	User(accountID string) (*horizon.User, error)
+	Users(ctx context.Context) (<-chan horizon.User, <-chan error)
+}
+
+type AccountsConnector interface {
+	Balances(address string) ([]horizon.Balance, error)
+}
+
 type Service struct {
 	log     *logan.Entry
 	config  Config
 	builder *xdrbuild.Builder
 
-	txSubmitter TXSubmitter
-	txStreamer  TXStreamer
+	txSubmitter       TXSubmitter
+	txStreamer        TXStreamer
+	usersConnector    UsersConnector
+	accountsConnector AccountsConnector
 
 	createdAccounts        map[string]struct{}
 	generalAccountsCh      chan string
@@ -35,6 +46,8 @@ func NewService(
 	builder *xdrbuild.Builder,
 	txSubmitter TXSubmitter,
 	txStreamer TXStreamer,
+	usersConnector UsersConnector,
+	accountsConnector AccountsConnector,
 ) *Service {
 
 	return &Service{
@@ -42,8 +55,10 @@ func NewService(
 		config:  config,
 		builder: builder,
 
-		txSubmitter: txSubmitter,
-		txStreamer:  txStreamer,
+		txSubmitter:       txSubmitter,
+		txStreamer:        txStreamer,
+		usersConnector:    usersConnector,
+		accountsConnector: accountsConnector,
 
 		createdAccounts:        make(map[string]struct{}),
 		generalAccountsCh:      make(chan string, 100),

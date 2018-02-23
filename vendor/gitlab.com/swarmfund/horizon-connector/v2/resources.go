@@ -15,3 +15,4 @@ type Asset = resources.Asset
 type Amount = resources.Amount
 type Sale = resources.Sale
 type User = resources.User
+type Balance = resources.Balance
