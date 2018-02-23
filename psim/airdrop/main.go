@@ -9,6 +9,7 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
@@ -23,7 +24,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).GetRequired(conf.ServiceAirdrop)).
-		With(figure.BaseHooks).
+		With(figure.BaseHooks, utils.ETHHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
