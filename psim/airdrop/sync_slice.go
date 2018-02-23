@@ -1,14 +1,22 @@
 package airdrop
 
 import (
-	"sync"
 	"context"
+	"sync"
+
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 type SyncSet struct {
 	mu   sync.Mutex
 	data map[string]struct{}
+}
+
+func NewSyncSet() SyncSet {
+	return SyncSet{
+		mu:   sync.Mutex{},
+		data: make(map[string]struct{}),
+	}
 }
 
 func (s *SyncSet) Put(new string) {

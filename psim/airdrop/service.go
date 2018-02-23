@@ -3,8 +3,6 @@ package airdrop
 import (
 	"context"
 
-	"sync"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
@@ -49,7 +47,7 @@ func NewService(
 
 		createdAccounts:        make(map[string]struct{}),
 		generalAccountsCh:      make(chan string, 100),
-		pendingGeneralAccounts: SyncSet{mu: sync.Mutex{}},
+		pendingGeneralAccounts: NewSyncSet(),
 	}
 }
 

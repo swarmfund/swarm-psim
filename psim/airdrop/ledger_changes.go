@@ -43,7 +43,7 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 		if entryData.Type == xdr.LedgerEntryTypeAccount {
 			accEntry := change.Created.Data.Account
 
-			if ts.Sub(s.config.RegisteredAfter) > 0 {
+			if ts.Sub(*s.config.RegisteredAfter) > 0 {
 				// Account creation too late
 				return
 			}
@@ -52,7 +52,9 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 				// Account was created already with General type
 				s.streamGeneralAccount(ctx, accEntry.AccountId.Address())
 			} else {
-				s.createdAccounts[accEntry.AccountId.Address()] = struct{}{}
+				addr := accEntry.AccountId.Address()
+				s.log.WithField("account_address", addr).Info("Found created Account.")
+				s.createdAccounts[addr] = struct{}{}
 			}
 		}
 	case xdr.LedgerEntryChangeTypeUpdated:
