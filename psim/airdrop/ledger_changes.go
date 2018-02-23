@@ -10,6 +10,7 @@ import (
 )
 
 func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
+	s.log.Info("Started listening Transactions stream.")
 	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
 
 	for {
@@ -17,8 +18,12 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case txEvent := <-txStream:
-			if  app.IsCanceled(ctx) {
+			if app.IsCanceled(ctx) {
 				return
+			}
+
+			if txEvent.Transaction == nil {
+				break
 			}
 
 			for _, change := range txEvent.Transaction.LedgerChanges() {

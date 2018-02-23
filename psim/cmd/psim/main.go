@@ -23,6 +23,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
 
 	// other folks
+	_ "gitlab.com/swarmfund/psim/psim/airdrop"
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"

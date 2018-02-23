@@ -18,6 +18,19 @@ func (s *SyncSet) Put(new string) {
 	s.data[new] = struct{}{}
 }
 
+func (s *SyncSet) Delete(values []string) {
+	s.mu.Lock()
+	defer func() { s.mu.Unlock() }()
+
+	for _, value := range values {
+		delete(s.data, value)
+	}
+}
+
+func (s *SyncSet) Length() int {
+	return len(s.data)
+}
+
 func (s *SyncSet) Range(ctx context.Context, f func(s string)) {
 	s.mu.Lock()
 	defer func() { s.mu.Unlock() }()
@@ -28,14 +41,5 @@ func (s *SyncSet) Range(ctx context.Context, f func(s string)) {
 		}
 
 		f(key)
-	}
-}
-
-func (s *SyncSet) Delete(values []string) {
-	s.mu.Lock()
-	defer func() { s.mu.Unlock() }()
-
-	for _, value := range values {
-		delete(s.data, value)
 	}
 }

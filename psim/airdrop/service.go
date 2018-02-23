@@ -54,9 +54,13 @@ func NewService(
 }
 
 func (s *Service) Run(ctx context.Context) {
+	s.log.Info("Starting.")
+
 	go s.listenLedgerChangesInfinitely(ctx)
 
 	go s.consumeGeneralAccounts(ctx)
 
 	go s.processPendingGeneralAccounts(ctx)
+
+	<-ctx.Done()
 }

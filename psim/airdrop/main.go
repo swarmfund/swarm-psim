@@ -22,12 +22,12 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceRateSync)).
+		From(app.Config(ctx).GetRequired(conf.ServiceAirdrop)).
 		With(figure.BaseHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceRateSync,
+			"service": conf.ServiceAirdrop,
 		})
 	}
 

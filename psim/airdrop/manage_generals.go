@@ -9,6 +9,8 @@ import (
 )
 
 func (s *Service) consumeGeneralAccounts(ctx context.Context) {
+	s.log.Info("Started consuming GeneralAccounts from stream.")
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -18,9 +20,15 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 				return
 			}
 
+			logger := s.log.WithFields(logan.F{
+				"account_address": acc,
+			})
+
+			logger.Info("GeneralAccount was found.")
+
 			ok, err := s.tryProcessGeneralAcc(ctx, acc)
 			if err != nil {
-				s.log.WithField("account_address", acc).WithError(err).Error("Failed to process GeneralAccount.")
+				logger.WithError(err).Error("Failed to process GeneralAccount.")
 				// Will try later
 				s.pendingGeneralAccounts.Put(acc)
 				break
@@ -32,7 +40,7 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 				break
 			}
 
-			s.log.WithField("account_address", acc).WithError(err).Info("Processed GeneralAccount successfully.")
+			logger.WithField("account_address", acc).WithError(err).Info("Processed GeneralAccount successfully.")
 		}
 	}
 }
