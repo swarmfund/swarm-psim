@@ -59,7 +59,7 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 		entryData := change.Updated.Data
 
 		if entryData.Type == xdr.LedgerEntryTypeAccount {
-			accEntry := change.Created.Data.Account
+			accEntry := change.Updated.Data.Account
 
 			if accEntry.AccountType != xdr.AccountTypeGeneral {
 				// Account was updated but its Type is not general

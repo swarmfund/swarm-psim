@@ -19,6 +19,10 @@ func (s *Service) processPendingGeneralAccounts(ctx context.Context) {
 				return
 			}
 
+			if s.pendingGeneralAccounts.Length() == 0 {
+				break
+			}
+
 			s.log.WithField("number_of_pending_accounts", s.pendingGeneralAccounts.Length()).Info("Started Processing pending GeneralAccounts batch.")
 
 			var processedAccounts []string
