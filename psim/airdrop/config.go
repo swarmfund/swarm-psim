@@ -14,5 +14,7 @@ type Config struct {
 	Source keypair.Address `fig:"source"`
 	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
 
-	EmailRequestType int `json:"email_request_type"`
+	EmailSubject        string `json:"email_subject"`
+	EmailRequestType    int    `json:"email_request_type"`
+	TemplateRedirectURL string `json:"template_redirect_url"`
 }

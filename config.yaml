@@ -226,4 +226,6 @@ airdrop:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
+  email_subject: "Airdrop"
   email_request_type: 3
+  template_redirect_url: https://invest.swarm.fund

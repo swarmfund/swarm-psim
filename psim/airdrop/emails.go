@@ -4,6 +4,10 @@ import (
 	"context"
 	"time"
 
+	"html/template"
+
+	"bytes"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	notificator "gitlab.com/distributed_lab/notificator-server/client"
 )
@@ -37,12 +41,27 @@ func (s *Service) processEmails(ctx context.Context) {
 }
 
 func (s *Service) sendEmail(email string) error {
+	t, err := template.New("template").Parse(htmlTemplate)
+	if err != nil {
+		return errors.Wrap(err, "Failed to parse html.Template")
+	}
+
+	data := struct {
+		Link string
+	}{
+		Link: s.config.TemplateRedirectURL,
+	}
+
+	var buff bytes.Buffer
+	err = t.Execute(&buff, data)
+	if err != nil {
+		return errors.Wrap(err, "Failed to execute html.Template")
+	}
+
 	msg := &notificator.EmailRequestPayload{
 		Destination: email,
-		// TODO
-		Subject: "My awesome subject",
-		// TODO
-		Message: "My awesome message.",
+		Subject:     s.config.EmailSubject,
+		Message:     buff.String(),
 	}
 
 	resp, err := s.notificator.Send(s.config.EmailRequestType, email, msg)
