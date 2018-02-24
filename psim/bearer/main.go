@@ -39,7 +39,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "failed to get horizon info")
 	}
 	builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
-	helper := NewCheckSalesStateHelper(app.Config(ctx).Horizon(), builder, config.Source, config.Signer)
+	helper := NewCheckSalesStateHelper(app.Config(ctx).Horizon().WithSigner(config.Signer), builder, config.Source, config.Signer)
 
 	return New(config, app.Log(ctx), helper), nil
 }
