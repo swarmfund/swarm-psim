@@ -60,8 +60,6 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 				s.pendingGeneralAccounts.Put(acc)
 				break
 			}
-
-			logger.WithField("account_address", acc).Info("Created IssuanceRequest for GeneralAccount successfully.")
 		}
 	}
 }
@@ -73,21 +71,24 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, email string)
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	err = s.submitIssuance(ctx, accAddress, balanceID)
+	newIssuanceCreated, err := s.submitIssuance(ctx, accAddress, balanceID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	err = s.sendEmail(email)
-	if err != nil {
-		// TODO Create separate routine, which will manage emails
-		s.log.WithFields(fields).WithError(err).Error("Failed to send email.")
-		// Don't return error, as the Issuance actually happened
+	if newIssuanceCreated {
+		err = s.sendEmail(email)
+		if err != nil {
+			// TODO Create separate routine, which will manage emails
+			s.log.WithFields(fields).WithError(err).Error("Failed to send email.")
+			// Don't return error, as the Issuance actually happened
+		}
 	}
 
 	return nil
 }
 
+// IsReadyForIssuance returns empty email without error, if Account is not ready yet.
 func (s *Service) isReadyForIssuance(accountAddress string) (email string, err error) {
 	user, err := s.usersConnector.User(accountAddress)
 	if err != nil {

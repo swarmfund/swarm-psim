@@ -26,8 +26,6 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 				break
 			}
 
-			s.log.WithField("tx_paging_token", txEvent.Transaction.PagingToken).Debug("Found TX.")
-
 			for _, change := range txEvent.Transaction.LedgerChanges() {
 				s.processChange(ctx, txEvent.Transaction.CreatedAt, change)
 			}

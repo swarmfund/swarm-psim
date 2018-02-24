@@ -70,7 +70,6 @@ func (s *Service) getAndProcessAPIUsers(ctx context.Context) (processedAccounts 
 				continue
 			}
 
-			logger.Info("Created IssuanceRequest for pending GeneralAccount successfully.")
 			processedAccounts = append(processedAccounts, user.ID)
 		case streamErr := <-userStreamErrs:
 			s.log.WithError(streamErr).Error("Users connector sent error.")
