@@ -26,6 +26,14 @@ func (s *SyncSet) Put(new string) {
 	s.data[new] = struct{}{}
 }
 
+func (s *SyncSet) Exists(key string) bool {
+	s.mu.Lock()
+	defer func() { s.mu.Unlock() }()
+
+	_, ok := s.data[key]
+	return ok
+}
+
 func (s *SyncSet) Delete(values []string) {
 	s.mu.Lock()
 	defer func() { s.mu.Unlock() }()

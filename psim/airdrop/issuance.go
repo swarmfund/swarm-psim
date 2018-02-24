@@ -8,7 +8,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
-func (s *Service) processIssuance(ctx context.Context, accountAddress, balanceID string) error {
+func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID string) error {
 	issuanceOpt := issuance.RequestOpt{
 		Reference: s.buildReference(accountAddress),
 		Receiver:  balanceID,
