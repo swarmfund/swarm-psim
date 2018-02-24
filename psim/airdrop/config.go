@@ -16,5 +16,6 @@ type Config struct {
 
 	EmailSubject        string `json:"email_subject"`
 	EmailRequestType    int    `json:"email_request_type"`
+	TemplateName        string `json:"template_name"`
 	TemplateRedirectURL string `json:"template_redirect_url"`
 }

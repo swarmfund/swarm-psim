@@ -79,7 +79,6 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, email string)
 	if newIssuanceCreated {
 		err = s.sendEmail(email)
 		if err != nil {
-			// TODO Create separate routine, which will manage emails
 			s.log.WithFields(fields).WithError(err).Error("Failed to send email.")
 			// Don't return error, as the Issuance actually happened
 		}

@@ -3,8 +3,6 @@ package airdrop
 import (
 	"context"
 
-	"fmt"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/go/xdrbuild"
@@ -81,18 +79,13 @@ func NewService(
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
-	//go s.listenLedgerChangesInfinitely(ctx)
-	//
-	//go s.consumeGeneralAccounts(ctx)
-	//
-	//go s.processPendingGeneralAccounts(ctx)
-	//
-	//<-ctx.Done()
+	go s.listenLedgerChangesInfinitely(ctx)
 
-	err := s.sendEmail("andrew.stepko@gmail.com")
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
-		fmt.Println("Email sent.")
-	}
+	go s.consumeGeneralAccounts(ctx)
+
+	go s.processPendingGeneralAccounts(ctx)
+
+	go s.processEmails(ctx)
+
+	<-ctx.Done()
 }

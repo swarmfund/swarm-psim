@@ -228,4 +228,5 @@ airdrop:
 
   email_subject: "Airdrop"
   email_request_type: 3
+  template_name: airdrop.html
   template_redirect_url: https://invest.swarm.fund
