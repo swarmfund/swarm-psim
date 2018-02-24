@@ -48,7 +48,7 @@ func (s *Service) buildReference(accountAddress string) string {
 
 	// Just in case.
 	if len(result) > 64 {
-		result = result[:64]
+		result = result[len(result) - 64:]
 	}
 
 	// Just in case.

@@ -121,8 +121,3 @@ func (s *Service) getBalanceID(accAddress string) (string, error) {
 
 	return "", errNoBalanceID
 }
-
-// TODO
-func (s *Service) sendEmail(email string) error {
-	return errors.New("Not implemented.")
-}

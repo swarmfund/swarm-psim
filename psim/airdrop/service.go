@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 )
@@ -35,9 +36,13 @@ type Service struct {
 	usersConnector    UsersConnector
 	accountsConnector AccountsConnector
 
+	notificator *notificator.Connector
+
 	createdAccounts        map[string]struct{}
 	generalAccountsCh      chan string
 	pendingGeneralAccounts SyncSet
+
+	emails SyncSet
 }
 
 func NewService(
@@ -48,6 +53,7 @@ func NewService(
 	txStreamer TXStreamer,
 	usersConnector UsersConnector,
 	accountsConnector AccountsConnector,
+	notificator *notificator.Connector,
 ) *Service {
 
 	return &Service{
@@ -60,9 +66,13 @@ func NewService(
 		usersConnector:    usersConnector,
 		accountsConnector: accountsConnector,
 
+		notificator: notificator,
+
 		createdAccounts:        make(map[string]struct{}),
 		generalAccountsCh:      make(chan string, 100),
 		pendingGeneralAccounts: NewSyncSet(),
+
+		emails: NewSyncSet(),
 	}
 }
 
@@ -76,4 +86,9 @@ func (s *Service) Run(ctx context.Context) {
 	go s.processPendingGeneralAccounts(ctx)
 
 	<-ctx.Done()
+
+	//err := s.sendEmail("andrew.stepko@gmail.com")
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//}
 }
