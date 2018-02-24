@@ -14,14 +14,14 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
 
 var (
-	ErrNoBalanceID             = errors.New("No BalanceID for the Account.")
-	ErrNoVerifierServices      = errors.New("No Deposit Verify services were found.")
-	OpCodeReferenceDuplication = "op_reference_duplication"
+	ErrNoBalanceID        = errors.New("No BalanceID for the Account.")
+	ErrNoVerifierServices = errors.New("No Deposit Verify services were found.")
 )
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
@@ -256,7 +256,7 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 
 	reference := s.offchainHelper.BuildReference(blockNumber, txHash, out.Address, outIndex, 64)
 
-	issuance := issuanceRequestOpt{
+	issuanceOpt := issuance.RequestOpt{
 		Reference: reference,
 		Receiver:  balanceID,
 		Asset:     s.offchainHelper.GetAsset(),
@@ -269,7 +269,7 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 		}.Encode(),
 	}
 
-	err = s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuance)
+	err = s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuanceOpt)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", logan.F{
 			"balance_id":              balanceID,
@@ -281,8 +281,8 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 	return nil
 }
 
-func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offchainAddress, accountAddress string, issuance issuanceRequestOpt) error {
-	tx := s.craftIssuanceTX(issuance)
+func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offchainAddress, accountAddress string, issuanceOpt issuance.RequestOpt) error {
+	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.source, s.signer)
 
 	envelope, err := tx.Marshal()
 	if err != nil {
@@ -293,7 +293,7 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		"block_number":     blockNumber,
 		"offchain_address": offchainAddress,
 		"account_address":  accountAddress,
-		"issuance":         issuance,
+		"issuance":         issuanceOpt,
 	})
 
 	readyEnvelope, err := s.sendToVerifier(envelope, accountAddress)
@@ -301,12 +301,17 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		return errors.Wrap(err, "Failed to Verify Issuance TX")
 	}
 
-	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuance)
+	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
 	if checkErr != nil {
 		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
 	}
 
-	ok, err := s.submitEnvelope(ctx, *readyEnvelope)
+	envelopeBase64, err := xdr.MarshalBase64(*readyEnvelope)
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
+	}
+
+	ok, err := issuance.SubmitEnvelope(ctx, envelopeBase64, s.horizon.Submitter())
 	if err != nil {
 		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
 		return nil
@@ -368,7 +373,7 @@ func (s *Service) getVerifierURL() (string, error) {
 	return services[0].Address, nil
 }
 
-func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuance issuanceRequestOpt) (checkErr error) {
+func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuanceOpt issuance.RequestOpt) (checkErr error) {
 	if len(envelope.Tx.Operations) != 1 {
 		return errors.New("Must be exactly 1 Operation.")
 	}
@@ -386,44 +391,23 @@ func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuan
 		return errors.New("CreateIssuanceRequestOp is nil.")
 	}
 
-	if string(op.Reference) != issuance.Reference {
-		return errors.Errorf("Expected Reference to be (%s), but got (%s).", issuance.Reference, op.Reference)
+	if string(op.Reference) != issuanceOpt.Reference {
+		return errors.Errorf("Expected Reference to be (%s), but got (%s).", issuanceOpt.Reference, op.Reference)
 	}
 
 	req := op.Request
 
-	if req.Receiver.AsString() != issuance.Receiver {
-		return errors.Errorf("Expected Receiver to be (%s), but got (%s).", issuance.Receiver, req.Receiver)
+	if req.Receiver.AsString() != issuanceOpt.Receiver {
+		return errors.Errorf("Expected Receiver to be (%s), but got (%s).", issuanceOpt.Receiver, req.Receiver)
 	}
 
-	if string(req.Asset) != issuance.Asset {
-		return errors.Errorf("Expected Asset to be (%s), but got (%s).", issuance.Asset, req.Asset)
+	if string(req.Asset) != issuanceOpt.Asset {
+		return errors.Errorf("Expected Asset to be (%s), but got (%s).", issuanceOpt.Asset, req.Asset)
 	}
 
-	if uint64(req.Amount) != issuance.Amount {
-		return errors.Errorf("Expected Asset to be (%d), but got (%d).", issuance.Amount, req.Amount)
+	if uint64(req.Amount) != issuanceOpt.Amount {
+		return errors.Errorf("Expected Asset to be (%d), but got (%d).", issuanceOpt.Amount, req.Amount)
 	}
 
 	return nil
-}
-
-func (s *Service) submitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) (bool, error) {
-	envelopeBase64, err := xdr.MarshalBase64(envelope)
-	if err != nil {
-		return false, errors.Wrap(err, "Failed to marshal fully signed Envelope from Verifier")
-	}
-
-	result := s.horizon.Submitter().Submit(ctx, envelopeBase64)
-	if result.Err != nil {
-		if len(result.OpCodes) == 1 && result.OpCodes[0] == OpCodeReferenceDuplication {
-			// Deposit duplication - we already processed this deposit - just ignoring it.
-			return false, nil
-		}
-
-		return false, errors.Wrap(result.Err, "Horizon SubmitResult has error", logan.F{
-			"submit_result": result,
-		})
-	}
-
-	return true, nil
 }

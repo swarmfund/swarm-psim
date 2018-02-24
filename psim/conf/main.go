@@ -33,8 +33,7 @@ type Config interface {
 	Stripe() (*client.API, error)
 	Ethereum() *ethclient.Client
 	Bitcoin() *bitcoin.Client
-	// TODO Panic instead of returning errors.
-	Notificator() (*notificator.Connector, error)
+	Notificator() *notificator.Connector
 	NotificationSender() *notifications.SlackSender
 }
 

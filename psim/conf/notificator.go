@@ -19,9 +19,9 @@ type NotificatorConfig struct {
 	Public string
 }
 
-func (c *ViperConfig) Notificator() (*notificator.Connector, error) {
+func (c *ViperConfig) Notificator() *notificator.Connector {
 	if notificatorClient != nil {
-		return notificatorClient, nil
+		return notificatorClient
 	}
 	conf := NotificatorConfig{}
 
@@ -32,7 +32,7 @@ func (c *ViperConfig) Notificator() (*notificator.Connector, error) {
 		Please()
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to figure out notificator")
+		panic(errors.Wrap(err, "Failed to figure out Notificator"))
 	}
 
 	client := notificator.NewConnector(notificator.Pair{
@@ -42,5 +42,5 @@ func (c *ViperConfig) Notificator() (*notificator.Connector, error) {
 
 	notificatorClient = client
 
-	return notificatorClient, nil
+	return notificatorClient
 }

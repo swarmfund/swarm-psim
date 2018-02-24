@@ -217,3 +217,16 @@ bearer:
   signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
   abnormal_period: 1m
   sleep_period: 5m
+
+airdrop:
+  issuance_asset: SUN
+  issuance_amount: 100000000 # in stroops
+  registered_after: "2018-02-04T12:00:00"
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  email_subject: "Airdrop"
+  email_request_type: 3
+  template_name: airdrop.html
+  template_redirect_url: https://invest.swarm.fund
