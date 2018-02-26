@@ -4,10 +4,12 @@ package bearer
 
 import (
 	"context"
-	"fmt"
 
+	"time"
+
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
@@ -18,22 +20,26 @@ func init() {
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
-	globalConfig := app.Config(ctx)
-	log := app.Log(ctx).WithField("service", conf.ServiceBearer)
-
-	config := Config{}
-
+	config := Config{
+		AbnormalPeriod: 1 * time.Minute,
+		SleepPeriod:    5 * time.Minute,
+	}
 	err := figure.
 		Out(&config).
-		From(globalConfig.GetRequired(conf.ServiceBearer)).
-		With(figure.BaseHooks, utils.CommonHooks).
+		From(app.Config(ctx).Get(conf.ServiceBearer)).
+		With(figure.BaseHooks, utils.ETHHooks).
 		Please()
-
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Failed to figure out %s", conf.ServiceBearer))
+		return nil, errors.Wrap(err, "failed to figure out")
 	}
 
-	hConn := globalConfig.Horizon()
+	horizon := app.Config(ctx).Horizon()
+	info, err := horizon.Info()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get horizon info")
+	}
+	builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
+	helper := NewCheckSalesStateHelper(app.Config(ctx).Horizon().WithSigner(config.Signer), builder, config.Source, config.Signer)
 
-	return New(config, log, hConn), nil
+	return New(config, app.Log(ctx), helper), nil
 }

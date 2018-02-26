@@ -39,7 +39,7 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 
 	globalConfig := app.Config(ctx)
 
-	horizonConnector := globalConfig.Horizon()
+	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
 
 	listener, err := ape.Listener(config.Host, config.Port)
 	if err != nil {

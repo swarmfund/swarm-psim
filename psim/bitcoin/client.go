@@ -9,6 +9,11 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+const (
+	MainnetName = "Mainnet"
+	TestnetName = "Testnet"
+)
+
 // Client uses Connector to request some Bitcoin Node
 // and transforms raw responses to btcutil structures.
 type Client struct {
@@ -22,34 +27,46 @@ func NewClient(connector Connector) *Client {
 	}
 }
 
-// GetBlockCount returns index of the last known Block.
+// GetBlockCount returns the number of the last known Block.
 func (c Client) GetBlockCount() (uint64, error) {
 	return c.connector.GetBlockCount()
 }
 
-// GetBlock gets Block hash by index via Connector,
-// gets raw Block(hex) by hash from Connector
-// and tries to parse raw Block into btcutil Block structure.
-func (c Client) GetBlock(blockIndex uint64) (*btcutil.Block, error) {
-	hash, err := c.connector.GetBlockHash(blockIndex)
+// TODO Handle absent Block
+
+// GetBlock gets Block hash by provided blockNumber via Connector,
+// gets raw Block(in hex) by the hash from Connector
+// and tries to parse raw Block into btcutil.Block structure.
+func (c Client) GetBlock(blockNumber uint64) (*btcutil.Block, error) {
+	hash, err := c.connector.GetBlockHash(blockNumber)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Block hash")
 	}
+	// TODO Handle absent Block
 
-	return c.GetBlockByHash(hash)
+	block, err := c.GetBlockByHash(hash)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Block by its hash", logan.F{"block_hash": hash})
+	}
+	// TODO Handle absent Block
+
+	return block, nil
 }
 
-// TODO Comment
+// GetBlockByHash obtains raw Block(hex) by the provided blockHash from the connector
+// and parses the raw Block into btcutil.Block structure.
 func (c Client) GetBlockByHash(blockHash string) (*btcutil.Block, error) {
 	blockHex, err := c.connector.GetBlock(blockHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Block", logan.F{"block_hash": blockHash})
+		return nil, errors.Wrap(err, "Failed to get Block from connector")
 	}
+	// TODO Handle absent Block
 
 	block, err := c.parseBlock(blockHex)
 	if err != nil {
+		// TODO Make sure no overflow will happen
 		hexToLog := blockHex[:10] + ".." + blockHex[len(blockHex)-10:]
-		return nil, errors.Wrap(err, "FAiled to parse Block hex", logan.F{"block_hex": hexToLog})
+		return nil, errors.Wrap(err, "Failed to parse Block hex", logan.F{"shortened_block_hex": hexToLog})
 	}
 
 	return block, nil
@@ -87,6 +104,84 @@ func (c Client) GetWalletBalance(includeWatchOnly bool) (float64, error) {
 	return balance, nil
 }
 
+// CreateAndFundRawTX creates TX, which pays provided amount
+// to the provided goalAddress, passing change to the provided changeAddress.
+// Node decides, which UTXOs to use for inputs for the TX during the FundRawTX request.
+//
+// The returned Transaction is not submitted into the network,
+// it is not even signed yet.
+// However, UTXOs used as inputs in this TX has been locked in the Node.
+//
+// If there is not enough unlocked BTC to fulfil the TX -
+// error with cause ErrInsufficientFunds is returned.
+//
+// Change position in Outputs is set to 1.
+//
+// Provided feeRate can be nil - in this case the Wallet of the Node determines the fee.
+func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error) {
+	txHex, err := c.connector.CreateRawTX(nil, map[string]float64{
+		goalAddress: amount,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to CreateAndFundRawTX")
+	}
+
+	// Fill TX with inputs - UTXOs.
+	fundResult, err := c.connector.FundRawTX(txHex, changeAddress, true, feeRate)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
+			"created_tx_hex": txHex,
+		})
+	}
+
+	return fundResult.Hex, nil
+}
+
+func (c Client) CreateRawTX(inputUTXOs []Out, addrToAmount map[string]float64) (resultTXHex string, err error) {
+	return c.connector.CreateRawTX(inputUTXOs, addrToAmount)
+}
+
+func (c Client) FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error) {
+	return c.connector.FundRawTX(initialTXHex, changeAddress, includeWatching, feeRate)
+}
+
+// SignAllTXInputs signs the inputs of the provided TX with the provided privateKey.
+// If the provided privateKey is nil - the TX will be tried to sign by Node, using
+// the private keys Node owns.
+func (c Client) SignAllTXInputs(initialTXHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
+	tx, err := c.parseTX(initialTXHex)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to parse provided initialTXHex into btc.Tx")
+	}
+
+	if len(tx.MsgTx().TxIn) == 0 {
+		return "", errors.New("No TX Inputs to sign")
+	}
+
+	var inputUTXOs []InputUTXO
+	for _, in := range tx.MsgTx().TxIn {
+		inputUTXOs = append(inputUTXOs, InputUTXO{
+			Out: Out{
+				TXHash: in.PreviousOutPoint.Hash.String(),
+				Vout:   in.PreviousOutPoint.Index,
+			},
+			ScriptPubKey: scriptPubKey,
+			RedeemScript: &redeemScript,
+		})
+	}
+
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, []string{privateKey})
+}
+
+func (c Client) SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error) {
+	return c.connector.SignRawTX(initialTXHex, inputUTXOs, privateKeys)
+}
+
+// SendRawTX submits TX into the blockchain.
+func (c Client) SendRawTX(txHex string) (txHash string, err error) {
+	return c.connector.SendRawTX(txHex)
+}
+
 // SendToAddress sends provided amount of BTC to the provided goalAddress.
 // Amount in BTC.
 func (c Client) SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error) {
@@ -105,64 +200,6 @@ func (c Client) SendMany(addrToAmount map[string]float64) (resultTXHash string, 
 	}
 
 	return resultTXHash, nil
-}
-
-// CreateAndFundRawTX creates TX, which pays provided amount
-// to the provided goalAddress, passing change to the provided changeAddress.
-// Node decides, which UTXOs to use for inputs for the TX during the FundRawTX request.
-//
-// The returned Transaction is not submitted into the network,
-// it is not even signed yet.
-// However, UTXOs used as inputs in this TX has been locked.
-//
-// If there is not enough unlocked BTC to fulfil the TX -
-// error with cause ErrInsufficientFunds is returned.
-//
-// Change position in Outputs is set to 1.
-func (c Client) CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error) {
-	txHex, err := c.connector.CreateRawTX(goalAddress, amount)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to CreateAndFundRawTX")
-	}
-
-	// Fill TX with inputs - UTXOs
-	txHex, err = c.connector.FundRawTX(txHex, changeAddress)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to FundRawTX", logan.F{
-			"created_tx_hex": txHex,
-		})
-	}
-
-	return txHex, nil
-}
-
-// SignRawTX signs the inputs of the provided TX with the provided privateKey.
-func (c Client) SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error) {
-	tx, err := c.parseTX(txHex)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to parse provided txHex into btc.Tx")
-	}
-
-	if len(tx.MsgTx().TxIn) == 0 {
-		return "", errors.New("No TX Inputs to sign")
-	}
-
-	var inputUTXOs []Out
-	for _, in := range tx.MsgTx().TxIn {
-		inputUTXOs = append(inputUTXOs, Out{
-			TXHash:       in.PreviousOutPoint.Hash.String(),
-			Vout:         in.PreviousOutPoint.Index,
-			ScriptPubKey: scriptPubKey,
-			RedeemScript: &redeemScript,
-		})
-	}
-
-	return c.connector.SignRawTX(txHex, inputUTXOs, privateKey)
-}
-
-// SendRawTX submits TX into the blockchain.
-func (c Client) SendRawTX(txHex string) (txHash string, err error) {
-	return c.connector.SendRawTX(txHex)
 }
 
 func (c Client) parseBlock(blockHex string) (*btcutil.Block, error) {
@@ -201,6 +238,23 @@ func (c Client) GetNetParams() *chaincfg.Params {
 	}
 }
 
-func BuildCoinEmissionRequestReference(txHash string, outIndex int) string {
-	return txHash + string(outIndex)
+func (c Client) GetNetworkName() string {
+	if c.connector.IsTestnet() {
+		return TestnetName
+	} else {
+		return MainnetName
+	}
+}
+
+func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {
+	return c.connector.GetTxUTXO(txHash, outNumber, false)
+}
+
+func (c Client) EstimateFee() (float64, error) {
+	return c.connector.EstimateFee(3)
+}
+
+// GetAddrUTXOs returns the list of UTXOs of the provided Address.
+func (c Client) GetAddrUTXOs(address string) ([]WalletUTXO, error) {
+	return c.connector.ListUnspent(1, 9999999, []string{address})
 }

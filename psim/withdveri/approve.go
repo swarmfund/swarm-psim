@@ -11,12 +11,12 @@ import (
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/psim/psim/verification"
 )
 
 func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Request) {
 	approveRequest := withdraw.ApproveRequest{}
-	ok := s.readAPIRequest(w, r, &approveRequest)
-	if !ok {
+	if ok := verification.ReadAPIRequest(s.log, w, r, &approveRequest); !ok {
 		return
 	}
 
@@ -59,14 +59,15 @@ func (s *Service) preliminaryApproveHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	s.marshalResponseEnvelope(w, r, signedEnvelope)
-	logger.Info("Verified PreliminaryApprove successfully.")
+	ok := verification.RenderResponseEnvelope(logger, w, r, signedEnvelope)
+	if ok {
+		logger.Info("Verified PreliminaryApprove successfully.")
+	}
 }
 
 func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 	approveRequest := withdraw.ApproveRequest{}
-	ok := s.readAPIRequest(w, r, &approveRequest)
-	if !ok {
+	if ok := verification.ReadAPIRequest(s.log, w, r, &approveRequest); !ok {
 		return
 	}
 
@@ -115,8 +116,10 @@ func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.marshalResponseEnvelope(w, r, signedEnvelope)
-	logger.Info("Verified Approve successfully.")
+	ok := verification.RenderResponseEnvelope(logger, w, r, signedEnvelope)
+	if ok {
+		logger.Info("Verified Approve successfully.")
+	}
 }
 
 func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash string, neededRequestType int32, txHex string) (checkErr string, err error) {

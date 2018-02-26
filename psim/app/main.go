@@ -105,7 +105,7 @@ func (app *App) Run() {
 	servicesMu.Lock()
 	defer servicesMu.Unlock()
 
-	app.log.WithField("services_count", len(app.config.Services())).Info("starting services")
+	app.log.WithField("services_count", len(app.config.Services())).Info("Starting services.")
 	wg := sync.WaitGroup{}
 
 	ctx := context.WithValue(app.ctx, ctxConfig, app.config)
@@ -171,6 +171,7 @@ func (app *App) Run() {
 				}
 				wg.Done()
 			}()
+
 			ctx := context.WithValue(ctx, ctxLog, entry)
 			service, err := ohaigo(ctx)
 			if err != nil {

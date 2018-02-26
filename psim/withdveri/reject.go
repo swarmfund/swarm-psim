@@ -11,12 +11,12 @@ import (
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/psim/psim/verification"
 )
 
 func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 	rejectRequest := withdraw.RejectRequest{}
-	ok := s.readAPIRequest(w, r, &rejectRequest)
-	if !ok {
+	if ok := verification.ReadAPIRequest(s.log, w, r, &rejectRequest); !ok {
 		return
 	}
 
@@ -59,8 +59,10 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.marshalResponseEnvelope(w, r, signedEnvelope)
-	logger.Info("Verified Reject successfully.")
+	ok := verification.RenderResponseEnvelope(logger, w, r, signedEnvelope)
+	if ok {
+		logger.Info("Verified Reject successfully.")
+	}
 }
 
 func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.RejectReason) string {

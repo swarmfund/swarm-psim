@@ -46,7 +46,7 @@ func (s *Service) processRequestReject(ctx context.Context, request horizon.Requ
 		})
 	}
 
-	s.signAndSubmitEnvelope(ctx, *returnedEnvelope)
+	err = s.signAndSubmitEnvelope(ctx, *returnedEnvelope)
 	if err != nil {
 		return errors.Wrap(err, "Failed to sign-and-submit Envelope", logan.F{
 			"envelope_returned_by_verify": returnedEnvelope,

@@ -28,21 +28,13 @@ func setupFn(ctx context.Context) (app.Service, error) {
 				conf.ServiceOperationNotifier))
 	}
 
-	sender, err := globalConfig.Notificator()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get horizon connector")
-	}
-
-	horizonConn := globalConfig.Horizon()
-
-	logger := app.Log(ctx)
-	logger = logger.WithField("service", "notifier")
-	logger.Info("Starting")
+	log := app.Log(ctx)
+	log = log.WithField("service", "notifier")
 
 	return &Service{
 		Config:  cfg,
-		horizon: horizonConn,
-		logger:  logger,
-		sender:  sender,
+		horizon: globalConfig.Horizon(),
+		logger:  log,
+		sender:  globalConfig.Notificator(),
 	}, nil
 }

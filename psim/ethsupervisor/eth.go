@@ -6,8 +6,10 @@ import (
 
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
@@ -15,24 +17,36 @@ import (
 
 // TODO defer
 func (s *Service) processBlocks(ctx context.Context) {
+	// TODO Listen to both s.blockCh and ctx.Done() in select.
 	for blockNumber := range s.blocksCh {
-		s.Log.WithField("number", blockNumber).Debug("processing block")
+		if app.IsCanceled(ctx) {
+			return
+		}
+
+		entry := s.Log.WithField("block_number", blockNumber)
+		entry.Debug("Processing block.")
+
 		block, err := s.eth.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
 		if err != nil {
-			s.Log.WithField("block_number", blockNumber).Error("failed to get block")
+			entry.Error("Failed to get block.")
 			s.blocksCh <- blockNumber
 			continue
 		}
 
 		if block == nil {
-			s.Log.WithField("block_number", blockNumber).Error("missing block")
+			entry.Error("Got nil block from node.")
 			continue
 		}
 
 		for _, tx := range block.Transactions() {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
 			if tx == nil {
 				continue
 			}
+
 			s.txCh <- internal.Transaction{
 				Timestamp:   time.Unix(block.Time().Int64(), 0),
 				BlockNumber: block.NumberU64(),
@@ -48,7 +62,13 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
+
+		// TODO Listen to both ticker.C and ctx.Done() in select.
 		for ; ; <-ticker.C {
+			if app.IsCanceled(ctx) {
+				return
+			}
+
 			head, err := s.eth.BlockByNumber(ctx, nil)
 			if err != nil {
 				s.Log.WithError(err).Error("failed to get block count")
@@ -58,6 +78,10 @@ func (s *Service) watchHeight(ctx context.Context) {
 			s.Log.WithField("height", head.NumberU64()).Debug("fetched new head")
 
 			for head.NumberU64()-s.config.Confirmations > cursor.Uint64() {
+				if app.IsCanceled(ctx) {
+					return
+				}
+
 				s.blocksCh <- cursor.Uint64()
 				cursor.Add(cursor, big.NewInt(1))
 			}
@@ -67,20 +91,24 @@ func (s *Service) watchHeight(ctx context.Context) {
 
 func (s *Service) processTXs(ctx context.Context) {
 	for tx := range s.txCh {
-		entry := s.Log.WithField("tx", tx.Hash().Hex())
-		for {
-			entry.Debug("processing tx")
-			if err := s.processTX(ctx, tx); err != nil {
-				s.Log.WithError(err).Error("failed to process tx")
-				continue
-			}
-			entry.Debug("tx processed")
-			break
+		if app.IsCanceled(ctx) {
+			return
 		}
 
+		entry := s.Log.WithField("tx", tx.Hash().Hex())
+
+		for {
+			// TODO Incremental!
+			if err := s.processTX(ctx, tx); err != nil {
+				entry.WithError(err).Error("Failed to process TX.")
+				continue
+			}
+			break
+		}
 	}
 }
 
+// TODO Refactor me.
 func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err error) {
 	defer func() {
 		if rvr := recover(); rvr != nil {
@@ -100,34 +128,39 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 
 	// address is watched
 	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
+	if app.IsCanceled(ctx) {
+		return nil
+	}
+
 	if address == nil {
 		return nil
 	}
 
-	price := s.state.PriceAt(ctx, tx.Timestamp)
-	if price == nil {
-		s.Log.WithField("tx", tx.Hash().String()).Error("price is not set, skipping tx")
+	entry := s.Log.WithFields(logan.F{
+		"tx_hash":     tx.Hash().Hex(),
+		"eth_address": tx.To().String(),
+	})
+	entry.Info("Found deposit.")
+
+	receiver := s.state.Balance(ctx, *address)
+	if app.IsCanceled(ctx) {
 		return nil
 	}
 
-	receiver := s.state.Balance(ctx, *address)
 	if receiver == nil {
-		s.Log.WithField("tx", tx.Hash().String()).Error("balance not found, skipping tx")
+		entry.Error("balance not found, skipping tx")
 		return nil
 	}
 
 	// amount = value * price / 10^18
-	div := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
-	bigPrice := big.NewInt(*price)
-
-	amount := new(big.Int).Mul(tx.Value(), bigPrice)
-	amount = amount.Div(amount, div)
-	if !amount.IsUint64() {
-		s.Log.WithField("tx", tx.Hash().String()).Error("amount overflow, skipping tx")
+	ethPrecision := new(big.Int).Mul(big.NewInt(1000000000), big.NewInt(1000000000))
+	valueWithoutDepositFee := tx.Value().Sub(tx.Value(), s.config.FixedDepositFee)
+	emissionAmount := new(big.Int).Mul(valueWithoutDepositFee, big.NewInt(amount.One))
+	emissionAmount = emissionAmount.Div(emissionAmount, ethPrecision)
+	if !emissionAmount.IsUint64() {
+		entry.Error("amount overflow, skipping tx")
 		return nil
 	}
-
-	s.Log.Info("submitting issuance request")
 
 	reference := tx.Hash().Hex()
 	// yoba eth hex trimming
@@ -138,38 +171,46 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		Asset:     s.config.DepositAsset,
 		Reference: reference,
 		Receiver:  *receiver,
-		Amount:    amount.Uint64(),
+		Amount:    emissionAmount.Uint64(),
 		Details: resources.DepositDetails{
-			Source: tx.Hash().Hex(),
-			Price:  types.Amount(bigPrice.Int64()),
+			TXHash: tx.Hash().Hex(),
+			Price:  amount.One,
 		}.Encode(),
+	})
+
+	entry = entry.WithFields(logan.F{
+		"emission_amount": emissionAmount.Uint64(),
+		"reference":       reference,
+		"receiver":        *receiver,
 	})
 
 	envelope, err := request.Marshal()
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal IR")
+		return errors.Wrap(err, "Failed to marshal IssuanceRequest Envelope")
 	}
 
-	if result := s.Horizon.Submitter().Submit(context.TODO(), envelope); result.Err != nil {
-		entry := s.Log.
-			WithField("tx", tx.Hash().String()).
-			WithField("block", tx.BlockNumber).
-			WithError(err)
+	if result := s.Horizon.Submitter().Submit(ctx, envelope); result.Err != nil {
+		entry := entry.WithFields(logan.F{
+			"block":                    tx.BlockNumber,
+			"submit_response_raw":      string(result.RawResponse),
+			"submit_response_tx_code":  result.TXCode,
+			"submit_response_op_codes": result.OpCodes,
+		}).WithError(result.Err)
 
 		if len(result.OpCodes) == 1 {
 			switch result.OpCodes[0] {
 			// safe to move on
 			case "op_reference_duplication":
-				entry.Info("tx failed")
+				entry.Info("Met op_reference_duplication in response from Horizon - skipping.")
 				return nil
 			}
 		}
 
-		entry.Error("failed to submit issuance request")
+		entry.Error("Failed to submit CoinEmissionRequest Transaction.")
 		return err
 	}
 
-	s.Log.Info("issuance request submitted")
+	entry.Info("issuance request submitted")
 
 	return nil
 }
