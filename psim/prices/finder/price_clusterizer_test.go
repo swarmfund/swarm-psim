@@ -11,7 +11,7 @@ import (
 func TestPriceClusterizer(t *testing.T) {
 	Convey("Panic when trying to calc distance to point from same provider", t, func() {
 		So(func() {
-			calcDistance(providerPricePoint{}, providerPricePoint{})
+			calcDistanceAbs(providerPricePoint{}, providerPricePoint{})
 		}, ShouldPanic)
 	})
 	Convey("GetClusterForPoint", t, func() {

@@ -18,14 +18,16 @@ type candidatePoint struct {
 }
 
 // GetClusterForPoint for each Provider finds the Point among p.points, which is
-// the closet to the provided point.
+// the closet to the provided point by Price.
+//
+// Returned Cluster includes 1 Point per each Provider and does not include the provided point.
 func (p *priceClusterizerImpl) GetClusterForPoint(point providers.PricePoint) []providerPricePoint {
 	providerToCandidate := map[string]candidatePoint{}
 
 	for i := range p.providersPoints {
 		candidate := candidatePoint{
 			providerPricePoint: p.providersPoints[i],
-			distance:           calcDistance(point, p.providersPoints[i].PricePoint),
+			distance:           calcDistanceAbs(point, p.providersPoints[i].PricePoint),
 		}
 
 		bestPoint, ok := providerToCandidate[candidate.ProviderID]
@@ -35,7 +37,7 @@ func (p *priceClusterizerImpl) GetClusterForPoint(point providers.PricePoint) []
 			continue
 		}
 
-		if bestPoint.distance > candidate.distance {
+		if candidate.distance < bestPoint.distance {
 			// candidate if better than bestPoint for the Provider - found new best Point
 			providerToCandidate[candidate.ProviderID] = candidate
 		}
@@ -50,8 +52,9 @@ func (p *priceClusterizerImpl) GetClusterForPoint(point providers.PricePoint) []
 	return result
 }
 
-func calcDistance(p1, p2 providers.PricePoint) int64 {
+func calcDistanceAbs(p1, p2 providers.PricePoint) int64 {
 	delta := p1.Price - p2.Price
+
 	if delta < 0 {
 		return -delta
 	}
