@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 // jsonAssetPrice is middle-layer structure for custom JSON unmarshalling
@@ -18,15 +18,15 @@ type jsonAssetPrice struct {
 type jsonPrices []jsonAssetPrice
 
 // Prices returns unmarshaled array of PricePoint with appropriate representation of price and time
-func (jps jsonPrices) Prices() ([]provider.PricePoint, error) {
-	var result []provider.PricePoint
+func (jps jsonPrices) Prices() ([]providers.PricePoint, error) {
+	var result []providers.PricePoint
 	for _, jp := range jps {
 		p, err := amount.Parse(jp.Price)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse amount")
 		}
 
-		result = append(result, provider.PricePoint{
+		result = append(result, providers.PricePoint{
 			Price: p,
 			Time:  jp.LastUpdated,
 		})

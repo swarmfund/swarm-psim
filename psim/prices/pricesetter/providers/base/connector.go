@@ -1,7 +1,7 @@
 package base
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 	"io/ioutil"
 	"encoding/json"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -11,7 +11,7 @@ import (
 )
 
 type PricesResponse interface {
-	ToPrices() ([]provider.PricePoint, error)
+	ToPrices() ([]providers.PricePoint, error)
 	fields.Provider
 }
 
@@ -25,7 +25,7 @@ func (c *Connector) GetName() string {
 	return c.Name
 }
 
-func (c *Connector) GetPrices(baseAsset, quoteAsset string, pricesResponse PricesResponse) ([]provider.PricePoint, error) {
+func (c *Connector) GetPrices(baseAsset, quoteAsset string, pricesResponse PricesResponse) ([]providers.PricePoint, error) {
 	assetPair := baseAsset + "/" + quoteAsset
 	endpoint, ok := c.Endpoints[assetPair]
 	if !ok {

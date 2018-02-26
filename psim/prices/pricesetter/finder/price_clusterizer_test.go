@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 func TestPriceClusterizer(t *testing.T) {
@@ -22,7 +22,7 @@ func TestPriceClusterizer(t *testing.T) {
 			for i := range input {
 				input[i] = providerPricePoint{
 					ProviderID: providers[rand.Intn(len(providers))],
-					PricePoint: provider.PricePoint{
+					PricePoint: providers.PricePoint{
 						Price: rand.Int63(),
 					},
 				}

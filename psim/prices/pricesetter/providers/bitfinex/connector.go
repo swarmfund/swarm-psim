@@ -1,8 +1,8 @@
 package bitfinex
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/base"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/base"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 const (
@@ -28,6 +28,6 @@ func New() *Connector {
 }
 
 // GetPrices retrieves prices from external service and returns structured prices
-func (c *Connector) GetPrices(baseAsset, quoteAsset string) ([]provider.PricePoint, error) {
+func (c *Connector) GetPrices(baseAsset, quoteAsset string) ([]providers.PricePoint, error) {
 	return c.Connector.GetPrices(baseAsset, quoteAsset, &jsonAssetPrice{})
 }

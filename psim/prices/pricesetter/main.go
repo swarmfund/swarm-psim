@@ -13,11 +13,11 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/finder"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/bitfinex"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/bitstamp"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/coinmarketcap"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider/gdax"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/bitfinex"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/bitstamp"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/coinmarketcap"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/gdax"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
@@ -117,7 +117,7 @@ func startSpecificProvider(ctx context.Context, log *logan.Entry, config Config,
 			return nil, errors.Wrap(err, "Failed to create and start Gdax Streamer")
 		}
 
-		return provider.StartNewProvider(ctx, providerData.Name, pointsStream, log), nil
+		return providers.StartNewProvider(ctx, providerData.Name, pointsStream, log), nil
 	default:
 		return nil, errors.From(errors.New("Unexpected PriceProvider name"), logan.F{
 			"provider_name": providerData.Name,
@@ -129,9 +129,9 @@ func priceProviderFromConnector(
 	ctx context.Context,
 	log *logan.Entry,
 	config Config,
-	connector provider.Connector,
+	connector providers.Connector,
 	period time.Duration) finder.PriceProvider {
 
-	pointsStream := provider.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset, connector, period)
-	return provider.StartNewProvider(ctx, connector.GetName(), pointsStream, log)
+	pointsStream := providers.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset, connector, period)
+	return providers.StartNewProvider(ctx, connector.GetName(), pointsStream, log)
 }

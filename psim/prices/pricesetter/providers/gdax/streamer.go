@@ -10,7 +10,7 @@ import (
 	ws "github.com/gorilla/websocket"
 	"github.com/preichenberger/go-gdax"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 const (
@@ -25,11 +25,11 @@ var assetPairs = map[string]struct{}{
 type streamer struct {
 	logger        *logan.Entry
 	assetPair     string
-	pricesChannel chan provider.PricePoint
+	pricesChannel chan providers.PricePoint
 }
 
 // StartNewPriceStreamer creates new gdaxProvider and runs it safely and concurrently
-func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset, quoteAsset string) (<-chan provider.PricePoint, error) {
+func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset, quoteAsset string) (<-chan providers.PricePoint, error) {
 	assetPair := baseAsset + "-" + quoteAsset
 	_, ok := assetPairs[assetPair]
 	if !ok {
@@ -42,7 +42,7 @@ func StartNewPriceStreamer(ctx context.Context, log *logan.Entry, baseAsset, quo
 	p := streamer{
 		logger:        log.WithField("prices_streamer", Name),
 		assetPair:     assetPair,
-		pricesChannel: make(chan provider.PricePoint, 10),
+		pricesChannel: make(chan providers.PricePoint, 10),
 	}
 
 	// if runOnce returned - we have been disconnected from the provider, so it's better to wait before trying to connect again

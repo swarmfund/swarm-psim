@@ -1,6 +1,6 @@
 package finder
 
-import "gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+import "gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 
 type priceClusterizerImpl struct {
 	providersPoints []providerPricePoint
@@ -19,7 +19,7 @@ type candidatePoint struct {
 
 // GetClusterForPoint for each Provider finds the Point among p.points, which is
 // the closet to the provided point.
-func (p *priceClusterizerImpl) GetClusterForPoint(point provider.PricePoint) []providerPricePoint {
+func (p *priceClusterizerImpl) GetClusterForPoint(point providers.PricePoint) []providerPricePoint {
 	providerToCandidate := map[string]candidatePoint{}
 
 	for i := range p.providersPoints {
@@ -50,7 +50,7 @@ func (p *priceClusterizerImpl) GetClusterForPoint(point provider.PricePoint) []p
 	return result
 }
 
-func calcDistance(p1, p2 provider.PricePoint) int64 {
+func calcDistance(p1, p2 providers.PricePoint) int64 {
 	delta := p1.Price - p2.Price
 	if delta < 0 {
 		return -delta

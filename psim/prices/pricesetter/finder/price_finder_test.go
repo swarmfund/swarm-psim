@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 func TestPriceFinder(t *testing.T) {
@@ -61,16 +61,16 @@ func TestPriceFinder(t *testing.T) {
 	})
 	Convey("Price finding", t, func() {
 		Convey("One provider, just select latest point", func() {
-			expectedResult := &provider.PricePoint{Price: 20, Time: time.Unix(11, 0)}
-			testPriceFinding(t, 10*amount.One, 51*amount.One, [][]provider.PricePoint{
+			expectedResult := &providers.PricePoint{Price: 20, Time: time.Unix(11, 0)}
+			testPriceFinding(t, 10*amount.One, 51*amount.One, [][]providers.PricePoint{
 				{
 					{20, time.Unix(11, 0)}, {101, time.Unix(9, 0)}, {100, time.Unix(8, 0)},
 				},
 			}, expectedResult)
 		})
 		Convey("Three providers acting normally", func() {
-			expectedResult := &provider.PricePoint{Price: 20, Time: time.Unix(11, 0)}
-			testPriceFinding(t, 10*amount.One, 51*amount.One, [][]provider.PricePoint{
+			expectedResult := &providers.PricePoint{Price: 20, Time: time.Unix(11, 0)}
+			testPriceFinding(t, 10*amount.One, 51*amount.One, [][]providers.PricePoint{
 				{
 					{20, time.Unix(11, 0)}, {101, time.Unix(9, 0)}, {100, time.Unix(8, 0)},
 					{20, time.Unix(11, 0)}, {101, time.Unix(9, 0)}, {100, time.Unix(8, 0)},
@@ -79,8 +79,8 @@ func TestPriceFinder(t *testing.T) {
 			}, expectedResult)
 		})
 		Convey("Three providers - one provider delayed info", func() {
-			expectedResult := &provider.PricePoint{Price: 101, Time: time.Unix(11, 0)}
-			testPriceFinding(t, 10*amount.One, 51*amount.One, [][]provider.PricePoint{
+			expectedResult := &providers.PricePoint{Price: 101, Time: time.Unix(11, 0)}
+			testPriceFinding(t, 10*amount.One, 51*amount.One, [][]providers.PricePoint{
 				{
 					{101, time.Unix(11, 0)}, {80, time.Unix(9, 0)}, {60, time.Unix(8, 0)},
 					{20, time.Unix(11, 0)}, {101, time.Unix(9, 0)}, {81, time.Unix(8, 0)},
@@ -92,7 +92,7 @@ func TestPriceFinder(t *testing.T) {
 }
 
 func testPriceFinding(t *testing.T, maxPercentPriceDelta int64, minPercentOfProvidersToAgree int,
-	rates [][]provider.PricePoint, expectedResult *provider.PricePoint) {
+	rates [][]providers.PricePoint, expectedResult *providers.PricePoint) {
 	priceProviders := make([]PriceProvider, len(rates))
 	for i := range priceProviders {
 		priceProviderMock := MockPriceProvider{}

@@ -7,7 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 //go:generate mockery -case underscore -testonly -inpkg -name PriceProvider
@@ -15,7 +15,7 @@ type PriceProvider interface {
 	// GetName - returns name of the Provider
 	GetName() string
 	// GetPoints - returns Points available
-	GetPoints() []provider.PricePoint
+	GetPoints() []providers.PricePoint
 	// RemoveOldPoints - removes points which were created before minAllowedTime
 	RemoveOldPoints(minAllowedTime time.Time)
 }
@@ -24,7 +24,7 @@ type PriceProvider interface {
 type priceClusterizer interface {
 	// GetClusterForPoint - returns cluster of nearest Points for specified Point.
 	// The provided point must *not* be included into the cluster.
-	GetClusterForPoint(point provider.PricePoint) []providerPricePoint
+	GetClusterForPoint(point providers.PricePoint) []providerPricePoint
 }
 
 type priceClusterizerProvider func(points []providerPricePoint) priceClusterizer
@@ -77,7 +77,7 @@ func isPercentValid(percent int64) bool {
 // TODO
 // TryFind - tries to find most recent PricePoint which priceDelta is <= maxPercentPriceDelta
 // for percent of providers >= minPercentOfNodeToParticipate
-func (p *priceFinder) TryFind() (*provider.PricePoint, error) {
+func (p *priceFinder) TryFind() (*providers.PricePoint, error) {
 	allPoints, err := p.getAllProvidersPoints()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Points from all Providers")

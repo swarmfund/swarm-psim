@@ -9,13 +9,13 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 	"gitlab.com/tokend/keypair"
 )
 
 type priceFinder interface {
 	// TryFind - tries to find most recent PricePoint
-	TryFind() (*provider.PricePoint, error)
+	TryFind() (*providers.PricePoint, error)
 	// RemoveOldPoints - removes points which were created before minAllowedTime
 	RemoveOldPoints(minAllowedTime time.Time)
 }

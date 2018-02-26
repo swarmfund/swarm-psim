@@ -6,25 +6,25 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/provider"
+	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
 )
 
 func TestSortablePricePoints(t *testing.T) {
 
 	Convey("Given array of price points", t, func() {
 		input := []providerPricePoint{
-			{PricePoint: provider.PricePoint{Time: time.Unix(3, 0), Price: 12}},
-			{PricePoint: provider.PricePoint{Time: time.Unix(0, 0), Price: 15}},
-			{PricePoint: provider.PricePoint{Time: time.Unix(1, 0), Price: 11}},
-			{PricePoint: provider.PricePoint{Time: time.Unix(2, 0), Price: 13}},
+			{PricePoint: providers.PricePoint{Time: time.Unix(3, 0), Price: 12}},
+			{PricePoint: providers.PricePoint{Time: time.Unix(0, 0), Price: 15}},
+			{PricePoint: providers.PricePoint{Time: time.Unix(1, 0), Price: 11}},
+			{PricePoint: providers.PricePoint{Time: time.Unix(2, 0), Price: 13}},
 		}
 
 		Convey("Sort by time", func() {
 			expected := []providerPricePoint{
-				{PricePoint: provider.PricePoint{Time: time.Unix(3, 0), Price: 12}},
-				{PricePoint: provider.PricePoint{Time: time.Unix(2, 0), Price: 13}},
-				{PricePoint: provider.PricePoint{Time: time.Unix(1, 0), Price: 11}},
-				{PricePoint: provider.PricePoint{Time: time.Unix(0, 0), Price: 15}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(3, 0), Price: 12}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(2, 0), Price: 13}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(1, 0), Price: 11}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(0, 0), Price: 15}},
 			}
 
 			sort.Sort(sortablePricePointsByTime(input))
@@ -34,10 +34,10 @@ func TestSortablePricePoints(t *testing.T) {
 		})
 		Convey("Sort by price", func() {
 			expected := []providerPricePoint{
-				{PricePoint: provider.PricePoint{Time: time.Unix(0, 0), Price: 15}},
-				{PricePoint: provider.PricePoint{Time: time.Unix(2, 0), Price: 13}},
-				{PricePoint: provider.PricePoint{Time: time.Unix(3, 0), Price: 12}},
-				{PricePoint: provider.PricePoint{Time: time.Unix(1, 0), Price: 11}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(0, 0), Price: 15}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(2, 0), Price: 13}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(3, 0), Price: 12}},
+				{PricePoint: providers.PricePoint{Time: time.Unix(1, 0), Price: 11}},
 			}
 
 			sort.Sort(sortablePricePointsByPrice(input))
