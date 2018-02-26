@@ -7,18 +7,24 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 
 	// import services for side effects
+
 	// eth
+	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
 	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
-	_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
-	// btc
-	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
-	_ "gitlab.com/swarmfund/psim/psim/btcsupervisor"
-	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
-	// other folks
+	//_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/eth"
 
+	// btc
+	_ "gitlab.com/swarmfund/psim/psim/btcdeposit"
+	_ "gitlab.com/swarmfund/psim/psim/btcdepositveri"
+	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
+
+	// other folks
+	_ "gitlab.com/swarmfund/psim/psim/airdrop"
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
-	_ "gitlab.com/swarmfund/psim/psim/charger"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/ratesync"
 )
@@ -34,8 +40,8 @@ var (
 		Use:   "run",
 		Short: "Start service with all the whistles",
 		Run: func(cmd *cobra.Command, args []string) {
-			//env := xdr.TransactionEnvelope{}
-			//err := xdr.SafeUnmarshalBase64("AAAAAAJAZ5UJIsTjrwEY5/wS1UoogVcO07BtB866NGSysbUuAAAAAAAAAAAAAAAAAAAAAAAAAABaQRqCAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAATq4Xz5kalqrauBT0/9ZV7ppfptwGbvE4KzFFK8cspFAAAAAQAAP/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbKxtS4AAABAEO4yB1bLpR9w6pMC8TVAwmYNLbkM/OuuhDTuMXcDM7sjJa/n0ggV2Fv24UQzVGqgCw8YteIWwyWAR9SZPhTWCg==", &env)
+			//env := xdr.TransactionResult{}
+			//err := xdr.SafeUnmarshalBase64("AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAB8AAAAAAzz4Jdvviw2AsGupbfHplbP4jaVAfQz4RHtZuwu6ZbaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", &env)
 			//if err != nil {
 			//	panic(err)
 			//}

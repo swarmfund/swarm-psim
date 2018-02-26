@@ -18,8 +18,3 @@ func RenderErr(w http.ResponseWriter, r *http.Request, apiErr *jsonapi.ErrorObje
 	w.WriteHeader(int(status))
 	jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{apiErr})
 }
-
-func Render(w http.ResponseWriter, r *http.Request, res interface{}) {
-	w.Header().Set("content-type", jsonapi.MediaType)
-	jsonapi.MarshalPayload(w, res)
-}

@@ -2,358 +2,121 @@ package ratesync
 
 import (
 	"context"
-	"fmt"
-	"net"
-	"time"
 
-	"reflect"
-
-	"github.com/mitchellh/mapstructure"
-	"gitlab.com/distributed_lab/discovery-go"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	horizon "gitlab.com/swarmfund/horizon-connector"
-	"gitlab.com/swarmfund/psim/ape"
-	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/ratesync/noor"
-	"gitlab.com/swarmfund/psim/psim/ratesync/providers"
+	"gitlab.com/swarmfund/psim/psim/ratesync/finder"
+	"gitlab.com/swarmfund/psim/psim/ratesync/provider"
+	"gitlab.com/swarmfund/psim/psim/ratesync/provider/bitfinex"
+	"gitlab.com/swarmfund/psim/psim/ratesync/provider/bitstamp"
+	"gitlab.com/swarmfund/psim/psim/ratesync/provider/coinmarketcap"
+	"gitlab.com/swarmfund/psim/psim/ratesync/provider/gdax"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"time"
 )
 
 func init() {
-	app.Register(conf.ServiceRateSync, func(ctx context.Context) error {
-		serviceConfig := Config{
-			ServiceName:   conf.ServiceRateSync,
-			LeadershipKey: fmt.Sprintf("service/%s/leader", conf.ServiceRateSync),
-			Host:          "localhost",
-		}
-
-		assetsHook := figure.Hooks{
-			"ratesync.NoorConfig": func(raw interface{}) (reflect.Value, error) {
-				result := NoorConfig{}
-				err := mapstructure.Decode(raw, &result)
-				if err != nil {
-					return reflect.Value{}, err
-				}
-				return reflect.ValueOf(result), nil
-			},
-			"[]ratesync.Asset": func(raw interface{}) (reflect.Value, error) {
-				result := []Asset{}
-				err := mapstructure.Decode(raw, &result)
-				if err != nil {
-					return reflect.Value{}, err
-				}
-				return reflect.ValueOf(result), nil
-			},
-		}
-
-		globalConfig := ctx.Value(app.CtxConfig).(conf.Config)
-		err := figure.
-			Out(&serviceConfig).
-			From(globalConfig.Get(conf.ServiceRateSync)).
-			With(figure.BaseHooks, utils.CommonHooks, assetsHook).
-			Please()
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceRateSync))
-		}
-
-		retryTicker := time.NewTicker(5 * time.Second)
-
-		log := ctx.Value(app.CtxLog).(*logan.Entry)
-
-		discovery, err := globalConfig.Discovery()
-		if err != nil {
-			return errors.Wrap(err, "failed to get discovery client")
-		}
-
-		listener, err := ape.Listener(serviceConfig.Host, serviceConfig.Port)
-		if err != nil {
-			return errors.Wrap(err, "failed to init listener")
-		}
-
-		horizonC, err := globalConfig.Horizon()
-		if err != nil {
-			return errors.Wrap(err, "failed to get horizon client")
-		}
-
-		providers := providers.Providers{
-			"noor": noor.NewProvider(log, serviceConfig.Noor.Host, serviceConfig.Noor.Port, serviceConfig.Noor.Pairs),
-		}
-
-		provider, ok := providers[serviceConfig.Provider]
-		if !ok {
-			return fmt.Errorf("provider %s is not configured", serviceConfig.Provider)
-		}
-
-		service, errs := New(log, discovery, listener, horizonC, serviceConfig, provider)
-		for service.Run(); ; <-retryTicker.C {
-			err := <-errs
-			if serr, ok := err.(horizon.SubmitError); ok {
-				log.WithError(err).
-					WithField("tx code", serr.TransactionCode()).
-					WithField("op codes", serr.OperationCodes()).
-					Error("tx failed")
-			} else {
-				log.WithError(<-errs).Warn("service error")
-			}
-		}
-	})
+	app.RegisterService(conf.ServiceRateSync, setupFn)
 }
 
-type Service struct {
-	ID       string
-	IsLeader bool
+func setupFn(ctx context.Context) (app.Service, error) {
+	globalConfig := app.Config(ctx)
+	log := app.Log(ctx)
 
-	log              *logan.Entry
-	discovery        *discovery.Client
-	discoveryService *discovery.Service
-	listener         net.Listener
-	errors           chan error
-	syncResults      *SyncResults
-	syncTimestamp    chan time.Time
-	horizon          *horizon.Connector
-	config           Config
-	provider         providers.Provider
-}
-
-func New(
-	log *logan.Entry, discovery *discovery.Client, listener net.Listener, horizon *horizon.Connector,
-	config Config, provider providers.Provider,
-) (*Service, chan error) {
-	errs := make(chan error)
-	return &Service{
-		ID:          utils.GenerateToken(),
-		log:         log,
-		discovery:   discovery,
-		listener:    listener,
-		errors:      errs,
-		horizon:     horizon,
-		config:      config,
-		provider:    provider,
-		syncResults: NewSyncResults(),
-	}, errs
-}
-
-func (s *Service) Register() {
-	s.discoveryService = s.discovery.Service(&discovery.ServiceRegistration{
-		Name: s.config.ServiceName,
-		ID:   s.ID,
-		Host: fmt.Sprintf("http://%s/", s.listener.Addr().String()),
-	})
-	ticker := time.NewTicker(5 * time.Second)
-	for ; true; <-ticker.C {
-		err := s.discovery.RegisterServiceSync(s.discoveryService)
-		if err != nil {
-			s.errors <- errors.Wrap(err, "discovery error")
-			continue
-		}
-	}
-}
-
-func (s *Service) AcquireLeadership() {
-	var session *discovery.Session
-	var err error
-	ticker := time.NewTicker(5 * time.Second)
-	for ; true; <-ticker.C {
-		if session == nil {
-			session, err = discovery.NewSession(s.discovery)
-			if err != nil {
-				s.errors <- errors.Wrap(err, "failed to register session")
-				continue
-			}
-			session.EndlessRenew()
-		}
-
-		value, err := time.Now().UTC().MarshalJSON()
-		if err != nil {
-			s.errors <- errors.Wrap(err, "failed to marshal leader value")
-			continue
-		}
-
-		ok, err := s.discovery.TryAcquire(&discovery.KVPair{
-			Key:     s.config.LeadershipKey,
-			Value:   value,
-			Session: session,
+	var config Config
+	err := figure.
+		Out(&config).
+		From(app.Config(ctx).GetRequired(conf.ServiceRateSync)).
+		With(figure.BaseHooks, utils.ETHHooks, rateSyncFigureHooks).
+		Please()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
+			"service": conf.ServiceRateSync,
 		})
+	}
 
+	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
+
+	horizonInfo, err := horizonConnector.Info()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Horizon info")
+	}
+
+	priceFinder, err := newPriceFinder(ctx, log, config)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init price finder")
+	}
+
+	return &service{
+		baseAsset:   config.BaseAsset,
+		quoteAsset:  config.QuoteAsset,
+		log:         log.WithField("runner", "ratesync"),
+		source:      config.Source,
+		signer:      config.SignerKP,
+		connector:   horizonConnector.Submitter(),
+		builder:     xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
+		priceFinder: priceFinder,
+	}, nil
+}
+
+func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (priceFinder, error) {
+	usedProviders := map[string]bool{}
+	var ratesProviders []finder.RatesProvider
+	for _, providerData := range config.Providers {
+		if _, contains := usedProviders[providerData.Name]; contains {
+			return nil, errors.New("Duplication of providers not allowed: " + providerData.Name)
+		}
+
+		usedProviders[providerData.Name] = true
+		specificProvider, err := getSpecificProvider(ctx, log, config, providerData)
 		if err != nil {
-			s.errors <- err
-			s.IsLeader = false
-			continue
+			return nil, errors.Wrap(err, "failed to init specific price provider")
 		}
 
-		if ok {
-			s.IsLeader = true
-		} else {
-			s.IsLeader = false
-		}
+		ratesProviders = append(ratesProviders, specificProvider)
 	}
+
+	maxPriceDelta, err := amount.Parse(config.MaxPriceDeltaPercent)
+	if err != nil {
+		return nil, errors.New("failed to parse max price delta " + config.MaxPriceDeltaPercent)
+	}
+
+	priceFinder, err := finder.NewPriceFinder(log, ratesProviders, maxPriceDelta, config.ProvidersToAgree)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init price finder")
+	}
+
+	return priceFinder, nil
 }
 
-func (s *Service) SyncTimestamp() {
-	ticker := time.NewTicker(5 * time.Second)
-	s.syncTimestamp = make(chan time.Time)
-	for ; true; <-ticker.C {
-		kv, err := s.discovery.Get(s.config.LeadershipKey)
+func getSpecificProvider(ctx context.Context, log *logan.Entry, config Config, providerData Provider) (finder.RatesProvider, error) {
+	switch providerData.Name {
+	case "bitfinex":
+		return providerFromConnector(ctx, log, config, bitfinex.New(), providerData.Period), nil
+	case "bitstamp":
+		return providerFromConnector(ctx, log, config, bitstamp.New(), providerData.Period), nil
+	case "coinmarketcap":
+		return providerFromConnector(ctx, log, config, coinmarketcap.New(), providerData.Period), nil
+	case "gdax":
+		streamer, err := gdax.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset)
 		if err != nil {
-			s.errors <- err
-			continue
+			return nil, errors.Wrap(err, "failed to create gdax steamer")
 		}
 
-		if kv == nil {
-			continue
-		}
-
-		t := time.Time{}
-		err = t.UnmarshalJSON(kv.Value)
-		if err != nil {
-			s.errors <- err
-			continue
-		}
-
-		s.log.Debug("timestamp synced")
-		s.syncTimestamp <- t
+		return provider.StartNewProvider(ctx, providerData.Name, streamer, log), nil
+	default:
+		return nil, errors.New("Unexpected provider: " + providerData.Name)
 	}
 }
 
-func (s *Service) syncTicker(interval time.Duration) chan int64 {
-	ticks := make(chan int64)
-	go func() {
-		var cachedSyncTime time.Time
-		for {
-			select {
-			case cachedSyncTime = <-s.syncTimestamp:
-			default:
-				if cachedSyncTime.IsZero() {
-					time.Sleep(1 * time.Second)
-					continue
-				}
-				now := time.Now()
-				intervalsPassed := now.Sub(cachedSyncTime).Nanoseconds() / interval.Nanoseconds()
-				nextSyncOffset := time.Duration((intervalsPassed + 1) * interval.Nanoseconds())
-				nextSync := cachedSyncTime.Add(nextSyncOffset)
-				<-time.NewTimer(nextSync.Sub(now)).C
-				intervalsPassed += 1
-				ticks <- intervalsPassed
-			}
-		}
-	}()
-	return ticks
-}
+func providerFromConnector(ctx context.Context, log *logan.Entry,
+	config Config, connector provider.Connector, period time.Duration) finder.RatesProvider {
 
-func (s *Service) GetRates() {
-	var lastTick providers.Tick
-	syncTicker := s.syncTicker(5 * time.Second)
-
-	go func() {
-		// receiving tick from provider,
-		// should contain latest values for all pairs
-		ticks := s.provider.Ticks()
-		for {
-			lastTick = <-ticks
-			s.log.Debug("provider ticked")
-		}
-	}()
-
-	for {
-		select {
-		case err := <-s.provider.Errors():
-			s.errors <- errors.Wrap(err, "provider error")
-		case syncCount := <-syncTicker:
-			tick := lastTick
-			if tick == nil {
-				continue
-			}
-			ops := tick.Ops()
-			if len(ops) == 0 {
-				continue
-			}
-			s.log.WithField("sync", syncCount).WithField("ops", len(ops)).Info("syncing")
-			s.syncResults.Set(syncCount, ops)
-
-			if !s.IsLeader {
-				continue
-			}
-
-			//neighbors, err := s.discoveryService.DiscoverNeighbors()
-			//if err != nil {
-			//	s.errors <- err
-			//	continue
-			//}
-			//
-			//if len(neighbors) == 0 {
-			//	continue
-			//}
-
-			tx := s.horizon.Transaction(&horizon.TransactionBuilder{
-				Source: s.config.Master,
-			})
-
-			for _, op := range ops {
-				ohaigo := op
-				tx.Op(&ohaigo)
-			}
-
-			err := tx.Sign(s.config.Signer).Submit()
-			if err != nil {
-				s.errors <- err
-				continue
-			}
-			s.log.WithField("sync", syncCount).Info("synced")
-			//envelope, err := tx.Sign(s.config.Signer).Marshal64()
-			//if err != nil {
-			//	s.errors <- err
-			//	continue
-			//}
-			//
-			//b, err := json.Marshal(SyncRequest{
-			//	Sync:     syncCount,
-			//	Envelope: *envelope,
-			//})
-			//
-			//if err != nil {
-			//	s.errors <- err
-			//	continue
-			//}
-			//
-			//s.log.WithField("sync", syncCount).Info("attempting to verify")
-			//for _, neighbor := range neighbors {
-			//	fmt.Println("started")
-			//	r, err := http.Post(neighbor.Address, "application/json", bytes.NewReader(b))
-			//	fmt.Println("ended")
-			//	if err != nil {
-			//		s.errors <- err
-			//		continue
-			//	}
-			//	if r.StatusCode == http.StatusOK {
-			//		break
-			//	}
-			//}
-			//s.log.Info("unable to verify")
-		}
-	}
-}
-
-func (s *Service) Run() {
-	serviceSeq := []func(){
-		s.Register,
-		s.API,
-		s.AcquireLeadership,
-		s.SyncTimestamp,
-		s.GetRates,
-	}
-
-	for _, fn := range serviceSeq {
-		f := fn
-		go func() {
-			f()
-		}()
-	}
-}
-
-type SyncRequest struct {
-	Sync     int64
-	Envelope string
+	streamer := provider.StartNewPriceStreamer(ctx, log, config.BaseAsset, config.QuoteAsset, connector, period)
+	return provider.StartNewProvider(ctx, connector.GetName(), streamer, log)
 }

@@ -13,36 +13,38 @@ import (
 
 	"strconv"
 
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 var (
 	ErrInsufficientFunds = errors.New("Insufficient funds.")
+	ErrAlreadyInChain    = errors.New("Transaction is already in chain.")
 )
 
 // Connector is interface Client uses to request some Bitcoin node, particularly Bitcoin Core.
 type Connector interface {
 	IsTestnet() bool
+
 	// GetBlockCount must return index of last known Block
 	GetBlockCount() (uint64, error)
-	GetBlockHash(blockIndex uint64) (string, error)
+	// TODO Handle absent Block
+	GetBlockHash(blockNumber uint64) (string, error)
 	// GetBlock must return hex of Block
+	// TODO Handle absent Block
 	GetBlock(blockHash string) (string, error)
+
 	GetBalance(includeWatchOnly bool) (float64, error)
 	SendToAddress(goalAddress string, amount float64) (resultTXHash string, err error)
 	SendMany(addrToAmount map[string]float64) (resultTXHash string, err error)
-	CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error)
-	FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error)
-	SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error)
-	SendRawTX(txHex string) (txHash string, err error)
-}
 
-type Out struct {
-	TXHash       string  `json:"txid"`
-	Vout         uint32  `json:"vout"`
-	ScriptPubKey string  `json:"scriptPubKey"`
-	RedeemScript *string `json:"redeemScript,omitempty"`
+	CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error)
+	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
+	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error)
+	SendRawTX(txHex string) (txHash string, err error)
+	EstimateFee(blocks int) (float64, error)
+	GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error)
+	ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error)
 }
 
 // NodeConnector is implementor of Connector interface,
@@ -87,13 +89,14 @@ func (c *NodeConnector) GetBlockCount() (uint64, error) {
 }
 
 // GetBlockHash gets hash of Block by its index.
-func (c *NodeConnector) GetBlockHash(blockIndex uint64) (string, error) {
+// TODO Handle absent Block
+func (c *NodeConnector) GetBlockHash(blockNumber uint64) (string, error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	err := c.sendRequest("getblockhash", strconv.FormatUint(blockIndex, 10), &response)
+	err := c.sendRequest("getblockhash", strconv.FormatUint(blockNumber, 10), &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse get Block hash request")
 	}
@@ -105,6 +108,7 @@ func (c *NodeConnector) GetBlockHash(blockIndex uint64) (string, error) {
 }
 
 // GetBlock gets raw Block by its hash and returns the raw Block encoded in hex.
+// TODO Handle absent Block
 func (c *NodeConnector) GetBlock(blockHash string) (string, error) {
 	var response struct {
 		Response
@@ -164,14 +168,14 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 	}
 
 	var lastAddr string
-	params := `"", {`
+	params := `"", {` // FromAccount
 	for addr, amount := range addrToAmount {
 		lastAddr = addr
 		params += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
 	}
-	params = params[:len(params) - 1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr)
-	err = c.sendRequest("sendmany", params, &response)
+	params = params[:len(params)-1] + fmt.Sprintf(`}, 1, "", ["%s"]`, lastAddr) // Confirmations, Comment, SubtractFeeFromAmount
 
+	err = c.sendRequest("sendmany", params, &response)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to send or parse SendMany request")
 	}
@@ -184,18 +188,40 @@ func (c *NodeConnector) SendMany(addrToAmount map[string]float64) (resultTXHash 
 	return response.Result, nil
 }
 
-func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultTXHex string, err error) {
+// CreateRawTX accepts nil as inputUTXOs.
+// It is useful to pass empty inputUTXOs if you will later ask Wallet to Fund the TX (fill it with inputs).
+func (c *NodeConnector) CreateRawTX(inputUTXOs []Out, outAddrToAmount map[string]float64) (resultTXHex string, err error) {
 	var response struct {
 		Response
 		Result string `json:"result"`
 	}
 
-	err = c.sendRequest("createrawtransaction", fmt.Sprintf(`[], {"%s": %.8f}`, goalAddress, amount), &response)
+	// Inputs
+	var inArrayParam string
+	if len(inputUTXOs) == 0 {
+		inArrayParam = `[]`
+	} else {
+		bb, err := json.Marshal(inputUTXOs)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal inputUTXOs")
+		}
+		inArrayParam = string(bb)
+	}
+
+	// Outputs
+	outsParam := `{`
+	for addr, amount := range outAddrToAmount {
+		outsParam += fmt.Sprintf(`"%s": %.8f,`, addr, amount)
+	}
+	outsParam = outsParam[:len(outsParam)-1] + `}`
+
+	params := fmt.Sprintf(`%s, %s`, inArrayParam, outsParam)
+	err = c.sendRequest("createrawtransaction", params, &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse create raw Transaction request")
+		return "", errors.Wrap(err, "Failed to send or parse createRawTransaction request")
 	}
 	if response.Error != nil {
-		return "", errors.Wrap(response.Error, "Response for create raw Transaction request contains error")
+		return "", errors.Wrap(response.Error, "Response for createRawTransaction request contains error")
 	}
 
 	return response.Result, nil
@@ -203,39 +229,51 @@ func (c *NodeConnector) CreateRawTX(goalAddress string, amount float64) (resultT
 
 // FundRawTX runs fundrawtransaction request to the Bitcoin Node
 // using flags `includeWatching` and `lockUnspents` as true.
+// Fee is subtracted from the Output 0. Change position in Outputs is set to 1.
+// If feeRate provided is nil - the wallet determines the fee.
+//
 // If Bitcoin Node returns -4:Insufficient funds error -
 // ErrInsufficientFunds is returned.
-func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string) (resultTXHex string, err error) {
+//
+// If returned error is nil - result is definitely not nil.
+func (c *NodeConnector) FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error) {
 	var response struct {
 		Response
-		Result struct {
-			Hex string `json:"hex"`
-		} `json:"result"`
+		Result FundResult `json:"result"`
 	}
 
-	err = c.sendRequest("fundrawtransaction",
-		fmt.Sprintf(`"%s", {
+	params := fmt.Sprintf(`"%s", {
 			"changeAddress": "%s",
 			"changePosition": 1,
-			"includeWatching": true,
+			"includeWatching": %t,
 			"lockUnspents": true,
-			"subtractFeeFromOutputs": [0]
-		}`, initialTXHex, changeAddress), &response)
+			"subtractFeeFromOutputs": [0]`, initialTXHex, changeAddress, includeWatching)
+	if feeRate != nil {
+		params = params + fmt.Sprintf(
+			`,
+		"feeRate": %.8f`, *feeRate)
+	}
+	params = params + `}`
+
+	err = c.sendRequest("fundrawtransaction", params, &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
+		return nil, errors.Wrap(err, "Failed to send or parse fund raw Transaction request")
 	}
 	if response.Error != nil {
-		if response.Error.Code == errCodeInsufficientFunds{
-			return "", ErrInsufficientFunds
+		if response.Error.Code == errCodeInsufficientFunds {
+			return nil, ErrInsufficientFunds
 		}
 
-		return "", errors.Wrap(response.Error, "Response for fund raw Transaction request contains error")
+		return nil, errors.Wrap(response.Error, "Response for fund raw Transaction request contains error")
 	}
 
-	return response.Result.Hex, nil
+	return &response.Result, nil
 }
 
-func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, privateKey string) (resultTXHex string, err error) {
+// SignRawTX signs the inputs of the provided TX with the provided privateKey.
+// If the provided privateKey is nil - the TX will be tried to sign by Node, using
+// the private keys Node owns.
+func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []InputUTXO, privateKeys []string) (resultTXHex string, err error) {
 	var outsArray string
 	if outputsBeingSpent == nil {
 		outsArray = "[]"
@@ -251,15 +289,26 @@ func (c *NodeConnector) SignRawTX(initialTXHex string, outputsBeingSpent []Out, 
 	var response struct {
 		Response
 		Result struct {
-			Hex string `json:"hex"`
-			Complete bool `json:"complete"`
+			Hex      string `json:"hex"`
+			Complete bool   `json:"complete"`
 		} `json:"result"`
 	}
 
-	err = c.sendRequest("signrawtransaction",
-		fmt.Sprintf(`"%s", %s, ["%s"]`, initialTXHex, outsArray, privateKey), &response)
+	var privKeysParam string
+	if len(privateKeys) == 0 {
+		privKeysParam = `[]`
+	} else {
+		bb, err := json.Marshal(privateKeys)
+		if err != nil {
+			return "", errors.Wrap(err, "Failed to marshal private keys into JSON array")
+		}
+		privKeysParam = string(bb)
+	}
+
+	params := fmt.Sprintf(`"%s", %s, %s`, initialTXHex, outsArray, privKeysParam)
+	err = c.sendRequest("signrawtransaction", params, &response)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send or parse sign raw Transaction request")
+		return "", errors.Wrap(err, "Failed to send or parse signRawTransaction request")
 	}
 	if response.Error != nil {
 		return "", errors.Wrap(response.Error, "Response for sign raw Transaction request contains error")
@@ -279,7 +328,83 @@ func (c *NodeConnector) SendRawTX(txHex string) (txHash string, err error) {
 		return "", errors.Wrap(err, "Failed to send or parse send raw Transaction request")
 	}
 	if response.Error != nil {
-		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error")
+		fields := logan.F{
+			"bitcoin_core_response_id":     response.ID,
+			"bitcoin_core_response_result": response.Result,
+		}
+
+		if response.Error.Code == errCodeTransactionAlreadyInChain {
+			return response.Result, errors.From(ErrAlreadyInChain, fields)
+		}
+
+		return "", errors.Wrap(response.Error, "Response for send raw Transaction request contains error", fields)
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error) {
+	var response struct {
+		Response
+		Result *UTXO `json:"result"`
+	}
+
+	err := c.sendRequest("gettxout", fmt.Sprintf(`"%s", %d, %t`, txHash, vout, unconfirmed), &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send or parse Get TX UTXO request")
+	}
+	if response.Error != nil {
+		fields := logan.F{
+			"bitcoin_core_response_id":     response.ID,
+			"bitcoin_core_response_result": response.Result,
+		}
+
+		return nil, errors.Wrap(response.Error, "Response for Get TX UTXO request contains error", fields)
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) EstimateFee(blocks int) (float64, error) {
+	var response struct {
+		Response
+		Result float64 `json:"result"`
+	}
+
+	err := c.sendRequest("estimatefee", fmt.Sprintf(`%d`, blocks), &response)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to send or parse estimate fee request")
+	}
+	if response.Error != nil {
+		return 0, errors.Wrap(response.Error, "Response for estimate fee request contains error")
+	}
+
+	return response.Result, nil
+}
+
+func (c *NodeConnector) ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error) {
+	var response struct {
+		Response
+		Result []WalletUTXO `json:"result"`
+	}
+
+	var addressesString string
+	if addresses == nil {
+		addressesString = `[]`
+	} else {
+		bb, err := json.Marshal(addresses)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to marshal addresses into bytes")
+		}
+		addressesString = string(bb)
+	}
+
+	err := c.sendRequest("listunspent", fmt.Sprintf(`%d, %d, %s`, minConfirmations, maxConfirmations, addressesString), &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send or parse list unspent request")
+	}
+	if response.Error != nil {
+		return nil, errors.Wrap(response.Error, "Response for list unspent request contains error")
 	}
 
 	return response.Result, nil

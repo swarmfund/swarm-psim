@@ -7,9 +7,9 @@ import (
 
 	dlfigure "gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/keypair"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/keypair"
 )
 
 type Config struct {
@@ -19,8 +19,8 @@ type Config struct {
 
 	LeadershipKey string
 
-	SignerKP   keypair.KP `fig:"signer" mapstructure:"signer"`
-	ExchangeKP keypair.KP `fig:"exchange"`
+	SignerKP   keypair.Full    `fig:"signer" mapstructure:"signer"`
+	ExchangeKP keypair.Address `fig:"exchange"`
 }
 
 func NewConfig(serviceName string) Config {

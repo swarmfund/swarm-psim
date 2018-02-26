@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/distributed_lab/sse-go"
-	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
 type Service struct {
@@ -17,7 +17,6 @@ type Service struct {
 	horizon *horizon.Connector
 	sender  *notificator.Connector
 	logger  *logan.Entry
-	errors  chan error
 	sse     *sse.Listener
 }
 
@@ -37,24 +36,23 @@ func New(
 }
 
 // Run start service executing
-// returns chan of processing errors.
-func (s *Service) Run(ctx context.Context) chan error {
-	s.errors = make(chan error)
-
+func (s *Service) Run(ctx context.Context) {
 	wg := sync.WaitGroup{}
-	enabledServices := []func(ctx context.Context){
+	// TODO Make runners return error
+	// TODO Consider running runners over Incremental timer
+	enabledRunners := []func(ctx context.Context){
 		s.checkAssetsIssuanceAmount,
 		s.listenOperations,
 		s.servePProfAPI,
 	}
 
-	for _, fn := range enabledServices {
+	for _, fn := range enabledRunners {
 		serviceRunner := fn
 		wg.Add(1)
 		go func() {
 			defer func() {
 				if rec := recover(); rec != nil {
-					s.errors <- errors.FromPanic(rec)
+					s.logger.WithError(errors.FromPanic(rec)).Error("runner panicked")
 				}
 				wg.Done()
 			}()
@@ -62,12 +60,5 @@ func (s *Service) Run(ctx context.Context) chan error {
 		}()
 	}
 
-	go func() {
-		defer func() {
-			close(s.errors)
-		}()
-		wg.Wait()
-	}()
-
-	return s.errors
+	wg.Wait()
 }

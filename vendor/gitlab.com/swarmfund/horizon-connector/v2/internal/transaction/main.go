@@ -26,10 +26,9 @@ func (q *Q) Transactions(cursor string) ([]resources.Transaction, *resources.Pag
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "request failed")
 	}
-	defer response.Body.Close()
 
 	var result responses.TransactionIndex
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return result.Embedded.Records, &result.Embedded.Meta, nil

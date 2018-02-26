@@ -28,8 +28,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcd"
-  packages = ["btcec"]
+  packages = ["btcec","chaincfg","chaincfg/chainhash","txscript","wire"]
   revision = "2e60448ffcc6bf78332d1fe590260095f554dd78"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btclog"
+  packages = ["."]
+  revision = "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcutil"
+  packages = [".","base58","bech32","hdkeychain"]
+  revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
 
 [[projects]]
   name = "github.com/certifi/gocertifi"
@@ -45,15 +57,15 @@
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
-  packages = [".","accounts","accounts/keystore","common","common/hexutil","common/math","common/mclock","core/types","crypto","crypto/randentropy","crypto/secp256k1","crypto/sha3","ethclient","event","log","params","rlp","rpc","trie"]
+  packages = [".","accounts","accounts/abi","accounts/keystore","common","common/hexutil","common/math","common/mclock","core/types","crypto","crypto/randentropy","crypto/secp256k1","crypto/sha3","ethclient","event","log","params","rlp","rpc","trie"]
   revision = "4bb3c89d44e372e6a9ab85a8be0c9345265c763a"
   version = "v1.7.3"
 
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
   packages = ["."]
-  revision = "13ba9278e2adf1537fd94143a6b6a1c0dc008ac7"
-  version = "v0.4.2"
+  revision = "57846a82817615f185b10cc40de8dc60c1ca5ae1"
+  version = "v0.4.5"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -74,12 +86,6 @@
   version = "v3.3.1"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/go-errors/errors"
-  packages = ["."]
-  revision = "3afebba5a48dbc89b574d890b6b34d9ee10b4785"
-
-[[projects]]
   name = "github.com/go-ozzo/ozzo-validation"
   packages = ["."]
   revision = "85dcd8368eba387e65a03488b003e233994e87e9"
@@ -96,6 +102,18 @@
   packages = ["."]
   revision = "46d3ced0434461be12e555852e2f1a9ed382e139"
   version = "1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gopherjs/gopherjs"
+  packages = ["js"]
+  revision = "296de816d4fe28b61803072c3f89360e9d1823ff"
+
+[[projects]]
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/hashicorp/consul"
@@ -132,6 +150,12 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  name = "github.com/jtolds/gls"
+  packages = ["."]
+  revision = "77f18212c9c7edc9bd6a33d383a7b545ce62f064"
+  version = "v4.2.1"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -176,12 +200,6 @@
   version = "v1.0.1"
 
 [[projects]]
-  name = "github.com/piotrnar/gocoin"
-  packages = ["lib/btc","lib/secp256k1"]
-  revision = "f1d89db80c7f168bfba442eaeb48f6858360b316"
-  version = "1.9.2"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -192,6 +210,12 @@
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/preichenberger/go-gdax"
+  packages = ["."]
+  revision = "77508b321c9785d9d8d804d564794d5bf6d4283e"
+  version = "0.3.3"
 
 [[projects]]
   name = "github.com/pressly/chi"
@@ -222,6 +246,18 @@
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
   version = "v1.0.3"
+
+[[projects]]
+  name = "github.com/smartystreets/assertions"
+  packages = [".","internal/go-render/render","internal/oglematchers"]
+  revision = "0b37b35ec7434b77e77a4bb29b79677cced992ea"
+  version = "1.8.1"
+
+[[projects]]
+  name = "github.com/smartystreets/goconvey"
+  packages = ["convey","convey/gotest","convey/reporting"]
+  revision = "9e8dc3f972df6c8fcc0375ef492c24d0bb204857"
+  version = "1.6.3"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -260,8 +296,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/stretchr/objx"
+  packages = ["."]
+  revision = "facf9a85c22f48d2f52f2380e4efce1768749a89"
+  version = "v0.1"
+
+[[projects]]
   name = "github.com/stretchr/testify"
-  packages = ["assert"]
+  packages = ["assert","mock"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
@@ -291,9 +333,9 @@
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
-  packages = [".","v3","v3/errors","v3/fields"]
-  revision = "4818567366b3b70678815b15e0cb2f29c661a7d3"
-  version = "v3.3"
+  packages = ["v2/errors","v2/fields","v3","v3/errors","v3/fields"]
+  revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
+  version = "v3.4"
 
 [[projects]]
   branch = "master"
@@ -310,14 +352,14 @@
 [[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/go"
-  packages = ["amount","crc16","hash","keypair","network","strkey","xdr"]
-  revision = "2c5f6e04420d02ddea8888e1eff47fc9a470121f"
+  packages = ["amount","crc16","hash","keypair","network","signcontrol","strkey","xdr","xdrbuild","xdrbuild/internal"]
+  revision = "1d8752a4b04e368552b07e3b7f020b1ebcd649a0"
 
 [[projects]]
-  branch = "feature/v2"
+  branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
-  packages = [".","internal/resources","v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/transaction","v2/types"]
-  revision = "2a5ce54af653fb727ac1de52060e13526c57df6c"
+  packages = ["v2","v2/internal","v2/internal/account","v2/internal/asset","v2/internal/errors","v2/internal/listener","v2/internal/operation","v2/internal/resources","v2/internal/responses","v2/internal/sale","v2/internal/transaction","v2/internal/user","v2/types"]
+  revision = "055fad61a8626fedaeb25718a01fa4924f99e6c7"
 
 [[projects]]
   branch = "master"
@@ -382,6 +424,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e9fdac2b87b65781de3a070292e3eb0c3ea3132511961b960dc7721c37d0a13b"
+  inputs-digest = "2016faac64eb4a24fa570042478833edcbcd213b4112a40f1a24ae76376a0aa6"
   solver-name = "gps-cdcl"
   solver-version = 1

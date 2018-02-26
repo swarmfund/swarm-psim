@@ -1,3 +1,13 @@
+[./psim/cmd/psim/main.go](./psim/cmd/psim/main.go) is the enter point,
+it imports packages with Services without using, so all the services are built into the binary.
+Services packages in their init() functions call the [app.RegisterService()](./psim/app/main.go) function.
+
+Then looking the config provided in command-line arguments ([config.yaml](./config.yaml) if not provided),
+app decides which services to start (`services` block in the config)
+and only the services present in the `services` block will be started,
+usually only 1 service is started per PSIM start.
+
+
 # PSIM services
 
 ## Common configuration

@@ -23,6 +23,22 @@ func BadRequest(detail string) *jsonapi.ErrorObject {
 	return result
 }
 
+// 403
+func Forbidden(detail string) *jsonapi.ErrorObject {
+	result := &jsonapi.ErrorObject{
+		Title:  "Forbidden",
+		Status: fmt.Sprintf("%d", http.StatusForbidden),
+	}
+
+	if len(detail) > 0 {
+		result.Detail = detail
+	} else {
+		result.Detail = "Your request met some conflict."
+	}
+
+	return result
+}
+
 // 404
 func NotFound(detail string) *jsonapi.ErrorObject {
 	result := &jsonapi.ErrorObject{

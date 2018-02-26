@@ -12,7 +12,7 @@ import (
 func TestAmount_String(t *testing.T) {
 	var (
 		val  = Amount(421234)
-		want = "42.1234"
+		want = "0.421234"
 	)
 	got := fmt.Sprintf("%s", val)
 	assert.Equal(t, got, want)
@@ -20,7 +20,7 @@ func TestAmount_String(t *testing.T) {
 
 func TestAmount_UnmarshalJSON(t *testing.T) {
 	var (
-		valid = []byte(`{"v":"42.1234"}`)
+		valid = []byte(`{"v":"0.421234"}`)
 		want  = Amount(421234)
 	)
 	dest := struct {
@@ -34,7 +34,7 @@ func TestAmount_UnmarshalJSON(t *testing.T) {
 func TestAmount_MarshalJSON(t *testing.T) {
 	var (
 		valid = Amount(421234)
-		want  = `{"v":"42.1234"}`
+		want  = `{"v":"0.421234"}`
 	)
 	val := struct {
 		V Amount `json:"v"`

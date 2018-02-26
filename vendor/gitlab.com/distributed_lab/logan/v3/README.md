@@ -61,7 +61,7 @@ func driveCar(driver string) error {
 	if err != nil {
 	    // Mention `carColor` here, it is unknown from above.
 		// Instead of logging the `carColor` here, put it into `err` as a field.
-		return errors.Wrap(err, "Failed to start engine.", logan.Field("car_color", carColor))
+		return errors.Wrap(err, "Failed to start engine.", logan.F{"car_color": carColor})
 	}
 
 	return nil
@@ -102,7 +102,7 @@ New With field
 
 `errors.New\((".+")\)\.[\n\t ]*WithField\((.+)\)((\.[\n\t ]*WithField\(.+\))*)` --> `errors.From(errors.New($1), logan.Field($2)$3)` (do with regex)
 
-For chained withField - do multiple times
+For chained WithField calls - do multiple times
 `logan.Field\((.+)\)\.[\n\t ]*WithField\((.+)\)` --> `logan.Field($1).Add($2)` (do with regex)
 
 Remove errors import, where logan/v3/errors import exists
@@ -115,4 +115,13 @@ Remove errors import, where logan/v3/errors import exists
 
 Will then need to remove manually `"gitlab.com/distributed_lab/logan/v3/errors"` in some places (unused import)
 
-If having some go errors imports - will also need to resolve manually
+If having some go errors imports - will also need to resolve manually.
+
+###To replace deprecated `logan.Field(), fields.Add() and fields.AddFields()`:
+
+`logan.Field\((\".+\"),[ 	]*([^)]+)\)` --> `logan.F{$1: $2}` (regexp)
+
+`\.AddFields\(([^)]+)\)` --> `.Merge($1)` (regexp)
+
+`\.Add\((\"[^.]+\"),[ 	]*([^)]+)\)` --> `[$1] = $2` (regexp)
+Fix the appeared compilation errors.

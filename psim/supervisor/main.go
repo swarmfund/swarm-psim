@@ -12,24 +12,25 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 // Service is common Supervisor for using in different specific Supervisors.
 type Service struct {
-	Log    *logan.Entry
-	Errors chan error
+	Log     *logan.Entry
+	Errors  chan error
+	Horizon *horizon.Connector
 
 	IsLeader bool
 
-	config Config
-	// TODO interface?
-	horizon   *horizon.Connector
+	config    Config
 	discovery *discovery.Client
 	listener  net.Listener
 	runners   []func(context.Context)
+	builder   *xdrbuild.Builder
 }
 
 // InitNew prepares new Service (Supervisor), initializing it with all necessary helpers, got from ctx.
@@ -38,37 +39,42 @@ func InitNew(ctx context.Context, serviceName string, config Config) (*Service, 
 
 	globalConfig := app.Config(ctx)
 
-	discoveryClient, err := globalConfig.Discovery()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get DiscoveryClient")
-	}
-
-	horizonConnector, err := globalConfig.Horizon()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get HorizonClient")
-	}
+	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
 
 	listener, err := ape.Listener(config.Host, config.Port)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	result := New(log, horizonConnector, discoveryClient, config, listener)
+	// init transaction builder
+	var builder *xdrbuild.Builder
+	{
+		info, err := horizonConnector.Info()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get horizon info")
+		}
+		builder = xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
+	}
+
+	result := New(log, horizonConnector, globalConfig.Discovery(), config, listener, builder)
 
 	result.initCommonRunners()
 	return result, nil
 }
 
-func New(log *logan.Entry, horizon *horizon.Connector, discovery *discovery.Client, config Config, listener net.Listener) *Service {
+func New(
+	log *logan.Entry, horizon *horizon.Connector, discovery *discovery.Client, config Config, listener net.Listener,
+	builder *xdrbuild.Builder,
+) *Service {
 
 	return &Service{
-		Log:    log,
-		Errors: make(chan error),
+		Log:     log,
+		Horizon: horizon,
 
-		horizon:   horizon,
 		discovery: discovery,
 		config:    config,
 		listener:  listener,
+		builder:   builder,
 	}
 }
 
@@ -103,29 +109,24 @@ func (s *Service) AddRunner(runner func(context.Context)) {
 }
 
 // Run starts all runners in separate goroutines and creates routine, which waits for all of the runners to return.
-// Once all runners returned - Errors channel will be closed.
-// Implements utils.Service.
-func (s *Service) Run(ctx context.Context) chan error {
+// Once all runners returned - method will finish.
+// Implements app.Service.
+func (s *Service) Run(ctx context.Context) {
 	s.Log.Info("Started.")
 
-	go func() {
-		wg := sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 
-		for _, runner := range s.runners {
-			ohigo := runner
-			wg.Add(1)
+	for _, runner := range s.runners {
+		ohigo := runner
+		wg.Add(1)
 
-			go func() {
-				ohigo(ctx)
-				wg.Done()
-			}()
-		}
+		go func() {
+			ohigo(ctx)
+			wg.Done()
+		}()
+	}
 
-		wg.Wait()
-		close(s.Errors)
-	}()
-
-	return s.Errors
+	wg.Wait()
 }
 
 func (s *Service) debugAPI(ctx context.Context) {
@@ -145,6 +146,7 @@ func (s *Service) debugAPI(ctx context.Context) {
 	return
 }
 
+// TODO Return error
 // TODO Run over incremental timer.
 func (s *Service) acquireLeadership(ctx context.Context) {
 	var session *discovery.Session
@@ -160,7 +162,7 @@ func (s *Service) acquireLeadership(ctx context.Context) {
 		if session == nil {
 			session, err = discovery.NewSession(s.discovery)
 			if err != nil {
-				s.Errors <- errors.Wrap(err, "Failed to register session in Discovery")
+				s.Log.WithError(err).Error("Failed to register session in Discovery")
 				continue
 			}
 			session.EndlessRenew()
@@ -172,7 +174,7 @@ func (s *Service) acquireLeadership(ctx context.Context) {
 		})
 
 		if err != nil {
-			s.Errors <- err
+			s.Log.WithError(err).Error("Failed to acquire leadership")
 			s.IsLeader = false
 			continue
 		}

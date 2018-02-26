@@ -9,30 +9,10 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector"
+	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
-
-const (
-	baseAsset = "SUN"
-)
-
-// PrepareCERTx uses HorizonConnector - prepares Transaction with a CoinEmissionRequest operation,
-// signs it using SignerKP and returns marshaled Transaction.
-//
-// Specific supervisors use this method to create Transaction to be sent to a verifier.
-// DEPRECATED use CraftIssuanceRequest
-func (s *Service) PrepareCERTx(reference, receiver string, amount uint64) *horizon.TransactionBuilder {
-	return s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.ExchangeKP}).
-		Op(&horizon.CreateIssuanceRequestOp{
-			Reference: reference,
-			Receiver:  receiver,
-			Asset:     baseAsset,
-			Amount:    amount,
-		}).
-		Sign(s.config.SignerKP)
-}
 
 type IssuanceRequestOpt struct {
 	Reference string
@@ -42,9 +22,10 @@ type IssuanceRequestOpt struct {
 	Details   string
 }
 
-func (s *Service) CraftIssuanceRequest(opt IssuanceRequestOpt) *horizon.TransactionBuilder {
-	return s.horizon.Transaction(&horizon.TransactionBuilder{Source: s.config.ExchangeKP}).
-		Op(&horizon.CreateIssuanceRequestOp{
+func (s *Service) CraftIssuanceRequest(opt IssuanceRequestOpt) *xdrbuild.Transaction {
+	return s.builder.
+		Transaction(s.config.ExchangeKP).
+		Op(xdrbuild.CreateIssuanceRequestOp{
 			Reference: opt.Reference,
 			Receiver:  opt.Receiver,
 			Asset:     opt.Asset,
@@ -52,24 +33,6 @@ func (s *Service) CraftIssuanceRequest(opt IssuanceRequestOpt) *horizon.Transact
 			Details:   opt.Details,
 		}).
 		Sign(s.config.SignerKP)
-}
-
-// CheckCoinEmissionRequestExistence returns true if CER with such `reference` already exists.
-func (s *Service) CheckCoinEmissionRequestExistence(reference string) (bool, error) {
-	cers, err := s.horizon.CoinEmissionRequests(s.config.SignerKP, &horizon.CoinEmissionRequestsParams{
-		Reference: reference,
-		Exchange:  s.config.ExchangeKP.Address(),
-	})
-	if err != nil {
-		return false, errors.Wrap(err, "Failed to get CoinEmissionRequests from Horizon")
-	}
-
-	if len(cers) > 0 {
-		s.Log.Info("already counted")
-		return true, nil
-	}
-
-	return false, nil
 }
 
 // SendCoinEmissionRequest only returns if success or ctx canceled.
@@ -114,7 +77,7 @@ func (s *Service) sendForVerifying(txToVerify []byte, neighbor discovery.Service
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return errors.From(errors.New("Got unsuccessful response from neighbour-verifier"), logan.Field("status_code", response.StatusCode))
+		return errors.From(errors.New("Got unsuccessful response from neighbour-verifier"), logan.F{"status_code": response.StatusCode})
 	}
 	return nil
 }

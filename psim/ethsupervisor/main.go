@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHSupervisor, func(ctx context.Context) (utils.Service, error) {
+	app.RegisterService(conf.ServiceETHSupervisor, func(ctx context.Context) (app.Service, error) {
 		config := Config{
 			Supervisor: supervisor.NewConfig(conf.ServiceETHSupervisor),
 		}
@@ -33,6 +33,10 @@ func init() {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceETHSupervisor))
 		}
 
+		if config.FixedDepositFee == nil {
+			return nil, errors.New("'fixed_deposit_fee' cannot be empty")
+		}
+
 		commonSupervisor, err := supervisor.InitNew(ctx, conf.ServiceETHSupervisor, config.Supervisor)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init supervisor common")
@@ -40,14 +44,13 @@ func init() {
 
 		ethClient := app.Config(ctx).Ethereum()
 
-		horizonV2 := app.Config(ctx).HorizonV2()
+		horizon := app.Config(ctx).Horizon().WithSigner(config.Supervisor.SignerKP)
 
-		log := app.Log(ctx)
 		state := addrstate.New(
 			ctx,
-			log.WithField("service", "addrstate"),
+			app.Log(ctx),
 			internal.StateMutator(config.BaseAsset, config.DepositAsset),
-			horizonV2.Listener(),
+			horizon.Listener(),
 		)
 
 		return New(commonSupervisor, ethClient, state, config), nil
@@ -68,6 +71,7 @@ type Service struct {
 	depositThreshold *big.Int
 }
 
+// FIXME Hardcoded threshold
 func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, config Config) *Service {
 	s := &Service{
 		Service: supervisor,
@@ -77,7 +81,7 @@ func New(supervisor *supervisor.Service, eth *ethclient.Client, state State, con
 		// could be buffered to increase throughput
 		txCh:     make(chan internal.Transaction, 1),
 		blocksCh: make(chan uint64, 1),
-		// FIXME
+		// FIXME Hardcoded threshold
 		depositThreshold: big.NewInt(1000000000000),
 	}
 

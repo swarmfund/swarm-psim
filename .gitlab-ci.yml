@@ -1,72 +1,48 @@
-image: shebgregor/ci-golang
+# docker-in-docker allows to build and publish docker images
+services:
+  - docker:dind
 
-before_script:
-  # Run ssh-agent (inside the build environment)
-  - eval $(ssh-agent -s)
-  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
-  - echo "$SSH_PRIVATE_KEY" | ssh-add -
-  - mkdir -p ~/.ssh
-  - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-  - chmod 600 ~/.ssh/id_rsa
-  - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-  - 'echo -e "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config'
-  -  git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/
+variables:
+  # dockerfile for building test image
+  TEST_DOCKERFILE: test.dockerfile
+  # dockerfile for building artifact image
+  BUILD_DOCKERFILE: build.dockerfile
+  IMAGE_NAME: registry.gitlab.com/swarmfund/psim
+  IMAGE_BUILD_NAME: $IMAGE_NAME:$CI_COMMIT_SHA
+  IMAGE_TEST_NAME: $IMAGE_NAME:$CI_COMMIT_SHA-test
+  DEPLOYMENT_DIR: /root/deployment
+  DEPLOYMENT_INV: $DEPLOYMENT_DIR/$CI_COMMIT_REF_NAME.ini
+  DEPLOYMENT_SECRETS: $DEPLOYMENT_DIR/secrets/$CI_COMMIT_REF_NAME.yml
 
 stages:
   - build
-  - delivery
+  # TODO enable tests
+  #- test
   - deploy
 
+# build and publish docker image to the registry
 build:
+  image: docker:latest
   stage: build
-  variables:
-    APP_PATH: gitlab.com/swarmfund/psim
   script:
-    - mkdir -p $GOPATH/src/$APP_PATH
-    - cp -rf ./* $GOPATH/src/$APP_PATH
-    - cd $GOPATH/src/$APP_PATH
-    - go build -o bin/psim -a gitlab.com/swarmfund/psim/psim/cmd/psim
-    - cp -rf ./bin/ /builds/swarmfund/psim/bin/
-  artifacts:
-      expire_in: 1 week
-      paths:
-        - bin/psim
-  only:
-    - staging
-    - dev
+    # login to docker registry
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    - docker build --pull -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
+    - docker push $IMAGE_BUILD_NAME
 
+# build testing image and run tests
+#test:
+#  image: docker:latest
+#  stage: test
+#  script:
+#    - docker build --pull -t $IMAGE_TEST_NAME -f $TEST_DOCKERFILE .
+#    - docker run $IMAGE_TEST_NAME ./...
 
-delivery:
-  image: shebgregor/alpine-rsync-git
-  stage: delivery
-  script:
-    - rsync bin/psim ubuntu@$HOST_DEV:artifacts/psim/${CI_COMMIT_SHA:0:8}/
-  only:
-    - staging
-    - dev
-
-.deploy: &deploy
+deploy:
+  image: williamyeh/ansible:ubuntu16.04
   stage: deploy
-  script:
-    - JOB_NAME=( $CI_JOB_NAME )
-    - SERVICE=${JOB_NAME[-1]}
-    - BRANCH=${CI_COMMIT_REF_NAME}
-    - THOST=$( echo "HOST_${BRANCH}" | awk '{print toupper($0)}' )
-    - ssh ubuntu@$HOST_DEV "artifacts/update.sh psim $BRANCH ${CI_COMMIT_SHA:0:8}"
-    - 'curl -X POST -H "Content-Type: text/plain" --data "$SERVICE" http://${!THOST}:8842/931M76zvt1h_sMOFDl_usQ'
-  when: manual
   only:
     - staging
-    - dev
-
-deploy btc_funnel: *deploy
-deploy btc_supervisor: *deploy
-deploy btc_withdraw: *deploy
-
-deploy eth_funnel: *deploy
-deploy eth_supervisor: *deploy
-deploy eth_withdraw: *deploy
-
-deploy notifier: *deploy
-deploy bearer: *deploy
-
+  script:
+    # TODO add host fingerprint
+    - ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i $DEPLOYMENT_INV -e @$DEPLOYMENT_SECRETS -e psim_revison=$CI_COMMIT_SHA $DEPLOYMENT_DIR/psim.yml

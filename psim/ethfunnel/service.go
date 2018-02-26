@@ -11,24 +11,23 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/ethfunnel/internal"
 )
 
 var (
-	txgas = big.NewInt(21000)
+	// Seems like constant value
+	gasPerTX = big.NewInt(21000)
 )
 
 type Service struct {
-	ctx      context.Context
-	keystore *internal.Wallet
-	eth      *ethclient.Client
-	log      *logan.Entry
-	config   Config
+	wallet Wallet
+	eth    *ethclient.Client
+	log    *logan.Entry
+	config Config
 
-	blocksCh   chan *big.Int
-	txCh       chan types.Transaction
-	accountCh  chan common.Address
-	transferCh chan Transfer
+	blocksCh    chan *big.Int
+	txCh        chan types.Transaction
+	addressesCh chan common.Address
+	transferCh  chan Transfer
 }
 
 type Transfer struct {
@@ -37,48 +36,54 @@ type Transfer struct {
 }
 
 func NewService(
-	ctx context.Context, log *logan.Entry, config Config, wallet *internal.Wallet, eth *ethclient.Client,
+	log *logan.Entry,
+	config Config,
+	wallet Wallet,
+	eth *ethclient.Client,
 ) *Service {
 	return &Service{
-		ctx:      ctx,
-		log:      log,
-		config:   config,
-		keystore: wallet,
-		eth:      eth,
+		log:    log,
+		config: config,
+		wallet: wallet,
+		eth:    eth,
 		// most workers will submit task back in case of error,
 		// make sure channels are buffered
-		blocksCh:   make(chan *big.Int, 1),
-		txCh:       make(chan types.Transaction, 1),
-		accountCh:  make(chan common.Address, 1),
-		transferCh: make(chan Transfer, 1),
+		blocksCh:    make(chan *big.Int, 1),
+		txCh:        make(chan types.Transaction, 1),
+		addressesCh: make(chan common.Address, 1),
+		transferCh:  make(chan Transfer, 1),
 	}
 }
 
-func (s *Service) Run(ctx context.Context) chan error {
-	go s.watchHeight()
-	go s.processAccounts()
-	go s.fetchBlocks()
-	go s.accountBacklog()
+func (s *Service) Run(ctx context.Context) {
+	s.log.Info("Started.")
+
+	go s.watchHeightStreamBlockNumbers(ctx)
+	go s.processAddresses(ctx)
+	go s.fetchBlocksStreamAllTXs(ctx)
+	go s.streamWalletAddresses()
 	go s.consumeTXs()
 
-	return make(chan error)
+	<-ctx.Done()
 }
 
-func (s *Service) accountBacklog() {
+func (s *Service) streamWalletAddresses() {
 	defer func() {
 		if rvr := recover(); rvr != nil {
 			s.log.WithError(errors.FromPanic(rvr)).Error("backlog panicked")
 		}
 	}()
 
-	s.log.Debug("processing backlog")
-	for _, addr := range s.keystore.Addresses() {
-		s.accountCh <- addr
+	s.log.Info("Started streaming wallet Addresses.")
+
+	for _, addr := range s.wallet.Addresses(context.TODO()) {
+		s.addressesCh <- addr
 	}
-	s.log.Info("backlog processed")
+
+	s.log.Info("Finished streaming wallet Addresses.")
 }
 
-func (s *Service) watchHeight() *big.Int {
+func (s *Service) watchHeightStreamBlockNumbers(ctx context.Context) *big.Int {
 	do := func(cursor *big.Int) (_ *big.Int, err error) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
@@ -86,7 +91,7 @@ func (s *Service) watchHeight() *big.Int {
 			}
 		}()
 
-		head, err := s.eth.HeaderByNumber(s.ctx, nil)
+		head, err := s.eth.HeaderByNumber(ctx, nil)
 		if err != nil {
 			return cursor, errors.Wrap(err, "failed to get head")
 		}
@@ -112,17 +117,17 @@ func (s *Service) watchHeight() *big.Int {
 		}
 		cursor = cursorUpdate
 	}
-
 }
 
-func (s *Service) fetchBlocks() {
+func (s *Service) fetchBlocksStreamAllTXs(ctx context.Context) {
 	do := func(number *big.Int) (err error) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
-				err = errors.Wrap(err, "block fetch panicked")
+				err = errors.Wrap(err, "Block fetch panicked")
 			}
 		}()
-		block, err := s.eth.BlockByNumber(s.ctx, number)
+
+		block, err := s.eth.BlockByNumber(ctx, number)
 		if err != nil {
 			return errors.Wrap(err, "failed to get block")
 		}
@@ -140,76 +145,86 @@ func (s *Service) fetchBlocks() {
 		return nil
 	}
 
-	for number := range s.blocksCh {
-		entry := s.log.WithField("number", number)
-		entry.Debug("fetching block")
-		if err := do(number); err != nil {
-			s.log.WithError(err).Error("failed to fetch block")
-			s.blocksCh <- number
+	for blockNumber := range s.blocksCh {
+		entry := s.log.WithField("block_number", blockNumber)
+
+		if err := do(blockNumber); err != nil {
+			entry.WithError(err).Error("Failed to fetch Block.")
+			s.blocksCh <- blockNumber
+			continue
 		}
-		entry.Debug("block fetched")
+
+		entry.Debug("Block fetched successfully")
 	}
 }
 
-func (s *Service) processAccounts() {
-	do := func(entry *logan.Entry, address common.Address) (err error) {
-		defer func() {
-			if rvr := recover(); rvr != nil {
-				err = errors.FromPanic(rvr)
-			}
-		}()
+func (s *Service) processAddresses(ctx context.Context) {
+	for addr := range s.addressesCh {
+		entry := s.log.WithField("addr", addr.Hex())
 
-		balance, err := s.eth.BalanceAt(s.ctx, address, nil)
-		if err != nil {
-			return errors.Wrap(err, "failed to get balance")
+		if err := s.processAddr(ctx, addr); err != nil {
+			entry.WithError(err).Error("Failed to process Address with ETH, putting Address back to channel.")
+			//s.addressesCh <- addr
+			continue
 		}
+	}
+}
 
-		if balance.Cmp(s.config.Threshold) == -1 {
-			entry.WithFields(logan.F{
+func (s *Service) processAddr(ctx context.Context, address common.Address) (err error) {
+	defer func() {
+		if rvr := recover(); rvr != nil {
+			err = errors.FromPanic(rvr)
+		}
+	}()
+
+	s.log.WithField("addr", address.String()).Debug("Processing Address.")
+
+	balance, err := s.eth.BalanceAt(ctx, address, nil)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get ETH balance of the Address from node")
+	}
+
+	if balance.Cmp(s.config.Threshold) == -1 {
+		if balance.Cmp(big.NewInt(0)) == 1 {
+			// Balance is bigger than 0
+			s.log.WithFields(logan.F{
+				"addr":      address.String(),
 				"balance":   balance,
 				"threshold": s.config.Threshold,
-			}).Debug("skipping account")
-			return nil
+			}).Debug("Balance on ETH Address is more than 0, but less the threshold - skipping.")
 		}
-
-		nonce, err := s.eth.NonceAt(s.ctx, address, nil)
-		if err != nil {
-			return errors.Wrap(err, "failed to get nonce")
-		}
-
-		tx, err := s.keystore.SignTX(
-			address,
-			types.NewTransaction(
-				nonce,
-				s.config.Destination,
-				new(big.Int).Sub(balance, new(big.Int).Mul(txgas, s.config.GasPrice)),
-				txgas,
-				s.config.GasPrice,
-				nil),
-		)
-		if err != nil {
-			return errors.Wrap(err, "failed to sign tx")
-		}
-
-		if err := s.eth.SendTransaction(s.ctx, tx); err != nil {
-			return errors.Wrap(err, "failed to submit tx")
-		}
-
-		entry.WithField("hash", tx.Hash().Hex()).Info("tx submitted")
-
 		return nil
 	}
 
-	for account := range s.accountCh {
-		entry := s.log.WithField("account", account.Hex())
-		entry.Debug("processing account")
-		if err := do(entry, account); err != nil {
-			entry.WithError(err).Error("failed to process account")
-			s.accountCh <- account
-			continue
-		}
-		s.log.Debug("account processed")
+	nonce, err := s.eth.NonceAt(ctx, address, nil)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get nonce of the Address form node")
 	}
+
+	tx, err := s.wallet.SignTX(
+		address,
+		types.NewTransaction(
+			nonce,
+			s.config.Destination,
+			new(big.Int).Sub(balance, new(big.Int).Mul(gasPerTX, s.config.GasPrice)),
+			gasPerTX,
+			s.config.GasPrice,
+			nil),
+	)
+	if err != nil {
+		return errors.Wrap(err, "Failed to sign ETH TX")
+	}
+
+	if err := s.eth.SendTransaction(ctx, tx); err != nil {
+		return errors.Wrap(err, "Failed to submit TX")
+	}
+
+	s.log.WithFields(logan.F{
+		"tx_hash": tx.Hash().String(),
+		"addr":    address.String(),
+	}).Info("TX submitted.")
+
+	return nil
 }
 
 func (s *Service) consumeTXs() {
@@ -221,22 +236,26 @@ func (s *Service) consumeTXs() {
 		}()
 
 		to := tx.To()
-		if to != nil && s.keystore.HasAddress(*to) {
-			s.log.WithField("addr", to.Hex()).Info("found managed address")
-			s.accountCh <- *to
+		if to != nil && s.wallet.HasAddress(*to) {
+			s.log.WithFields(logan.F{
+				"tx_hash": tx.Hash().String(),
+				"addr":    to.Hex(),
+			}).Info("Found TX to managed Address, streaming Address into channel.")
+
+			s.addressesCh <- *to
 		}
 
 		return nil
 	}
 
 	for tx := range s.txCh {
-		entry := s.log.WithField("hash", tx.Hash().Hex())
-		entry.Debug("processing tx")
+		entry := s.log.WithField("tx_hash", tx.Hash().String())
+
 		if err := do(tx); err != nil {
-			s.log.WithError(err).Error("failed to process tx")
+			entry.WithError(err).Error("Failed to process tx, putting the TX back to channel.")
+			// FIXME This can lock the execution
 			s.txCh <- tx
 			continue
 		}
-		entry.Debug("tx processed")
 	}
 }

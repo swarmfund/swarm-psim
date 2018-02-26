@@ -81,3 +81,30 @@ func TestObtain(t *testing.T) {
 		}
 	}
 }
+
+func TestExpand(t *testing.T) {
+	p := plain{"field1value1", 1}
+	f := fielded{"field1value2", 2}
+	nWithF := nestedFielded{"field1value4", 4, f}
+	var nilFielded *fielded
+
+	cases := []struct {
+		name     string
+		initial  map[string]interface{}
+		expanded map[string]interface{}
+	}{
+		{"plain entities", map[string]interface{}{"foo": p, "foo2": 17}, map[string]interface{}{"foo": p, "foo2": 17}},
+		{"nil value", map[string]interface{}{"foo": nil, "foo2": nil}, map[string]interface{}{"foo": nil, "foo2": nil}},
+		{"nil value of type FieldedEntity", map[string]interface{}{"foo": nilFielded, "foo2": 17}, map[string]interface{}{"foo": nil, "foo2": 17}},
+
+		{"nested entity with fielded inside", map[string]interface{}{"foo": nWithF, "plain_foo": 17},
+			map[string]interface{}{"plain_foo": 17, "foo_field1": nWithF.Field1, "foo_field2": nWithF.Field2, "foo_field3_field1": nWithF.Field3.Field1, "foo_field3_field2": nWithF.Field3.Field2}},
+	}
+
+	for _, tc := range cases {
+		got := fields.Expand(tc.initial)
+		if !reflect.DeepEqual(got, tc.expanded) {
+			t.Errorf("%s: got %#v, want %#v", tc.name, got, tc.expanded)
+		}
+	}
+}

@@ -2,19 +2,18 @@ package btcfunnel
 
 import (
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/utils"
 	"context"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/figure"
 	"fmt"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/figure"
 )
 
 func init() {
 	app.RegisterService(conf.ServiceBTCFunnel, setupFn)
 }
 
-func setupFn(ctx context.Context) (utils.Service, error) {
+func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx).WithField("service", conf.ServiceBTCFunnel)
 
@@ -31,10 +30,5 @@ func setupFn(ctx context.Context) (utils.Service, error) {
 
 	// TODO Validate config. Some values can't be zero.
 
-	btcClient, err := globalConfig.Bitcoin()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Bitcoin client from global config")
-	}
-
-	return New(config, log, btcClient), nil
+	return New(config, log, globalConfig.Bitcoin(), globalConfig.NotificationSender()), nil
 }

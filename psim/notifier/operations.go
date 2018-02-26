@@ -14,6 +14,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/notifier/internal/operations"
 )
 
+// TODO Make runners return error
 func (s *Service) listenOperations(ctx context.Context) {
 	if s.Operations == nil || !s.Operations.Enable {
 		s.logger.Warn("operations listener is not enabled")
@@ -38,13 +39,13 @@ func (s *Service) listenOperations(ctx context.Context) {
 				return
 			}
 			if event.Err != nil {
-				s.errors <- errors.Wrap(event.Err, "Failed to get event")
+				s.logger.WithError(err).Error("Failed to get event")
 				continue
 			}
 
 			err = s.processOperationEvent(event)
 			if err != nil {
-				s.errors <- err
+				s.logger.WithError(err).Error("Failed to process OperationEvent")
 			}
 		}
 	}
