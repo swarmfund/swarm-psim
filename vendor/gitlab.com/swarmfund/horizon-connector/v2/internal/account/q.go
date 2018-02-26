@@ -38,7 +38,7 @@ func (q *Q) Signers(address string) ([]resources.Signer, error) {
 }
 
 // ByBalance return account address by balance
-// TODO probably move to balances q
+// DEPRECATED use AccountID() from Balances Q instead
 func (q *Q) ByBalance(balanceID string) (*string, error) {
 	endpoint := fmt.Sprintf("/balances/%s/account", balanceID)
 	response, err := q.client.Get(endpoint)
