@@ -6,7 +6,7 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
 )
 
 func TestSortablePricePoints(t *testing.T) {

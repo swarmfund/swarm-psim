@@ -12,12 +12,12 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/finder"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/bitfinex"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/bitstamp"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/coinmarketcap"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/gdax"
+	"gitlab.com/swarmfund/psim/psim/prices/finder"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers/bitfinex"
+	"gitlab.com/swarmfund/psim/psim/prices/providers/bitstamp"
+	"gitlab.com/swarmfund/psim/psim/prices/providers/coinmarketcap"
+	"gitlab.com/swarmfund/psim/psim/prices/providers/gdax"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 

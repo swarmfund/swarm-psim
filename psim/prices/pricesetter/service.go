@@ -9,7 +9,7 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
 	"gitlab.com/tokend/keypair"
 )
 

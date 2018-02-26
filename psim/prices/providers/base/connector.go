@@ -1,7 +1,7 @@
 package base
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
 	"io/ioutil"
 	"encoding/json"
 	"gitlab.com/distributed_lab/logan/v3/errors"

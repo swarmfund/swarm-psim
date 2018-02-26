@@ -1,6 +1,6 @@
 package finder
 
-import "gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+import "gitlab.com/swarmfund/psim/psim/prices/providers"
 
 type priceClusterizerImpl struct {
 	providersPoints []providerPricePoint

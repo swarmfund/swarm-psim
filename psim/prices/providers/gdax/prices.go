@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
 )
 
 // jsonAssetPrice is middle-layer structure for custom JSON unmarshalling

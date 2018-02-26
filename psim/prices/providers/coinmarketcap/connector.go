@@ -1,8 +1,8 @@
 package coinmarketcap
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/base"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers/base"
 )
 
 const (

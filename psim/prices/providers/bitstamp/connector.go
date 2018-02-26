@@ -1,12 +1,12 @@
-package bitfinex
+package bitstamp
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers/base"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers/base"
 )
 
 const (
-	Name = "bitfinex"
+	Name = "bitstamp"
 )
 
 // Connector is a connector for bitfinex.com
@@ -20,8 +20,8 @@ func New() *Connector {
 		Connector: &base.Connector{
 			Name: Name,
 			Endpoints: map[string]string{
-				"BTC/USD": "https://api.bitfinex.com/v1/pubticker/btcusd",
-				"ETH/USD": "https://api.bitfinex.com/v1/pubticker/ethusd",
+				"BTC/USD": "https://www.bitstamp.net/api/v2/ticker/btcusd",
+				"ETH/USD": "https://www.bitstamp.net/api/v2/ticker/ethusd",
 			},
 		},
 	}

@@ -10,7 +10,7 @@ import (
 	ws "github.com/gorilla/websocket"
 	"github.com/preichenberger/go-gdax"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/prices/pricesetter/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/providers"
 )
 
 const (
