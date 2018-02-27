@@ -334,8 +334,8 @@
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
   packages = ["v3","v3/errors","v3/fields"]
-  revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
-  version = "v3.4"
+  revision = "b3e799b86348d6b59d52fbdb6f35347ab3b10274"
+  version = "v3.4.1"
 
 [[projects]]
   branch = "master"
@@ -424,6 +424,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "86b9af319cf441f65fe4231d37d30de57f9498b0c93a87f08d020a1964f74b92"
+  inputs-digest = "ca6cb72ac7e4a26383108ad6bea670a2cd3ec9aa0115b979bfe3afa121012329"
   solver-name = "gps-cdcl"
   solver-version = 1
