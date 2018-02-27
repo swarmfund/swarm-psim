@@ -85,7 +85,7 @@ func (s *Service) verifyEnvelope(envelope xdr.TransactionEnvelope) (verifyErr, e
 		return errors.Errorf("Expected OperationType to be %s(%d), but got (%d).", opTypeName, needType, opBody.Type), nil
 	}
 
-	return s.verifier.VerifyEnvelope(envelope)
+	return s.verifier.VerifyOperation(envelope)
 }
 
 func (s *Service) signAndMarshalEnvelope(envelope xdr.TransactionEnvelope) (string, error) {

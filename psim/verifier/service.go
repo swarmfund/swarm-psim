@@ -15,8 +15,11 @@ import (
 )
 
 type Verifier interface {
+	// GetOperationType must return the OperationType Verifier expects in the TX.
 	GetOperationType() xdr.OperationType
-	VerifyEnvelope(xdr.TransactionEnvelope) (verifyErr, err error)
+	// On calling of this method it's guaranteed that provided Envelope has exactly 1 Operation
+	// and that the Type of Operation equals to return of the GetOperationType interface method.
+	VerifyOperation(xdr.TransactionEnvelope) (verifyErr, err error)
 }
 
 type DiscoveryClient interface {

@@ -43,7 +43,7 @@ func (v *Verifier) GetOperationType() xdr.OperationType {
 	return xdr.OperationTypeCreateIssuanceRequest
 }
 
-func (v *Verifier) VerifyEnvelope(envelope xdr.TransactionEnvelope) (verifyErr, err error) {
+func (v *Verifier) VerifyOperation(envelope xdr.TransactionEnvelope) (verifyErr, err error) {
 	op := envelope.Tx.Operations[0].Body.CreateIssuanceRequestOp
 
 	if op == nil {
