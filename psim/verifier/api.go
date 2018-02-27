@@ -29,8 +29,8 @@ func (s *Service) serveAPI(ctx context.Context) {
 }
 
 func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
-	req, ok := s.verifier.ReadRequest(w, r)
-	if !ok {
+	req := Request{}
+	if ok := verification.ReadAPIRequest(s.log, w, r, &req); !ok {
 		return
 	}
 
@@ -38,9 +38,18 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 		"request": req,
 	})
 
-	verifyErr, err := s.verifier.VerifyRequest(req)
+	envelope := xdr.TransactionEnvelope{}
+	err := envelope.Scan(req.Envelope)
 	if err != nil {
-		logger.WithError(err).Error("Failed to validate Request TX.")
+		logger.WithError(err).Warn("Failed to Scan TransactionEnvelope from string in request.")
+
+		ape.RenderErr(w, r, problems.BadRequest("Cannot parse Envelope from string."))
+		return
+	}
+
+	verifyErr, err := s.verifyEnvelope(envelope)
+	if err != nil {
+		logger.WithError(err).Error("Failed to verify TX Envelope from VerifyRequest.")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
@@ -50,17 +59,33 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	signedEnvelopeString, err := s.signAndMarshalEnvelope(req.GetEnvelope())
+	signedEnvelopeString, err := s.signAndMarshalEnvelope(envelope)
 	if err != nil {
 		logger.WithError(err).Error("Failed sign or marshal Envelope.")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
 
-	ok = verification.RenderResponseEnvelope(s.log, w, r, signedEnvelopeString)
+	ok := verification.RenderResponseEnvelope(s.log, w, r, signedEnvelopeString)
 	if ok {
 		logger.Info("Verified Request successfully.")
 	}
+}
+
+func (s *Service) verifyEnvelope(envelope xdr.TransactionEnvelope) (verifyErr, err error) {
+	if len(envelope.Tx.Operations) != 1 {
+		return errors.Errorf("Must be exactly 1 Operation in the TX, found (%d).", len(envelope.Tx.Operations)), nil
+	}
+
+	opBody := envelope.Tx.Operations[0].Body
+
+	needType := s.verifier.GetOperationType()
+	if opBody.Type != needType {
+		opTypeName, _ := opBody.ArmForSwitch(int32(needType))
+		return errors.Errorf("Expected OperationType to be %s(%d), but got (%d).", opTypeName, needType, opBody.Type), nil
+	}
+
+	return s.verifier.VerifyEnvelope(envelope)
 }
 
 func (s *Service) signAndMarshalEnvelope(envelope xdr.TransactionEnvelope) (string, error) {

@@ -16,6 +16,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/verification"
+	"gitlab.com/swarmfund/psim/psim/verifier"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -94,7 +95,7 @@ type Service struct {
 // Make sure HorizonConnector provided to constructor is with signer.
 func New(opts *Opts) *Service {
 	return &Service{
-		log:                 opts.Log,
+		log:                 opts.Log.WithField("service", opts.ServiceName),
 		source:              opts.Source,
 		signer:              opts.Signer,
 		serviceName:         opts.ServiceName,
@@ -125,6 +126,7 @@ type Opts struct {
 }
 
 func (s *Service) Run(ctx context.Context) {
+	s.log.Info("Starting.")
 	app.RunOverIncrementalTimer(ctx, s.log, s.serviceName, s.processNewBlocks, 5*time.Second, 5*time.Second)
 }
 
@@ -246,7 +248,7 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 		"account_address": accountAddress,
 	}).Debug("Processing deposit.")
 
-	balanceID, err := GetBalanceID(s.horizon, accountAddress, s.offchainHelper.GetAsset())
+	balanceID, err := s.getBalanceID(accountAddress)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get BalanceID")
 	}
@@ -325,15 +327,14 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 	return nil
 }
 
-// TODO horizon as interface
-func GetBalanceID(horizon *horizon.Connector, accountAddress, asset string) (string, error) {
-	balances, err := horizon.Accounts().Balances(accountAddress)
+func (s *Service) getBalanceID(accountAddress string) (string, error) {
+	balances, err := s.horizon.Accounts().Balances(accountAddress)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Account Balances from Horizon")
 	}
 
 	for _, b := range balances {
-		if b.Asset == asset {
+		if b.Asset == s.offchainHelper.GetAsset() {
 			return b.BalanceID, nil
 		}
 	}
@@ -348,9 +349,8 @@ func (s *Service) sendToVerifier(envelope, accountID string) (fullySignedTXEnvel
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")
 	}
 
-	request := VerifyRequest{
-		AccountID: accountID,
-		Envelope:  envelope,
+	request := verifier.Request{
+		Envelope: envelope,
 	}
 
 	responseEnvelope, err := verification.SendRequestToVerifier(url, &request)

@@ -8,20 +8,6 @@ import (
 )
 
 // TODO Comment
-type VerifyRequest struct {
-	AccountID string `json:"account_id"`
-	Envelope  string `json:"envelope"`
-}
-
-// TODO Comment
-func (r VerifyRequest) GetLoganFields() map[string]interface{} {
-	return map[string]interface{}{
-		"account_id": r.AccountID,
-		"envelope":   r.Envelope,
-	}
-}
-
-// TODO Comment
 type ExternalDetails struct {
 	BlockNumber uint64       `json:"block_number"`
 	TXHash      string       `json:"tx_hash"`

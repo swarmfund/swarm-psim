@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
+// TODO Consider moving to verifier package
 func ReadAPIRequest(log *logan.Entry, w http.ResponseWriter, r *http.Request, request interface{}) (success bool) {
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
