@@ -19,6 +19,11 @@ type Verifier interface {
 	VerifyEnvelope(xdr.TransactionEnvelope) (verifyErr, err error)
 }
 
+type DiscoveryClient interface {
+	EnsureServiceRegistered(service *discovery.Service) (bool, error)
+	Service(registration *discovery.ServiceRegistration) *discovery.Service
+}
+
 type Service struct {
 	serviceName string
 	log         *logan.Entry
@@ -29,9 +34,8 @@ type Service struct {
 	listener   net.Listener
 
 	discoveryRegisterPeriod time.Duration
-	// TODO Interface
-	discovery        *discovery.Client
-	discoveryService *discovery.Service
+	discovery               DiscoveryClient
+	discoveryService        *discovery.Service
 }
 
 func New(
@@ -42,7 +46,7 @@ func New(
 	builder *xdrbuild.Builder,
 	signer keypair.Full,
 	listener net.Listener,
-	discoveryClient *discovery.Client) *Service {
+	discoveryClient DiscoveryClient) *Service {
 
 	discoveryRegisterPeriod := 5 * time.Second
 
