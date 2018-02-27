@@ -4,7 +4,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 	"time"
 )
 
@@ -22,7 +22,7 @@ func (jp jsonAssetPrice) GetLoganFields() map[string]interface{} {
 }
 
 // ToPrices returns unmarshaled array of PricePoint with appropriate representation of Price and time
-func (jp *jsonAssetPrice) ToPrices() ([]providers.PricePoint, error) {
+func (jp *jsonAssetPrice) ToPrices() ([]types.PricePoint, error) {
 	price, err := amount.Parse(jp.PriceUsd)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to parse amount", logan.F{
@@ -30,7 +30,7 @@ func (jp *jsonAssetPrice) ToPrices() ([]providers.PricePoint, error) {
 		})
 	}
 
-	return []providers.PricePoint{
+	return []types.PricePoint{
 		{
 			Price: price,
 			Time:  time.Unix(jp.LastUpdated, 0).UTC(),

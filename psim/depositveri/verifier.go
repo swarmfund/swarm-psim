@@ -59,7 +59,7 @@ func (v *Verifier) VerifyOperation(envelope xdr.TransactionEnvelope) (verifyErr,
 }
 
 // TODO Try make me smaller
-func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (checkErr, err error) {
+func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr, err error) {
 	req := op.Request
 
 	if string(req.Asset) != v.offchainHelper.GetAsset() {
@@ -110,7 +110,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (checkErr,
 		return nil, errors.Wrap(err, "Failed to get Block")
 	}
 
-	return v.validateOffchainBlock(*block, extDetails, uint64(req.Amount), offchainAddress), nil
+	return v.verifyOffchainBlock(*block, extDetails, uint64(req.Amount), offchainAddress), nil
 }
 
 func (v *Verifier) getOffchainAddress(accountAddress, assetName string) (string, error) {
@@ -128,7 +128,7 @@ func (v *Verifier) getOffchainAddress(accountAddress, assetName string) (string,
 	return "", errNoExtAccount
 }
 
-func (v *Verifier) validateOffchainBlock(block deposit.Block, opExtDetails deposit.ExternalDetails, emissionAmount uint64, offchainAddress string) (checkErr error) {
+func (v *Verifier) verifyOffchainBlock(block deposit.Block, opExtDetails deposit.ExternalDetails, emissionAmount uint64, offchainAddress string) (checkErr error) {
 	for _, tx := range block.TXs {
 		if tx.Hash == opExtDetails.TXHash {
 			// TX Exists in Offchain

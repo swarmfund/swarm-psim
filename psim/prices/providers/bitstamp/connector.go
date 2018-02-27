@@ -1,8 +1,8 @@
 package bitstamp
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/providers"
 	"gitlab.com/swarmfund/psim/psim/prices/providers/base"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
 
 const (
@@ -28,6 +28,6 @@ func New() *Connector {
 }
 
 // GetPrices retrieves prices from external service and returns structured prices
-func (c *Connector) GetPrices(baseAsset, quoteAsset string) ([]providers.PricePoint, error) {
+func (c *Connector) GetPrices(baseAsset, quoteAsset string) ([]types.PricePoint, error) {
 	return c.Connector.GetPrices(baseAsset, quoteAsset, &jsonAssetPrice{})
 }

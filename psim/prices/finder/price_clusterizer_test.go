@@ -22,7 +22,7 @@ func TestPriceClusterizer(t *testing.T) {
 			for i := range input {
 				input[i] = providerPricePoint{
 					ProviderID: providers[rand.Intn(len(providers))],
-					PricePoint: providers.PricePoint{
+					PricePoint: types.PricePoint{
 						Price: rand.Int63(),
 					},
 				}

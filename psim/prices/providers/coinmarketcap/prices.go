@@ -3,7 +3,7 @@ package coinmarketcap
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 	"time"
 )
 
@@ -24,15 +24,15 @@ func (jp jsonAssetPrice) GetLoganFields() map[string]interface{} {
 type jsonPrices []jsonAssetPrice
 
 // ToPrices returns unmarshaled slice of PricePoint with appropriate representation of Price and time
-func (jps jsonPrices) ToPrices() ([]providers.PricePoint, error) {
-	var result []providers.PricePoint
+func (jps jsonPrices) ToPrices() ([]types.PricePoint, error) {
+	var result []types.PricePoint
 	for _, jp := range jps {
 		p, err := amount.Parse(jp.PriceUsd)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse amount")
 		}
 
-		result = append(result, providers.PricePoint{
+		result = append(result, types.PricePoint{
 			Price: p,
 			Time:  time.Unix(jp.LastUpdated, 0).UTC(),
 		})

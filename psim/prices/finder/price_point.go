@@ -1,12 +1,12 @@
 package finder
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
 
 type providerPricePoint struct {
 	ProviderID string
-	providers.PricePoint
+	types.PricePoint
 }
 
 func (p providerPricePoint) GetLoganFields() map[string]interface{} {

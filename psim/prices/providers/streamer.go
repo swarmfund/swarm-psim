@@ -6,23 +6,24 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"time"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
 
 // Connector is an interface for retrieving asset prices from external services
 type Connector interface {
 	GetName() string
-	GetPrices(baseAsset, quoteAsset string) ([]PricePoint, error)
+	GetPrices(baseAsset, quoteAsset string) ([]types.PricePoint, error)
 }
 
-// Streamer obtains PricePoints with the GetPrices method of the Connector from time to time
-// and streams these PricePoints into the pricesChannel.
+// Streamer obtains types.PricePoints with the GetPrices method of the Connector from time to time
+// and streams these types.PricePoints into the pricesChannel.
 //
 // Streamer is a common Streamer of Prices for a PriceProvider.
 type streamer struct {
 	logger        *logan.Entry
 	baseAsset     string
 	quoteAsset    string
-	pricesChannel chan PricePoint
+	pricesChannel chan types.PricePoint
 	exchange      Connector
 	period        time.Duration
 }
@@ -34,13 +35,13 @@ func StartNewPriceStreamer(
 	baseAsset,
 	quoteAsset string,
 	exchange Connector,
-	period time.Duration) <-chan PricePoint {
+	period time.Duration) <-chan types.PricePoint {
 
 	streamer := streamer{
 		logger:        log.WithField("price_streamer", exchange.GetName()),
 		baseAsset:     baseAsset,
 		quoteAsset:    quoteAsset,
-		pricesChannel: make(chan PricePoint, 10),
+		pricesChannel: make(chan types.PricePoint, 10),
 		exchange:      exchange,
 		period:        period,
 	}
@@ -52,7 +53,7 @@ func StartNewPriceStreamer(
 }
 
 func (p *streamer) runOnce(ctx context.Context) (err error) {
-	var prices []PricePoint
+	var prices []types.PricePoint
 
 	prices, err = p.exchange.GetPrices(p.baseAsset, p.quoteAsset)
 	if err != nil {

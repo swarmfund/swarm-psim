@@ -7,7 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/psim/psim/prices/providers"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
 
 //go:generate mockery -case underscore -testonly -inpkg -name PriceProvider
@@ -15,7 +15,7 @@ type PriceProvider interface {
 	// GetName - returns name of the Provider
 	GetName() string
 	// GetPoints - returns Points available
-	GetPoints() []providers.PricePoint
+	GetPoints() []types.PricePoint
 	// RemoveOldPoints - removes points which were created before minAllowedTime
 	RemoveOldPoints(minAllowedTime time.Time)
 }
@@ -24,7 +24,7 @@ type PriceProvider interface {
 type priceClusterizer interface {
 	// GetClusterForPoint - returns cluster of nearest Points for specified Point.
 	// The provided point must *not* be included into the cluster.
-	GetClusterForPoint(point providers.PricePoint) []providerPricePoint
+	GetClusterForPoint(point types.PricePoint) []providerPricePoint
 }
 
 type priceClusterizerProvider func(points []providerPricePoint) priceClusterizer
@@ -76,7 +76,7 @@ func isPercentValid(percent int64) bool {
 
 // TryFind - tries to find most recent PricePoint which priceDelta is <= maxPercentPriceDelta
 // for percent of providers >= minPercentOfNodeToParticipate
-func (p *priceFinder) TryFind() (*providers.PricePoint, error) {
+func (p *priceFinder) TryFind() (*types.PricePoint, error) {
 	allPoints := p.getAllProvidersPoints()
 
 	sort.Sort(sortablePricePointsByTime(allPoints))
@@ -101,7 +101,7 @@ func (p *priceFinder) TryFind() (*providers.PricePoint, error) {
 
 // IsOK returns true if median of the Cluster built over all existing Points
 // meets delta requirements with the provided point.
-func (p *priceFinder) IsOK(point providers.PricePoint) bool {
+func (p *priceFinder) IsOK(point types.PricePoint) bool {
 	allPoints := p.getAllProvidersPoints()
 	clusterizer := p.priceClusterizerProvider(allPoints)
 
@@ -173,7 +173,7 @@ func (p *priceFinder) meetsReq(candidate providerPricePoint, cluster []providerP
 	return providersAgreed >= p.minNumberOfProvidersToAgree
 }
 
-func (p *priceFinder) meetsPriceDeltaReq(candidate, point providers.PricePoint) bool {
+func (p *priceFinder) meetsPriceDeltaReq(candidate, point types.PricePoint) bool {
 	percentInDelta, isOverflow := candidate.GetPercentDeltaToMinPrice(point)
 	if isOverflow {
 		p.log.WithFields(logan.F{
