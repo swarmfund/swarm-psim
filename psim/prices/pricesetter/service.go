@@ -50,7 +50,8 @@ func newService(
 	// TODO Interface
 	connector *horizon.Submitter,
 	finder priceFinder,
-	txBuilder *xdrbuild.Builder) *service {
+	txBuilder *xdrbuild.Builder,
+	discovery Discovery) *service {
 
 	return &service{
 		config: config,
@@ -59,6 +60,7 @@ func newService(
 		connector:   connector,
 		priceFinder: finder,
 		txBuilder:   txBuilder,
+		discovery:   discovery,
 	}
 }
 

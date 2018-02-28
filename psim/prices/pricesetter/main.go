@@ -49,7 +49,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	txBuilder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
-	return newService(config, log, horizonConnector.Submitter(), priceFinder, txBuilder), nil
+	return newService(config, log, horizonConnector.Submitter(), priceFinder, txBuilder, globalConfig.Discovery()), nil
 }
 
 func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (priceFinder, error) {
