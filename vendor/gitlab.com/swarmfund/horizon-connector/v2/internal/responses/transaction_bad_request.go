@@ -7,6 +7,7 @@ type TransactionBadRequest struct {
 
 type TransactionResultCodes struct {
 	Transaction string   `json:"transaction"`
+	Operations  []string `json:"operations"`
 	Messages    []string `json:"messages"`
 }
 

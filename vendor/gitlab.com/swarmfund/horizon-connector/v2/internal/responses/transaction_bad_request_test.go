@@ -24,7 +24,7 @@ func TestTransactionBadRequest_Unmarshal(t *testing.T) {
 				"envelope_xdr": "AAAAAAAAA==",
 				"result_codes": {
 				  "transaction": "tx_bad_auth_extra",
-				  "messages": ["op_yoba"]
+				  "operations": ["op_yoba"]
 				},
 				"result_xdr": "AAAAAAAAAAD////5AAAAAA=="
 			  }
@@ -36,7 +36,7 @@ func TestTransactionBadRequest_Unmarshal(t *testing.T) {
 					ResultXDR:   "AAAAAAAAAAD////5AAAAAA==",
 					ResultCodes: TransactionResultCodes{
 						Transaction: "tx_bad_auth_extra",
-						Messages:    []string{"op_yoba"},
+						Operations:    []string{"op_yoba"},
 					},
 				},
 			},
