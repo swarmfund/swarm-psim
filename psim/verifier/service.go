@@ -15,6 +15,7 @@ import (
 )
 
 type Verifier interface {
+	Run(ctx context.Context)
 	// GetOperationType must return the OperationType Verifier expects in the TX.
 	GetOperationType() xdr.OperationType
 	// On calling of this method it's guaranteed that provided Envelope has exactly 1 Operation
@@ -77,6 +78,9 @@ func New(
 
 // TODO Comment
 func (s *Service) Run(ctx context.Context) {
+	// TODO Wait on shutdown
+	go s.verifier.Run(ctx)
+
 	// TODO Wait for acquireLeadershipEndlessly on shutdown
 	go app.RunOverIncrementalTimer(ctx, s.log, s.serviceName+"_discovery_reregisterer", s.ensureServiceInDiscoveryOnce,
 		s.discoveryRegisterPeriod, s.discoveryRegisterPeriod/2)

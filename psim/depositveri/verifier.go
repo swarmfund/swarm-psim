@@ -9,6 +9,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/deposit"
+	"context"
 )
 
 var errNoExtAccount = errors.New("External system Account was not found.")
@@ -37,6 +38,11 @@ func newVerifier(
 		horizon:            horizon,
 		offchainHelper:     offchainHelper,
 	}
+}
+
+// This method is to implement Verifier interface from package verifier.
+func (v *Verifier) Run(ctx context.Context) {
+	<- ctx.Done()
 }
 
 func (v *Verifier) GetOperationType() xdr.OperationType {

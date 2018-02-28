@@ -3,9 +3,16 @@ package pricesetterveri
 import (
 	"time"
 
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/psim/psim/app"
+)
+
+var (
+	pointsCleaningPeriod = 5 * time.Minute
 )
 
 type priceFinder interface {
@@ -31,6 +38,17 @@ func newVerifier(
 		config:      config,
 		priceFinder: priceFinder,
 	}
+}
+
+func (v *Verifier) Run(ctx context.Context) {
+	app.RunOverIncrementalTimer(ctx, v.log, "price_points_cleaner", v.cleanPricePoints, pointsCleaningPeriod, 30*time.Second)
+}
+
+// CleanPricePoints always returns nil. Returning error - is just to fit the
+// signature of a function needed for RunOverIncrementalTimer.
+func (v *Verifier) cleanPricePoints(ctx context.Context) error {
+	v.priceFinder.RemoveOldPoints(time.Now().Add(-pointsCleaningPeriod))
+	return nil
 }
 
 func (v *Verifier) GetOperationType() xdr.OperationType {
