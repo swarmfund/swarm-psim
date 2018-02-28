@@ -1,4 +1,4 @@
-package verifier
+package verification
 
 type Request struct {
 	Envelope string `json:"envelope"`

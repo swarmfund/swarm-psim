@@ -2,13 +2,14 @@ package verification
 
 import (
 	"encoding/json"
+	"net/http"
+
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
-	"net/http"
-	"gitlab.com/distributed_lab/logan/v3"
 )
 
-// TODO Consider moving to verifier package
+// TODO Consider moving to verifier package if withdraw moves to common verifier eventually.
 func ReadAPIRequest(log *logan.Entry, w http.ResponseWriter, r *http.Request, request interface{}) (success bool) {
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -20,14 +21,15 @@ func ReadAPIRequest(log *logan.Entry, w http.ResponseWriter, r *http.Request, re
 	return true
 }
 
+// TODO Start rendering only signature in the response, not the whole signed Envelope.
 func RenderResponseEnvelope(log *logan.Entry, w http.ResponseWriter, r *http.Request, envelope string) (success bool) {
-	response := EnvelopeResponse{
+	response := VerifyResponse{
 		Envelope: envelope,
 	}
 
 	respBytes, err := json.Marshal(response)
 	if err != nil {
-		log.WithField("response_trying_to_render", response).WithError(err).Error("Failed to marshal EnvelopeResponse.")
+		log.WithField("response_trying_to_render", response).WithError(err).Error("Failed to marshal VerifyResponse.")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return false
 	}
@@ -35,7 +37,7 @@ func RenderResponseEnvelope(log *logan.Entry, w http.ResponseWriter, r *http.Req
 	_, err = w.Write(respBytes)
 	if err != nil {
 		log.WithField("envelope_response", string(respBytes)).WithError(err).
-			Error("Failed to write EnvelopeResponse bytes into the ResponseWriter.")
+			Error("Failed to write VerifyResponse bytes into the ResponseWriter.")
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return false
 	}

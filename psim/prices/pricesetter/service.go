@@ -15,7 +15,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
 	"gitlab.com/swarmfund/psim/psim/verification"
-	"gitlab.com/swarmfund/psim/psim/verifier"
 )
 
 var (
@@ -137,12 +136,7 @@ func (s *service) sendToVerifier(envelope string) (fullySignedTXEnvelope *xdr.Tr
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")
 	}
 
-	request := verifier.Request{
-		Envelope: envelope,
-	}
-
-	// TODO pass envelope instead of request
-	responseEnvelope, err := verification.SendRequestToVerifier(url, &request)
+	responseEnvelope, err := verification.Verify(url, envelope)
 	if err != nil {
 		return nil, errors.Wrap(err, "Verification unsuccessful", logan.F{"verifier_url": url})
 	}
