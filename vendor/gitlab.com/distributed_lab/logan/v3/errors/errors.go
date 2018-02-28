@@ -31,7 +31,7 @@ func New(msg string) error {
 // as a value that satisfies error.
 // Errorf also records the stack trace at the point it was called.
 func Errorf(format string, args ...interface{}) error {
-	return errors.Errorf(format, args)
+	return errors.Errorf(format, args...)
 }
 
 // WithStack annotates err with a stack trace at the point WithStack was called.

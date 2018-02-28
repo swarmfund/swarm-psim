@@ -58,7 +58,9 @@ services:
 #  - eth_funnel
 
   #- taxman
-  #- rate_sync
+  #- price_setter
+#  - price_setter_verify
+#  - airdrop
 
 # BTC
 btc_deposit:
@@ -160,9 +162,10 @@ forfeit_listener:
   signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
   exchange: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
 
-rate_sync:
+price_setter:
   base_asset: "ETH"
   quote_asset: "USD"
+
   providers:
     - name: "bitfinex"
       period: 15s
@@ -174,8 +177,31 @@ rate_sync:
       period: 1s # does not apply any changes as we are using sockets
   providers_to_agree: 3
   max_price_delta_percent: "10"
-  source: "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636"
-  signer: "SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2"
+  verifier_service_name: price_setter_verify
+
+  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
+  signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
+
+price_setter_verify:
+  host: localhost
+  port: 8501
+
+  base_asset: "ETH"
+  quote_asset: "USD"
+
+  providers:
+    - name: "bitfinex"
+      period: 15s
+    - name: "coinmarketcap"
+      period: 15s
+    - name: "bitstamp"
+      period: 15s
+    - name: gdax
+      period: 1s # does not apply any changes as we are using sockets
+  providers_to_agree: 3
+  max_price_delta_percent: "10"
+
+  signer: S
 
 taxman:
   source: GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4

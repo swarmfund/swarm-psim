@@ -209,7 +209,7 @@ func (s *Service) sendRequestToVerifier(urlSuffix string, request interface{}) (
 	}
 	url = url + urlSuffix
 
-	envelope, err := verification.SendRequestToVerifier(url, request)
+	envelope, err := verification.VerifyRequest(url, request)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to send request to Verifier", logan.F{"verifier_url": url})
 	}
