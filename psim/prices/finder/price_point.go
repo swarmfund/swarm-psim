@@ -12,6 +12,7 @@ type providerPricePoint struct {
 func (p providerPricePoint) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"provider_id": p.ProviderID,
-		"point":       p.PricePoint,
+		"price":       p.PricePoint.Price,
+		"time":        p.PricePoint.Time.String(),
 	}
 }

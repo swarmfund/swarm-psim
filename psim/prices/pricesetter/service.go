@@ -83,6 +83,7 @@ func (s *service) findAndProcessPricePoint(ctx context.Context) error {
 	fields := logan.F{
 		"price_point": pointToSubmit,
 	}
+	s.log.WithFields(fields).Info("Found Point meeting restrictions.")
 
 	envelope, err := s.txBuilder.Transaction(s.config.Source).Op(xdrbuild.SetAssetPrice{
 		BaseAsset:  s.config.BaseAsset,

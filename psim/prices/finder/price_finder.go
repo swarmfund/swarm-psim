@@ -87,15 +87,17 @@ func (f *priceFinder) TryFind() (*types.PricePoint, error) {
 	for i := range allPoints {
 		cluster := clusterizer.GetClusterForPoint(allPoints[i].PricePoint)
 		candidate := median(cluster)
+		fields := logan.F{
+			"candidate": candidate,
+			"cluster":   cluster,
+		}
 
 		verifyErr := f.verifyCandidate(candidate.Price, cluster)
-		if verifyErr == nil {
-			f.log.WithFields(logan.F{
-				"point":   candidate,
-				"cluster": cluster,
-			}).Info("Found Point meeting restrictions.")
-			return &candidate.PricePoint, nil
+		if verifyErr != nil {
+			f.log.WithFields(fields).WithError(verifyErr).Debug("Candidate is not approved over Cluster.")
 		}
+
+		return &candidate.PricePoint, nil
 	}
 
 	return nil, nil
@@ -132,11 +134,6 @@ func (f *priceFinder) getAllProvidersPoints() []providerPricePoint {
 	for _, priceProvider := range f.priceProviders {
 		pricePoints := priceProvider.GetPoints()
 
-		f.log.WithFields(logan.F{
-			"provider": priceProvider.GetName(),
-			"points":   pricePoints,
-		}).Debug("Gathered all Provider's Points.")
-
 		for i := range pricePoints {
 			result = append(result, providerPricePoint{
 				ProviderID: priceProvider.GetName(),
@@ -159,12 +156,10 @@ func median(points []providerPricePoint) providerPricePoint {
 // Returns nil if cluster contains at least minProvidersToAgree PricePoints, which agree with candidate.
 func (f *priceFinder) verifyCandidate(candidatePrice int64, cluster []providerPricePoint) (verifyErr error) {
 	if len(cluster) < f.minProvidersToAgree {
-		f.log.WithFields(logan.F{
-			"min_number_of_providers": f.minProvidersToAgree,
-			"cluster_size":            len(cluster),
-			"cluster":                 cluster,
-		}).Debug("Cluster too small - skipping, don't even trying to evaluate distances.")
-		return errors.New("Cluster too small, don't even trying to evaluate distances.")
+		return errors.From(errors.New("Cluster too small, don't even trying to evaluate distances."), logan.F{
+			"min_providers_to_agree": f.minProvidersToAgree,
+			"cluster_size":           len(cluster),
+		})
 	}
 
 	providersAgreed := 0
