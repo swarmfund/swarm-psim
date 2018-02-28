@@ -32,6 +32,8 @@ func (r EnvelopeResponse) GetLoganFields() map[string]interface{} {
 // string envelope from the response is parsed into xdr.TransactionEnvelope struct.
 //
 // If status code in response is not 2XX - ErrBadStatusFromVerifier is returned.
+// TODO pass envelope instead of request
+// TODO Rename to Verify
 func SendRequestToVerifier(url string, request interface{}) (*xdr.TransactionEnvelope, error) {
 	rawRequestBody, err := json.Marshal(request)
 	if err != nil {

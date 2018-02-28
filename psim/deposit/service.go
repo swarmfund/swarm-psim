@@ -298,7 +298,7 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		"issuance":         issuanceOpt,
 	})
 
-	readyEnvelope, err := s.sendToVerifier(envelope, accountAddress)
+	readyEnvelope, err := s.sendToVerifier(envelope)
 	if err != nil {
 		return errors.Wrap(err, "Failed to Verify Issuance TX")
 	}
@@ -343,7 +343,7 @@ func (s *Service) getBalanceID(accountAddress string) (string, error) {
 	return "", ErrNoBalanceID
 }
 
-func (s *Service) sendToVerifier(envelope, accountID string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {
+func (s *Service) sendToVerifier(envelope string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {
 	url, err := s.getVerifierURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")

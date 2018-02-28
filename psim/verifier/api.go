@@ -59,6 +59,7 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO Respond only signature, not the whole signed Envelope, so that requester wouldn't check the returned Envelope.
 	signedEnvelopeString, err := s.signAndMarshalEnvelope(envelope)
 	if err != nil {
 		logger.WithError(err).Error("Failed sign or marshal Envelope.")

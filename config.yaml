@@ -177,6 +177,7 @@ price_setter:
       period: 1s # does not apply any changes as we are using sockets
   providers_to_agree: 3
   max_price_delta_percent: "10"
+  verifier_service_name: price_setter_verify
 
   source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
   signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2

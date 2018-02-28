@@ -28,6 +28,7 @@ func StartNewProvider(ctx context.Context, name string, pendingPoints <-chan typ
 		pointsLock: new(sync.Mutex),
 	}
 
+	result.log.Info("Starting PriceProvider.")
 	go result.fetchPointsInfinitely(ctx)
 
 	return &result

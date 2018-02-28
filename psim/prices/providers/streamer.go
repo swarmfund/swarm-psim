@@ -2,9 +2,10 @@ package providers
 
 import (
 	"context"
+	"time"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"time"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
@@ -46,7 +47,7 @@ func StartNewPriceStreamer(
 		period:        period,
 	}
 
-	streamer.logger.Debug("Starting new Streamer.")
+	streamer.logger.Debug("Starting new PriceStreamer.")
 	go app.RunOverIncrementalTimer(ctx, streamer.logger, exchange.GetName(), streamer.runOnce, period, time.Minute)
 
 	return streamer.pricesChannel
