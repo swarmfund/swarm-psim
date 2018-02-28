@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 type Watcher struct {
@@ -23,7 +24,7 @@ type Watcher struct {
 
 func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ TransactionQ) *Watcher {
 	w := &Watcher{
-		log:     log,
+		log:     log.WithField("service", "addrstate"),
 		mutator: mutator,
 		txQ:     txQ,
 
@@ -43,10 +44,11 @@ func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ Transa
 	return w
 }
 
-// ensureReached will block until state head reached provided ts
-func (w *Watcher) ensureReached(ts time.Time) {
+func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	for w.head.Before(ts) {
 		select {
+		case <-ctx.Done():
+			return
 		case <-w.headUpdate:
 			// Make the for check again
 			continue
@@ -54,32 +56,27 @@ func (w *Watcher) ensureReached(ts time.Time) {
 	}
 }
 
-func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, addr string) *string {
-	w.ensureReached(ts)
+func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, offchainAddr string) *string {
+	w.ensureReached(ctx, ts)
+	if app.IsCanceled(ctx) {
+		return nil
+	}
 
-	addr, ok := w.state.addrs[addr]
+	addrI, ok := w.state.addrs.Load(offchainAddr)
 	if !ok {
 		return nil
 	}
-	return &addr
-}
-
-func (w *Watcher) PriceAt(ctx context.Context, ts time.Time) *int64 {
-	w.ensureReached(ts)
-
-	for _, price := range w.state.prices {
-		if ts.After(price.UpdatedAt) {
-			return &price.Value
-		}
-	}
-	return nil
+	addrValue := addrI.(string)
+	return &addrValue
 }
 
 func (w *Watcher) Balance(ctx context.Context, address string) *string {
-	balance, ok := w.state.balances[address]
+	balanceI, ok := w.state.balances.Load(address)
 	if ok {
+		balance := balanceI.(string)
 		return &balance
 	}
+
 	// if we don't have balance already, let's wait for latest ledger
 	now := time.Now()
 	for w.head.Before(now) {
@@ -88,11 +85,14 @@ func (w *Watcher) Balance(ctx context.Context, address string) *string {
 			continue
 		}
 	}
+
 	// now check again
-	balance, ok = w.state.balances[address]
+	balanceI, ok = w.state.balances.Load(address)
 	if !ok {
 		return nil
 	}
+
+	balance := balanceI.(string)
 	return &balance
 }
 
@@ -119,13 +119,13 @@ func (w *Watcher) run(ctx context.Context) {
 	errs := w.txQ.Transactions(events)
 	for {
 		select {
-		case event := <-events:
-			if tx := event.Transaction; tx != nil {
+		case txEvent := <-events:
+			if tx := txEvent.Transaction; tx != nil {
 				for _, change := range tx.LedgerChanges() {
 					w.state.Mutate(tx.CreatedAt, w.mutator(change))
 				}
 			}
-			w.head = event.Meta.LatestLedger.ClosedAt
+			w.head = txEvent.Meta.LatestLedger.ClosedAt
 			w.headUpdate <- struct{}{}
 		case err := <-errs:
 			w.log.WithError(err).Warn("failed to get transaction")

@@ -2,63 +2,99 @@ package bearer
 
 import (
 	"context"
+
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
+type SalesQ interface {
+	Sales() ([]horizon.Sale, error)
+}
+
+// CheckSalesStateHelperInterface is an interface allows to perform check sale state operation
+// and get all required data for it
+type CheckSalesStateHelperInterface interface {
+	SalesQ
+	CloseSale(id uint64) (bool, error)
+	//GetHorizonInfo() (info *horizon.Info, err error)
+	//BuildTx(info *horizon.Info, saleID uint64) (string, error)
+	//SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult
+}
+
 // Service is a main structure for bearer runner,
 // implements `app.Service` interface.
 type Service struct {
-	config  Config
-	horizon *horizon.Connector
-	logger  *logan.Entry
-	errors  chan error
+	config Config
+	helper CheckSalesStateHelperInterface
+	logger *logan.Entry
+	ticker *time.Ticker
 }
 
-// New is constructor for bearer Service.
-func New(config Config, log *logan.Entry, connector *horizon.Connector) *Service {
+// New is a constructor for bearer Service.
+func New(config Config, log *logan.Entry, helper CheckSalesStateHelperInterface) *Service {
 	return &Service{
-		config:  config,
-		horizon: connector,
-		logger:  log.WithField("service", conf.ServiceBearer),
+		config: config,
+		helper: helper,
+		logger: log.WithField("service", conf.ServiceBearer),
+		ticker: time.NewTicker(config.SleepPeriod),
 	}
 }
 
-// Run will returns only when work is finished.
+// Run logs out info about service start and invokes run over incremental timer
 func (s *Service) Run(ctx context.Context) {
-	s.logger.Info("Starting.")
+	s.logger.Info("starting...")
 
 	app.RunOverIncrementalTimer(
 		ctx,
 		s.logger,
 		conf.ServiceBearer,
-		s.sendOperations,
+		s.worker,
 		0,
 		s.config.AbnormalPeriod)
 }
 
-// sendOperations is create and submit operations.
-func (s *Service) sendOperations(ctx context.Context) error {
-	err := s.checkSaleState()
-	if err == nil {
-		s.logger.Info("Operation submitted")
-		return nil
+// SendOperations sends operations to Horizon server and gets submission results from it
+func (s *Service) worker(ctx context.Context) error {
+	if err := s.checkSalesState(ctx); err != nil {
+		return errors.Wrap(err, "cannot submit checkSalesState operation")
 	}
 
-	if err != errorNoSales {
-		return errors.Wrap(err, "can not to submit checkSaleState operation")
-	}
+	s.logger.Info("successful iteration")
 
-	tm := time.NewTimer(s.config.SleepPeriod)
 	select {
 	case <-ctx.Done():
-		return nil
-	case <-tm.C:
-		return nil
+		s.logger.Info("bye-bye")
+	case <-s.ticker.C:
 	}
+
+	return nil
+}
+
+func (s *Service) checkSalesState(ctx context.Context) error {
+	sales, err := s.helper.Sales()
+	if err != nil {
+		return errors.Wrap(err, "failed to get sales")
+	}
+
+	for _, sale := range sales {
+		fields := logan.F{
+			"sale_id": sale.ID,
+		}
+		closed, err := s.helper.CloseSale(sale.ID)
+		if err != nil {
+			return errors.Wrap(err, "failed to close sale", fields)
+		}
+		if closed {
+			s.logger.WithFields(fields).Info("sale closed")
+		} else {
+			s.logger.WithFields(fields).Info("sale not ready yet")
+		}
+	}
+
+	return nil
 }

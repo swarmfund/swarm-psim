@@ -12,7 +12,10 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/listener"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/operation"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/transaction"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/sale"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/user"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/balance"
 )
 
 type Connector struct {
@@ -63,6 +66,18 @@ func (c *Connector) Accounts() *account.Q {
 
 func (c *Connector) Transactions() *transaction.Q {
 	return transaction.NewQ(c.client)
+}
+
+func (c *Connector) Sales() *sale.Q {
+	return sale.NewQ(c.client)
+}
+
+func (c *Connector) Users() *user.Q {
+	return user.NewQ(c.client)
+}
+
+func (c *Connector) Balances() *balance.Q {
+	return balance.NewQ(c.client)
 }
 
 func (c *Connector) Listener() *listener.Q {

@@ -17,7 +17,7 @@ import (
 // to parametrise the Service.
 type BTCClient interface {
 	// CreateAndFundRawTX sets Change position in Outputs to 1.
-	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string) (resultTXHex string, err error)
+	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error)
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
 	GetNetParams() *chaincfg.Params
@@ -163,7 +163,7 @@ func (h CommonBTCHelper) ConvertAmount(destinationAmount int64) int64 {
 func (h CommonBTCHelper) CreateTX(addr string, amount int64) (txHex string, err error) {
 	floatAmount := float64(amount) / 100000000
 
-	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.hotWalletAddress)
+	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.hotWalletAddress, nil)
 	if err != nil {
 		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
 			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet", logan.F{

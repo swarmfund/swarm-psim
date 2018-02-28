@@ -1,6 +1,9 @@
 package addrstate
 
-import "time"
+import (
+	"time"
+	"sync"
+)
 
 type Price struct {
 	UpdatedAt time.Time
@@ -9,14 +12,14 @@ type Price struct {
 
 type State struct {
 	prices   []Price
-	addrs    map[string]string
-	balances map[string]string
+	addrs	 sync.Map
+	balances sync.Map
 }
 
 func newState() *State {
 	return &State{
-		addrs:    map[string]string{},
-		balances: map[string]string{},
+		addrs:    sync.Map{},
+		balances: sync.Map{},
 	}
 }
 
@@ -28,9 +31,9 @@ func (s *State) Mutate(ts time.Time, update StateUpdate) {
 		}}, s.prices...)
 	}
 	if update.Address != nil {
-		s.addrs[update.Address.Offchain] = update.Address.Tokend
+		s.addrs.Store(update.Address.Offchain, update.Address.Tokend)
 	}
 	if update.Balance != nil {
-		s.balances[update.Balance.Address] = update.Balance.Balance
+		s.balances.Store(update.Balance.Address, update.Balance.Balance)
 	}
 }

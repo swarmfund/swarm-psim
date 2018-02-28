@@ -6,12 +6,21 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/tokend/keypair"
 )
 
 var (
 	ETHHooks = figure.Hooks{
+		// TODO move upstream
+		"uint64": func(value interface{}) (reflect.Value, error) {
+			result, err := cast.ToUint64E(value)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse uint64")
+			}
+			return reflect.ValueOf(result), nil
+		},
 		"common.Address": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {
 			case string:
@@ -20,6 +29,19 @@ var (
 					return reflect.Value{}, errors.New("invalid address")
 				}
 				return reflect.ValueOf(common.HexToAddress(v)), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
+		"*common.Address": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				if !common.IsHexAddress(v) {
+					// provide value does not look like valid address
+					return reflect.Value{}, errors.New("invalid address")
+				}
+				addr := common.HexToAddress(v)
+				return reflect.ValueOf(&addr), nil
 			default:
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}

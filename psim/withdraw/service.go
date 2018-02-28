@@ -4,11 +4,7 @@ import (
 	"context"
 	"time"
 
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -17,12 +13,12 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
 
 var (
-	ErrNoVerifierServices    = errors.New("No Withdraw Verify services were found.")
-	ErrBadStatusFromVerifier = errors.New("Unsuccessful status code from Verify.")
+	ErrNoVerifierServices = errors.New("No Withdraw Verify services were found.")
 )
 
 // RequestListener is the interface, which must be implemented
@@ -69,10 +65,12 @@ type CommonOffchainHelper interface {
 	// 		return destinationAmount * ((10^N) / amount.One)
 	//
 	// where N - is the precision of the Offchain system (8 for Bitcoin - satoshis).
+	//
 	// Though wouldn't be so easy, if your precision is 18 (like for Ethereum) :/
+	// TODO Rename to ConvertToOffchain
 	ConvertAmount(destinationAmount int64) int64
 
-	// SignTX must sign the provided TX. Provided TX has all the data for transaction, except the signatures.
+	// SignTX must sign the provided TX. Provided offchain TX has all the data for transaction, except the signatures.
 	SignTX(tx string) (string, error)
 }
 
@@ -82,9 +80,9 @@ type OffchainHelper interface {
 	CommonOffchainHelper
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
-	// This TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
+	// This offchain TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
 	CreateTX(withdrawAddr string, withdrawAmount int64) (tx string, err error)
-	// SendTX must spread the TX into Offchain network and return hash of already transmitted TX.
+	// SendTX must spread the offchain TX into Offchain network and return hash of already transmitted TX.
 	SendTX(tx string) (txHash string, err error)
 }
 
@@ -205,58 +203,18 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 }
 
 func (s *Service) sendRequestToVerifier(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
-	rawRequestBody, err := json.Marshal(request)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to marshal RequestBody")
-	}
-
 	url, err := s.getVerifierURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get URL of Verify")
 	}
 	url = url + urlSuffix
 
-	fields := logan.F{
-		"verify_url":       url,
-		"raw_request_body": string(rawRequestBody),
-	}
-
-	bodyReader := bytes.NewReader(rawRequestBody)
-	req, err := http.NewRequest("POST", url, bodyReader)
+	envelope, err := verification.VerifyRequest(url, request)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create Review Request to Verify", fields)
+		return nil, errors.Wrap(err, "Failed to send request to Verifier", logan.F{"verifier_url": url})
 	}
 
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send the request", fields)
-	}
-	fields["status_code"] = resp.StatusCode
-
-	defer func() { _ = resp.Body.Close() }()
-	responseBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to read the body of response from Verify", fields)
-	}
-	fields["response_body"] = string(responseBytes)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.From(ErrBadStatusFromVerifier, fields)
-	}
-
-	envelopeResponse := EnvelopeResponse{}
-	err = json.Unmarshal(responseBytes, &envelopeResponse)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal response body", fields)
-	}
-
-	envelope := xdr.TransactionEnvelope{}
-	err = envelope.Scan(envelopeResponse.Envelope)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Scan TransactionEnvelope from response from Verify", fields)
-	}
-
-	return &envelope, nil
+	return envelope, nil
 }
 
 func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.TransactionEnvelope) error {
@@ -269,16 +227,17 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 	if err != nil {
 		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
 	}
-	submitResult := s.horizon.Submitter().Submit(ctx, envelopeBase64)
 
+	submitResult := s.horizon.Submitter().Submit(ctx, envelopeBase64)
 	if submitResult.Err != nil {
-		return errors.Wrap(err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
+		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
 	}
 
 	return nil
 }
 
 func (s *Service) getVerifierURL() (string, error) {
+	time.Sleep(15 * time.Second)
 	services, err := s.discovery.DiscoverService(s.verifierServiceName)
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
