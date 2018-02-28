@@ -1,12 +1,13 @@
 package btcfunnel
 
 import (
-	"gitlab.com/swarmfund/psim/psim/app"
 	"context"
-	"gitlab.com/swarmfund/psim/psim/conf"
 	"fmt"
-	"gitlab.com/distributed_lab/logan/v3/errors"
+
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
 func init() {
