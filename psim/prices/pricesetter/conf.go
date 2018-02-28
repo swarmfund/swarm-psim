@@ -12,6 +12,6 @@ type Config struct {
 	ProvidersToAgree     int                        `mapstructure:"providers_to_agree"`
 	MaxPriceDeltaPercent string                     `mapstructure:"max_price_delta_percent"`
 
-	Source   keypair.Address `fig:"source"`
-	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`
+	Source keypair.Address `fig:"source"`
+	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
 }

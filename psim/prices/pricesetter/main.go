@@ -35,7 +35,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
+	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
 	horizonInfo, err := horizonConnector.Info()
 	if err != nil {
@@ -47,17 +47,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to init PriceFinder")
 	}
 
-	return &service{
-		baseAsset:  config.BaseAsset,
-		quoteAsset: config.QuoteAsset,
+	txBuilder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
-		log:         log.WithField("runner", "price_setter"),
-		source:      config.Source,
-		signer:      config.SignerKP,
-		connector:   horizonConnector.Submitter(),
-		txBuilder:   xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
-		priceFinder: priceFinder,
-	}, nil
+	return newService(config, log, horizonConnector.Submitter(), priceFinder, txBuilder), nil
 }
 
 func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (priceFinder, error) {

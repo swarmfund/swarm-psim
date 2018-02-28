@@ -10,7 +10,6 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
-	"gitlab.com/tokend/keypair"
 )
 
 type priceFinder interface {
@@ -21,17 +20,31 @@ type priceFinder interface {
 }
 
 type service struct {
-	baseAsset  string
-	quoteAsset string
+	config Config
+	log    *logan.Entry
 
-	log *logan.Entry
-
-	source keypair.Address
-	signer keypair.Full
-
+	// TODO Interface
 	connector   *horizon.Submitter
 	priceFinder priceFinder
 	txBuilder   *xdrbuild.Builder
+}
+
+func newService(
+	config Config,
+	log *logan.Entry,
+	// TODO Interface
+	connector *horizon.Submitter,
+	finder priceFinder,
+	txBuilder *xdrbuild.Builder) *service {
+
+	return &service{
+		config: config,
+		log:    log.WithField("service", "price_setter"),
+
+		connector: connector,
+		priceFinder: finder,
+		txBuilder: txBuilder,
+	}
 }
 
 // Run is a blocking method, it returns only when ctx closes.
@@ -56,11 +69,11 @@ func (s *service) findAndSubmitPricePoint(ctx context.Context) error {
 		"price_point": pointToSubmit,
 	}
 
-	tx, err := s.txBuilder.Transaction(s.source).Op(xdrbuild.SetAssetPrice{
-		BaseAsset:  s.baseAsset,
-		QuoteAsset: s.quoteAsset,
+	tx, err := s.txBuilder.Transaction(s.config.Source).Op(xdrbuild.SetAssetPrice{
+		BaseAsset:  s.config.BaseAsset,
+		QuoteAsset: s.config.QuoteAsset,
 		Price:      pointToSubmit.Price,
-	}).Sign(s.signer).Marshal()
+	}).Sign(s.config.Signer).Marshal()
 	if err != nil {
 		return errors.Wrap(err, "Failed to marshal SetAssetPrice TX", fields)
 	}
