@@ -144,11 +144,11 @@ func (h CommonBTCHelper) GetAsset() string {
 }
 
 func (h CommonBTCHelper) BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
-	result := txHash + string(outIndex)
+	reference := txHash + string(outIndex)
 
-	if len(result) > maxLen {
-		result = result[:maxLen]
+	if len(reference) > maxLen {
+		reference = reference[len(reference)-maxLen:]
 	}
 
-	return result
+	return reference
 }
