@@ -1,11 +1,12 @@
 package base
 
 import (
-	"io/ioutil"
 	"encoding/json"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
+	"io/ioutil"
 	"net/http"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3/fields"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
@@ -16,7 +17,7 @@ type PricesResponse interface {
 }
 
 type Connector struct {
-	Name string
+	Name      string
 	Endpoints map[string]string
 }
 
@@ -29,7 +30,7 @@ func (c *Connector) GetPrices(baseAsset, quoteAsset string, pricesResponse Price
 	assetPair := baseAsset + "/" + quoteAsset
 	endpoint, ok := c.Endpoints[assetPair]
 	if !ok {
-		return nil, errors.From(errors.New("Unknown asset pair"), logan.F{
+		return nil, errors.From(errors.New("Unknown asset pair."), logan.F{
 			"requested_asset_pair": assetPair,
 		})
 	}

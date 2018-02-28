@@ -57,6 +57,11 @@ func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (price
 	usedProviders := map[string]struct{}{}
 	var priceProviders []finder.PriceProvider
 
+	quoteAsset := config.QuoteAsset
+	if quoteAsset == "SUN" {
+		quoteAsset = "USD"
+	}
+
 	for _, providerData := range config.Providers {
 		if _, contains := usedProviders[providerData.Name]; contains {
 			return nil, errors.From(errors.New("Duplication of PriceProviders not allowed."), logan.F{
@@ -65,7 +70,7 @@ func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (price
 		}
 
 		usedProviders[providerData.Name] = struct{}{}
-		specificProvider, err := providers.StartSpecificProvider(ctx, log, config.BaseAsset, config.QuoteAsset,
+		specificProvider, err := providers.StartSpecificProvider(ctx, log, config.BaseAsset, quoteAsset,
 			providerData.Name, providerData.Period)
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to init specific PriceProvider")
