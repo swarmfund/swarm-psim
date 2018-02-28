@@ -35,8 +35,8 @@ type priceFinder struct {
 	priceClusterizerProvider
 
 	//in range [0, 100*ONE]
-	maxPercentPriceDelta        int64
-	minNumberOfProvidersToAgree int
+	maxPercentPriceDelta int64
+	minProvidersToAgree  int
 }
 
 func NewPriceFinder(
@@ -50,7 +50,7 @@ func NewPriceFinder(
 	}
 
 	if minNumberOfProvidersToAgree <= 0 {
-		return nil, errors.New("minNumberOfProvidersToAgree must be > 0")
+		return nil, errors.New("minProvidersToAgree must be > 0")
 	}
 
 	if len(priceProviders) == 0 {
@@ -63,8 +63,8 @@ func NewPriceFinder(
 		priceClusterizerProvider: func(points []providerPricePoint) priceClusterizer {
 			return newPriceClusterizer(points)
 		},
-		maxPercentPriceDelta:        maxPercentPriceDelta,
-		minNumberOfProvidersToAgree: minNumberOfProvidersToAgree,
+		maxPercentPriceDelta: maxPercentPriceDelta,
+		minProvidersToAgree:  minNumberOfProvidersToAgree,
 	}
 
 	return result, nil
@@ -86,7 +86,8 @@ func (p *priceFinder) TryFind() (*types.PricePoint, error) {
 		cluster := clusterizer.GetClusterForPoint(allPoints[i].PricePoint)
 		candidate := median(cluster)
 
-		if p.meetsReq(candidate, cluster) {
+		verifyErr := p.verifyCandidate(candidate.Price, cluster)
+		if verifyErr == nil {
 			p.log.WithFields(logan.F{
 				"point":   candidate,
 				"cluster": cluster,
@@ -99,16 +100,22 @@ func (p *priceFinder) TryFind() (*types.PricePoint, error) {
 	return nil, nil
 }
 
-// IsOK returns true if median of the Cluster built over all existing Points
+// VerifyPrice returns true if median of the Cluster built over all existing Points
 // meets delta requirements with the provided point.
-func (p *priceFinder) IsOK(point types.PricePoint) bool {
+func (p *priceFinder) VerifyPrice(price int64) error {
 	allPoints := p.getAllProvidersPoints()
 	clusterizer := p.priceClusterizerProvider(allPoints)
 
-	cluster := clusterizer.GetClusterForPoint(point)
-	clusterMedianPoint := median(cluster).PricePoint
+	cluster := clusterizer.GetClusterForPoint(types.PricePoint{})
 
-	return p.meetsPriceDeltaReq(point, clusterMedianPoint)
+	priceVerifyErr := p.verifyCandidate(price, cluster)
+	if priceVerifyErr != nil {
+		return priceVerifyErr
+	}
+
+	m := median(cluster)
+	p.RemoveOldPoints(m.Time)
+	return nil
 }
 
 // RemoveOldPoints - removes points which were created before minAllowedTime
@@ -140,28 +147,28 @@ func (p *priceFinder) getAllProvidersPoints() []providerPricePoint {
 	return result
 }
 
-// Median returns one of the provided points.
+// Median returns one of the provided points - median by Price.
 func median(points []providerPricePoint) providerPricePoint {
 	sort.Sort(sortablePricePointsByPrice(points))
 	// we can not select mean from two median points as point must exist
 	return points[len(points)/2]
 }
 
-// IsMeetsReq shows whether a candidate meets requirements.
-// Returns true if cluster contains at least minNumberOfProvidersToAgree PricePoints, which agree with candidate.
-func (p *priceFinder) meetsReq(candidate providerPricePoint, cluster []providerPricePoint) bool {
-	if len(cluster) < p.minNumberOfProvidersToAgree {
+// VerifyCandidate shows whether provided candidatePrice meets requirements over provided cluster.
+// Returns nil if cluster contains at least minProvidersToAgree PricePoints, which agree with candidate.
+func (p *priceFinder) verifyCandidate(candidatePrice int64, cluster []providerPricePoint) (verifyErr error) {
+	if len(cluster) < p.minProvidersToAgree {
 		p.log.WithFields(logan.F{
-			"min_number_of_providers": p.minNumberOfProvidersToAgree,
+			"min_number_of_providers": p.minProvidersToAgree,
 			"cluster_size":            len(cluster),
 			"cluster":                 cluster,
-		}).Debug("Cluster too small - skipping.")
-		return false
+		}).Debug("Cluster too small - skipping, don't even trying to evaluate distances.")
+		return errors.New("Cluster too small, don't even trying to evaluate distances.")
 	}
 
 	providersAgreed := 0
 	for _, providerPricePoint := range cluster {
-		if p.meetsPriceDeltaReq(candidate.PricePoint, providerPricePoint.PricePoint) {
+		if p.meetsPriceDeltaReq(candidatePrice, providerPricePoint.PricePoint.Price) {
 			// Provider agreed with the candidate - diff between the providerPricePoint and the candidate isn't too big.
 			p.log.WithField("provider_price_point", providerPricePoint).Debug("Provider agreed.")
 			providersAgreed++
@@ -170,15 +177,22 @@ func (p *priceFinder) meetsReq(candidate providerPricePoint, cluster []providerP
 		}
 	}
 
-	return providersAgreed >= p.minNumberOfProvidersToAgree
+	if providersAgreed < p.minProvidersToAgree {
+		return errors.From(errors.New("Too few Providers agreed."), logan.F{
+			"providers_agreed": providersAgreed,
+			"min_providers_to_agree": p.minProvidersToAgree,
+		})
+	}
+
+	return nil
 }
 
-func (p *priceFinder) meetsPriceDeltaReq(candidate, point types.PricePoint) bool {
-	percentInDelta, isOverflow := candidate.GetPercentDeltaToMinPrice(point)
+func (p *priceFinder) meetsPriceDeltaReq(price1, price2 int64) bool {
+	percentInDelta, isOverflow := types.GetPercentDeltaToMinPrice(price1, price2)
 	if isOverflow {
 		p.log.WithFields(logan.F{
-			"candidate_price": candidate.Price,
-			"point_price":     point.Price,
+			"price_1": price1,
+			"price_2": price2,
 		}).Warn("Overflow on price delta calculation.")
 		return false
 	}

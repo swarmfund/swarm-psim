@@ -1,4 +1,4 @@
-package pricesetter
+package pricesetterveri
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/prices/finder"
@@ -16,7 +17,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServicePriceSetter, setupFn)
+	app.RegisterService(conf.ServicePriceSetterVerify, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -26,38 +27,42 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServicePriceSetter)).
+		From(app.Config(ctx).GetRequired(conf.ServicePriceSetterVerify)).
 		With(figure.BaseHooks, utils.ETHHooks, providers.FigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServicePriceSetter,
+			"service": conf.ServicePriceSetterVerify,
 		})
 	}
 
-	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
+	pFinder, err := newPriceFinder(ctx, log, config)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create PriceFinder")
+	}
+
+	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
 	horizonInfo, err := horizonConnector.Info()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
-	priceFinder, err := newPriceFinder(ctx, log, config)
+	listener, err := ape.Listener(config.Host, config.Port)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to init PriceFinder")
+		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
-	return &service{
-		baseAsset:  config.BaseAsset,
-		quoteAsset: config.QuoteAsset,
-
-		log:         log.WithField("runner", "price_setter"),
-		source:      config.Source,
-		signer:      config.SignerKP,
-		connector:   horizonConnector.Submitter(),
-		txBuilder:   xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
-		priceFinder: priceFinder,
-	}, nil
+	return New(
+		conf.ServicePriceSetterVerify,
+		log,
+		config,
+		pFinder,
+		config.Signer,
+		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
+		listener,
+		globalConfig.Discovery(),
+	), nil
 }
 
 func newPriceFinder(ctx context.Context, log *logan.Entry, config Config) (priceFinder, error) {

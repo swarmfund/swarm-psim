@@ -15,12 +15,12 @@ type PricePoint struct {
 //
 // returns false if overflows
 // panics if min price is 0
-func (p PricePoint) GetPercentDeltaToMinPrice(other PricePoint) (int64, bool) {
-	minPrice := p.Price
-	maxPrice := other.Price
-	if other.Price < minPrice {
-		minPrice = other.Price
-		maxPrice = p.Price
+func GetPercentDeltaToMinPrice(price1, price2 int64) (int64, bool) {
+	minPrice := price1
+	maxPrice := price2
+	if price2 < minPrice {
+		minPrice = price2
+		maxPrice = price1
 	}
 
 	// delta * amount.One / minPrice

@@ -1,4 +1,4 @@
-package pricesetter
+package pricesetterveri
 
 import (
 	"gitlab.com/swarmfund/psim/psim/prices/providers"
@@ -6,12 +6,14 @@ import (
 )
 
 type Config struct {
+	Host string `fig:"host"`
+	Port int    `fig:"port"`
+
 	BaseAsset            string                     `mapstructure:"base_asset"`
 	QuoteAsset           string                     `mapstructure:"quote_asset"`
 	Providers            []providers.ProviderConfig `mapstructure:"providers"`
 	ProvidersToAgree     int                        `mapstructure:"providers_to_agree"`
 	MaxPriceDeltaPercent string                     `mapstructure:"max_price_delta_percent"`
 
-	Source   keypair.Address `fig:"source"`
-	SignerKP keypair.Full    `fig:"signer" mapstructure:"signer"`
+	Signer keypair.Full `fig:"signer" mapstructure:"signer"`
 }
