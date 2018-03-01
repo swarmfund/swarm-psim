@@ -7,10 +7,12 @@ import (
 )
 
 type Config struct {
-	Seed          string
-	Destination   common.Address
+	Seed        string
+	Destination common.Address
 	// Min withdraw amount
 	Threshold     *big.Int
 	GasPrice      *big.Int
 	Confirmations *big.Int
+	// AccountsToDerive will tell wallet how many keys it should derive
+	AccountsToDerive uint64
 }
