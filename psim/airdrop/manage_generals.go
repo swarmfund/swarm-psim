@@ -3,6 +3,8 @@ package airdrop
 import (
 	"context"
 
+	"time"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -16,52 +18,60 @@ var (
 func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 	s.log.Info("Started consuming GeneralAccounts from stream.")
 
-	for {
+	app.RunOverIncrementalTimer(ctx, s.log, "general_accounts_consumer", func(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case acc := <-s.generalAccountsCh:
 			if app.IsCanceled(ctx) {
-				return
+				return nil
 			}
 
-			logger := s.log.WithFields(logan.F{
-				"account_address": acc,
-			})
+			s.log.WithField("account_address", acc).Info("GeneralAccount was found.")
 
-			logger.Info("GeneralAccount was found.")
-
-			email, err := s.isReadyForIssuance(acc)
+			err := s.processGeneralAccount(ctx, acc)
 			if err != nil {
-				if err == errUserNotFound {
-					s.log.WithField("account_address", acc).
-						Warn("Tried to check User's AirdropState, but User not found. I won't come back to this User again.")
-					break
-				}
-
-				logger.WithError(err).Error("Failed to check readiness for issuance.")
-				// Will try later
+				// Try this Account later
 				s.pendingGeneralAccounts.Put(acc)
-				break
+				return errors.Wrap(err, "Failed to process GeneralAccount, will try later")
 			}
 
-			if email == "" {
-				// Not ready for Issuance yet
-				s.pendingGeneralAccounts.Put(acc)
-				break
-			}
-			logger = logger.WithField("email", email)
-
-			logger.Info("Found User, who is ready for Issuance.")
-
-			err = s.processIssuance(ctx, acc, email)
-			if err != nil {
-				logger.WithError(err).Error("Failed to process Issuance for GeneralAccount. Will try later.")
-				s.pendingGeneralAccounts.Put(acc)
-				break
-			}
+			return nil
 		}
+	}, 0, 10*time.Second)
+}
+
+func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) error {
+	logger := s.log.WithField("account_address", accAddress)
+
+	email, err := s.isReadyForIssuance(accAddress)
+	if err != nil {
+		if err == errUserNotFound {
+			s.log.WithField("account_address", accAddress).
+				Warn("Tried to check User's AirdropState, but User not found. I won't come back to this User again.")
+			return nil
+		}
+
+		return errors.Wrap(err, "Failed to check readiness for issuance.")
 	}
+
+	if email == "" {
+		// Not ready for Issuance yet
+		s.pendingGeneralAccounts.Put(accAddress)
+		return nil
+	}
+	logger = logger.WithField("email", email)
+
+	logger.Info("Found User, who is ready for Issuance.")
+
+	err = s.processIssuance(ctx, accAddress, email)
+	if err != nil {
+		return errors.Wrap(err, "Failed to process Issuance for GeneralAccount. Will try later.", logan.F{
+			"email": email,
+		})
+	}
+
+	return nil
 }
 
 func (s *Service) processIssuance(ctx context.Context, accAddress, email string) error {
@@ -71,17 +81,16 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, email string)
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	newIssuanceCreated, err := s.submitIssuance(ctx, accAddress, balanceID)
+	_, err = s.submitIssuance(ctx, accAddress, balanceID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	if newIssuanceCreated {
-		err = s.sendEmail(email)
-		if err != nil {
-			s.log.WithFields(fields).WithError(err).Error("Failed to send email.")
-			// Don't return error, as the Issuance actually happened
-		}
+	// Sending email even if reference duplication happened(so Issuance hasn't just been created). Emails server
+	err = s.sendEmail(email)
+	if err != nil {
+		s.log.WithFields(fields).WithError(err).Error("Failed to send email.")
+		// Don't return error, as the Issuance actually happened
 	}
 
 	return nil
