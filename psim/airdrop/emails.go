@@ -61,7 +61,7 @@ func (s *Service) sendEmail(email string) error {
 	}
 
 	if !resp.IsSuccess() {
-		return errors.New("Unsuccessful email sending.")
+		return errors.New("Unsuccessful response for email sending request.")
 	}
 
 	return nil
