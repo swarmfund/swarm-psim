@@ -21,7 +21,6 @@ type VerifyConfig struct {
 	Host          string
 	Port          int
 	Signer        keypair.Full
-	Cursor        uint64
 	Confirmations uint64
 	// DepositAsset swarm asset to deposit
 	DepositAsset string

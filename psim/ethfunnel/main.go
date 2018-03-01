@@ -13,7 +13,9 @@ import (
 
 func init() {
 	app.RegisterService(conf.ServiceETHFunnel, func(ctx context.Context) (app.Service, error) {
-		config := Config{}
+		config := Config{
+			AccountsToDerive: 10000,
+		}
 		err := figure.
 			Out(&config).
 			From(app.Config(ctx).GetRequired(conf.ServiceETHFunnel)).
@@ -23,7 +25,7 @@ func init() {
 			return nil, errors.Wrap(err, "failed to figure out")
 		}
 
-		wallet, err := eth.NewHDWallet(config.Seed, 10)
+		wallet, err := eth.NewHDWallet(config.Seed, config.AccountsToDerive)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init wallet")
 		}
