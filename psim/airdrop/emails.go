@@ -9,42 +9,38 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	notificator "gitlab.com/distributed_lab/notificator-server/client"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/templates"
 )
 
 func (s *Service) processEmails(ctx context.Context) {
 	s.log.Info("Started processing emails.")
-	ticker := time.Tick(30 * time.Second)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker:
-			emailsNumber := s.emails.Length()
-			if emailsNumber == 0 {
-				break
+	app.RunOverIncrementalTimer(ctx, s.log, "pending_generals_processor", func(ctx context.Context) error {
+		emailsNumber := s.emails.Length()
+		if emailsNumber == 0 {
+			return nil
+		}
+
+		s.log.WithField("emails_number", emailsNumber).Debug("Sending emails.")
+
+		var processedEmails []string
+		s.emails.Range(ctx, func(email string) {
+			logger := s.log.WithField("email", email)
+
+			err := s.sendEmail(email)
+			if err != nil {
+				logger.WithError(err).Error("Failed to send email.")
+				return
 			}
 
-			s.log.WithField("emails_number", emailsNumber).Debug("Sending emails.")
+			processedEmails = append(processedEmails, email)
+			logger.Info("Sent email successfully.")
+		})
 
-			var processedEmails []string
-			s.emails.Range(ctx, func(email string) {
-				logger := s.log.WithField("email", email)
-
-				err := s.sendEmail(email)
-				if err != nil {
-					logger.WithError(err).Error("Failed to send email.")
-					return
-				}
-
-				processedEmails = append(processedEmails, email)
-				logger.Info("Sent email successfully.")
-			})
-
-			s.emails.Delete(processedEmails)
-		}
-	}
+		s.emails.Delete(processedEmails)
+		return nil
+	}, 30*time.Second, 30*time.Second)
 }
 
 func (s *Service) sendEmail(email string) error {
