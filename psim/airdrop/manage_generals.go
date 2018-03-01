@@ -81,17 +81,16 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, email string)
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	_, err = s.submitIssuance(ctx, accAddress, balanceID)
+	issuanceWasSubmitted, err := s.submitIssuance(ctx, accAddress, balanceID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	// Sending email even if reference duplication happened(so Issuance hasn't just been created). Emails server
-	err = s.sendEmail(email)
-	if err != nil {
-		s.log.WithFields(fields).WithError(err).Error("Failed to send email.")
-		// Don't return error, as the Issuance actually happened
+	if issuanceWasSubmitted {
+		s.log.WithField("account_address", accAddress).WithFields(fields).Info("Submitted Issuance successfully.")
 	}
+
+	s.emails.Put(email)
 
 	return nil
 }
