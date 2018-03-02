@@ -10,6 +10,7 @@ type Config struct {
 	Asset           string     `fig:"issuance_asset"`
 	Amount          uint64     `fig:"issuance_amount"`
 	RegisteredAfter *time.Time `fig:"registered_after"`
+	WhiteList       []string   `fig:"white_list"`
 
 	Source keypair.Address `fig:"source"`
 	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`

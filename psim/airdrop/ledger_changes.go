@@ -29,12 +29,13 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 			for _, change := range txEvent.Transaction.LedgerChanges() {
 				s.processChange(ctx, txEvent.Transaction.CreatedAt, change)
 			}
+
 			return nil
 		case txStreamerErr := <-txStreamerErrs:
 			s.log.WithError(txStreamerErr).Error("TXStreamer sent error into its error channel.")
 			return nil
 		}
-	}, 0, 10 * time.Second)
+	}, 0, 10*time.Second)
 }
 
 func (s *Service) runOnce(ctx context.Context) {
@@ -77,7 +78,7 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 		accEntry := change.Updated.Data.Account
 
 		if accEntry.AccountType != xdr.AccountTypeGeneral {
-			// Account was updated but its Type is not general
+			// Account was updated but its Type is not General
 			return
 		}
 
