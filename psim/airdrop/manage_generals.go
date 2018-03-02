@@ -81,13 +81,9 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, email string)
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceWasSubmitted, err := s.submitIssuance(ctx, accAddress, balanceID)
+	_, err = s.submitIssuance(ctx, accAddress, balanceID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", fields)
-	}
-
-	if issuanceWasSubmitted {
-		s.log.WithField("account_address", accAddress).WithFields(fields).Info("Submitted Issuance successfully.")
 	}
 
 	s.emails.Put(email)

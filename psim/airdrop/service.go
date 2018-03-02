@@ -79,6 +79,10 @@ func NewService(
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
+	for _, accID := range s.config.WhiteList {
+		s.createdAccounts[accID] = struct{}{}
+	}
+
 	go s.listenLedgerChangesInfinitely(ctx)
 
 	go s.consumeGeneralAccounts(ctx)

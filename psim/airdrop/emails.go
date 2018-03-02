@@ -43,19 +43,20 @@ func (s *Service) processEmails(ctx context.Context) {
 	}, 30*time.Second, 30*time.Second)
 }
 
-func (s *Service) sendEmail(email string) error {
+func (s *Service) sendEmail(emailAddress string) error {
 	msg, err := s.buildEmailMessage()
 	if err != nil {
 		return errors.Wrap(err, "Failed to get email message")
 	}
 
 	payload := &notificator.EmailRequestPayload{
-		Destination: email,
+		Destination: emailAddress,
 		Subject:     s.config.EmailSubject,
 		Message:     msg,
 	}
 
-	resp, err := s.notificator.Send(s.config.EmailRequestType, email, payload)
+	uniqueToken := emailAddress + s.config.EmailRequestTokenSuffix
+	resp, err := s.notificator.Send(s.config.EmailRequestType, uniqueToken, payload)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send email via Notificator")
 	}
