@@ -247,13 +247,17 @@ bearer:
 airdrop:
   issuance_asset: SUN
   issuance_amount: 100000000 # in stroops
-  registered_before: "2018-02-04T12:00:00"
+  registered_before: "2018-02-05T14:00:00" # +14 - the latest existing GMT
   white_list: ["G_SOME_VALID_PUBLIC_KEY_1", "G_SOME_VALID_PUBLIC_KEY_2"]
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
   email_subject: "Airdrop"
-  email_request_type: 3
+  email_request_type: 10 # 10 means that email will be sent only once per each unique token
+  email_request_token_suffix: _airdrop # Email with same token will be sent only once
+
   template_name: airdrop.html
+#  template_name: airdrop_delaying.html
+
   template_redirect_url: https://invest.swarm.fund
