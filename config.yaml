@@ -247,7 +247,7 @@ bearer:
 airdrop:
   issuance_asset: SUN
   issuance_amount: 100000000 # in stroops
-  registered_after: "2018-02-04T12:00:00"
+  registered_before: "2018-02-04T12:00:00"
   white_list: ["G_SOME_VALID_PUBLIC_KEY_1", "G_SOME_VALID_PUBLIC_KEY_2"]
 
   source: G_SOME_VALID_PUBLIC_KEY

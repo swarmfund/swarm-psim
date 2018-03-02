@@ -53,7 +53,7 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 
 		accEntry := change.Created.Data.Account
 
-		if ts.Sub(*s.config.RegisteredAfter) > 0 {
+		if ts.Sub(*s.config.RegisteredBefore) > 0 {
 			// Account creation too late
 			return
 		}
