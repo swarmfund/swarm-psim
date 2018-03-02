@@ -32,6 +32,10 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
+	if len(config.EmailRequestTokenSuffix) == 0 {
+		return nil, errors.New("'email_request_token_suffix' in config must not be empty")
+	}
+
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
 	horizonInfo, err := horizonConnector.Info()
