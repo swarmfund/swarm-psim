@@ -230,6 +230,10 @@ func (c Client) parseTX(txHex string) (*btcutil.Tx, error) {
 	return tx, nil
 }
 
+func (c Client) IsTestnet() bool {
+	return c.connector.IsTestnet()
+}
+
 func (c Client) GetNetParams() *chaincfg.Params {
 	if c.connector.IsTestnet() {
 		return &chaincfg.TestNet3Params

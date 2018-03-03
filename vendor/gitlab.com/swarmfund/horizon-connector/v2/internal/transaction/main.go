@@ -22,7 +22,7 @@ func NewQ(client internal.Client) *Q {
 }
 
 func (q *Q) Transactions(cursor string) ([]resources.Transaction, *resources.PageMeta, error) {
-	response, err := q.client.Get(fmt.Sprintf("/transactions?cursor=%s", cursor))
+	response, err := q.client.Get(fmt.Sprintf("/transactions?limit=200&cursor=%s", cursor))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "request failed")
 	}

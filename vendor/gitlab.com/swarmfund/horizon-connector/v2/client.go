@@ -18,8 +18,9 @@ import (
 func throttle() chan time.Time {
 	burst := 2 << 10
 	ch := make(chan time.Time, burst)
+
 	go func() {
-		tick := time.Tick(3 * time.Second)
+		tick := time.Tick(1 * time.Second)
 		// prefill buffer
 		for i := 0; i < burst; i++ {
 			ch <- time.Now()

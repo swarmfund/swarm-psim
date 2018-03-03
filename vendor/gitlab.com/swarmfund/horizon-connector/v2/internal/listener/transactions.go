@@ -74,7 +74,7 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 			for _, tx := range transactions {
 				ohaigo := tx
 
-				ok := q.streamTxEvent(ctx, resources.TransactionEvent{
+				txEvent := resources.TransactionEvent{
 					Transaction: &ohaigo,
 					// emulating discrete transactions stream by spoofing meta
 					// to not let bump cursor too much before actually consuming all transactions
@@ -83,7 +83,8 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 							ClosedAt: tx.CreatedAt,
 						},
 					},
-				}, txStream)
+				}
+				ok := q.streamTxEvent(ctx, txEvent, txStream)
 				if !ok {
 					// Ctx was canceled
 					return
