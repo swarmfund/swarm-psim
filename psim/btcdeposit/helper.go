@@ -1,6 +1,10 @@
 package btcdeposit
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -16,6 +20,8 @@ import (
 type BTCClient interface {
 	GetBlockCount() (uint64, error)
 	GetBlock(blockIndex uint64) (*btcutil.Block, error)
+
+	IsTestnet() bool
 	GetNetParams() *chaincfg.Params
 }
 
@@ -88,7 +94,7 @@ func (h CommonBTCHelper) parseTX(tx btcutil.Tx) deposit.Tx {
 			h.log.WithFields(logan.F{
 				"tx_hash": tx.Hash().String(),
 				"out_i":   i,
-			}).WithError(err).Warn("Failed to parse TX Output.")
+			}).WithError(err).Debug("Failed to parse TX Output.")
 		}
 
 		// Indexes of outputs must be strict, so never loose any Outputs, even though they're malformed.
@@ -144,11 +150,28 @@ func (h CommonBTCHelper) GetAsset() string {
 }
 
 func (h CommonBTCHelper) BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
-	reference := txHash + string(outIndex)
+	var firstNewStyleBlock uint64
 
-	if len(reference) > maxLen {
-		reference = reference[len(reference)-maxLen:]
+	if h.btcClient.IsTestnet() {
+		firstNewStyleBlock = 1287181
+	} else {
+		// Last deprecated deposit we processed was in the 507222 BTC Block.
+		firstNewStyleBlock = 507223
 	}
 
-	return reference
+	if blockNumber < firstNewStyleBlock {
+		// Deprecated approach
+		reference := txHash + string(outIndex)
+
+		if len(reference) > maxLen {
+			reference = reference[len(reference)-maxLen:]
+		}
+
+		return reference
+	} else {
+		// New approach
+		base := fmt.Sprintf("%s:%d", txHash, outIndex)
+		hash := sha256.Sum256([]byte(base))
+		return hex.EncodeToString(hash[:])
+	}
 }
