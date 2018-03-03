@@ -6,15 +6,22 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/go/xdr"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
+type StateMutator func(change xdr.LedgerEntryChange) StateUpdate
+
+type TXStreamer interface {
+	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
+}
+
 type Watcher struct {
-	log     *logan.Entry
-	mutator StateMutator
-	txQ     TransactionQ
-	ctx     context.Context
+	log        *logan.Entry
+	mutator    StateMutator
+	txStreamer TXStreamer
+	ctx        context.Context
 
 	// internal state
 	head       time.Time
@@ -22,11 +29,11 @@ type Watcher struct {
 	state      *State
 }
 
-func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ TransactionQ) *Watcher {
+func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ TXStreamer) *Watcher {
 	w := &Watcher{
-		log:     log.WithField("service", "addrstate"),
-		mutator: mutator,
-		txQ:     txQ,
+		log:        log.WithField("service", "addrstate"),
+		mutator:    mutator,
+		txStreamer: txQ,
 
 		state:      newState(),
 		headUpdate: make(chan struct{}),
@@ -115,20 +122,21 @@ type StateBalanceUpdate struct {
 
 func (w *Watcher) run(ctx context.Context) {
 	// there is intentionally no recover, it should just die in case of persistent error
-	events := make(chan horizon.TransactionEvent)
-	errs := w.txQ.Transactions(events)
+	txStream, txStreamErrs := w.txStreamer.StreamTransactions(ctx)
+
 	for {
 		select {
-		case txEvent := <-events:
+		case txEvent := <-txStream:
 			if tx := txEvent.Transaction; tx != nil {
 				for _, change := range tx.LedgerChanges() {
 					w.state.Mutate(tx.CreatedAt, w.mutator(change))
 				}
 			}
+
 			w.head = txEvent.Meta.LatestLedger.ClosedAt
 			w.headUpdate <- struct{}{}
-		case err := <-errs:
-			w.log.WithError(err).Warn("failed to get transaction")
+		case err := <-txStreamErrs:
+			w.log.WithError(err).Warn("TXStreamer sent error into channel.")
 		}
 	}
 }
