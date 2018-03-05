@@ -13,9 +13,10 @@ type Config struct {
 	MinFunnelAmount          float64       `fig:"min_funnel_amount"`
 	MaxHotStock              float64       `fig:"max_hot_stock"`
 	DustOutputLimit          float64       `fig:"dust_output_limit"`
+	// TODO
+	//BlocksToBeIncluded uint    `fig:"blocks_to_be_included"` // From 2 to 25
+	MaxFeePerKB       float64 `fig:"max_fee_per_kb"`
+
 	MinBalanceAlarmThreshold float64       `fig:"min_balance_alarm_threshold"`
 	MinBalanceAlarmPeriod    time.Duration `fig:"min_balance_alarm_period"`
-
-	// TODO Somehow
-	//FeePerKB        float64 `fig:"fee_per_kb"`
 }

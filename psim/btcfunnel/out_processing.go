@@ -17,7 +17,10 @@ const (
 	outSize        = 21
 )
 
-var errNoScriptAddresses = errors.New("No Addresses in the ScriptPubKey of the UTXO.")
+var (
+	errNoScriptAddresses = errors.New("No Addresses in the ScriptPubKey of the UTXO.")
+	errTooBigFeePerKB    = errors.New("Too big fee per KB was suggested.")
+)
 
 func (s Service) listenOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out) {
 	s.log.Debug("Started listening to stream of our Outputs.")
@@ -111,8 +114,13 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to EstimateFee", fields)
 	}
-	// TODO Add maxPossibleFee to config and compare estimated fee with it
 	fields["fee_per_kb"] = feePerKB
+
+	if feePerKB > s.config.MaxFeePerKB {
+		return errors.From(errTooBigFeePerKB, fields.Merge(logan.F{
+			"config_max_fee_per_kb": s.config.MaxFeePerKB,
+		}))
+	}
 
 	txFee := (feePerKB / 1000) * float64(txSizeBytes)
 	fields["tx_fee"] = txFee

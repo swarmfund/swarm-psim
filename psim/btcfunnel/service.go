@@ -25,6 +25,7 @@ const (
 type BTCClient interface {
 	GetNetParams() *chaincfg.Params
 	GetNetworkName() string
+	// EstimateFee returns fee per KB in BTC
 	EstimateFee() (float64, error)
 
 	GetBlockCount() (uint64, error)
