@@ -29,9 +29,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to figure out %s", conf.ServiceBTCFunnel))
 	}
 
-	//if config.BlocksToBeIncluded < 2 || config.BlocksToBeIncluded  > 25 {
-	//	return nil, errors.Errorf("Invalid BocksToBeInclude value (%d), must be from 2 to 25.", config.BlocksToBeIncluded)
-	//}
+	if config.BlocksToBeIncluded < 2 || config.BlocksToBeIncluded  > 25 {
+		return nil, errors.Errorf("Invalid BocksToBeIncluded value (%d), must be from 2 to 25.", config.BlocksToBeIncluded)
+	}
 	if config.MaxFeePerKB <= 0 {
 		return nil, errors.Errorf("Invalid MaxFeePerKB value (%.8f), must be grater than zero.", config.MaxFeePerKB)
 	}

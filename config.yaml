@@ -101,6 +101,7 @@ btc_funnel:
   max_hot_stock: 50 # (float in BTC)
   dust_output_limit: 0.005 # (float in BTC)
   max_fee_per_kb: 0.00024 # 24000 satoshi (float in BTC)
+  blocks_to_be_included: 4 # from 2 to 25
 
   min_balance_alarm_threshold: 100 # (float in BTC)
   min_balance_alarm_period: 1h

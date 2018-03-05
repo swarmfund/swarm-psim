@@ -110,7 +110,7 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 	txSizeBytes := txTemplateSize + inSize*len(utxos) + outSize*2
 	fields["tx_size_bytes"] = txSizeBytes
 
-	feePerKB, err := s.btcClient.EstimateFee()
+	feePerKB, err := s.btcClient.EstimateFee(s.config.BlocksToBeIncluded)
 	if err != nil {
 		return errors.Wrap(err, "Failed to EstimateFee", fields)
 	}
