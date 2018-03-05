@@ -104,8 +104,8 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 	}
 	fields["hot_balance"] = hotBalance
 
-	txSize := txTemplateSize + inSize*len(utxos) + outSize*2
-	fields["tx_size"] = txSize
+	txSizeBytes := txTemplateSize + inSize*len(utxos) + outSize*2
+	fields["tx_size_bytes"] = txSizeBytes
 
 	feePerKB, err := s.btcClient.EstimateFee()
 	if err != nil {
@@ -114,7 +114,7 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 	// TODO Add maxPossibleFee to config and compare estimated fee with it
 	fields["fee_per_kb"] = feePerKB
 
-	txFee := feePerKB * float64(txSize)
+	txFee := (feePerKB / 1000) * float64(txSizeBytes)
 	fields["tx_fee"] = txFee
 
 	funnelOuts := s.countFunnelOuts(totalInAmount, hotBalance, txFee)
