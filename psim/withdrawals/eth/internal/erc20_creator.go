@@ -37,7 +37,8 @@ func (h *ERC20Creator) CreateTX(desthex string, amount int64) (string, error) {
 		return "", errors.Wrap(err, "zero nonce")
 	}
 
-	input, err := h.token.Transfer(destination, fromGwei(big.NewInt(amount)))
+	// FIXME withdraw fee is hardcoded in token asset
+	input, err := h.token.Transfer(destination, fromGwei(big.NewInt(amount-1250000000)))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to build tx input")
 	}
