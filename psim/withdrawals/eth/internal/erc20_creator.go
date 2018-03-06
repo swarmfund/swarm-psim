@@ -32,13 +32,24 @@ func (h *ERC20Creator) CreateTX(desthex string, amount int64) (string, error) {
 		return "", errors.Wrap(err, "failed to get nonce")
 	}
 
-	input, err := h.token.Transfer(destination, fromGwei(big.NewInt(amount)))
+	// it's here for debug reasons, remove it if you have fresh hot-wallet
+	if nonce == 0 {
+		return "", errors.Wrap(err, "zero nonce")
+	}
+
+	// FIXME withdraw fee is hardcoded in token asset
+	input, err := h.token.Transfer(destination, fromGwei(big.NewInt(amount-1250000000)))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to build tx input")
 	}
 
 	tx := types.NewTransaction(
 		nonce, h.token.Address(), big.NewInt(0), big.NewInt(200000), fromGwei(h.gasPrice), input)
+
+	// asserting just in case
+	if tx.Nonce() != nonce {
+		return "", errors.Wrap(err, "geth client is shit")
+	}
 
 	return h.marshaller.Marshal(tx)
 }
