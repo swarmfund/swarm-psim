@@ -6,11 +6,15 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/pkg/errors"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 )
 
@@ -20,6 +24,7 @@ type TxCreator interface {
 
 type ETHHelper struct {
 	TxCreator
+	log        *logan.Entry
 	eth        *ethclient.Client
 	address    common.Address
 	wallet     *eth.Wallet
@@ -30,6 +35,7 @@ type ETHHelper struct {
 
 func NewETHHelper(
 	eth *ethclient.Client, address common.Address, wallet *eth.Wallet, gasPrice *big.Int, token *Token,
+	log *logan.Entry,
 ) *ETHHelper {
 	var txCreator TxCreator
 	if token == nil {
@@ -39,6 +45,7 @@ func NewETHHelper(
 	}
 	return &ETHHelper{
 		txCreator,
+		log,
 		eth,
 		address,
 		wallet,
@@ -65,9 +72,27 @@ func (h *ETHHelper) SendTX(txhex string) (hash string, err error) {
 		return "", errors.Wrap(err, "failed to submit tx")
 	}
 
-	// TODO wait while mined
+	// wait while transaction is mined to avoid nonce mismatch issues
+	h.ensureMined(context.TODO(), tx.Hash())
 
 	return tx.Hash().Hex(), nil
+}
+
+// TODO move this to eth client abstraction
+func (h *ETHHelper) ensureMined(ctx context.Context, hash common.Hash) {
+	app.RunUntilSuccess(ctx, h.log, "ensure-mined", func(i context.Context) error {
+		tx, pending, err := h.eth.TransactionByHash(ctx, hash)
+		if err != nil {
+			return errors.Wrap(err, "failed to get tx")
+		}
+		if pending {
+			return errors.New("not yet mined")
+		}
+		if tx == nil {
+			return errors.New("transaction not found")
+		}
+		return nil
+	}, 10*time.Second)
 }
 
 func (h *ETHHelper) SignTX(txhex string) (string, error) {
