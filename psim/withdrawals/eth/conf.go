@@ -8,9 +8,10 @@ import (
 )
 
 type WithdrawConfig struct {
-	Source keypair.Address
+	// Signer will be used to sign TokenD transactions as well as to access Horizon resources
 	Signer keypair.Full
-	Asset  string
+	// Asset specifies TokenD asset code for which service will try to fulfill withdrawal requests
+	Asset string
 	// Threshold minimal withdraw amount in gwei
 	Threshold int64
 	// Key hex encode private key
