@@ -56,7 +56,7 @@ func init() {
 			horizon,
 			builder,
 			app.Config(ctx).Discovery(),
-			internal.NewHelper(config.Asset, config.Threshold, ethClient, address, wallet, config.GasPrice, token),
+			internal.NewHelper(config.Asset, config.Threshold, ethClient, address, wallet, config.GasPrice, token, app.Log(ctx)),
 		), nil
 	})
 }
