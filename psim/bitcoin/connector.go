@@ -431,7 +431,9 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 
 	err = json.Unmarshal(body, response)
 	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal response body to JSON")
+		return errors.Wrap(err, "Failed to unmarshal response body to JSON", logan.F{
+			"raw_response_body": string(body),
+		})
 	}
 
 	return nil
