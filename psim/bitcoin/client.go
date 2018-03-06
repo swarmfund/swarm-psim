@@ -254,8 +254,10 @@ func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {
 	return c.connector.GetTxUTXO(txHash, outNumber, false)
 }
 
-func (c Client) EstimateFee() (float64, error) {
-	return c.connector.EstimateFee(3)
+// EstimateFee receives blocks to be a TX included in (from 2 to 25) and
+// returns which fee(in BTC) should be payed for each KB.
+func (c Client) EstimateFee(blocksToBeIncluded uint) (float64, error) {
+	return c.connector.EstimateFee(blocksToBeIncluded)
 }
 
 // GetAddrUTXOs returns the list of UTXOs of the provided Address.
