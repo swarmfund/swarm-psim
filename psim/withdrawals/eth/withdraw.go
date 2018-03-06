@@ -23,7 +23,7 @@ func init() {
 			From(app.Config(ctx).Get(conf.ServiceETHWithdraw)).
 			Please()
 
-		horizon := app.Config(ctx).Horizon()
+		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
 		info, err := horizon.Info()
 		if err != nil {
