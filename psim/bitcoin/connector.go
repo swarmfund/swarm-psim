@@ -42,7 +42,7 @@ type Connector interface {
 	FundRawTX(initialTXHex, changeAddress string, includeWatching bool, feeRate *float64) (result *FundResult, err error)
 	SignRawTX(initialTXHex string, inputUTXOs []InputUTXO, privateKeys []string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
-	EstimateFee(blocks int) (float64, error)
+	EstimateFee(blocks uint) (float64, error)
 	GetTxUTXO(txHash string, vout uint32, unconfirmed bool) (*UTXO, error)
 	ListUnspent(minConfirmations, maxConfirmations int, addresses []string) ([]WalletUTXO, error)
 }
@@ -365,7 +365,7 @@ func (c *NodeConnector) GetTxUTXO(txHash string, vout uint32, unconfirmed bool) 
 	return response.Result, nil
 }
 
-func (c *NodeConnector) EstimateFee(blocks int) (float64, error) {
+func (c *NodeConnector) EstimateFee(blocks uint) (float64, error) {
 	var response struct {
 		Response
 		Result float64 `json:"result"`
@@ -431,7 +431,9 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 
 	err = json.Unmarshal(body, response)
 	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal response body to JSON")
+		return errors.Wrap(err, "Failed to unmarshal response body to JSON", logan.F{
+			"raw_response_body": string(body),
+		})
 	}
 
 	return nil
