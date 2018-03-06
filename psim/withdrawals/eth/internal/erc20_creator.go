@@ -32,6 +32,11 @@ func (h *ERC20Creator) CreateTX(desthex string, amount int64) (string, error) {
 		return "", errors.Wrap(err, "failed to get nonce")
 	}
 
+	// it's here for debug reasons, remove it if you have fresh hot-wallet
+	if nonce == 0 {
+		return "", errors.Wrap(err, "zero nonce")
+	}
+
 	input, err := h.token.Transfer(destination, fromGwei(big.NewInt(amount)))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to build tx input")
@@ -39,6 +44,11 @@ func (h *ERC20Creator) CreateTX(desthex string, amount int64) (string, error) {
 
 	tx := types.NewTransaction(
 		nonce, h.token.Address(), big.NewInt(0), big.NewInt(200000), fromGwei(h.gasPrice), input)
+
+	// asserting just in case
+	if tx.Nonce() != nonce {
+		return "", errors.Wrap(err, "geth client is shit")
+	}
 
 	return h.marshaller.Marshal(tx)
 }
