@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 )
@@ -17,12 +18,12 @@ type Helper struct {
 
 func NewHelper(
 	asset string, withdrawThreshold int64, eth *ethclient.Client, address common.Address, wallet *eth.Wallet,
-	gasPrice *big.Int, token *Token,
+	gasPrice *big.Int, token *Token, log *logan.Entry,
 ) *Helper {
 	return &Helper{
 		NewConverter(),
 		NewConfigHelper(asset, withdrawThreshold),
-		NewETHHelper(eth, address, wallet, gasPrice, token),
+		NewETHHelper(eth, address, wallet, gasPrice, token, log),
 	}
 }
 
