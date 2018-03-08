@@ -1,4 +1,4 @@
-package airdrop
+package earlybird
 
 import (
 	"context"
@@ -7,11 +7,8 @@ import (
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
-
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
-}
 
 type TXStreamer interface {
 	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
@@ -40,9 +37,9 @@ type Service struct {
 
 	createdAccounts        map[string]struct{}
 	generalAccountsCh      chan string
-	pendingGeneralAccounts SyncSet
+	pendingGeneralAccounts airdrop.SyncSet
 
-	emails SyncSet
+	emails airdrop.SyncSet
 }
 
 func NewService(
@@ -70,9 +67,9 @@ func NewService(
 
 		createdAccounts:        make(map[string]struct{}),
 		generalAccountsCh:      make(chan string, 100),
-		pendingGeneralAccounts: NewSyncSet(),
+		pendingGeneralAccounts: airdrop.NewSyncSet(),
 
-		emails: NewSyncSet(),
+		emails: airdrop.NewSyncSet(),
 	}
 }
 

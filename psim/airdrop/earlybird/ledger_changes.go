@@ -1,4 +1,4 @@
-package airdrop
+package earlybird
 
 import (
 	"time"

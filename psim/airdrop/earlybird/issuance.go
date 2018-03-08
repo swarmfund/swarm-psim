@@ -1,4 +1,4 @@
-package airdrop
+package earlybird
 
 import (
 	"context"
@@ -6,11 +6,16 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 )
+
+type TXSubmitter interface {
+	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+}
 
 func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID string) (bool, error) {
 	issuanceOpt := issuance.RequestOpt{
-		Reference: s.buildReference(accountAddress),
+		Reference: buildReference(accountAddress),
 		Receiver:  balanceID,
 		Asset:     s.config.Asset,
 		Amount:    s.config.Amount,
@@ -43,18 +48,20 @@ func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID 
 	}
 }
 
-func (s *Service) buildReference(accountAddress string) string {
+func buildReference(accountAddress string) string {
+	const maxReferenceLen = 64
+
 	result := accountAddress + "-airdrop" // accountAddress should be 56 runes length
 
 	// Just in case.
-	if len(result) > 64 {
-		result = result[len(result) - 64:]
+	if len(result) > maxReferenceLen {
+		result = result[len(result) - maxReferenceLen:]
 	}
 
 	// Just in case.
-	if len(result) < 64 {
+	if len(result) < maxReferenceLen {
 		filler := "----------------------------------------------------------------" // len = 64
-		result = result + filler[:64-len(result)]
+		result = result + filler[:maxReferenceLen-len(result)]
 	}
 
 	return result
