@@ -258,11 +258,18 @@ airdrop_earlybird:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
-  email_subject: "Airdrop"
-  email_request_type: 10 # 10 means that email will be sent only once per each unique token
-  email_request_token_suffix: _airdrop # Email with same token will be sent only once
+  emails:
+    email_subject: "Airdrop"
+#    email_subject: "Airdrop delaying"
 
-  template_name: airdrop.html
-#  template_name: airdrop_delaying.html
+    email_request_type: 10 # 10 means that email will be sent only once per each unique token
+    email_request_token_suffix: _airdrop # Email with same token will be sent only once
 
-  template_redirect_url: https://invest.swarm.fund
+    template_name: airdrop.html
+  #  template_name: airdrop_delaying.html
+
+    template_redirect_url: https://invest.swarm.fund
+
+  white_list: [
+"GD7GEEMUBBIPKCV4CCOT4XCRRK3757RYJT4O7IUYTLCY4HNPN4TJKRLM",
+"GCK7IUGJYPITUJFKDFKYXIDHDTWMQJAEYGSLXWKAUZSLGWCHHXDMFIZW"]

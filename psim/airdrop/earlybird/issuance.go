@@ -5,8 +5,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 type TXSubmitter interface {
@@ -55,7 +55,7 @@ func buildReference(accountAddress string) string {
 
 	// Just in case.
 	if len(result) > maxReferenceLen {
-		result = result[len(result) - maxReferenceLen:]
+		result = result[len(result)-maxReferenceLen:]
 	}
 
 	// Just in case.

@@ -38,10 +38,6 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 	}, 0, 10*time.Second)
 }
 
-func (s *Service) runOnce(ctx context.Context) {
-
-}
-
 func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.LedgerEntryChange) {
 	switch change.Type {
 	case xdr.LedgerEntryChangeTypeCreated:

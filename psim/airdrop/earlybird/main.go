@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
@@ -24,7 +25,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).GetRequired(conf.ServiceAirdropEarlybird)).
-		With(figure.BaseHooks, utils.ETHHooks).
+		With(figure.BaseHooks, utils.ETHHooks, airdrop.EmailsHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
