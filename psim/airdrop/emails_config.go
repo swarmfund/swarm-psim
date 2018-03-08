@@ -2,17 +2,28 @@ package airdrop
 
 import (
 	"reflect"
+
+	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"github.com/spf13/cast"
 )
 
 type EmailsConfig struct {
-	EmailSubject            string `fig:"email_subject"`
-	EmailRequestType        int    `fig:"email_request_type"`
-	EmailRequestTokenSuffix string `fig:"email_request_token_suffix"`
-	TemplateName            string `fig:"template_name"`
-	TemplateRedirectURL     string `fig:"template_redirect_url"`
+	Subject            string `fig:"subject"`
+	RequestType        int    `fig:"request_type"`
+	RequestTokenSuffix string `fig:"request_token_suffix"`
+	TemplateName       string `fig:"template_name"`
+	TemplateLinkURL    string `fig:"template_link_url"`
+}
+
+func (c EmailsConfig) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"subject":              c.Subject,
+		"request_type":         c.RequestType,
+		"request_token_suffix": c.RequestTokenSuffix,
+		"template_name":        c.TemplateName,
+		"template_link_url":    c.TemplateLinkURL,
+	}
 }
 
 var EmailsHooks = figure.Hooks{
@@ -35,4 +46,3 @@ var EmailsHooks = figure.Hooks{
 		return reflect.ValueOf(emails), nil
 	},
 }
-

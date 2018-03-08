@@ -1,4 +1,4 @@
-package earlybird
+package kycairdrop
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceAirdropEarlybird, setupFn)
+	app.RegisterService(conf.ServiceAirdropKYC, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -24,12 +24,12 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceAirdropEarlybird)).
+		From(app.Config(ctx).GetRequired(conf.ServiceAirdropKYC)).
 		With(figure.BaseHooks, utils.ETHHooks, airdrop.EmailsHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceAirdropEarlybird,
+			"service": conf.ServiceAirdropKYC,
 		})
 	}
 
@@ -52,7 +52,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		horizonConnector.Submitter(),
 		horizonConnector.Listener(),
-		horizonConnector.Users(),
 		horizonConnector.Accounts(),
 		globalConfig.Notificator(),
 	), nil

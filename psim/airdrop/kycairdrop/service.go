@@ -1,4 +1,4 @@
-package earlybird
+package kycairdrop
 
 import (
 	"context"
@@ -10,21 +10,20 @@ import (
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
 
-type TXStreamer interface {
-	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
+type TXSubmitter interface {
+	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
-type UsersConnector interface {
-	User(accountID string) (*horizon.User, error)
-	Users(ctx context.Context) (<-chan horizon.User, <-chan error)
+type TXStreamer interface {
+	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
 }
 
 type AccountsConnector interface {
 	Balances(address string) ([]horizon.Balance, error)
 }
 
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+type UsersConnector interface {
+	User(accountID string) (*horizon.User, error)
 }
 
 type Service struct {
@@ -34,14 +33,13 @@ type Service struct {
 
 	txSubmitter       TXSubmitter
 	txStreamer        TXStreamer
-	usersConnector    UsersConnector
 	accountsConnector AccountsConnector
+	usersConnector    UsersConnector
+	// TODO Interface
+	notificator       *notificator.Connector
 
-	notificator *notificator.Connector
-
-	createdAccounts        map[string]struct{}
-	generalAccountsCh      chan string
-	pendingGeneralAccounts airdrop.SyncSet
+	blackList         map[string]struct{}
+	generalAccountsCh chan string
 
 	emails airdrop.SyncSet
 }
@@ -52,7 +50,6 @@ func NewService(
 	builder *xdrbuild.Builder,
 	txSubmitter TXSubmitter,
 	txStreamer TXStreamer,
-	usersConnector UsersConnector,
 	accountsConnector AccountsConnector,
 	notificator *notificator.Connector,
 ) *Service {
@@ -64,31 +61,26 @@ func NewService(
 
 		txSubmitter:       txSubmitter,
 		txStreamer:        txStreamer,
-		usersConnector:    usersConnector,
 		accountsConnector: accountsConnector,
 
 		notificator: notificator,
 
-		createdAccounts:        make(map[string]struct{}),
 		generalAccountsCh:      make(chan string, 100),
-		pendingGeneralAccounts: airdrop.NewSyncSet(),
 
 		emails: airdrop.NewSyncSet(),
 	}
 }
 
 func (s *Service) Run(ctx context.Context) {
-	s.log.Info("Starting.")
+	s.log.WithField("c", s.config).Info("Starting.")
 
-	for _, accID := range s.config.WhiteList {
-		s.createdAccounts[accID] = struct{}{}
+	for _, accID := range s.config.BlackList {
+		s.blackList[accID] = struct{}{}
 	}
 
-	go s.listenLedgerChangesInfinitely(ctx)
+	go s.listenLedgerChanges(ctx)
 
 	go s.consumeGeneralAccounts(ctx)
-
-	go s.processPendingGeneralAccounts(ctx)
 
 	go s.processEmails(ctx)
 

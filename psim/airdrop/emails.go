@@ -14,19 +14,19 @@ type Notificator interface {
 }
 
 func SendEmail(emailAddress string, config EmailsConfig, notificatorClient Notificator) error {
-	msg, err := buildEmailMessage(config.TemplateName, config.TemplateRedirectURL)
+	msg, err := buildEmailMessage(config.TemplateName, config.TemplateLinkURL)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get email message")
 	}
 
 	payload := &notificator.EmailRequestPayload{
 		Destination: emailAddress,
-		Subject:     config.EmailSubject,
+		Subject:     config.Subject,
 		Message:     msg,
 	}
 
-	uniqueToken := emailAddress + config.EmailRequestTokenSuffix
-	resp, err := notificatorClient.Send(config.EmailRequestType, uniqueToken, payload)
+	uniqueToken := emailAddress + config.RequestTokenSuffix
+	resp, err := notificatorClient.Send(config.RequestType, uniqueToken, payload)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send email via Notificator")
 	}

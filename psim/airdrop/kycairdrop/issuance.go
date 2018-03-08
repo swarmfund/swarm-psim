@@ -1,4 +1,4 @@
-package earlybird
+package kycairdrop
 
 import (
 	"context"
@@ -9,45 +9,44 @@ import (
 	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
-func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID string) (bool, error) {
+// SubmitIssuance returns parameters of the Issuance Operation.
+// If reference duplication occurred, SubmitIssuance returns nil, nil.
+func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID string) (*issuance.RequestOpt, error) {
 	issuanceOpt := issuance.RequestOpt{
 		Reference: buildReference(accountAddress),
 		Receiver:  balanceID,
 		Asset:     s.config.Asset,
 		Amount:    s.config.Amount,
-		Details:   `{"cause": "airdrop"}`,
+		Details:   `{"cause": "airdrop-for-kyc"}`,
+	}
+	fields := logan.F{
+		"issuance_opt": issuanceOpt,
 	}
 
 	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.config.Source, s.config.Signer)
 
 	envelope, err := tx.Marshal()
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to marshal TX into Envelope")
+		return nil, errors.Wrap(err, "Failed to marshal TX into Envelope", fields)
 	}
-
-	logger := s.log.WithFields(logan.F{
-		"account_address": accountAddress,
-		"issuance":        issuanceOpt,
-	})
 
 	ok, err := issuance.SubmitEnvelope(ctx, envelope, s.txSubmitter)
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to submit IssuanceRequest TX Envelope to Horizon")
+		return nil, errors.Wrap(err, "Failed to submit IssuanceRequest TX Envelope to Horizon", fields)
 	}
 
 	if ok {
-		logger.Info("CoinEmissionRequest was sent successfully.")
-		return true, nil
+		return &issuanceOpt, nil
 	} else {
-		logger.Info("Reference duplication - already processed Deposit, skipping.")
-		return false, nil
+		// Reference duplication
+		return nil, nil
 	}
 }
 
 func buildReference(accountAddress string) string {
 	const maxReferenceLen = 64
 
-	result := accountAddress + "-airdrop" // accountAddress should be 56 runes length
+	result := accountAddress + "-air-kyc" // accountAddress should be 56 runes length
 
 	// Just in case.
 	if len(result) > maxReferenceLen {

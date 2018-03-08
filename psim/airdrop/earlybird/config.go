@@ -3,8 +3,8 @@ package earlybird
 import (
 	"time"
 
-	"gitlab.com/tokend/keypair"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
+	"gitlab.com/tokend/keypair"
 )
 
 type Config struct {
@@ -17,5 +17,5 @@ type Config struct {
 
 	airdrop.EmailsConfig `fig:"emails"`
 
-	WhiteList        []string   `fig:"white_list"`
+	WhiteList []string `fig:"white_list"`
 }
