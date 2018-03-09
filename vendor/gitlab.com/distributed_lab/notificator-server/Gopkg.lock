@@ -16,7 +16,17 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
@@ -28,13 +38,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/jmoiron/sqlx"
-  packages = [".","reflectx","types"]
+  packages = [
+    ".",
+    "reflectx",
+    "types"
+  ]
   revision = "3379e5993990b1f927fc8db926485e6f6becf2d2"
 
 [[projects]]
   branch = "master"
   name = "github.com/lib/pq"
-  packages = [".","oid"]
+  packages = [
+    ".",
+    "oid"
+  ]
   revision = "8c6ee72f3e6bcb1542298dd5f76cb74af9742cec"
 
 [[projects]]
@@ -75,7 +92,10 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [".","mem"]
+  packages = [
+    ".",
+    "mem"
+  ]
   revision = "8d919cbe7e2627e417f3e45c3c0e489a5b7e2536"
   version = "v1.0.0"
 
@@ -111,9 +131,27 @@
 
 [[projects]]
   name = "github.com/zenazn/goji"
-  packages = ["web","web/mutil"]
+  packages = [
+    "web",
+    "web/mutil"
+  ]
   revision = "64eb34159fe53473206c2b3e70fe396a639452f2"
   version = "v1.0"
+
+[[projects]]
+  name = "gitlab.com/distributed_lab/figure"
+  packages = ["."]
+  revision = "5bfbf12980bf6c46c6be65f0c155bcab4a439562"
+  version = "v1.2"
+
+[[projects]]
+  name = "gitlab.com/distributed_lab/logan"
+  packages = [
+    "v3/errors",
+    "v3/fields"
+  ]
+  revision = "b3e799b86348d6b59d52fbdb6f35347ab3b10274"
+  version = "v3.4.1"
 
 [[projects]]
   branch = "master"
@@ -124,18 +162,35 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "0dd5e194bbf5eb84a39666eb4c98a4d007e4203a"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
   revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]
   name = "gopkg.in/mattes/migrate.v1"
-  packages = ["driver","driver/postgres","file","migrate","migrate/direction","pipe"]
+  packages = [
+    "driver",
+    "driver/postgres",
+    "file",
+    "migrate",
+    "migrate/direction",
+    "pipe"
+  ]
   revision = "afc973c4e5a6b746217c2d3950fcd110ed1ba349"
   version = "v1.3.2"
 
@@ -148,6 +203,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "77cda75d6da0d01cfe9e75a18a146cf74a91ede135a7f176624f06fcb7f7cba9"
+  inputs-digest = "564b4b93789c85be5417b8fcec5047c2712f84b3ed8616f6704f6fb2915974c2"
   solver-name = "gps-cdcl"
   solver-version = 1

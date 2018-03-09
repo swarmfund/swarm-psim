@@ -1,16 +1,16 @@
 package q
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq" // postgres driver
-	"gitlab.com/distributed_lab/notificator-server/log"
+	_ "github.com/lib/pq"                          // postgres driver
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // driver for migrations
 	"gopkg.in/mattes/migrate.v1/migrate"
 )
 
-var instance Interface
+var instance QInterface
 
-type Interface interface {
+type QInterface interface {
 	DB() *sqlx.DB
 	Request() RequestQInterface
 	Auth() AuthQInterface
@@ -20,9 +20,10 @@ type Q struct {
 	db *sqlx.DB
 }
 
-func NewQ() Interface {
+func NewQ(driver, dsn string, log *logrus.Logger) QInterface {
 	entry := log.WithField("service", "q")
-	db, err := sqlx.Open(conf.Driver, conf.DSN)
+
+	db, err := sqlx.Open(driver, dsn)
 	if err != nil {
 		entry.WithError(err).Fatal()
 	}
@@ -53,18 +54,22 @@ func (q *Q) DB() *sqlx.DB {
 	return q.db
 }
 
-func Init() {
+func Init(driver, dsn string, log *logrus.Logger) {
 	// highly synchronous procedure
-	instance = NewQ()
+	instance = NewQ(driver, dsn, log)
+}
+
+func GetQInstance() QInterface {
+	return instance
 }
 
 func Request() RequestQInterface {
 	return instance.Request()
 }
 
-func Migrate(migrations string) {
+func Migrate(dsn, migrations string, log *logrus.Logger) {
 	entry := log.WithField("service", "migrate")
-	errs, ok := migrate.UpSync(conf.DSN, migrations)
+	errs, ok := migrate.UpSync(dsn, migrations)
 	if !ok {
 		for _, err := range errs {
 			entry.WithError(err).Error()
@@ -74,7 +79,7 @@ func Migrate(migrations string) {
 	entry.Info("migrated successfully")
 }
 
-func NewMigration(migrations, name string) error {
-	_, err := migrate.Create(conf.DSN, migrations, name)
+func NewMigration(dsn, migrations, name string) error {
+	_, err := migrate.Create(dsn, migrations, name)
 	return err
 }

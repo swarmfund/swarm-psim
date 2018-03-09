@@ -13,6 +13,8 @@ import (
 	"time"
 	//	"log"
 	"errors"
+
+	"gitlab.com/distributed_lab/notificator-server/conf"
 )
 
 type Connector struct {
@@ -23,15 +25,15 @@ type Connector struct {
 	SenderEmail string
 }
 
-func NewConnector() *Connector {
+func NewConnector(cfg conf.MandrillConf) *Connector {
 	return &Connector{
 		HTTPClient: &http.Client{
 			Timeout: time.Duration(1) * time.Minute,
 		},
-		API:         conf.API,
-		Key:         conf.Key,
-		SenderEmail: conf.FromEmail,
-		SenderName:  conf.FromName,
+		API:         cfg.API,
+		Key:         cfg.Key,
+		SenderEmail: cfg.FromEmail,
+		SenderName:  cfg.FromName,
 	}
 }
 

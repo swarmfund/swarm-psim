@@ -115,3 +115,7 @@
 [[override]]
   name = "gitlab.com/swarmfund/go"
   branch = "master"
+
+[[constraint]]
+  branch = "master"
+  name = "gitlab.com/distributed_lab/notificator-server"

@@ -15,16 +15,17 @@ type apiError struct {
 }
 
 type Response struct {
-	statusCode  int
+	StatusCode  int
 	apiResponse *apiResponse
 }
 
 func (r *Response) IsSuccess() bool {
-	return r.statusCode >= 200 && r.statusCode < 300
+	return r.StatusCode >= 200 && r.StatusCode < 300
 }
 
+// DEPRECATED - just doesn't work. Look directly into StatusCode instead
 func (r *Response) IsPermanent() bool {
-	if r.statusCode == http.StatusTooManyRequests && r.apiResponse != nil {
+	if r.StatusCode == http.StatusTooManyRequests && r.apiResponse != nil {
 		for _, e := range r.apiResponse.Errors {
 			if e.IsPermanent {
 				return true
@@ -32,11 +33,11 @@ func (r *Response) IsPermanent() bool {
 		}
 		return false
 	}
-	return r.statusCode >= 400 && r.statusCode < 500
+	return r.StatusCode >= 400 && r.StatusCode < 500
 }
 
 func (r *Response) Authenticated() bool {
-	return r.statusCode != http.StatusUnauthorized && r.statusCode < 500
+	return r.StatusCode != http.StatusUnauthorized && r.StatusCode < 500
 }
 
 func (r *Response) RetryIn() *time.Duration {
@@ -50,4 +51,11 @@ func (r *Response) RetryIn() *time.Duration {
 		}
 	}
 	return nil
+}
+
+func (r Response) GetLoganFields() map[string]interface{} {
+	return map[string]interface{} {
+		"status_code": r.StatusCode,
+		"body":        r.apiResponse,
+	}
 }

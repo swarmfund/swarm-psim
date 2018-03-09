@@ -1,80 +1,60 @@
 package airdrop
 
 import (
-	"context"
-	"time"
-
 	"bytes"
+
+	"net/http"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	notificator "gitlab.com/distributed_lab/notificator-server/client"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/psim/psim/templates"
 )
 
-func (s *Service) processEmails(ctx context.Context) {
-	s.log.Info("Started processing emails.")
-
-	app.RunOverIncrementalTimer(ctx, s.log, "pending_generals_processor", func(ctx context.Context) error {
-		emailsNumber := s.emails.Length()
-		if emailsNumber == 0 {
-			return nil
-		}
-
-		s.log.WithField("emails_number", emailsNumber).Debug("Sending emails.")
-
-		var processedEmails []string
-		s.emails.Range(ctx, func(email string) {
-			logger := s.log.WithField("email", email)
-
-			err := s.sendEmail(email)
-			if err != nil {
-				logger.WithError(err).Error("Failed to send email.")
-				return
-			}
-
-			processedEmails = append(processedEmails, email)
-			logger.Info("Sent email successfully.")
-		})
-
-		s.emails.Delete(processedEmails)
-		return nil
-	}, 30*time.Second, 30*time.Second)
+type NotificatorConnector interface {
+	Send(requestType int, token string, payload notificator.Payload) (*notificator.Response, error)
 }
 
-func (s *Service) sendEmail(emailAddress string) error {
-	msg, err := s.buildEmailMessage()
+// SendEmail returns false, nil if the emails isn't sending, because it has been sent earlier.
+func SendEmail(emailAddress string, config EmailsConfig, notificatorClient NotificatorConnector) (bool, error) {
+	msg, err := buildEmailMessage(config.TemplateName, config.TemplateLinkURL)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get email message")
+		return false, errors.Wrap(err, "Failed to get email message")
 	}
 
 	payload := &notificator.EmailRequestPayload{
 		Destination: emailAddress,
-		Subject:     s.config.EmailSubject,
+		Subject:     config.Subject,
 		Message:     msg,
 	}
 
-	uniqueToken := emailAddress + s.config.EmailRequestTokenSuffix
-	resp, err := s.notificator.Send(s.config.EmailRequestType, uniqueToken, payload)
+	uniqueToken := emailAddress + config.RequestTokenSuffix
+	resp, err := notificatorClient.Send(config.RequestType, uniqueToken, payload)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send email via Notificator")
+		return false, errors.Wrap(err, "Failed to send email via Notificator")
+	}
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		// The emails has already been sent earlier.
+		return false, nil
 	}
 
 	if !resp.IsSuccess() {
-		return errors.New("Unsuccessful response for email sending request.")
+		return false, errors.From(errors.New("Unsuccessful response for email sending request."), logan.F{
+			"notificator_response": resp,
+		})
 	}
 
-	return nil
+	return true, nil
 }
 
 // TODO Cache the html template once and reuse it
-func (s *Service) buildEmailMessage() (string, error) {
+func buildEmailMessage(templateName, link string) (string, error) {
 	fields := logan.F{
-		"template_name": s.config.TemplateName,
+		"template_name": templateName,
 	}
 
-	t, err := templates.GetHtmlTemplate(s.config.TemplateName)
+	t, err := templates.GetHtmlTemplate(templateName)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get html Template", fields)
 	}
@@ -82,7 +62,7 @@ func (s *Service) buildEmailMessage() (string, error) {
 	data := struct {
 		Link string
 	}{
-		Link: s.config.TemplateRedirectURL,
+		Link: link,
 	}
 
 	var buff bytes.Buffer

@@ -105,6 +105,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 // you should return error instead - errors returned from runner will be logged with stack.
 //
 // RunUntilSuccess returns only if the runner returns nil or ctx canceled.
+// TODO pass maxPausePeriod
 func RunUntilSuccess(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, initialRetryPeriod time.Duration) {
 	log = log.WithField("runner", runnerName)
 

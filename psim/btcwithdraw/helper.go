@@ -171,7 +171,7 @@ func (h CommonBTCHelper) CreateTX(addr string, amount int64) (txHex string, err 
 			})
 		}
 
-		return "", errors.Wrap(err, "Failed to create raw TX", logan.F{
+		return "", errors.Wrap(err, "Failed to create or fund raw TX", logan.F{
 			"float_amount": floatAmount,
 		})
 	}
