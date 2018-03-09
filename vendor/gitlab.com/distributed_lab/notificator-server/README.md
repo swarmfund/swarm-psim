@@ -1,3 +1,14 @@
+# Startup
+
+```
+Create config.yaml (use example-config.yaml as example)
+Create `notificator` database in postgres
+Build the project: `go build -v -o bin/main cmd/main.go`
+./bin/main migrate --config config.yaml --migrations migrations
+./bin/main run --config config.yaml
+```
+
+
 # API
 
 

@@ -1,25 +1,24 @@
 package twilio
 
 import (
-	"net/url"
-	"strings"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 type Connector struct {
 }
 
 func NewConnector() *Connector {
-	return &Connector{
-	}
+	return &Connector{}
 }
 
-func (c *Connector) do(payload map[string]string) (*Response, error) {
-	endpoint := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", conf.SID)
+func (c *Connector) do(sid, token string, payload map[string]string) (*Response, error) {
+	endpoint := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", sid)
 
 	values := url.Values{}
-	for k,v := range payload {
+	for k, v := range payload {
 		values.Set(k, v)
 	}
 
@@ -32,7 +31,7 @@ func (c *Connector) do(payload map[string]string) (*Response, error) {
 		return nil, err
 	}
 
-	req.SetBasicAuth(conf.SID, conf.Token)
+	req.SetBasicAuth(sid, token)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -44,13 +43,15 @@ func (c *Connector) do(payload map[string]string) (*Response, error) {
 	return &response, err
 }
 
-func (c *Connector) SendSMS(destination, message string) (*Response, error) {
+func (c *Connector) SendSMS(destination, message, number, sid, token string) (*Response, error) {
 
-	response, err := c.do(map[string]string{
-		"To": destination,
-		"From": conf.FromNumber,
+	payload := map[string]string{
+		"To":   destination,
+		"From": number,
 		"Body": message,
-	})
+	}
+
+	response, err := c.do(sid, token, payload)
 
 	return response, err
 }

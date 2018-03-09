@@ -1,4 +1,4 @@
-package airdrop
+package kycairdrop
 
 import (
 	"time"
@@ -9,10 +9,12 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
-func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
+func (s *Service) listenLedgerChanges(ctx context.Context) {
 	s.log.Info("Started listening Transactions stream.")
 	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
 
+	var isFirstTX = true
+	var lastLoggedTXTime time.Time
 	app.RunOverIncrementalTimer(ctx, s.log, "ledger_changes_processor", func(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
@@ -24,6 +26,18 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 
 			if txEvent.Transaction == nil {
 				return nil
+			}
+
+			if isFirstTX {
+				s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received first TX.")
+				lastLoggedTXTime = txEvent.Meta.LatestLedger.ClosedAt
+				isFirstTX = false
+			} else {
+				if txEvent.Meta.LatestLedger.ClosedAt.Sub(lastLoggedTXTime) > (24 * time.Hour) {
+					// A day since last logged TX passed
+					s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received next day TX.")
+					lastLoggedTXTime = txEvent.Meta.LatestLedger.ClosedAt
+				}
 			}
 
 			for _, change := range txEvent.Transaction.LedgerChanges() {
@@ -38,10 +52,6 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 	}, 0, 10*time.Second)
 }
 
-func (s *Service) runOnce(ctx context.Context) {
-
-}
-
 func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.LedgerEntryChange) {
 	switch change.Type {
 	case xdr.LedgerEntryChangeTypeCreated:
@@ -53,21 +63,14 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 
 		accEntry := change.Created.Data.Account
 
-		if ts.Sub(*s.config.RegisteredBefore) > 0 {
-			// Account creation too late
+		if accEntry.AccountType != xdr.AccountTypeGeneral {
+			// Account of a non-General type was created - not interested.
 			return
 		}
 
-		if accEntry.AccountType == xdr.AccountTypeGeneral {
-			// Account was created already with General type
-			s.streamGeneralAccount(ctx, accEntry.AccountId.Address())
-			return
-		} else {
-			addr := accEntry.AccountId.Address()
-			s.log.WithField("account_address", addr).Info("Found created Account.")
-			s.createdAccounts[addr] = struct{}{}
-			return
-		}
+		// Account was created already with General type.
+		s.streamGeneralAccount(ctx, accEntry.AccountId.Address())
+		return
 	case xdr.LedgerEntryChangeTypeUpdated:
 		entryData := change.Updated.Data
 
@@ -78,15 +81,13 @@ func (s *Service) processChange(ctx context.Context, ts time.Time, change xdr.Le
 		accEntry := change.Updated.Data.Account
 
 		if accEntry.AccountType != xdr.AccountTypeGeneral {
-			// Account was updated but its Type is not General
+			// Account was updated but its Type is not General - not interested.
 			return
 		}
 
 		addr := accEntry.AccountId.Address()
-		if _, ok := s.createdAccounts[addr]; ok {
-			s.streamGeneralAccount(ctx, addr)
-			delete(s.createdAccounts, addr)
-		}
+		s.streamGeneralAccount(ctx, addr)
+		return
 	}
 }
 

@@ -43,6 +43,7 @@ func GeneratePair() (*Pair, error) {
 	}, nil
 }
 
+//todo refactor
 func Verify(pair *Pair, body []byte, signature string) bool {
 	msg := append(body, []byte(pair.Secret)...)
 	msgHash := sha256.Sum256(msg)

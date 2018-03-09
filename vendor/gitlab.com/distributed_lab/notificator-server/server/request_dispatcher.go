@@ -1,10 +1,12 @@
 package server
 
 import (
+	"time"
+
+	"gitlab.com/distributed_lab/notificator-server/conf"
 	"gitlab.com/distributed_lab/notificator-server/limiter"
 	"gitlab.com/distributed_lab/notificator-server/q"
 	"gitlab.com/distributed_lab/notificator-server/types"
-	"time"
 )
 
 type DispatchResultReasonType int
@@ -28,9 +30,8 @@ func NewRequestDispatcher() *RequestDispatcher {
 	return &RequestDispatcher{}
 }
 
-func (d *RequestDispatcher) Dispatch(apiRequest *types.APIRequest) (*DispatchResult, error) {
-	requestsConf := GetRequestsConf()
-	requestType, ok := requestsConf.Get(apiRequest.Type)
+func (d *RequestDispatcher) Dispatch(apiRequest *types.APIRequest, cfg conf.RequestsConf) (*DispatchResult, error) {
+	requestType, ok := cfg.Get(apiRequest.Type)
 
 	if !ok {
 		return &DispatchResult{Type: DispatchResultUnknownType}, nil

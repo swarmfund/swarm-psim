@@ -2,18 +2,23 @@ package server
 
 import (
 	"github.com/Sirupsen/logrus"
-	"gitlab.com/distributed_lab/notificator-server/log"
+	"gitlab.com/distributed_lab/notificator-server/conf"
 	"gitlab.com/distributed_lab/notificator-server/types"
 	"gitlab.com/distributed_lab/notificator-server/workers"
 )
 
-type WorkerFunc func(request types.Request) bool
+type WorkerFunc func(request types.Request, cfg conf.Config) bool
 
 var workersMap = map[string]WorkerFunc{
-	"dummy":   workers.Dummy,
-	"email":   workers.MandrillEmail,
-	"mailgun": workers.MailgunEmail,
-	"postage": workers.PostageEmail,
+	"dummy": workers.Dummy,
+	//DEPRECATED don't use "email" worker!
+	"email":          workers.MandrillEmail,
+	"mandrill_email": workers.MandrillEmail,
+	"mailgun":        workers.MailgunEmail,
+	"postage":        workers.PostageEmail,
+	//DEPRECATED don't use "sms" worker!
+	"sms":    workers.SMS,
+	"twilio": workers.SMS,
 }
 
 type Worker struct {
@@ -22,7 +27,7 @@ type Worker struct {
 	log     *logrus.Entry
 }
 
-func NewWorker(tasks <-chan types.Request, results chan<- TaskResult) *Worker {
+func NewWorker(tasks <-chan types.Request, results chan<- TaskResult, log *logrus.Entry) *Worker {
 	return &Worker{
 		tasks:   tasks,
 		results: results,
@@ -30,16 +35,15 @@ func NewWorker(tasks <-chan types.Request, results chan<- TaskResult) *Worker {
 	}
 }
 
-func (w *Worker) Run() {
+func (w *Worker) Run(cfg conf.Config) {
 	var success bool
 
 	for request := range w.tasks {
-		entry := w.log.WithField("request", request.ID)
-		entry.Info("processing")
+		w.log.WithField("request", request.ID).Info("processing")
 
-		success = w.executeWorker(request)
+		success = w.executeWorker(cfg, request)
 
-		entry.WithField("success", success).Info("done")
+		w.log.WithField("success", success).Info("done")
 		w.results <- TaskResult{
 			Request: request,
 			Success: success,
@@ -47,9 +51,9 @@ func (w *Worker) Run() {
 	}
 }
 
-func (w *Worker) executeWorker(request types.Request) bool {
+func (w *Worker) executeWorker(cfg conf.Config, request types.Request) bool {
 	entry := w.log.WithField("request", request.ID)
-	requestsConf := GetRequestsConf()
+	requestsConf := cfg.Requests()
 
 	requestType, ok := requestsConf.Get(request.Type)
 	if !ok {
@@ -61,5 +65,5 @@ func (w *Worker) executeWorker(request types.Request) bool {
 		entry.Error("unknown worker type")
 	}
 
-	return workman(request)
+	return workman(request, cfg)
 }

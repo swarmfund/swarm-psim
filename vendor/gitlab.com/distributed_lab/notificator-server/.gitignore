@@ -1,6 +1,6 @@
 .DS_Store
 .idea/
-/vendor
 /pkg
 /bin
 linter.log
+config.yaml
