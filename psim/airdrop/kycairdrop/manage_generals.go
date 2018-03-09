@@ -93,12 +93,7 @@ func (s *Service) getUserEmail(accountAddress string) (email string, err error) 
 		return "", errUserNotFound
 	}
 
-	if user.Attributes.AirdropState == "claimed" {
-		return user.Attributes.Email, nil
-	} else {
-		// Not ready for Issuance yet
-		return "", nil
-	}
+	return user.Attributes.Email, nil
 }
 
 func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, error) {
