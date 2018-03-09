@@ -17,18 +17,18 @@ func getUID() (string, error) {
 }
 
 // NewClient create new PostageApp Client from postage.Conf.
-func NewClient() *postageapp.Client {
+func NewClient(key string) *postageapp.Client {
 	pa := new(postageapp.Client)
-	pa.ApiKey = conf.Key
+	pa.ApiKey = key
 	return pa
 }
 
 // SendEmail send email throw PostageApp service.
-func SendEmail(destination, subject, htmlMessage string) error {
-	client := NewClient()
+func SendEmail(destination, subject, htmlMessage, from, key string) error {
+	client := NewClient(key)
 	msg := &postageapp.Message{
 		Subject:    subject,
-		From:       conf.From,
+		From:       from,
 		Html:       htmlMessage,
 		Recipients: []*postageapp.Recipient{{Email: destination}},
 	}

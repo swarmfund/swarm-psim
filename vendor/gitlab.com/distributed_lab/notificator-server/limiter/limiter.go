@@ -1,8 +1,9 @@
 package limiter
 
 import (
-	"gitlab.com/distributed_lab/notificator-server/types"
 	"time"
+
+	"gitlab.com/distributed_lab/notificator-server/types"
 )
 
 type CheckResult struct {
@@ -13,4 +14,17 @@ type CheckResult struct {
 
 type Limiter interface {
 	Check(request *types.APIRequest) (*CheckResult, error)
+}
+
+func ParseLimiter(raw map[string]interface{}) Limiter {
+	switch raw["type"] {
+	case "window":
+		return NewWindowLimiter(raw)
+	case "unique":
+		return NewUniqueLimiter()
+	case "directly-unique":
+		return NewDirectlyUniqueLimiter()
+	default:
+		panic("unknown limiter type")
+	}
 }

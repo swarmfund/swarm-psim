@@ -454,7 +454,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/notificator-server"
   packages = ["client"]
-  revision = "01d370c4a7a4ec0ec75d77347403645cfa143a42"
+  revision = "75511e83f31d094326de3601201e8a42f490cc4b"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/sse-go"
@@ -588,6 +588,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e3ec6d416d3fb83d638e125e0a4746a90f086db2b39fdce5ad75480e49a65a71"
+  inputs-digest = "672a696ae89b0b72403272a287a36cc956f9a980c10eb1ac3506e1f085bee9fb"
   solver-name = "gps-cdcl"
   solver-version = 1

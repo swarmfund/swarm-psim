@@ -1,12 +1,12 @@
-package airdrop
+package kycairdrop
 
 import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
 
 type TXSubmitter interface {
@@ -17,13 +17,12 @@ type TXStreamer interface {
 	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
 }
 
-type UsersConnector interface {
-	User(accountID string) (*horizon.User, error)
-	Users(ctx context.Context) (<-chan horizon.User, <-chan error)
-}
-
 type AccountsConnector interface {
 	Balances(address string) ([]horizon.Balance, error)
+}
+
+type UsersConnector interface {
+	User(accountID string) (*horizon.User, error)
 }
 
 type Service struct {
@@ -33,16 +32,14 @@ type Service struct {
 
 	txSubmitter       TXSubmitter
 	txStreamer        TXStreamer
-	usersConnector    UsersConnector
 	accountsConnector AccountsConnector
+	usersConnector    UsersConnector
+	notificator       airdrop.NotificatorConnector
 
-	notificator *notificator.Connector
+	blackList         map[string]struct{}
+	generalAccountsCh chan string
 
-	createdAccounts        map[string]struct{}
-	generalAccountsCh      chan string
-	pendingGeneralAccounts SyncSet
-
-	emails SyncSet
+	emails airdrop.SyncSet
 }
 
 func NewService(
@@ -51,9 +48,9 @@ func NewService(
 	builder *xdrbuild.Builder,
 	txSubmitter TXSubmitter,
 	txStreamer TXStreamer,
-	usersConnector UsersConnector,
 	accountsConnector AccountsConnector,
-	notificator *notificator.Connector,
+	usersConnector UsersConnector,
+	notificator airdrop.NotificatorConnector,
 ) *Service {
 
 	return &Service{
@@ -63,31 +60,28 @@ func NewService(
 
 		txSubmitter:       txSubmitter,
 		txStreamer:        txStreamer,
-		usersConnector:    usersConnector,
 		accountsConnector: accountsConnector,
+		usersConnector:    usersConnector,
 
 		notificator: notificator,
 
-		createdAccounts:        make(map[string]struct{}),
-		generalAccountsCh:      make(chan string, 100),
-		pendingGeneralAccounts: NewSyncSet(),
+		blackList:         make(map[string]struct{}),
+		generalAccountsCh: make(chan string, 100),
 
-		emails: NewSyncSet(),
+		emails: airdrop.NewSyncSet(),
 	}
 }
 
 func (s *Service) Run(ctx context.Context) {
-	s.log.Info("Starting.")
+	s.log.WithField("", s.config).Info("Starting.")
 
-	for _, accID := range s.config.WhiteList {
-		s.createdAccounts[accID] = struct{}{}
+	for _, accID := range s.config.BlackList {
+		s.blackList[accID] = struct{}{}
 	}
 
-	go s.listenLedgerChangesInfinitely(ctx)
+	go s.listenLedgerChanges(ctx)
 
 	go s.consumeGeneralAccounts(ctx)
-
-	go s.processPendingGeneralAccounts(ctx)
 
 	go s.processEmails(ctx)
 
