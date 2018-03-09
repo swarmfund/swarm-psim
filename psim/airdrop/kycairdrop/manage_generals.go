@@ -31,7 +31,7 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 			logger := s.log.WithField("account_address", acc)
 
 			if _, ok := s.blackList[acc]; ok {
-				logger.Debug("Found GeneralAccount, but it's in BlackList - skipping it..")
+				logger.Debug("Found GeneralAccount, but it's in BlackList - skipping it.")
 				return nil
 			}
 

@@ -63,6 +63,7 @@ func NewService(
 
 		notificator: notificator,
 
+		blackList:         make(map[string]struct{}),
 		generalAccountsCh: make(chan string, 100),
 
 		emails: airdrop.NewSyncSet(),
@@ -70,7 +71,7 @@ func NewService(
 }
 
 func (s *Service) Run(ctx context.Context) {
-	s.log.WithField("c", s.config).Info("Starting.")
+	s.log.WithField("", s.config).Info("Starting.")
 
 	for _, accID := range s.config.BlackList {
 		s.blackList[accID] = struct{}{}

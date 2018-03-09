@@ -14,7 +14,7 @@ type Config struct {
 
 	airdrop.EmailsConfig `fig:"emails"`
 
-	BlackList []string `fig:"Black_list"`
+	BlackList []string `fig:"black_list"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
