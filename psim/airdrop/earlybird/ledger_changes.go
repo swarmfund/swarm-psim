@@ -13,6 +13,8 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 	s.log.Info("Started listening Transactions stream.")
 	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
 
+	var isFirstTX = true
+	var lastLoggedTXTime time.Time
 	app.RunOverIncrementalTimer(ctx, s.log, "ledger_changes_processor", func(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
@@ -24,6 +26,18 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 
 			if txEvent.Transaction == nil {
 				return nil
+			}
+
+			if isFirstTX {
+				s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received first TX.")
+				lastLoggedTXTime = txEvent.Meta.LatestLedger.ClosedAt
+				isFirstTX = false
+			} else {
+				if txEvent.Meta.LatestLedger.ClosedAt.Sub(lastLoggedTXTime) > (24 * time.Hour) {
+					// A day since last logged TX passed
+					s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received next day TX.")
+					lastLoggedTXTime = txEvent.Meta.LatestLedger.ClosedAt
+				}
 			}
 
 			for _, change := range txEvent.Transaction.LedgerChanges() {

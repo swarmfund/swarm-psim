@@ -30,7 +30,7 @@ func (s *Service) processEmails(ctx context.Context) {
 			}
 
 			processedEmails = append(processedEmails, emailAddr)
-			logger.Info("Sent email successfully.")
+			logger.Info("Notificator accepted email successfully.")
 		})
 
 		s.emails.Delete(processedEmails)

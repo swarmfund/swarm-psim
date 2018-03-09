@@ -19,3 +19,13 @@ type Config struct {
 
 	WhiteList []string `fig:"white_list"`
 }
+
+func (c Config) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"issuance_asset":    c.Asset,
+		"issuance_amount":   c.Amount,
+		"registered_before": c.RegisteredBefore.String(),
+		"emails":            c.EmailsConfig,
+		"white_list_len":    len(c.WhiteList),
+	}
+}
