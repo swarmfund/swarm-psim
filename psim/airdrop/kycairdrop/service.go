@@ -49,6 +49,7 @@ func NewService(
 	txSubmitter TXSubmitter,
 	txStreamer TXStreamer,
 	accountsConnector AccountsConnector,
+	usersConnector UsersConnector,
 	notificator airdrop.NotificatorConnector,
 ) *Service {
 
@@ -60,6 +61,7 @@ func NewService(
 		txSubmitter:       txSubmitter,
 		txStreamer:        txStreamer,
 		accountsConnector: accountsConnector,
+		usersConnector:    usersConnector,
 
 		notificator: notificator,
 
