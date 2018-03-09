@@ -28,12 +28,13 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 				return nil
 			}
 
+			logger := s.log.WithField("account_address", acc)
+
 			if _, ok := s.blackList[acc]; ok {
-				// AccountID is in BlackList
+				logger.Debug("Found GeneralAccount, but it's in BlackList - skipping it..")
 				return nil
 			}
 
-			logger := s.log.WithField("account_address", acc)
 			logger.Info("GeneralAccount was found, trying to process it.")
 
 			app.RunUntilSuccess(ctx, logger, "general_account_processor", func(ctx context.Context) error {
