@@ -3,20 +3,23 @@ package airdrop
 import (
 	"bytes"
 
+	"net/http"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/psim/psim/templates"
 )
 
-type Notificator interface {
+type NotificatorConnector interface {
 	Send(requestType int, token string, payload notificator.Payload) (*notificator.Response, error)
 }
 
-func SendEmail(emailAddress string, config EmailsConfig, notificatorClient Notificator) error {
+// SendEmail returns false, nil if the emails isn't sending, because it has been sent earlier.
+func SendEmail(emailAddress string, config EmailsConfig, notificatorClient NotificatorConnector) (bool, error) {
 	msg, err := buildEmailMessage(config.TemplateName, config.TemplateLinkURL)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get email message")
+		return false, errors.Wrap(err, "Failed to get email message")
 	}
 
 	payload := &notificator.EmailRequestPayload{
@@ -28,16 +31,21 @@ func SendEmail(emailAddress string, config EmailsConfig, notificatorClient Notif
 	uniqueToken := emailAddress + config.RequestTokenSuffix
 	resp, err := notificatorClient.Send(config.RequestType, uniqueToken, payload)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send email via Notificator")
+		return false, errors.Wrap(err, "Failed to send email via Notificator")
 	}
 
-	// TODO Check 429 statusCode and return nil
+	if resp.StatusCode == http.StatusTooManyRequests {
+		// The emails has already been sent earlier.
+		return false, nil
+	}
 
 	if !resp.IsSuccess() {
-		return errors.New("Unsuccessful response for email sending request.")
+		return false, errors.From(errors.New("Unsuccessful response for email sending request."), logan.F{
+			"notificator_response": resp,
+		})
 	}
 
-	return nil
+	return true, nil
 }
 
 // TODO Cache the html template once and reuse it

@@ -1,31 +1,34 @@
 package conf
 
-import "github.com/spf13/viper"
+import (
+	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+)
 
 type HTTPConf struct {
-	Host string
-	Port int
+	Host           string
+	Port           int
 	AllowUntrusted bool
 }
 
-func (c HTTPConf) Namespace() string {
-	return "http"
-}
+const httpConfigKey = "http"
 
-func (c HTTPConf) Init(v *viper.Viper) error {
-	conf := HTTPConf{
-		Host: viper.GetString("http.host"),
-		Port: viper.GetInt("http.port"),
-		AllowUntrusted: viper.GetBool("http.allow_untrusted"),
+func (c *ViperConfig) HTTP() HTTPConf {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.http != nil {
+		return *c.http
 	}
 
-	httpConf = &conf
+	http := new(HTTPConf)
+	config := c.GetStringMap(httpConfigKey)
 
-	return nil
-}
+	if err := figure.Out(http).From(config).Please(); err != nil {
+		panic(errors.Wrap(err, "failed to figure out http"))
+	}
 
-var httpConf *HTTPConf
+	c.http = http
 
-func GetHTTPConf() *HTTPConf {
-	return httpConf
+	return *c.http
 }

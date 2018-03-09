@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
@@ -35,8 +34,7 @@ type Service struct {
 	txStreamer        TXStreamer
 	accountsConnector AccountsConnector
 	usersConnector    UsersConnector
-	// TODO Interface
-	notificator       *notificator.Connector
+	notificator       airdrop.NotificatorConnector
 
 	blackList         map[string]struct{}
 	generalAccountsCh chan string
@@ -51,7 +49,7 @@ func NewService(
 	txSubmitter TXSubmitter,
 	txStreamer TXStreamer,
 	accountsConnector AccountsConnector,
-	notificator *notificator.Connector,
+	notificator airdrop.NotificatorConnector,
 ) *Service {
 
 	return &Service{
@@ -65,7 +63,7 @@ func NewService(
 
 		notificator: notificator,
 
-		generalAccountsCh:      make(chan string, 100),
+		generalAccountsCh: make(chan string, 100),
 
 		emails: airdrop.NewSyncSet(),
 	}

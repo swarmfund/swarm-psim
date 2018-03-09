@@ -59,7 +59,7 @@ func (c *Connector) Send(requestType int, token string, payload Payload) (*Respo
 	_ = json.NewDecoder(response.Body).Decode(&apiResponse)
 
 	return &Response{
-		statusCode:  response.StatusCode,
+		StatusCode:  response.StatusCode,
 		apiResponse: apiResponse,
 	}, nil
 }

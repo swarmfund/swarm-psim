@@ -23,14 +23,18 @@ func (s *Service) processEmails(ctx context.Context) {
 		s.emails.Range(ctx, func(emailAddr string) {
 			logger := s.log.WithField("email_addr", emailAddr)
 
-			err := airdrop.SendEmail(emailAddr, s.config.EmailsConfig, s.notificator)
+			emailWasSent, err := airdrop.SendEmail(emailAddr, s.config.EmailsConfig, s.notificator)
 			if err != nil {
 				logger.WithError(err).Error("Failed to send email.")
 				return
 			}
 
 			processedEmails = append(processedEmails, emailAddr)
-			logger.Info("Notificator accepted email successfully.")
+			if emailWasSent {
+				logger.Info("Notificator accepted email successfully.")
+			} else {
+				logger.Debug("Email has been already sent earlier - skipping.")
+			}
 		})
 
 		s.emails.Delete(processedEmails)

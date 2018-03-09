@@ -1,30 +1,31 @@
 package server
 
 import (
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/distributed_lab/notificator-server/q"
 	"gitlab.com/distributed_lab/notificator-server/types"
-	"gitlab.com/distributed_lab/notificator-server/log"
 )
 
 type TaskResultConsumer struct {
 	results  <-chan TaskResult
 	consumed chan<- types.Request
+	log      *logrus.Entry
 }
 
-func NewTaskResultConsumer(results <-chan TaskResult, consumed chan<- types.Request) *TaskResultConsumer {
+func NewTaskResultConsumer(results <-chan TaskResult, consumed chan<- types.Request, log *logrus.Entry) *TaskResultConsumer {
 	return &TaskResultConsumer{
 		results:  results,
 		consumed: consumed,
+		log:      log.WithField("service", "result_consumer"),
 	}
 }
 
 func (c *TaskResultConsumer) Run() {
-	entry := log.WithField("service", "result_consumer")
 	for result := range c.results {
 		if !result.Success {
 			err := q.Request().LowerPriority(result.Request.ID)
 			if err != nil {
-				entry.WithError(err).Error("failed to lower priority")
+				c.log.WithError(err).Error("failed to lower priority")
 			}
 		} else {
 			err := q.Request().MarkCompleted(result.Request.ID)
@@ -35,7 +36,7 @@ func (c *TaskResultConsumer) Run() {
 
 				// best we can do right now is to not notify consumed channel
 				// so it won't add it again during current lifespan
-				entry.WithError(err).Fatal("failed to mark request as completed")
+				c.log.WithError(err).Fatal("failed to mark request as completed")
 			}
 		}
 
