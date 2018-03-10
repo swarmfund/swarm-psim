@@ -1,7 +1,10 @@
 package server
 
+import (
+	"gitlab.com/distributed_lab/notificator-server/conf"
+)
 
 type ServiceInterface interface {
-	Init()
-	Run()
+	Init(cfg conf.Config)
+	Run(cfg conf.Config)
 }

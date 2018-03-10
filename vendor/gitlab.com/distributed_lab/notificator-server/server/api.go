@@ -5,79 +5,54 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/zenazn/goji/web"
-	"gitlab.com/distributed_lab/notificator-server/auth"
 	"gitlab.com/distributed_lab/notificator-server/conf"
-	"gitlab.com/distributed_lab/notificator-server/log"
-	"gitlab.com/distributed_lab/notificator-server/q"
 	"gitlab.com/distributed_lab/notificator-server/types"
 )
 
 type APIService struct {
 	router            *web.Mux
 	requestDispatcher *RequestDispatcher
+	requests          conf.RequestsConf
 	log               *logrus.Entry
 }
 
-func NewAPIService() *APIService {
+func NewAPIService(log *logrus.Logger, requests conf.RequestsConf) *APIService {
 	return &APIService{
 		router:            web.New(),
 		requestDispatcher: NewRequestDispatcher(),
+		requests:          requests,
 		log:               log.WithField("service", "api"),
 	}
 }
 
-func (service *APIService) Init() {
+func (service *APIService) Init(cfg conf.Config) {
 	r := service.router
 
 	// middleware
-
 	r.Use(ContentTypeMiddleware("application/json"))
 	r.Use(LogMiddleware(service.log))
-
+	r.Use(CheckAuthMiddleware(cfg.HTTP().AllowUntrusted))
 	// routes
 
 	r.Post("/", service.rootHandler)
-
 }
 
-func (service *APIService) Run() {
-	httpConf := conf.GetHTTPConf()
+func (service *APIService) Run(cfg conf.Config) {
 	service.router.Compile()
 
 	http.Handle("/", service.router)
 
+	httpConf := cfg.HTTP()
 	addr := fmt.Sprintf("%s:%d", httpConf.Host, httpConf.Port)
 
-	service.log.Infof("starting on %s", addr)
+	service.log.WithField("starting on ", addr).Info()
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		service.log.WithError(err).Fatal("terminated")
-	}
-}
-
-func checkAuth(r *http.Request, body []byte) (bool, error) {
-	authorization := r.Header.Get("authorization")
-	if strings.HasPrefix(authorization, "Bearer ") {
-		// check just token
-		key := strings.TrimPrefix(authorization, "Bearer ")
-		pair, err := q.NewQ().Auth().ByPublic(key)
-		if err != nil {
-			return false, err
-		}
-		return pair != nil, nil
-	} else {
-		// legacy signature
-		signature := r.Header.Get("x-signature")
-		pair, err := q.NewQ().Auth().ByPublic(authorization)
-		if err != nil {
-			return false, err
-		}
-		return !(pair == nil || !auth.Verify(pair, body, signature)), nil
 	}
 }
 
@@ -92,21 +67,6 @@ func (service *APIService) rootHandler(c web.C, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if !conf.GetHTTPConf().AllowUntrusted {
-		ok, err := checkAuth(r, body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"reason": "internal server error", "msg": "%s"}`, err)
-			return
-		}
-
-		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, `{"reason": "signature mismatch"}`)
-			return
-		}
-	}
-
 	apiRequest := new(types.APIRequest)
 	err = json.Unmarshal(body, apiRequest)
 	if err != nil {
@@ -114,7 +74,7 @@ func (service *APIService) rootHandler(c web.C, w http.ResponseWriter, r *http.R
 		fmt.Fprintf(w, `{"reason": "invalid request body", "msg": "%s"}`, err)
 		return
 	}
-	result, err := service.requestDispatcher.Dispatch(apiRequest)
+	result, err := service.requestDispatcher.Dispatch(apiRequest, service.requests)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, `{"reason": "internal server error", "msg": "%s"}`, err)

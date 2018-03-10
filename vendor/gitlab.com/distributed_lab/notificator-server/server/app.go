@@ -2,6 +2,8 @@ package server
 
 import (
 	"sync"
+
+	"gitlab.com/distributed_lab/notificator-server/conf"
 )
 
 type App struct {
@@ -18,30 +20,30 @@ func (app *App) AddService(service ServiceInterface) {
 	app.services = append(app.services, service)
 }
 
-func (app *App) Start() {
-	app.init()
-	app.start()
+func (app *App) Start(cfg conf.Config) {
+	app.init(cfg)
+	app.start(cfg)
 }
 
-func (app *App) init() {
+func (app *App) init(cfg conf.Config) {
 	for _, service := range app.services {
-		service.Init()
+		service.Init(cfg)
 	}
 }
 
-func (app *App) start() {
+//This method run services in goroutines and will not close while all routines not completed
+func (app *App) start(cfg conf.Config) {
 	var wg sync.WaitGroup
 
 	wg.Add(len(app.services))
-
 	for _, service := range app.services {
-		go app.runService(&wg, service)
+		go app.runService(cfg, &wg, service)
 	}
 
 	wg.Wait()
 }
 
-func (app *App) runService(wg *sync.WaitGroup, service ServiceInterface) {
+func (app *App) runService(cfg conf.Config, wg *sync.WaitGroup, service ServiceInterface) {
 	defer wg.Done()
-	service.Run()
+	service.Run(cfg)
 }

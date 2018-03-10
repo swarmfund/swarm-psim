@@ -2,36 +2,36 @@ package server
 
 import (
 	"time"
+
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/distributed_lab/notificator-server/q"
 	"gitlab.com/distributed_lab/notificator-server/types"
-	"gitlab.com/distributed_lab/notificator-server/log"
 )
 
 type TaskProvider struct {
 	tasks    chan<- types.Request
 	consumed <-chan types.Request
-
+	log      *logrus.Entry
 	// TODO wrap access with locks
 	processing map[int64]bool
 }
 
 func (p *TaskProvider) Run() {
-	entry := log.WithField("service", "task_provider")
 	tick := time.NewTicker(5 * time.Second)
 	go func() {
 		for request := range p.consumed {
-			entry.WithField("request", request.ID).Info("consumed")
+			p.log.WithField("request", request.ID).Info("consumed")
 			delete(p.processing, request.ID)
 		}
 	}()
 	for {
 		requests, err := q.Request().GetHead()
 		if err != nil {
-			entry.WithError(err).Error("failed to get requests")
+			p.log.WithError(err).Error("failed to get requests")
 			continue
 		}
 
-		entry.WithField("count", len(requests)).Info("adding requests")
+		p.log.WithField("count", len(requests)).Info("adding requests")
 		for _, request := range requests {
 			if _, ok := p.processing[request.ID]; ok {
 				continue
@@ -44,10 +44,11 @@ func (p *TaskProvider) Run() {
 	}
 }
 
-func NewTaskProvider(tasks chan<- types.Request, consumed <-chan types.Request) *TaskProvider {
+func NewTaskProvider(tasks chan<- types.Request, consumed <-chan types.Request, log *logrus.Entry) *TaskProvider {
 	return &TaskProvider{
 		tasks:      tasks,
 		consumed:   consumed,
+		log:        log.WithField("service", "task_provider"),
 		processing: map[int64]bool{},
 	}
 }
