@@ -76,6 +76,7 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
 	for _, accID := range s.config.BlackList {
+		s.log.WithField("account_address", accID).Debug("Added Account to BlackList.")
 		s.blackList[accID] = struct{}{}
 	}
 

@@ -80,6 +80,7 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
 	for _, accID := range s.config.WhiteList {
+		s.log.WithField("account_address", accID).Debug("Added created Account from WhiteList.")
 		s.createdAccounts[accID] = struct{}{}
 	}
 
