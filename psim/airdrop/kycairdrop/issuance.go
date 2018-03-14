@@ -6,6 +6,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"fmt"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
 
 // SubmitIssuance returns parameters of the Issuance Operation.
@@ -16,7 +18,7 @@ func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID 
 		Receiver:  balanceID,
 		Asset:     s.config.Asset,
 		Amount:    s.config.Amount,
-		Details:   `{"cause": "airdrop-for-kyc"}`,
+		Details:   fmt.Sprintf(`{"cause": "%s"}`, airdrop.KYCIssuanceCause),
 	}
 	fields := logan.F{
 		"issuance_opt": issuanceOpt,
@@ -45,7 +47,7 @@ func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID 
 func buildReference(accountAddress string) string {
 	const maxReferenceLen = 64
 
-	result := accountAddress + "-air-kyc" // accountAddress should be 56 runes length
+	result := accountAddress + airdrop.KYCReferenceSuffix
 
 	// Just in case.
 	if len(result) > maxReferenceLen {
