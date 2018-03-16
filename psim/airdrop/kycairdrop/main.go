@@ -46,11 +46,19 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
+	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
+		config.Asset,
+		airdrop.KYCIssuanceCause,
+		airdrop.KYCReferenceSuffix,
+		config.Source,
+		config.Signer,
+		builder,
+		horizonConnector.Submitter())
+
 	return NewService(
 		log,
 		config,
-		builder,
-		horizonConnector.Submitter(),
+		issuanceSubmitter,
 		horizonConnector.Listener(),
 		horizonConnector.Accounts(),
 		horizonConnector.Users(),

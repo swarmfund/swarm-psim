@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/xdrbuild"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+type IssuanceSubmitter interface {
+	Submit(ctx context.Context, accountAddress, balanceID string, amount uint64) (*issuance.RequestOpt, error)
 }
 
 type TXStreamer interface {
@@ -28,9 +28,9 @@ type UsersConnector interface {
 type Service struct {
 	log     *logan.Entry
 	config  Config
-	builder *xdrbuild.Builder
 
-	txSubmitter       TXSubmitter
+	issuanceSubmitter IssuanceSubmitter
+
 	txStreamer        TXStreamer
 	accountsConnector AccountsConnector
 	usersConnector    UsersConnector
@@ -45,8 +45,7 @@ type Service struct {
 func NewService(
 	log *logan.Entry,
 	config Config,
-	builder *xdrbuild.Builder,
-	txSubmitter TXSubmitter,
+	issuanceSubmitter IssuanceSubmitter,
 	txStreamer TXStreamer,
 	accountsConnector AccountsConnector,
 	usersConnector UsersConnector,
@@ -56,9 +55,9 @@ func NewService(
 	return &Service{
 		log:     log,
 		config:  config,
-		builder: builder,
 
-		txSubmitter:       txSubmitter,
+		issuanceSubmitter: issuanceSubmitter,
+
 		txStreamer:        txStreamer,
 		accountsConnector: accountsConnector,
 		usersConnector:    usersConnector,

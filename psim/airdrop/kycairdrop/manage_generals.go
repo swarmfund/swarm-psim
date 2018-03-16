@@ -103,7 +103,7 @@ func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issu
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceOpt, err := s.submitIssuance(ctx, accAddress, balanceID)
+	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, s.config.IssuanceConfig.Amount)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to process Issuance", fields)
 	}

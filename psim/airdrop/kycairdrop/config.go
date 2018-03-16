@@ -8,10 +8,10 @@ import (
 type Config struct {
 	airdrop.IssuanceConfig `fig:"issuance,required"`
 
-	Source keypair.Address `fig:"source"`
-	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
+	Source keypair.Address `fig:"source,required"`
+	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
 
-	airdrop.EmailsConfig `fig:"emails"`
+	airdrop.EmailsConfig `fig:"emails,required"`
 
 	BlackList []string `fig:"black_list"`
 }
