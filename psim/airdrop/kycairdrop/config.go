@@ -6,8 +6,7 @@ import (
 )
 
 type Config struct {
-	Asset  string `fig:"issuance_asset"`
-	Amount uint64 `fig:"issuance_amount"`
+	airdrop.IssuanceConfig `fig:"issuance,required"`
 
 	Source keypair.Address `fig:"source"`
 	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
@@ -19,8 +18,7 @@ type Config struct {
 
 func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"asset":             c.Asset,
-		"amount":            c.Amount,
+		"issuance":          c.IssuanceConfig,
 		"emails":            c.EmailsConfig,
 		"black_list_length": len(c.BlackList),
 	}

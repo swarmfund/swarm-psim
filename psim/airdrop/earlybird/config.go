@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	Asset            string     `fig:"issuance_asset"`
-	Amount           uint64     `fig:"issuance_amount"`
+	airdrop.IssuanceConfig `fig:"issuance,required"`
+
 	RegisteredBefore *time.Time `fig:"registered_before"`
 
 	Source keypair.Address `fig:"source"`
