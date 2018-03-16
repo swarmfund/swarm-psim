@@ -1,11 +1,11 @@
 package airdrop
 
 type EmailsConfig struct {
-	Subject            string `fig:"subject"`
-	RequestType        int    `fig:"request_type"`
-	RequestTokenSuffix string `fig:"request_token_suffix"`
-	TemplateName       string `fig:"template_name"`
-	TemplateLinkURL    string `fig:"template_link_url"`
+	Subject            string `fig:"subject,required"`
+	RequestType        int    `fig:"request_type,required"`
+	RequestTokenSuffix string `fig:"request_token_suffix,required"`
+	TemplateName       string `fig:"template_name,required"`
+	TemplateLinkURL    string `fig:"template_link_url,required"`
 }
 
 func (c EmailsConfig) GetLoganFields() map[string]interface{} {

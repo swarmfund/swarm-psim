@@ -10,12 +10,12 @@ import (
 type Config struct {
 	airdrop.IssuanceConfig `fig:"issuance,required"`
 
-	RegisteredBefore *time.Time `fig:"registered_before"`
+	RegisteredBefore *time.Time `fig:"registered_before,required"`
 
-	Source keypair.Address `fig:"source"`
-	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
+	Source keypair.Address `fig:"source,required"`
+	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
 
-	airdrop.EmailsConfig `fig:"emails"`
+	airdrop.EmailsConfig `fig:"emails,required"`
 
 	WhiteList []string `fig:"white_list"`
 }
