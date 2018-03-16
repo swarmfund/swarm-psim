@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+	"gitlab.com/distributed_lab/logan/v3"
 )
 
 var (
@@ -110,6 +111,18 @@ var (
 				return reflect.ValueOf(i), nil
 			case int:
 				return reflect.ValueOf(big.NewInt(int64(v))), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
+		"logan.Level": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				lvl, err := logan.ParseLevel(v)
+				if err != nil {
+					return reflect.Value{}, errors.Wrap(err, "failed to parse log level")
+				}
+				return reflect.ValueOf(lvl), nil
 			default:
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}

@@ -435,10 +435,10 @@
   revision = "e69e2ec9bca34e913339896c87ce94b86e2fb3cd"
 
 [[projects]]
-  branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "39e395366b85671855be2cb4c3cfae679755566c"
+  revision = "4465722a2b24cd44606a0b8d2885077c476302be"
+  version = "v1.3"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
