@@ -43,8 +43,8 @@ func (s *LedgerChangesStreamer) Run(ctx context.Context) <-chan TimedLedgerChang
 	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
 
 	var isFirstTX = true
-	// TODO Change to be beginning of the day.
-	var lastLoggedTXTime time.Time
+	// TODO Consider counting TXs per day and logging this number with each TX day log.
+	var lastLoggedTXYearDay int
 	go app.RunOverIncrementalTimer(ctx, s.log, "ledger_changes_processor", func(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
@@ -60,14 +60,13 @@ func (s *LedgerChangesStreamer) Run(ctx context.Context) <-chan TimedLedgerChang
 
 			if isFirstTX {
 				s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received first TX.")
-				lastLoggedTXTime = txEvent.Meta.LatestLedger.ClosedAt
+				lastLoggedTXYearDay = txEvent.Meta.LatestLedger.ClosedAt.YearDay()
 				isFirstTX = false
 			} else {
-				if txEvent.Meta.LatestLedger.ClosedAt.Sub(lastLoggedTXTime) > (24 * time.Hour) {
-					// A day since last logged TX passed
-					// TODO Change to be beginning of the day.
+				if txEvent.Meta.LatestLedger.ClosedAt.YearDay() != lastLoggedTXYearDay {
+					// New day TX
 					s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received next day TX.")
-					lastLoggedTXTime = txEvent.Meta.LatestLedger.ClosedAt
+					lastLoggedTXYearDay = txEvent.Meta.LatestLedger.ClosedAt.YearDay()
 				}
 			}
 
