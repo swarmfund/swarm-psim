@@ -83,6 +83,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 	return nil
 }
 
+// TODO Return pointer to string and nil if no User existing. Avoid errUserNotFound.
 func (s *Service) getUserEmail(accountAddress string) (email string, err error) {
 	user, err := s.usersConnector.User(accountAddress)
 	if err != nil {

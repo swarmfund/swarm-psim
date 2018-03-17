@@ -24,8 +24,10 @@ const (
 	ServiceBearer            = "bearer"
 	ServicePriceSetter       = "price_setter"
 	ServicePriceSetterVerify = "price_setter_verify"
-	ServiceAirdropEarlybird  = "airdrop_earlybird"
-	ServiceAirdropKYC        = "airdrop_kyc"
+
+	ServiceAirdropEarlybird      = "airdrop_earlybird"
+	ServiceAirdropKYC            = "airdrop_kyc"
+	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

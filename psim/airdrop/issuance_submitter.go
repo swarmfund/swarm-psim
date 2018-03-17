@@ -23,6 +23,7 @@ type TXSubmitter interface {
 
 type IssuanceSubmitter struct {
 	asset           string
+	// TODO Remove
 	cause           string
 	referenceSuffix string
 
@@ -35,6 +36,7 @@ type IssuanceSubmitter struct {
 
 func NewIssuanceSubmitter(
 	asset string,
+	// TODO Remove
 	cause string,
 	referenceSuffix string,
 	source keypair.Address,
@@ -49,6 +51,7 @@ func NewIssuanceSubmitter(
 
 	return &IssuanceSubmitter{
 		asset:           asset,
+		// TODO Remove
 		cause:           cause,
 		referenceSuffix: referenceSuffix,
 
@@ -61,6 +64,7 @@ func NewIssuanceSubmitter(
 
 // Submit returns parameters of the Issuance Operation.
 // If reference duplication occurred, Submit returns nil, nil.
+// TODO Add details string parameter.
 func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceID string, amount uint64) (*issuance.RequestOpt, error) {
 	issuanceOpt := issuance.RequestOpt{
 		Reference: buildReference(accountAddress, s.referenceSuffix),

@@ -63,6 +63,7 @@ services:
 
 #  - airdrop_earlybird
 #  - airdrop_kyc
+#  - airdrop_march_referrals
 
 # BTC
 btc_deposit:
@@ -292,6 +293,27 @@ airdrop_kyc:
     request_token_suffix: _airdrop_kyc # Email with same token will be sent only once
 
     template_name: airdrop_kyc.html
+
+    template_link_url: https://invest.swarm.fund
+
+  black_list: [
+"G_SOME_VALID_ACCOUNT_ADDRESS_1",
+"G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
+airdrop_march_referrals:
+  issuance_asset: SWM
+  snapshot_time: "2018-04-15T14:00:00" # +14 - the latest existing GMT
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  emails:
+    subject: "March Madness Referral Bonus"
+
+    request_type: 10 # 10 means that email will be sent only once per each unique token
+    request_token_suffix: _airdrop_march_referrals # Email with same token will be sent only once
+
+    template_name: airdrop_referral.html
 
     template_link_url: https://invest.swarm.fund
 
