@@ -55,8 +55,10 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 				bonus.IsVerified = true
 
 				if accEntry.Referrer != nil {
-					referrerBonus, _ := s.snapshot[accEntry.Referrer.Address()]
-					referrerBonus.addReferral(accEntry.AccountId.Address())
+					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
+					if ok {
+						referrerBonus.addReferral(accEntry.AccountId.Address())
+					}
 				}
 			}
 
@@ -80,19 +82,31 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 			switch accEntry.AccountType {
 			case xdr.AccountTypeNotVerified:
 				// Account could become not approved.
-				s.snapshot[accEntry.AccountId.Address()].IsVerified = false
+				bonus, ok := s.snapshot[accEntry.AccountId.Address()]
+				if ok {
+					bonus.IsVerified = false
+				}
 
 				if accEntry.Referrer != nil {
 					// Delete Referral as his AccountType in NotVerified.
-					s.snapshot[accEntry.Referrer.Address()].deleteReferral(accEntry.AccountId.Address())
+					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
+					if ok {
+						referrerBonus.deleteReferral(accEntry.AccountId.Address())
+					}
 				}
 			case xdr.AccountTypeGeneral, xdr.AccountTypeSyndicate:
 				// Account is probably becoming approved.
-				s.snapshot[accEntry.AccountId.Address()].IsVerified = true
+				bonus, ok := s.snapshot[accEntry.AccountId.Address()]
+				if ok {
+					bonus.IsVerified = true
+				}
 
 				if accEntry.Referrer != nil {
 					// Add Referral as he became approved..
-					s.snapshot[accEntry.Referrer.Address()].addReferral(accEntry.AccountId.Address())
+					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
+					if ok {
+						referrerBonus.addReferral(accEntry.AccountId.Address())
+					}
 				}
 			}
 
@@ -117,6 +131,12 @@ func (s *Service) setBonusBalance(entry xdr.BalanceEntry) {
 	}
 
 	bonus, _ := s.snapshot[entry.AccountId.Address()]
+
+	if bonus == nil {
+		// This is probably master or comission Account or some other Account, which is created in genesis,
+		// so no LedgerChange was found for this Account creation.
+		return
+	}
 
 	bonus.BalanceID = entry.BalanceId.AsString()
 	bonus.Balance = uint64(entry.Amount)
