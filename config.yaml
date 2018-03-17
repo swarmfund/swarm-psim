@@ -252,8 +252,10 @@ bearer:
   sleep_period: 5m
 
 airdrop_earlybird:
-  issuance_asset: SWM
-  issuance_amount: 100000000 # 100 SWM (in stroops)
+  issuance:
+    asset: SWM
+    amount: 100000000 # 100 SWM (in stroops)
+
   registered_before: "2018-02-05T14:00:00" # +14 - the latest existing GMT
 
   source: G_SOME_VALID_PUBLIC_KEY
@@ -276,8 +278,9 @@ airdrop_earlybird:
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
 
 airdrop_kyc:
-  issuance_asset: SWM
-  issuance_amount: 10000000 # 10 SWM (in stroops)
+  issuance:
+    asset: SWM
+    amount: 10000000 # 10 SWM (in stroops)
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
