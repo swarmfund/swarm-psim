@@ -28,9 +28,12 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetter"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetterveri"
 
-	// aridrops
+	// airdrops
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/earlybird"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"
+
+	// order notifier
+	_ "gitlab.com/swarmfund/psim/psim/ordernotifier"
 )
 
 var (
