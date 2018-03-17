@@ -77,8 +77,7 @@ func (p *EmailProcessor) Run(ctx context.Context) {
 }
 
 func (p *EmailProcessor) AddEmailAddress(ctx context.Context, emailAddress string) {
-	// TODO Pass ctx
-	p.emails.Put(emailAddress)
+	p.emails.Put(ctx, emailAddress)
 }
 
 func (p *EmailProcessor) sendEmail(emailAddress string) (bool, error) {
