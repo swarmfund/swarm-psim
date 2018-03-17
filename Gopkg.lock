@@ -457,6 +457,12 @@
   revision = "75511e83f31d094326de3601201e8a42f490cc4b"
 
 [[projects]]
+  name = "gitlab.com/distributed_lab/running"
+  packages = ["."]
+  revision = "667d287dd5911ac80c6822dc816a7c56bc2d6462"
+  version = "v0.2"
+
+[[projects]]
   name = "gitlab.com/distributed_lab/sse-go"
   packages = ["."]
   revision = "388ea1372a9a6807e2c9eb2c47200241a7d27484"
@@ -588,6 +594,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "672a696ae89b0b72403272a287a36cc956f9a980c10eb1ac3506e1f085bee9fb"
+  inputs-digest = "37329534c2cd0d36586449ed1593a769b972ab95d9763c1b5e284a9f185e2540"
   solver-name = "gps-cdcl"
   solver-version = 1

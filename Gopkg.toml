@@ -99,3 +99,7 @@
 [[constraint]]
   branch = "master"
   name = "gitlab.com/distributed_lab/notificator-server"
+
+[[constraint]]
+  name = "gitlab.com/distributed_lab/running"
+  version = "0.2.0"
