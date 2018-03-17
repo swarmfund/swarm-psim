@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
@@ -25,21 +24,25 @@ type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
+type EmailProcessor interface {
+	Run(context.Context)
+	AddEmailAddress(ctx context.Context, emailAddress string)
+}
+
 type Service struct {
-	log     *logan.Entry
-	config  Config
+	log    *logan.Entry
+	config Config
 
 	issuanceSubmitter IssuanceSubmitter
 
 	txStreamer        TXStreamer
 	accountsConnector AccountsConnector
 	usersConnector    UsersConnector
-	notificator       airdrop.NotificatorConnector
+
+	emailProcessor EmailProcessor
 
 	blackList         map[string]struct{}
 	generalAccountsCh chan string
-
-	emails airdrop.SyncSet
 }
 
 func NewService(
@@ -49,12 +52,12 @@ func NewService(
 	txStreamer TXStreamer,
 	accountsConnector AccountsConnector,
 	usersConnector UsersConnector,
-	notificator airdrop.NotificatorConnector,
+	emailProcessor EmailProcessor,
 ) *Service {
 
 	return &Service{
-		log:     log,
-		config:  config,
+		log:    log,
+		config: config,
 
 		issuanceSubmitter: issuanceSubmitter,
 
@@ -62,12 +65,10 @@ func NewService(
 		accountsConnector: accountsConnector,
 		usersConnector:    usersConnector,
 
-		notificator: notificator,
+		emailProcessor: emailProcessor,
 
 		blackList:         make(map[string]struct{}),
 		generalAccountsCh: make(chan string, 100),
-
-		emails: airdrop.NewSyncSet(),
 	}
 }
 
@@ -83,7 +84,7 @@ func (s *Service) Run(ctx context.Context) {
 
 	go s.consumeGeneralAccounts(ctx)
 
-	go s.processEmails(ctx)
+	go s.emailProcessor.Run(ctx)
 
 	<-ctx.Done()
 }

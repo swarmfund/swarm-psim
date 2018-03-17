@@ -55,6 +55,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		horizonConnector.Submitter())
 
+	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
+
 	return NewService(
 		log,
 		config,
@@ -62,6 +64,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Listener(),
 		horizonConnector.Accounts(),
 		horizonConnector.Users(),
-		globalConfig.Notificator(),
+		emailProcessor,
 	), nil
 }

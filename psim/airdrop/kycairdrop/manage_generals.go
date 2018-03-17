@@ -78,7 +78,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		logger.Info("Reference duplication - already processed Deposit, skipping.")
 	}
 
-	s.emails.Put(emailAddress)
+	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
 
 	return nil
 }
