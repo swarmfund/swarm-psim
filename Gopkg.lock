@@ -435,10 +435,10 @@
   revision = "e69e2ec9bca34e913339896c87ce94b86e2fb3cd"
 
 [[projects]]
+  branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "4465722a2b24cd44606a0b8d2885077c476302be"
-  version = "v1.3"
+  revision = "43959d82aba203d057a8279d93a00716a1eca626"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -594,6 +594,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "37329534c2cd0d36586449ed1593a769b972ab95d9763c1b5e284a9f185e2540"
+  inputs-digest = "f9f5843afd72c0c97c514aab4db3436a3392ea19cea63669875aac1fcf51515c"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -77,10 +77,17 @@ var (
 			}
 			return reflect.ValueOf(result), nil
 		},
-		"*time.Time": func(value interface{}) (reflect.Value, error) {
+		"time.Time": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToTimeE(value)
 			if err != nil {
 				return reflect.Value{}, errors.Wrap(err, "failed to parse time")
+			}
+			return reflect.ValueOf(result), nil
+		},
+		"*time.Time": func(value interface{}) (reflect.Value, error) {
+			result, err := cast.ToTimeE(value)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse time pointer")
 			}
 			return reflect.ValueOf(&result), nil
 		},
