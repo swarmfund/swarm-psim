@@ -6,18 +6,15 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
 
 type IssuanceSubmitter interface {
 	Submit(ctx context.Context, accountAddress, balanceID string, amount uint64) (*issuance.RequestOpt, error)
 }
 
-type TXStreamer interface {
-	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
-}
-
-type AccountsConnector interface {
-	Balances(address string) ([]horizon.Balance, error)
+type LedgerStreamer interface {
+	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
 }
 
 type UsersConnector interface {
@@ -34,9 +31,9 @@ type Service struct {
 	config Config
 
 	issuanceSubmitter IssuanceSubmitter
-
-	txStreamer        TXStreamer
-	accountsConnector AccountsConnector
+	ledgerStreamer    LedgerStreamer
+	// TODO Consider substituting with some BalanceIDProvider entity.
+	accountsConnector airdrop.AccountsConnector
 	usersConnector    UsersConnector
 
 	emailProcessor EmailProcessor
@@ -49,8 +46,8 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	issuanceSubmitter IssuanceSubmitter,
-	txStreamer TXStreamer,
-	accountsConnector AccountsConnector,
+	txStreamer LedgerStreamer,
+	accountsConnector airdrop.AccountsConnector,
 	usersConnector UsersConnector,
 	emailProcessor EmailProcessor,
 ) *Service {
@@ -61,7 +58,7 @@ func NewService(
 
 		issuanceSubmitter: issuanceSubmitter,
 
-		txStreamer:        txStreamer,
+		ledgerStreamer:    txStreamer,
 		accountsConnector: accountsConnector,
 		usersConnector:    usersConnector,
 

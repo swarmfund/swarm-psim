@@ -9,6 +9,8 @@ var (
 	ErrNoBalanceID  = errors.New("BalanceID not found for Account.")
 )
 
+// TODO Consider creating BalanceIDProvider, which gets the AccountsConnector in constructor.
+
 type AccountsConnector interface {
 	Balances(address string) ([]horizon.Balance, error)
 }
