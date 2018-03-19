@@ -17,6 +17,10 @@ type LedgerStreamer interface {
 	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
 }
 
+type BalanceIDProvider interface {
+	GetBalanceID(accAddress, asset string) (*string, error)
+}
+
 type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
@@ -32,8 +36,7 @@ type Service struct {
 
 	issuanceSubmitter IssuanceSubmitter
 	ledgerStreamer    LedgerStreamer
-	// TODO Consider substituting with some BalanceIDProvider entity.
-	accountsConnector airdrop.AccountsConnector
+	balanceIDProvider BalanceIDProvider
 	usersConnector    UsersConnector
 	emailProcessor    EmailProcessor
 
@@ -47,7 +50,7 @@ func NewService(
 	config Config,
 	issuanceSubmitter IssuanceSubmitter,
 	ledgerStreamer LedgerStreamer,
-	accountsConnector airdrop.AccountsConnector,
+	balanceIDProvider BalanceIDProvider,
 	usersConnector UsersConnector,
 	emailProcessor EmailProcessor,
 ) *Service {
@@ -58,7 +61,7 @@ func NewService(
 
 		issuanceSubmitter: issuanceSubmitter,
 		ledgerStreamer:    ledgerStreamer,
-		accountsConnector: accountsConnector,
+		balanceIDProvider: balanceIDProvider,
 		usersConnector:    usersConnector,
 		emailProcessor:    emailProcessor,
 

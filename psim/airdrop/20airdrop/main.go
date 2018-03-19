@@ -59,7 +59,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config,
 		issuanceSubmitter,
 		ledgerStreamer,
-		horizonConnector.Accounts(),
+		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
 		horizonConnector.Users(),
 		emailProcessor,
 	), nil
