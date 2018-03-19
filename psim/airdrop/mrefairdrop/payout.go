@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"fmt"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
@@ -38,7 +40,9 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 				return true, nil
 			}
 
-			issuanceOpt, err := s.processIssuance(ctx, accAddress, bonus.BalanceID, issAmount)
+			opDetails := fmt.Sprintf(`{"cause": "%s", "referrals": %d, "holdings": %d}`,
+				airdrop.MarchReferralsIssuanceCause, bonus.Referrals, bonus.Balance)
+			issuanceOpt, err := s.processIssuance(ctx, accAddress, bonus.BalanceID, issAmount, opDetails)
 			if err != nil {
 				return false, errors.Wrap(err, "Failed to process Issuance", logan.F{
 					"email_address": emailAddress,
@@ -111,7 +115,7 @@ func (s *Service) getUserEmail(accountAddress string) (email *string, err error)
 	return &user.Attributes.Email, nil
 }
 
-func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID string, amount uint64) (*issuance.RequestOpt, error) {
+func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, error) {
 	var err error
 
 	if balanceID == "" {
@@ -128,7 +132,7 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID str
 
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, amount)
+	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, amount, opDetails)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to process Issuance", fields)
 	}

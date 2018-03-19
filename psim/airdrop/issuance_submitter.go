@@ -2,7 +2,6 @@ package airdrop
 
 import (
 	"context"
-	"fmt"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -23,8 +22,6 @@ type TXSubmitter interface {
 
 type IssuanceSubmitter struct {
 	asset           string
-	// TODO Remove
-	cause           string
 	referenceSuffix string
 
 	source keypair.Address
@@ -36,8 +33,6 @@ type IssuanceSubmitter struct {
 
 func NewIssuanceSubmitter(
 	asset string,
-	// TODO Remove
-	cause string,
 	referenceSuffix string,
 	source keypair.Address,
 	signer keypair.Full,
@@ -51,8 +46,6 @@ func NewIssuanceSubmitter(
 
 	return &IssuanceSubmitter{
 		asset:           asset,
-		// TODO Remove
-		cause:           cause,
 		referenceSuffix: referenceSuffix,
 
 		source:      source,
@@ -64,14 +57,13 @@ func NewIssuanceSubmitter(
 
 // Submit returns parameters of the Issuance Operation.
 // If reference duplication occurred, Submit returns nil, nil.
-// TODO Add details string parameter.
-func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceID string, amount uint64) (*issuance.RequestOpt, error) {
+func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, error) {
 	issuanceOpt := issuance.RequestOpt{
 		Reference: buildReference(accountAddress, s.referenceSuffix),
 		Receiver:  balanceID,
 		Asset:     s.asset,
 		Amount:    amount,
-		Details:   fmt.Sprintf(`{"cause": "%s"}`, s.cause),
+		Details:   opDetails,
 	}
 	fields := logan.F{
 		"issuance_opt": issuanceOpt,

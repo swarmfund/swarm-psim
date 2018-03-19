@@ -10,7 +10,7 @@ import (
 )
 
 type IssuanceSubmitter interface {
-	Submit(ctx context.Context, accountAddress, balanceID string, amount uint64) (*issuance.RequestOpt, error)
+	Submit(ctx context.Context, accountAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, error)
 }
 
 type LedgerStreamer interface {

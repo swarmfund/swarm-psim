@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"fmt"
 )
 
 var (
@@ -104,7 +105,8 @@ func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issu
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, s.config.IssuanceConfig.Amount)
+	opDetails := fmt.Sprintf(`{"cause": "%s"}`, airdrop.KYCIssuanceCause)
+	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, s.config.IssuanceConfig.Amount, opDetails)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to process Issuance", fields)
 	}

@@ -44,7 +44,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
 		config.IssuanceAsset,
-		airdrop.MarchReferralsIssuanceCause,
 		airdrop.MarchReferralsReferenceSuffix,
 		config.Source,
 		config.Signer,
