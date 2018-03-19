@@ -19,11 +19,28 @@ func NewSyncSet() SyncSet {
 	}
 }
 
-func (s *SyncSet) Put(new string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *SyncSet) Put(ctx context.Context, new string) {
+	put := func() <-chan struct{} {
+		c := make(chan struct{})
 
-	s.data[new] = struct{}{}
+		go func() {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+
+			s.data[new] = struct{}{}
+
+			close(c)
+		}()
+
+		return c
+	}
+
+	select {
+	case <-ctx.Done():
+		return
+	case <-put():
+		return
+	}
 }
 
 func (s *SyncSet) Exists(key string) bool {
@@ -51,6 +68,7 @@ func (s *SyncSet) Length() int {
 }
 
 func (s *SyncSet) Range(ctx context.Context, f func(s string)) {
+	// TODO Listen to ctx along with mutex
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

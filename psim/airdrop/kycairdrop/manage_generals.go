@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"fmt"
 )
 
 var (
@@ -78,11 +79,12 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		logger.Info("Reference duplication - already processed Deposit, skipping.")
 	}
 
-	s.emails.Put(emailAddress)
+	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
 
 	return nil
 }
 
+// TODO Return pointer to string and nil if no User existing. Avoid errUserNotFound.
 func (s *Service) getUserEmail(accountAddress string) (email string, err error) {
 	user, err := s.usersConnector.User(accountAddress)
 	if err != nil {
@@ -103,7 +105,8 @@ func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issu
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceOpt, err := s.submitIssuance(ctx, accAddress, balanceID)
+	opDetails := fmt.Sprintf(`{"cause": "%s"}`, airdrop.KYCIssuanceCause)
+	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, s.config.IssuanceConfig.Amount, opDetails)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to process Issuance", fields)
 	}

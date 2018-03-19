@@ -102,3 +102,36 @@ func (e *Entry) Panicf(format string, args ...interface{}) {
 func (e *Entry) Panic(args ...interface{}) {
 	e.entry.Panic(args...)
 }
+
+// Log logs message with the provided severity(level), fields and error.
+//
+// This Method is basically implemented to abstract packages which need
+// logging with fields and errors from logan, so that users without logan could
+// use such packages providing some other arbitrary implementation of Log method.
+func (e *Entry) Log(level uint32, fields map[string]interface{}, err error, withStack bool, args ...interface{}) {
+	logger := e.WithFields(fields)
+
+	if err != nil {
+		logger = logger.WithError(err)
+		if withStack {
+			logger = logger.WithStack(err)
+		}
+	}
+
+	switch Level(level) {
+	case PanicLevel:
+		logger.Panic(args...)
+	case FatalLevel:
+		logger.Fatal(args...)
+	case ErrorLevel:
+		logger.Error(args...)
+	case WarnLevel:
+		logger.Warn(args...)
+	case InfoLevel:
+		logger.Info(args...)
+	case DebugLevel:
+		logger.Debug(args...)
+	default:
+		logger.Debug(args...)
+	}
+}

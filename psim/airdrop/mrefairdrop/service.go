@@ -1,12 +1,12 @@
-package kycairdrop
+package mrefairdrop
 
 import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 type IssuanceSubmitter interface {
@@ -35,18 +35,18 @@ type Service struct {
 	// TODO Consider substituting with some BalanceIDProvider entity.
 	accountsConnector airdrop.AccountsConnector
 	usersConnector    UsersConnector
+	emailProcessor    EmailProcessor
 
-	emailProcessor EmailProcessor
-
-	blackList         map[string]struct{}
-	generalAccountsCh chan string
+	blackList map[string]struct{}
+	// AccountID to Bonus map
+	snapshot map[string]*bonusParams
 }
 
 func NewService(
 	log *logan.Entry,
 	config Config,
 	issuanceSubmitter IssuanceSubmitter,
-	txStreamer LedgerStreamer,
+	ledgerStreamer LedgerStreamer,
 	accountsConnector airdrop.AccountsConnector,
 	usersConnector UsersConnector,
 	emailProcessor EmailProcessor,
@@ -57,15 +57,13 @@ func NewService(
 		config: config,
 
 		issuanceSubmitter: issuanceSubmitter,
-
-		ledgerStreamer:    txStreamer,
+		ledgerStreamer:    ledgerStreamer,
 		accountsConnector: accountsConnector,
 		usersConnector:    usersConnector,
+		emailProcessor:    emailProcessor,
 
-		emailProcessor: emailProcessor,
-
-		blackList:         make(map[string]struct{}),
-		generalAccountsCh: make(chan string, 100),
+		blackList: make(map[string]struct{}),
+		snapshot:  make(map[string]*bonusParams),
 	}
 }
 
@@ -77,11 +75,11 @@ func (s *Service) Run(ctx context.Context) {
 		s.blackList[accID] = struct{}{}
 	}
 
-	go s.listenLedgerChanges(ctx)
-
-	go s.consumeGeneralAccounts(ctx)
+	s.processChangesUpToSnapshotTime(ctx)
 
 	go s.emailProcessor.Run(ctx)
+
+	s.payOutSnapshot(ctx)
 
 	<-ctx.Done()
 }
