@@ -40,7 +40,7 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 			}
 
 			opDetails := fmt.Sprintf(`{"cause": "%s", "holdings": %d}`, airdrop.March20b20IssuanceCause, bonus.Balance)
-			issuanceOpt, err := s.processIssuance(ctx, accAddress, bonus.BalanceID, issAmount, opDetails)
+			issuanceOpt, issuanceHappened, err := s.processIssuance(ctx, accAddress, bonus.BalanceID, issAmount, opDetails)
 			if err != nil {
 				return false, errors.Wrap(err, "Failed to process Issuance", logan.F{
 					"email_address": *emailAddress,
@@ -50,9 +50,10 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 			logger := s.log.WithFields(logan.F{
 				"account_address": accAddress,
 				"email_address":   *emailAddress,
+				"issuance_opt":    *issuanceOpt,
 			})
-			if issuanceOpt != nil {
-				logger.WithField("issuance_opt", *issuanceOpt).Info("CoinEmissionRequest was sent successfully.")
+			if issuanceHappened {
+				logger.Info("CoinEmissionRequest was sent successfully.")
 			} else {
 				logger.Info("Reference duplication - already processed Deposit, skipping.")
 			}
@@ -110,7 +111,7 @@ func (s *Service) getUserEmail(accountAddress string) (email *string, err error)
 	return &user.Attributes.Email, nil
 }
 
-func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, error) {
+func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, bool, error) {
 	var err error
 
 	if balanceID == "" {
@@ -121,10 +122,10 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID str
 
 		bIdP, err := s.balanceIDProvider.GetBalanceID(accAddress, s.config.IssuanceAsset)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to get BalanceID of the Account")
+			return nil, false, errors.Wrap(err, "Failed to get BalanceID of the Account")
 		}
 		if bIdP == nil {
-			return nil, errors.From(errors.New("Account does not have a Balance for the provided asset."), logan.F{
+			return nil, false, errors.From(errors.New("Account does not have a Balance for the provided asset."), logan.F{
 				"asset": s.config.IssuanceAsset,
 			})
 		}
@@ -132,10 +133,10 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID str
 
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceOpt, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, amount, opDetails)
+	issuanceOpt, issuanceHappened, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, amount, opDetails)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to process Issuance", fields)
+		return nil, false, errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	return issuanceOpt, nil
+	return issuanceOpt, issuanceHappened, nil
 }

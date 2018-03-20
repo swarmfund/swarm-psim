@@ -57,7 +57,7 @@ func NewIssuanceSubmitter(
 
 // Submit returns parameters of the Issuance Operation.
 // If reference duplication occurred, Submit returns nil, nil.
-func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, error) {
+func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, bool, error) {
 	issuanceOpt := issuance.RequestOpt{
 		Reference: buildReference(accountAddress, s.referenceSuffix),
 		Receiver:  balanceID,
@@ -73,20 +73,15 @@ func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceI
 
 	envelope, err := tx.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to marshal TX into Envelope", fields)
+		return nil, false, errors.Wrap(err, "Failed to marshal TX into Envelope", fields)
 	}
 
 	ok, err := issuance.SubmitEnvelope(ctx, envelope, s.txSubmitter)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to submit IssuanceRequest TX Envelope to Horizon", fields)
+		return nil, false, errors.Wrap(err, "Failed to submit IssuanceRequest TX Envelope to Horizon", fields)
 	}
 
-	if ok {
-		return &issuanceOpt, nil
-	} else {
-		// Reference duplication
-		return nil, nil
-	}
+	return &issuanceOpt, ok, nil
 }
 
 func buildReference(accountAddress, suffix string) string {
