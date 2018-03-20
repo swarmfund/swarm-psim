@@ -6,6 +6,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/logan/v3"
 )
 
 func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
@@ -23,8 +24,10 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 
 			if !s.processChange(ctx, timedLedger) {
 				// Reached SnapshotTime - don't need to continue, whole job is done for this runner.
-				s.log.WithField("snapshot_time", s.config.SnapshotTime).
-					Info("Reached the SnapshotTime in the stream of LedgerEntryChanges.")
+				s.log.WithFields(logan.F{
+					"snapshot_time":        s.config.SnapshotTime,
+					"accounts_in_snapshot": len(s.snapshot),
+				}).Info("Reached the SnapshotTime in the stream of LedgerEntryChanges.")
 				return
 			}
 		}

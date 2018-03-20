@@ -15,10 +15,12 @@ import (
 )
 
 func (s *Service) payOutSnapshot(ctx context.Context) {
-	s.log.Info("Started paying out airdrop according to to the Snapshot.")
-
 	s.filterReferrers()
 	s.filterReferrals()
+
+	s.log.WithFields(logan.F{
+		"accounts_in_snapshot": len(s.snapshot),
+	}).Info("Started paying out airdrop according to to the Snapshot.")
 
 	for accAddress, bonus := range s.snapshot {
 		issAmount := countIssuanceAmount(len(bonus.Referrals), bonus.Balance)
@@ -41,17 +43,17 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 			}
 
 			opDetails := fmt.Sprintf(`{"cause": "%s", "referrals": %d, "holdings": %d}`,
-				airdrop.MarchReferralsIssuanceCause, bonus.Referrals, bonus.Balance)
+				airdrop.MarchReferralsIssuanceCause, len(bonus.Referrals), bonus.Balance)
 			issuanceOpt, err := s.processIssuance(ctx, accAddress, bonus.BalanceID, issAmount, opDetails)
 			if err != nil {
 				return false, errors.Wrap(err, "Failed to process Issuance", logan.F{
-					"email_address": emailAddress,
+					"email_address": *emailAddress,
 				})
 			}
 
 			logger := s.log.WithFields(logan.F{
 				"account_address": accAddress,
-				"email_address":   emailAddress,
+				"email_address":   *emailAddress,
 			})
 			if issuanceOpt != nil {
 				logger.WithField("issuance_opt", *issuanceOpt).Info("CoinEmissionRequest was sent successfully.")
@@ -70,16 +72,26 @@ func (s *Service) filterReferrers() {
 	for accAddress, bonus := range s.snapshot {
 		_, inBlackList := s.blackList[accAddress]
 
-		if inBlackList || !bonus.IsVerified {
+		if inBlackList {
+			s.log.WithField("account_address", accAddress).Info("Filtering out Account, because it's in BlackList")
+			delete(s.snapshot, accAddress)
+			continue
+		}
+
+		if !bonus.IsVerified {
 			delete(s.snapshot, accAddress)
 		}
 	}
 }
 
 func (s *Service) filterReferrals() {
-	for _, bonus := range s.snapshot {
+	for referrer, bonus := range s.snapshot {
 		for referral, _ := range bonus.Referrals {
 			if _, inBlackList := s.blackList[referral]; inBlackList {
+				s.log.WithFields(logan.F{
+					"referrer_address": referrer,
+					"referral_address": referral,
+				}).Info("Filtering out referral, because it's in BlackList")
 				delete(bonus.Referrals, referral)
 			}
 		}
