@@ -124,9 +124,14 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, balanceID str
 			"issuance_amount": amount,
 		}).Warn("Found Issuance to be processed without BalanceID provided, we are ready for this, but it shouldn't have happened.")
 
-		balanceID, err = airdrop.GetBalanceID(accAddress, s.config.IssuanceAsset, s.accountsConnector)
+		bIdP, err := s.balanceIDProvider.GetBalanceID(accAddress, s.config.IssuanceAsset)
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to get BalanceID of the Account")
+		}
+		if bIdP == nil {
+			return nil, errors.From(errors.New("Account does not have a Balance for the provided asset."), logan.F{
+				"asset": s.config.IssuanceAsset,
+			})
 		}
 	}
 
