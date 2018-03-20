@@ -17,7 +17,7 @@ import (
 func (s *Service) payOutSnapshot(ctx context.Context) {
 	s.log.Info("Started paying out airdrop according to to the Snapshot.")
 
-	s.filterBadAccounts()
+	s.filterAccounts()
 
 	for accAddress, bonus := range s.snapshot {
 		issAmount := countIssuanceAmount(bonus.Balance)
@@ -64,18 +64,25 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 	}
 }
 
-func (s *Service) filterBadAccounts() {
+func (s *Service) filterAccounts() {
 	for accAddress, bonus := range s.snapshot {
 		_, inBlackList := s.blackList[accAddress]
+
+		if !bonus.IsVerified {
+			delete(s.snapshot, accAddress)
+			continue
+		}
+
+		if bonus.Balance == 0 {
+			// There's nothing to payout airdrop for.
+			delete(s.snapshot, accAddress)
+			continue
+		}
 
 		if inBlackList {
 			s.log.WithField("account_address", accAddress).Info("Filtering out Account, because it's in BlackList")
 			delete(s.snapshot, accAddress)
 			continue
-		}
-
-		if !bonus.IsVerified {
-			delete(s.snapshot, accAddress)
 		}
 	}
 }

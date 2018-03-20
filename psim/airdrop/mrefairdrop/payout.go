@@ -15,8 +15,8 @@ import (
 )
 
 func (s *Service) payOutSnapshot(ctx context.Context) {
-	s.filterReferrers()
 	s.filterReferrals()
+	s.filterReferrers()
 
 	s.log.WithFields(logan.F{
 		"accounts_in_snapshot": len(s.snapshot),
@@ -72,14 +72,21 @@ func (s *Service) filterReferrers() {
 	for accAddress, bonus := range s.snapshot {
 		_, inBlackList := s.blackList[accAddress]
 
-		if inBlackList {
-			s.log.WithField("account_address", accAddress).Info("Filtering out Account, because it's in BlackList")
+		if !bonus.IsVerified {
 			delete(s.snapshot, accAddress)
 			continue
 		}
 
-		if !bonus.IsVerified {
+		if len(bonus.Referrals) == 0 {
+			// There's nothing to payout airdrop for.
 			delete(s.snapshot, accAddress)
+			continue
+		}
+
+		if inBlackList {
+			s.log.WithField("account_address", accAddress).Info("Filtering out Account, because it's in BlackList")
+			delete(s.snapshot, accAddress)
+			continue
 		}
 	}
 }

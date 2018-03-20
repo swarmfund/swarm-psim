@@ -9,8 +9,10 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 
+// ProcessChangesUpToSnapshotTime is a blocking method, returns if ctx canceled or all the Changes are processed.
+// Don't run this method in goroutine, as it won't notify anywhere when finished - will just return.
 func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
-	s.log.Info("Started listening TimedLedgers stream.")
+	s.log.WithField("snapshot_time", s.config.SnapshotTime).Info("Started listening TimedLedgers stream.")
 	ledgerStream := s.ledgerStreamer.Run(ctx)
 
 	for {
