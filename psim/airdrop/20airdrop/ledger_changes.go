@@ -3,10 +3,10 @@ package mrefairdrop
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/distributed_lab/logan/v3"
 )
 
 // ProcessChangesUpToSnapshotTime is a blocking method, returns if ctx canceled or all the Changes are processed.
@@ -47,24 +47,67 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 
 	switch change.Type {
 	case xdr.LedgerEntryChangeTypeCreated:
-		s.processEntryData(change.Created.Data)
-		return true
+		entryData := change.Created.Data
+
+		switch entryData.Type {
+		case xdr.LedgerEntryTypeAccount:
+			// Account created
+			accEntry := entryData.Account
+
+			bonus := bonusParams{}
+			if accEntry.AccountType == xdr.AccountTypeGeneral || accEntry.AccountType == xdr.AccountTypeSyndicate {
+				// Account is created in already approved type.
+				bonus.IsVerified = true
+			}
+
+			s.snapshot[accEntry.AccountId.Address()] = &bonus
+			return true
+		case xdr.LedgerEntryTypeBalance:
+			// Balance created
+			balEntry := entryData.Balance
+			s.processBalanceEntry(*balEntry)
+			return true
+		default:
+			return true
+		}
 	case xdr.LedgerEntryChangeTypeUpdated:
-		s.processEntryData(change.Updated.Data)
-		return true
+		entryData := change.Updated.Data
+
+		switch entryData.Type {
+		case xdr.LedgerEntryTypeAccount:
+			// Account updated
+			accEntry := entryData.Account
+
+			switch accEntry.AccountType {
+			case xdr.AccountTypeNotVerified:
+				// Account could become not approved.
+				bonus, ok := s.snapshot[accEntry.AccountId.Address()]
+				if ok {
+					bonus.IsVerified = false
+				}
+			case xdr.AccountTypeGeneral, xdr.AccountTypeSyndicate:
+				// Account is probably becoming approved.
+				bonus, ok := s.snapshot[accEntry.AccountId.Address()]
+				if ok {
+					bonus.IsVerified = true
+				}
+			}
+
+			return true
+		case xdr.LedgerEntryTypeBalance:
+			balEntry := entryData.Balance
+			s.processBalanceEntry(*balEntry)
+			return true
+		default:
+			return true
+		}
 	default:
 		// Not an Updated or Created type - not interested.
 		return true
 	}
 }
 
-func (s *Service) processEntryData(entryData xdr.LedgerEntryData) {
-	if entryData.Type != xdr.LedgerEntryTypeBalance {
-		return
-	}
-
-	entry := entryData.Balance
-
+func (s *Service) processBalanceEntry(entry xdr.BalanceEntry) {
 	if string(entry.Asset) != s.config.IssuanceAsset {
 		// Not interested
 		return

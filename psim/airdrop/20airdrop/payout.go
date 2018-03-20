@@ -15,9 +15,11 @@ import (
 )
 
 func (s *Service) payOutSnapshot(ctx context.Context) {
-	s.log.Info("Started paying out airdrop according to to the Snapshot.")
-
 	s.filterAccounts()
+
+	s.log.WithFields(logan.F{
+		"accounts_in_snapshot": len(s.snapshot),
+	}).Info("Started paying out airdrop after filtering not-verified, zero-balanced and black-listed from the Snapshot.")
 
 	for accAddress, bonus := range s.snapshot {
 		issAmount := countIssuanceAmount(bonus.Balance)
