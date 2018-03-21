@@ -295,3 +295,17 @@ airdrop_kyc:
   black_list: [
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
+order_notifier:
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  emails:
+    subject: "IO cancelled"
+
+    request_type: 10 # 10 means that email will be sent only once per each unique token
+    request_token_suffix: _io_cancelled # Email with same token will be sent only once
+
+    template_name: io_cancelled.html
+
+    template_link_url: https://invest.swarm.fund
