@@ -1,6 +1,7 @@
 package ordernotifier
 
 import (
+	"fmt"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
@@ -9,7 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"golang.org/x/net/context"
 	"time"
-	"fmt"
+	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
 // UserConnector is an interface for retrieving specific user
@@ -110,7 +111,6 @@ func (s *Service) processCheckSaleStateOperation(ctx context.Context, checkSaleS
 	if err != nil {
 		return errors.Wrap(err, "failed to get transaction", logan.F{
 			"transaction_id": txID,
-			"operation_id":   checkSaleStateOperation.ID,
 		})
 	}
 	if tx == nil {
@@ -121,62 +121,95 @@ func (s *Service) processCheckSaleStateOperation(ctx context.Context, checkSaleS
 	ledgerChanges := tx.LedgerChanges()
 
 	for _, change := range ledgerChanges {
-		err = s.processCancelledOrder(ctx, change, checkSaleStateOperation.SaleID)
+		emailUnit, err := s.processLedgerEntry(ctx, change, checkSaleStateOperation.SaleID)
 		if err != nil {
-			return errors.Wrap(err, "failed to process cancelled order")
+			return errors.Wrap(err, "failed to process ledger entry")
+		}
+		if emailUnit == nil {
+			continue
+		}
+		err = s.sendEmail(ctx, *emailUnit)
+		if err != nil {
+			return errors.Wrap(err, "failed to send email", logan.F{
+				"service":      conf.ServiceOrderNotifier,
+				"subject":      emailUnit.Payload.Subject,
+				"destination":  emailUnit.Payload.Destination,
+				"unique_token": emailUnit.UniqueToken,
+			})
 		}
 	}
 
 	return nil
 }
 
-func (s *Service) processCancelledOrder(ctx context.Context, change xdr.LedgerEntryChange, saleID uint64) error {
-	if change.Type != xdr.LedgerEntryChangeTypeRemoved {
-		return nil
+func (s *Service) processLedgerEntry(ctx context.Context, change xdr.LedgerEntryChange, saleID uint64) (*EmailUnit, error) {
+	if change.Type == xdr.LedgerEntryChangeTypeRemoved {
+		removedEntryKey := change.Removed
+		if removedEntryKey.Type == xdr.LedgerEntryTypeOfferEntry {
+			offer := removedEntryKey.MustOffer()
+			return s.processCancelledOrder(ctx, offer, saleID)
+		}
 	}
+	return nil, nil
+}
 
-	removedEntryKey := change.Removed
-	if removedEntryKey.Type != xdr.LedgerEntryTypeOfferEntry {
-		return nil
-	}
-	offer := removedEntryKey.MustOffer()
+func (s *Service) processCancelledOrder(ctx context.Context, offer xdr.LedgerKeyOffer, saleID uint64) (*EmailUnit, error) {
 	ownerID := offer.OwnerId.Address()
 
 	user, err := s.userConnector.User(ownerID)
 	if err != nil {
-		return errors.Wrap(err, "failed to load user", logan.F{
+		return nil, errors.Wrap(err, "failed to load user", logan.F{
 			"account_id": ownerID,
 		})
 	}
 	if user == nil {
 		// User doesn't exist
-		return nil
+		return nil, nil
 	}
 
 	emailAddress := user.Attributes.Email
 
-	uniqueToken := fmt.Sprintf("%s:%d:%d:%s", emailAddress, removedEntryKey.MustOffer().OfferId, saleID, s.config.RequestTokenSuffix)
+	uniqueToken := s.buildUniqueToken(emailAddress, uint64(offer.OfferId), saleID)
 
+	sale, err := s.getSale(saleID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get sale", logan.F{
+			"sale_id": saleID,
+		})
+	}
+	if sale == nil {
+		// sale doesn't exist
+		return nil, nil
+	}
+
+	emailUnit, err := s.craftEmailUnit(ctx, emailAddress, sale.Name(), uniqueToken)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to craft email unit", logan.F{
+			"user_email_address": emailAddress,
+		})
+	}
+
+	return emailUnit, nil
+}
+
+func (s *Service) buildUniqueToken(emailAddress string, offerID, saleID uint64) string {
+	return fmt.Sprintf("%s:%d:%d:%s", emailAddress, offerID, saleID, s.config.RequestTokenSuffix)
+}
+
+func (s *Service) getSale(saleID uint64) (*horizon.Sale, error) {
 	sale, err := s.saleConnector.SaleByID(saleID)
 	if err != nil {
-		return errors.Wrap(err, "failed to load sale", logan.F{
+		return nil, errors.Wrap(err, "failed to load sale", logan.F{
 			"sale_id": saleID,
 		})
 	}
 	if sale == nil {
 		// Sale doesn't exist
-		return nil
+		return nil, nil
 	}
 	if sale.Name() == "" {
-		return errors.New(fmt.Sprintf("invalid sale name for id: %d", saleID))
+		return nil, errors.New(fmt.Sprintf("invalid sale name for id: %d", saleID))
 	}
 
-	err = s.sendEmail(ctx, emailAddress, sale.Name(), uniqueToken)
-	if err != nil {
-		return errors.Wrap(err, "failed to send email", logan.F{
-			"user_email_address": emailAddress,
-		})
-	}
-
-	return nil
+	return sale, nil
 }
