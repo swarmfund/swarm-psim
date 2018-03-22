@@ -24,7 +24,8 @@ var (
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
-	WithdrawalRequests(result chan<- horizon.Request) <-chan error
+	//WithdrawalRequests(result chan<- horizon.Request) <-chan error
+	StreamWithdrawalRequests(ctx context.Context) <-chan horizon.ReviewableRequestResponse
 }
 
 // CommonOffchainHelper is the interface for specific Offchain(BTC or ETH)
@@ -100,8 +101,7 @@ type Service struct {
 	discovery           *discovery.Client
 	offchainHelper      OffchainHelper
 
-	requests              chan horizon.Request
-	requestListenerErrors <-chan error
+	requests <-chan horizon.ReviewableRequestResponse
 }
 
 // New is constructor for Service.
@@ -126,8 +126,6 @@ func New(
 		xdrbuilder:          builder,
 		discovery:           discoveryClient,
 		offchainHelper:      helper,
-
-		requests: make(chan horizon.Request),
 	}
 }
 
@@ -135,7 +133,7 @@ func New(
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
-	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
+	s.requests = s.requestListener.StreamWithdrawalRequests(ctx)
 
 	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second)
 }
@@ -144,15 +142,26 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
-	case request := <-s.requests:
-		err := s.processRequest(ctx, request)
+	case reqEvent := <-s.requests:
+		request, err := reqEvent.Unwrap()
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{"request": request})
+			return errors.Wrap(err, "RequestListener sent error")
+		}
+
+		//FIXME
+		//FIXME
+		//FIXME
+		//FIXME
+		//FIXME
+		//FIXME
+		s.log.WithField("request", request).Debug("AAAAAAAAAAAAAAAAAAAAAA ASDFASDF        AAAAAAAAA")
+
+		err = s.processRequest(ctx, *request)
+		if err != nil {
+			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{"request_event": reqEvent})
 		}
 
 		return nil
-	case err := <-s.requestListenerErrors:
-		return errors.Wrap(err, "RequestListener sent error")
 	}
 }
 
