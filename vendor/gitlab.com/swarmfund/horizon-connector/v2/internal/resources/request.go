@@ -2,6 +2,7 @@ package resources
 
 import (
 	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"time"
 )
 
 type Request struct {
@@ -10,6 +11,8 @@ type Request struct {
 	Hash        string         `json:"hash"`
 	State       int32          `json:"request_state_i"`
 	Details     RequestDetails `json:"details"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 func (r Request) GetLoganFields() map[string]interface{} {
@@ -19,9 +22,12 @@ func (r Request) GetLoganFields() map[string]interface{} {
 		"hash":            r.Hash,
 		"request_state_i": r.State,
 		"details":         r.Details,
+		"created_at":      r.CreatedAt,
+		"updated_at":      r.UpdatedAt,
 	}
 }
 
+// TODO Add KYC, when it's ready
 type RequestDetails struct {
 	RequestType     int32                   `json:"request_type_i"`
 	Withdraw        *RequestWithdrawDetails `json:"withdraw"`
