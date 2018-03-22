@@ -43,7 +43,7 @@ func NewEmailsProcessor(
 
 // Run is clocking function, returns only when ctx cancels.
 func (p *EmailProcessor) Run(ctx context.Context) {
-	p.log.Info("Started processing emails.")
+	p.log.Info("Started emails processor.")
 
 	app.RunOverIncrementalTimer(ctx, p.log, "emails_processor", func(ctx context.Context) error {
 		emailsNumber := p.emails.Length()

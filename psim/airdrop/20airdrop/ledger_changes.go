@@ -54,17 +54,10 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 			// Account created
 			accEntry := entryData.Account
 
-			bonus := newBonusParams()
+			bonus := bonusParams{}
 			if accEntry.AccountType == xdr.AccountTypeGeneral || accEntry.AccountType == xdr.AccountTypeSyndicate {
 				// Account is created in already approved type.
 				bonus.IsVerified = true
-
-				if accEntry.Referrer != nil {
-					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
-					if ok {
-						referrerBonus.addReferral(accEntry.AccountId.Address())
-					}
-				}
 			}
 
 			s.snapshot[accEntry.AccountId.Address()] = &bonus
@@ -72,7 +65,7 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 		case xdr.LedgerEntryTypeBalance:
 			// Balance created
 			balEntry := entryData.Balance
-			s.setBonusBalance(*balEntry)
+			s.processBalanceEntry(*balEntry)
 			return true
 		default:
 			return true
@@ -82,6 +75,7 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 
 		switch entryData.Type {
 		case xdr.LedgerEntryTypeAccount:
+			// Account updated
 			accEntry := entryData.Account
 
 			switch accEntry.AccountType {
@@ -91,34 +85,18 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 				if ok {
 					bonus.IsVerified = false
 				}
-
-				if accEntry.Referrer != nil {
-					// Delete Referral as his AccountType in NotVerified.
-					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
-					if ok {
-						referrerBonus.deleteReferral(accEntry.AccountId.Address())
-					}
-				}
 			case xdr.AccountTypeGeneral, xdr.AccountTypeSyndicate:
 				// Account is probably becoming approved.
 				bonus, ok := s.snapshot[accEntry.AccountId.Address()]
 				if ok {
 					bonus.IsVerified = true
 				}
-
-				if accEntry.Referrer != nil {
-					// Add Referral as he became approved..
-					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
-					if ok {
-						referrerBonus.addReferral(accEntry.AccountId.Address())
-					}
-				}
 			}
 
 			return true
 		case xdr.LedgerEntryTypeBalance:
 			balEntry := entryData.Balance
-			s.setBonusBalance(*balEntry)
+			s.processBalanceEntry(*balEntry)
 			return true
 		default:
 			return true
@@ -129,7 +107,7 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 	}
 }
 
-func (s *Service) setBonusBalance(entry xdr.BalanceEntry) {
+func (s *Service) processBalanceEntry(entry xdr.BalanceEntry) {
 	if string(entry.Asset) != s.config.IssuanceAsset {
 		// Not interested
 		return

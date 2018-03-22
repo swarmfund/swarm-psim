@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceAirdropMarchReferrals, setupFn)
+	app.RegisterService(conf.ServiceAirdropMarch20b20, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -24,12 +24,12 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceAirdropMarchReferrals)).
+		From(app.Config(ctx).GetRequired(conf.ServiceAirdropMarch20b20)).
 		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceAirdropMarchReferrals,
+			"service": conf.ServiceAirdropMarch20b20,
 		})
 	}
 
@@ -44,7 +44,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
 		config.IssuanceAsset,
-		airdrop.MarchReferralsReferenceSuffix,
+		airdrop.March20b20ReferenceSuffix,
 		config.Source,
 		config.Signer,
 		builder,

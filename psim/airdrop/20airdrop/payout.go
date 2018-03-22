@@ -15,15 +15,14 @@ import (
 )
 
 func (s *Service) payOutSnapshot(ctx context.Context) {
-	s.filterReferrals()
-	s.filterReferrers()
+	s.filterAccounts()
 
 	s.log.WithFields(logan.F{
 		"accounts_in_snapshot": len(s.snapshot),
-	}).Info("Started paying out airdrop after filtering not-verified, without-referrals and black-listed from Snapshot.")
+	}).Info("Started paying out airdrop after filtering not-verified, zero-balanced and black-listed from the Snapshot.")
 
 	for accAddress, bonus := range s.snapshot {
-		issAmount := countIssuanceAmount(len(bonus.Referrals), bonus.Balance)
+		issAmount := countIssuanceAmount(bonus.Balance)
 
 		if issAmount == 0 {
 			continue
@@ -42,8 +41,7 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 				return true, nil
 			}
 
-			opDetails := fmt.Sprintf(`{"cause": "%s", "referrals": %d, "holdings": %d}`,
-				airdrop.MarchReferralsIssuanceCause, len(bonus.Referrals), bonus.Balance)
+			opDetails := fmt.Sprintf(`{"cause": "%s", "holdings": %d}`, airdrop.March20b20IssuanceCause, bonus.Balance)
 			issuanceOpt, issuanceHappened, err := s.processIssuance(ctx, accAddress, bonus.BalanceID, issAmount, opDetails)
 			if err != nil {
 				return false, errors.Wrap(err, "Failed to process Issuance", logan.F{
@@ -69,7 +67,7 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 	}
 }
 
-func (s *Service) filterReferrers() {
+func (s *Service) filterAccounts() {
 	for accAddress, bonus := range s.snapshot {
 		_, inBlackList := s.blackList[accAddress]
 
@@ -78,7 +76,7 @@ func (s *Service) filterReferrers() {
 			continue
 		}
 
-		if len(bonus.Referrals) == 0 {
+		if bonus.Balance == 0 {
 			// There's nothing to payout airdrop for.
 			delete(s.snapshot, accAddress)
 			continue
@@ -92,28 +90,8 @@ func (s *Service) filterReferrers() {
 	}
 }
 
-func (s *Service) filterReferrals() {
-	for referrer, bonus := range s.snapshot {
-		for referral, _ := range bonus.Referrals {
-			if _, inBlackList := s.blackList[referral]; inBlackList {
-				s.log.WithFields(logan.F{
-					"referrer_address": referrer,
-					"referral_address": referral,
-				}).Info("Filtering out referral, because it's in BlackList")
-				delete(bonus.Referrals, referral)
-			}
-		}
-	}
-}
-
-func countIssuanceAmount(referrals int, balance uint64) uint64 {
-	result := balance * uint64(referrals) / 100
-
-	if result > 4000*amount.One {
-		result = 4000 * amount.One
-	}
-
-	result += 5 * amount.One * uint64(referrals)
+func countIssuanceAmount(balance uint64) uint64 {
+	result := balance * 20 / 100
 
 	if result > 20000*amount.One {
 		result = 20000 * amount.One

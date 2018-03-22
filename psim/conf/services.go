@@ -28,6 +28,7 @@ const (
 	ServiceAirdropEarlybird      = "airdrop_earlybird"
 	ServiceAirdropKYC            = "airdrop_kyc"
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
+	ServiceAirdropMarch20b20     = "airdrop_march_20_20"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

@@ -31,7 +31,7 @@ func NewLedgerChangesStreamer(
 	txStreamer TXStreamer) *LedgerChangesStreamer {
 
 	return &LedgerChangesStreamer{
-		log:        log.WithField("helper-runner", "ledger"),
+		log:        log.WithField("helper-runner", "ledger_changes_streamer"),
 		txStreamer: txStreamer,
 
 		timedChangesStream: make(chan TimedLedgerChange),
