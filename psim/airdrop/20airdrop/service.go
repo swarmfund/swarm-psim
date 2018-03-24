@@ -1,12 +1,12 @@
-package kycairdrop
+package mrefairdrop
 
 import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 type IssuanceSubmitter interface {
@@ -15,6 +15,10 @@ type IssuanceSubmitter interface {
 
 type LedgerStreamer interface {
 	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
+}
+
+type BalanceIDProvider interface {
+	GetBalanceID(accAddress, asset string) (*string, error)
 }
 
 type UsersConnector interface {
@@ -32,22 +36,21 @@ type Service struct {
 
 	issuanceSubmitter IssuanceSubmitter
 	ledgerStreamer    LedgerStreamer
-	// TODO Consider substituting with some BalanceIDProvider entity.
-	accountsConnector airdrop.AccountsConnector
+	balanceIDProvider BalanceIDProvider
 	usersConnector    UsersConnector
+	emailProcessor    EmailProcessor
 
-	emailProcessor EmailProcessor
-
-	blackList         map[string]struct{}
-	generalAccountsCh chan string
+	blackList map[string]struct{}
+	// AccountID to Bonus map
+	snapshot map[string]*bonusParams
 }
 
 func NewService(
 	log *logan.Entry,
 	config Config,
 	issuanceSubmitter IssuanceSubmitter,
-	txStreamer LedgerStreamer,
-	accountsConnector airdrop.AccountsConnector,
+	ledgerStreamer LedgerStreamer,
+	balanceIDProvider BalanceIDProvider,
 	usersConnector UsersConnector,
 	emailProcessor EmailProcessor,
 ) *Service {
@@ -57,15 +60,13 @@ func NewService(
 		config: config,
 
 		issuanceSubmitter: issuanceSubmitter,
-
-		ledgerStreamer:    txStreamer,
-		accountsConnector: accountsConnector,
+		ledgerStreamer:    ledgerStreamer,
+		balanceIDProvider: balanceIDProvider,
 		usersConnector:    usersConnector,
+		emailProcessor:    emailProcessor,
 
-		emailProcessor: emailProcessor,
-
-		blackList:         make(map[string]struct{}),
-		generalAccountsCh: make(chan string, 100),
+		blackList: make(map[string]struct{}),
+		snapshot:  make(map[string]*bonusParams),
 	}
 }
 
@@ -77,11 +78,11 @@ func (s *Service) Run(ctx context.Context) {
 		s.blackList[accID] = struct{}{}
 	}
 
-	go s.listenLedgerChanges(ctx)
-
-	go s.consumeGeneralAccounts(ctx)
+	s.processChangesUpToSnapshotTime(ctx)
 
 	go s.emailProcessor.Run(ctx)
+
+	s.payOutSnapshot(ctx)
 
 	<-ctx.Done()
 }

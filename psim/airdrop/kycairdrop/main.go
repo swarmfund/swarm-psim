@@ -25,7 +25,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).GetRequired(conf.ServiceAirdropKYC)).
-		With(figure.BaseHooks, utils.ETHHooks, airdrop.EmailsHooks).
+		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
@@ -46,14 +46,25 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
+	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
+		config.Asset,
+		airdrop.KYCReferenceSuffix,
+		config.Source,
+		config.Signer,
+		builder,
+		horizonConnector.Submitter())
+
+	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
+
+	ledgerChangesStreamer := airdrop.NewLedgerChangesStreamer(log, horizonConnector.Listener())
+
 	return NewService(
 		log,
 		config,
-		builder,
-		horizonConnector.Submitter(),
-		horizonConnector.Listener(),
+		issuanceSubmitter,
+		ledgerChangesStreamer,
 		horizonConnector.Accounts(),
 		horizonConnector.Users(),
-		globalConfig.Notificator(),
+		emailProcessor,
 	), nil
 }

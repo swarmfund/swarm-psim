@@ -5,6 +5,8 @@ import (
 
 	"time"
 
+	"fmt"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
@@ -61,7 +63,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return errors.Wrap(err, "Failed to get User's emailAddress")
 	}
 
-	issuanceOpt, err := s.processIssuance(ctx, accAddress)
+	issuanceOpt, issuanceHapenned, err := s.processIssuance(ctx, accAddress)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", logan.F{
 			"email_address": emailAddress,
@@ -71,18 +73,20 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 	logger := s.log.WithFields(logan.F{
 		"account_address": accAddress,
 		"email_address":   emailAddress,
+		"issuance_opt": *issuanceOpt,
 	})
-	if issuanceOpt != nil {
-		logger.WithField("issuance_opt", *issuanceOpt).Info("CoinEmissionRequest was sent successfully.")
+	if issuanceHapenned {
+		logger.Info("CoinEmissionRequest was sent successfully.")
 	} else {
 		logger.Info("Reference duplication - already processed Deposit, skipping.")
 	}
 
-	s.emails.Put(emailAddress)
+	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
 
 	return nil
 }
 
+// TODO Return pointer to string and nil if no User existing. Avoid errUserNotFound.
 func (s *Service) getUserEmail(accountAddress string) (email string, err error) {
 	user, err := s.usersConnector.User(accountAddress)
 	if err != nil {
@@ -96,17 +100,18 @@ func (s *Service) getUserEmail(accountAddress string) (email string, err error) 
 	return user.Attributes.Email, nil
 }
 
-func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, error) {
+func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, bool, error) {
 	balanceID, err := airdrop.GetBalanceID(accAddress, s.config.Asset, s.accountsConnector)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get BalanceID of the Account")
+		return nil, false, errors.Wrap(err, "Failed to get BalanceID of the Account")
 	}
 	fields := logan.F{"balance_id": balanceID}
 
-	issuanceOpt, err := s.submitIssuance(ctx, accAddress, balanceID)
+	opDetails := fmt.Sprintf(`{"cause": "%s"}`, airdrop.KYCIssuanceCause)
+	issuanceOpt, ok, err := s.issuanceSubmitter.Submit(ctx, accAddress, balanceID, s.config.IssuanceConfig.Amount, opDetails)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to process Issuance", fields)
+		return nil, false, errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	return issuanceOpt, nil
+	return issuanceOpt, ok, nil
 }

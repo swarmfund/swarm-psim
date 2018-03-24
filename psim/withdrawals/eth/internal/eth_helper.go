@@ -8,6 +8,8 @@ import (
 
 	"time"
 
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -69,7 +71,9 @@ func (h *ETHHelper) SendTX(txhex string) (hash string, err error) {
 	}
 
 	if err = h.eth.SendTransaction(context.TODO(), tx); err != nil {
-		return "", errors.Wrap(err, "failed to submit tx")
+		if !strings.Contains(err.Error(), "known transaction") {
+			return "", errors.Wrap(err, "failed to submit tx")
+		}
 	}
 
 	// wait while transaction is mined to avoid nonce mismatch issues

@@ -438,7 +438,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "39e395366b85671855be2cb4c3cfae679755566c"
+  revision = "43959d82aba203d057a8279d93a00716a1eca626"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -447,14 +447,20 @@
     "v3/errors",
     "v3/fields"
   ]
-  revision = "b3e799b86348d6b59d52fbdb6f35347ab3b10274"
-  version = "v3.4.1"
+  revision = "0c279a3a45143457b569e979e395481778e1ba42"
+  version = "v3.5.0"
 
 [[projects]]
   branch = "master"
   name = "gitlab.com/distributed_lab/notificator-server"
   packages = ["client"]
   revision = "75511e83f31d094326de3601201e8a42f490cc4b"
+
+[[projects]]
+  name = "gitlab.com/distributed_lab/running"
+  packages = ["."]
+  revision = "667d287dd5911ac80c6822dc816a7c56bc2d6462"
+  version = "v0.2"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/sse-go"
@@ -588,6 +594,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "672a696ae89b0b72403272a287a36cc956f9a980c10eb1ac3506e1f085bee9fb"
+  inputs-digest = "f9f5843afd72c0c97c514aab4db3436a3392ea19cea63669875aac1fcf51515c"
   solver-name = "gps-cdcl"
   solver-version = 1

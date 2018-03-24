@@ -1,4 +1,4 @@
-package earlybird
+package mrefairdrop
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceAirdropEarlybird, setupFn)
+	app.RegisterService(conf.ServiceAirdropMarch20b20, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -24,17 +24,13 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceAirdropEarlybird)).
+		From(app.Config(ctx).GetRequired(conf.ServiceAirdropMarch20b20)).
 		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceAirdropEarlybird,
+			"service": conf.ServiceAirdropMarch20b20,
 		})
-	}
-
-	if len(config.RequestTokenSuffix) == 0 {
-		return nil, errors.New("'email_request_token_suffix' in config must not be empty")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
@@ -46,14 +42,25 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
+	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
+		config.IssuanceAsset,
+		airdrop.March20b20ReferenceSuffix,
+		config.Source,
+		config.Signer,
+		builder,
+		horizonConnector.Submitter())
+
+	ledgerStreamer := airdrop.NewLedgerChangesStreamer(log, horizonConnector.Listener())
+
+	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
+
 	return NewService(
 		log,
 		config,
-		builder,
-		horizonConnector.Submitter(),
-		horizonConnector.Listener(),
+		issuanceSubmitter,
+		ledgerStreamer,
+		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
 		horizonConnector.Users(),
-		horizonConnector.Accounts(),
-		globalConfig.Notificator(),
+		emailProcessor,
 	), nil
 }
