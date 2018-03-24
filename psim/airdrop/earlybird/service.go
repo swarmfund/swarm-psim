@@ -27,11 +27,12 @@ type TXSubmitter interface {
 }
 
 type Service struct {
-	log     *logan.Entry
-	config  Config
-	builder *xdrbuild.Builder
+	log    *logan.Entry
+	config Config
 
-	txSubmitter       TXSubmitter
+	builder     *xdrbuild.Builder
+	txSubmitter TXSubmitter
+
 	txStreamer        TXStreamer
 	usersConnector    UsersConnector
 	accountsConnector AccountsConnector

@@ -21,20 +21,8 @@
 
 
 [[constraint]]
-  name = "github.com/go-chi/chi"
-  version = "3.3.1"
-
-[[constraint]]
-  name = "github.com/go-ozzo/ozzo-validation"
-  version = "3.3.0"
-
-[[constraint]]
   name = "github.com/google/jsonapi"
   version = "1.0.0"
-
-[[constraint]]
-  name = "github.com/hashicorp/consul"
-  version = "1.0.1"
 
 [[constraint]]
   branch = "master"
@@ -102,14 +90,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "golang.org/x/net"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/getsentry/raven-go"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/evalphobia/logrus_sentry"
 
 [[override]]
@@ -119,3 +99,7 @@
 [[constraint]]
   branch = "master"
   name = "gitlab.com/distributed_lab/notificator-server"
+
+[[constraint]]
+  name = "gitlab.com/distributed_lab/running"
+  version = "0.2.0"
