@@ -71,5 +71,6 @@ func NewReject(requestID uint64, requestHash string, rejectReason RejectReason) 
 // details of Withdrawal Details for ReviewRequest Operation
 // during approve.
 type ExternalDetails struct {
-	TXHex   string `json:"tx_hex,omitempty"`
+	TXHex  string `json:"tx_hex,omitempty"`
+	TXHash string `json:"tx_hash,omitempty"`
 }

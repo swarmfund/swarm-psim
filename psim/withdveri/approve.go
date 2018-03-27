@@ -91,8 +91,17 @@ func (s *Service) approveHandler(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, r, problems.ServerError(err))
 		return
 	}
+
+	txHash, err := s.offchainHelper.GetHash(fullySignedOffchainTXHex)
+	if err != nil {
+		logger.WithError(err).Error("Failed to get TX hash.")
+		ape.RenderErr(w, r, problems.ServerError(err))
+		return
+	}
+
 	extDetails := withdraw.ExternalDetails{
-		TXHex: fullySignedOffchainTXHex,
+		TXHex:  fullySignedOffchainTXHex,
+		TXHash: txHash,
 	}
 	extDetBytes, err := json.Marshal(extDetails)
 	if err != nil {
