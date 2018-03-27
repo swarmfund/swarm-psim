@@ -124,3 +124,17 @@ func (h *ETHHelper) ValidateTX(tx string, withdrawAddress string, withdrawAmount
 	// FIXME currently we are just mimicking real two-step flow
 	return "", nil
 }
+
+// TODO
+func (h *ETHHelper) GetHash(txHex string) (string, error) {
+
+	panic("Not implemented!")
+
+	//bb, err := hex.DecodeString(txHex)
+	//if err != nil {
+	//	return "", errors.Wrap(err, "Failed to decode TX bytes from string")
+	//}
+	//
+	//hashBB := sha256.Sum256(bb)
+	//return hex.EncodeToString(hashBB[:]), nil
+}

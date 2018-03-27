@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"crypto/sha256"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
@@ -208,4 +210,27 @@ func (h CommonBTCHelper) SendTX(txHex string) (txHash string, err error) {
 	}
 
 	return txHash, err
+}
+
+func (h CommonBTCHelper) GetHash(txHex string) (string, error) {
+	fmt.Println(txHex)
+
+	txBB, err := hex.DecodeString(txHex)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to decode TX bytes from string")
+	}
+
+	t := sha256.Sum256(txBB)
+	t = sha256.Sum256(t[:])
+	hashBB := t[:]
+	reverse(hashBB)
+
+	return hex.EncodeToString(hashBB), nil
+}
+
+func reverse(bb []byte) {
+	last := len(bb) - 1
+	for i := 0; i < len(bb)/2; i++ {
+		bb[i], bb[last-i] = bb[last-i], bb[i]
+	}
 }
