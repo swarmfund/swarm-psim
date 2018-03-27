@@ -125,16 +125,15 @@ func (h *ETHHelper) ValidateTX(tx string, withdrawAddress string, withdrawAmount
 	return "", nil
 }
 
-// TODO
 func (h *ETHHelper) GetHash(txHex string) (string, error) {
-
-	panic("Not implemented!")
-
-	//bb, err := hex.DecodeString(txHex)
-	//if err != nil {
-	//	return "", errors.Wrap(err, "Failed to decode TX bytes from string")
-	//}
-	//
-	//hashBB := sha256.Sum256(bb)
-	//return hex.EncodeToString(hashBB[:]), nil
+	rlpbytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode tx hex")
+	}
+	tx := &types.Transaction{}
+	err = tx.DecodeRLP(rlp.NewStream(bytes.NewReader(rlpbytes), 0))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode tx rlp")
+	}
+	return tx.Hash().Hex(), nil
 }
