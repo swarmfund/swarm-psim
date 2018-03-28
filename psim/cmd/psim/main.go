@@ -33,6 +33,8 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"
+
+	_ "gitlab.com/swarmfund/psim/psim/idmind"
 )
 
 var (

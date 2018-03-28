@@ -4,6 +4,8 @@ import (
 	"context"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/operation"
+	"time"
+	"fmt"
 )
 
 func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableRequestEvent) {
@@ -11,27 +13,35 @@ func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableR
 		return q.opQ.AllRequests(cursor)
 	}
 
-	return streamReviewableRequests(ctx, reqGetter)
+	return streamReviewableRequests(ctx, reqGetter, false)
 }
 
-// TODO When KYC is ready
-//func (q *Q) StreamKYCRequests(ctx context.Context) (<-chan ReviewableRequestEvent) {
-//	reqGetter := func(cursor string) ([]resources.Request, error) {
-//		return q.opQ.Requests(cursor, operation.KYCReviewableRequestType)
-//	}
-//
-//	return streamReviewableRequests(ctx, reqGetter)
-//}
+func (q *Q) StreamAllKYCRequests(ctx context.Context, endlessly bool) (<-chan ReviewableRequestEvent) {
+	return q.streamKYCRequests(ctx, "", !endlessly)
+}
+
+func (q *Q) StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time.Time, endlessly bool) (<-chan ReviewableRequestEvent) {
+	filters := fmt.Sprintf("updated_after=%d", updatedAfter.UTC().Unix())
+	return q.streamKYCRequests(ctx, filters, !endlessly)
+}
+
+func (q *Q) streamKYCRequests(ctx context.Context, filters string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
+	reqGetter := func(cursor string) ([]resources.Request, error) {
+		return q.opQ.Requests(filters, cursor, operation.KYCReviewableRequestType)
+	}
+
+	return streamReviewableRequests(ctx, reqGetter, stopOnEmptyPage)
+}
 
 func (q *Q) StreamWithdrawalRequests(ctx context.Context) (<-chan ReviewableRequestEvent) {
 	reqGetter := func(cursor string) ([]resources.Request, error) {
-		return q.opQ.Requests(cursor, operation.WithdrawalsReviewableRequestType)
+		return q.opQ.Requests("", cursor, operation.WithdrawalsReviewableRequestType)
 	}
 
-	return streamReviewableRequests(ctx, reqGetter)
+	return streamReviewableRequests(ctx, reqGetter, false)
 }
 
-func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]resources.Request, error)) (<-chan ReviewableRequestEvent) {
+func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]resources.Request, error), stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
 	reqStream := make(chan ReviewableRequestEvent)
 
 	go func() {
@@ -48,8 +58,7 @@ func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string)
 				break
 			}
 
-			//requests, err := q.opQ.AllRequests(cursor)
-			requests, err := reqGetter(cursor)
+			reqBatch, err := reqGetter(cursor)
 			if err != nil {
 				streamRequestEvent(ctx, ReviewableRequestEvent{
 					body: nil,
@@ -58,7 +67,12 @@ func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string)
 				continue
 			}
 
-			for _, req := range requests {
+			if stopOnEmptyPage || len(reqBatch) == 0 {
+				// The stream channel is closed in defer.
+				return
+			}
+
+			for _, req := range reqBatch {
 				ohaigo := req
 
 				reqEvent := ReviewableRequestEvent{

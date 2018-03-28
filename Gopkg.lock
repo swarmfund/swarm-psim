@@ -486,7 +486,7 @@
   revision = "c71a5b7d45aa6ace2e4f8567ca71389dc14877ee"
 
 [[projects]]
-  branch = "master"
+  branch = "features/updated_after_kyc_filter"
   name = "gitlab.com/swarmfund/horizon-connector"
   packages = [
     "v2",
@@ -494,6 +494,7 @@
     "v2/internal/account",
     "v2/internal/asset",
     "v2/internal/balance",
+    "v2/internal/blob",
     "v2/internal/errors",
     "v2/internal/listener",
     "v2/internal/operation",
@@ -504,7 +505,7 @@
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "5ce9d99413b1cba13c3a58f505841c93535a5ec2"
+  revision = "022348619c09f6ade344e22fdf4496d16dd203c1"
 
 [[projects]]
   branch = "master"
@@ -594,6 +595,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f9f5843afd72c0c97c514aab4db3436a3392ea19cea63669875aac1fcf51515c"
+  inputs-digest = "119a604cc9e65d8eb4498ec086c5056f60b2b02de8ffe4a8ba912bd113233b8d"
   solver-name = "gps-cdcl"
   solver-version = 1

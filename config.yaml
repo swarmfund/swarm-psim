@@ -65,6 +65,7 @@ services:
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
+#  - identity_mind
 
 # BTC
 btc_deposit:
@@ -165,6 +166,7 @@ eth_withdraw:
   gas_price: 1000000000
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
+
 
 forfeit_listener:
   pprof: true
@@ -342,3 +344,19 @@ airdrop_march_20_20:
   black_list: [
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
+identity_mind:
+  connector:
+    url: https://sandbox.identitymind.com/im
+    auth_key: ID_MIND_AUTH_KEY # base64(user:password)
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  white_list: [
+"G_SOME_VALID_ACCOUNT_ADDRESS_1",
+"G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
+  black_list: [
+"G_SOME_VALID_ACCOUNT_ADDRESS_3",
+"G_SOME_VALID_ACCOUNT_ADDRESS_4"]
