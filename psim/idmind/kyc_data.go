@@ -16,6 +16,17 @@ type KYCData struct {
 	Sequence   string     `json:"sequence"`
 }
 
+func (d KYCData) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"first_name":  d.FirstName,
+		"last_name":   d.LastName,
+		"address":     d.Address,
+		"eth_address": d.ETHAddress,
+		"documents":   d.Documents,
+		"sequence":    d.Sequence,
+	}
+}
+
 // KYCAddress is only a nested structure in KYCData structure.
 type KYCAddress struct {
 	Line1      string `json:"line_1"`

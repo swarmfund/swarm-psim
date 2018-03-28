@@ -125,7 +125,6 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	}
 }
 
-// TODO Refactor me - too long method
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	proveErr := proveInterestingRequest(request)
 	if proveErr != nil {
@@ -142,17 +141,24 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	blobID := "myAwesomeBlobID"
 	// FIXME Take from Request
 	accountID := "myAwesomeAccountID"
-	fields := logan.F{
-		"blob_id":    blobID,
-		"account_id": accountID,
+
+	err := s.processKYCBlob(ctx, blobID, accountID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to process KYC Blob", logan.F{
+			"blob_id":    blobID,
+			"account_id": accountID,
+		})
 	}
 
-	// TODO Consider moving the following to separate method.
+	return nil
+}
+
+func (s *Service) processKYCBlob(ctx context.Context, blobID string, accountID string) error {
 	blob, err := s.blobProvider.Blob(blobID)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Blob from Horizon", fields)
+		return errors.Wrap(err, "Failed to get Blob from Horizon")
 	}
-	fields["blob"] = blob
+	fields := logan.F{"blob": blob}
 
 	if blob.Type != KYCFormBlobType {
 		return errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
@@ -163,18 +169,24 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	if err != nil {
 		return errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in from Blob", fields)
 	}
+	fields["kyc_data"] = kycData
 
 	user, err := s.userProvider.User(accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get User by AccountID from Horizon", fields)
 	}
+	email := user.Attributes.Email
 
-	applicationResponse, err := s.identityMind.Submit(*kycData, user.Attributes.Email)
+	// TODO Get Docs
+
+	applicationResponse, err := s.identityMind.Submit(*kycData, email)
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
 	}
 
-	// TODO Updated KYC Request with TxID from IM (submit Op)
+	// TODO Update Tx with docs
+
+	// TODO Updated KYC ReviewableRequest with TxID, response-result?, ... got from IM (submit Op)
 	// FIXME Remove this hack
 	applicationResponse = applicationResponse
 
