@@ -495,6 +495,7 @@
     "v2/internal/asset",
     "v2/internal/balance",
     "v2/internal/blob",
+    "v2/internal/document",
     "v2/internal/errors",
     "v2/internal/listener",
     "v2/internal/operation",
@@ -505,7 +506,7 @@
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "022348619c09f6ade344e22fdf4496d16dd203c1"
+  revision = "95a2b4c6563738f6c60dbdd3b284b46db3b543a9"
 
 [[projects]]
   branch = "master"

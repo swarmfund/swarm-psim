@@ -8,12 +8,12 @@ import (
 
 // KYCData describes the structure of KYC blob retrieved form Horizon.
 type KYCData struct {
-	FirstName  string     `json:"first_name"`
-	LastName   string     `json:"last_name"`
-	Address    KYCAddress `json:"address"`
-	ETHAddress string     `json:"eth_address"`
-	Documents  Documents  `json:"documents"`
-	Sequence   string     `json:"sequence"`
+	FirstName  string       `json:"first_name"`
+	LastName   string       `json:"last_name"`
+	Address    KYCAddress   `json:"address"`
+	ETHAddress string       `json:"eth_address"`
+	Documents  KYCDocuments `json:"documents"`
+	Sequence   string       `json:"sequence"`
 }
 
 func (d KYCData) GetLoganFields() map[string]interface{} {
@@ -48,12 +48,12 @@ func (a KYCAddress) GetLoganFields() map[string]interface{} {
 	}
 }
 
-type Documents struct {
+type KYCDocuments struct {
 	KYCIdDocument     string `json:"kyc_id_document"`
 	KYCProofOfAddress string `json:"kyc_poa"`
 }
 
-func (d Documents) GetLoganFields() map[string]interface{} {
+func (d KYCDocuments) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"kyc_id":               d.KYCIdDocument,
 		"kyc_proof_of_address": d.KYCProofOfAddress,

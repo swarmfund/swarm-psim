@@ -16,6 +16,8 @@ func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableR
 	return streamReviewableRequests(ctx, reqGetter, false)
 }
 
+// StreamAllKYCRequests streams all ReviewableRequests of type KYC from very beginning,
+// sorted by ID
 func (q *Q) StreamAllKYCRequests(ctx context.Context, endlessly bool) (<-chan ReviewableRequestEvent) {
 	return q.streamKYCRequests(ctx, "", !endlessly)
 }

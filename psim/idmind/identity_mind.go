@@ -11,6 +11,9 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"fmt"
+	"mime/multipart"
+	"io"
 )
 
 type ConnectorConfig struct {
@@ -42,21 +45,21 @@ func newConnector(config ConnectorConfig) *Connector {
 // builds the data into the CreateAccountRequest structure
 // and submits a CreateAccount request to IdentityMind.
 func (c *Connector) Submit(data KYCData, email string) (*ApplicationResponse, error) {
+	url := c.config.URL + "/account/consumer"
+	fields := logan.F{
+		"url": url,
+	}
+
 	req, err := buildCreateAccountRequest(data, email)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create CreateAccount request to IdentityMind")
 	}
-	fields := logan.F{
-		"create_account_request": req,
-	}
+	fields["create_account_request"] = req
 
 	reqBB, err := json.Marshal(*req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to marshal CreateAccountRequest", fields)
 	}
-
-	url := c.config.URL + "/account/consumer"
-	fields["url"] = url
 
 	httpReq, err := http.NewRequest("POST", url, bytes.NewReader(reqBB))
 	if err != nil {
@@ -91,4 +94,58 @@ func (c *Connector) Submit(data KYCData, email string) (*ApplicationResponse, er
 	return &appResp, nil
 }
 
-// TODO UploadDocument
+func (c *Connector) UploadDocument(appID, txID, description string, fileName string, fileReader io.Reader) error {
+	url := fmt.Sprintf("%s/account/consumer/%s/files", c.config.URL, txID)
+
+	var buffer bytes.Buffer
+	bufferWriter := multipart.NewWriter(&buffer)
+
+	// Write file
+	fileWriter, err := bufferWriter.CreateFormFile("file", fileName)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create bufferWriter from file")
+	}
+
+	_, err = io.Copy(fileWriter, fileReader)
+	if err != nil {
+		return errors.Wrap(err, "Failed to copy file from Reader to Writer")
+	}
+
+	// Write simple fields
+	err = bufferWriter.WriteField("appID", appID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to add appID field to request")
+	}
+	if description != "" {
+		err = bufferWriter.WriteField("description", description)
+		if err != nil {
+			return errors.Wrap(err, "Failed to add description field to request")
+		}
+	}
+
+	err = bufferWriter.Close()
+	if err != nil {
+		return errors.Wrap(err, "Failed to close request bufferWriter")
+	}
+
+	req, err := http.NewRequest("POST", url, &buffer)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create http request")
+	}
+	//bufferWriter.FormDataContentType()
+
+	req.Header.Set("Authorization", "Basic "+c.config.AuthKey)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "Failed to send http POST request")
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return errors.From(errors.New("Unsuccessful response from IdMind"), logan.F{
+			"status_code": resp.StatusCode,
+		})
+	}
+
+	return nil
+}

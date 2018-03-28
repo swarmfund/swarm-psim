@@ -17,6 +17,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/user"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/balance"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/blob"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/document"
 )
 
 type Connector struct {
@@ -93,4 +94,8 @@ func (c *Connector) Operations() *operation.Q {
 
 func (c *Connector) Blobs() *blob.Q {
 	return blob.NewQ(c.client)
+}
+
+func (c *Connector) Documents() *documnet.Q {
+	return documnet.NewQ(c.client)
 }

@@ -50,6 +50,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Listener(),
 		horizonConnector.Blobs(),
 		horizonConnector.Users(),
+		horizonConnector.Documents(),
 		newConnector(config.Connector),
 		builder,
 	), nil

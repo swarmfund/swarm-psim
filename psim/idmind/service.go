@@ -4,6 +4,12 @@ import (
 	"context"
 	"time"
 
+	"io"
+
+	"strings"
+
+	"net/http"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
@@ -28,13 +34,17 @@ type BlobProvider interface {
 	Blob(blobID string) (*horizon.Blob, error)
 }
 
+type DocumentProvider interface {
+	Document(docID string) (*horizon.Document, error)
+}
+
 type UserProvider interface {
 	User(accountID string) (*horizon.User, error)
 }
 
 type IdentityMind interface {
 	Submit(data KYCData, email string) (*ApplicationResponse, error)
-	// TODO Upload document?
+	UploadDocument(appID, txID, description string, fileName string, fileReader io.Reader) error
 }
 
 type Service struct {
@@ -43,11 +53,12 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
-	requestListener RequestListener
-	blobProvider    BlobProvider
-	userProvider    UserProvider
-	identityMind    IdentityMind
-	xdrbuilder      *xdrbuild.Builder
+	requestListener  RequestListener
+	blobProvider     BlobProvider
+	documentProvider DocumentProvider
+	userProvider     UserProvider
+	identityMind     IdentityMind
+	xdrbuilder       *xdrbuild.Builder
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
 }
@@ -59,6 +70,7 @@ func NewService(
 	requestListener RequestListener,
 	blobProvider BlobProvider,
 	userProvider UserProvider,
+	documentProvider DocumentProvider,
 	identityMind IdentityMind,
 	builder *xdrbuild.Builder,
 ) *Service {
@@ -67,11 +79,12 @@ func NewService(
 		log:    log.WithField("service", conf.ServiceIdentityMind),
 		config: config,
 
-		requestListener: requestListener,
-		blobProvider:    blobProvider,
-		userProvider:    userProvider,
-		identityMind:    identityMind,
-		xdrbuilder:      builder,
+		requestListener:  requestListener,
+		blobProvider:     blobProvider,
+		userProvider:     userProvider,
+		documentProvider: documentProvider,
+		identityMind:     identityMind,
+		xdrbuilder:       builder,
 	}
 }
 
@@ -95,7 +108,7 @@ func (s *Service) Run(ctx context.Context) {
 	//		PostalCode: "123456",
 	//	},
 	//	ETHAddress: "",
-	//	Documents:  Documents{},
+	//	KYCDocuments:  KYCDocuments{},
 	//}, "john.doe@example.com")
 	//if err != nil {
 	//	s.log.WithError(err).Error("Failed to submit KYC to IDMind.")
@@ -114,7 +127,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 			return errors.Wrap(err, "RequestListener sent error")
 		}
 
-		err = s.processRequest(ctx, *request)
+		err = s.processRequest(*request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process KYC Request", logan.F{
 				"request": request,
@@ -125,7 +138,7 @@ func (s *Service) listenAndProcessRequests(ctx context.Context) error {
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processRequest(request horizon.Request) error {
 	proveErr := proveInterestingRequest(request)
 	if proveErr != nil {
 		// No need to process the Request for now.
@@ -142,7 +155,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	// FIXME Take from Request
 	accountID := "myAwesomeAccountID"
 
-	err := s.processKYCBlob(ctx, blobID, accountID)
+	err := s.processKYCBlob(blobID, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process KYC Blob", logan.F{
 			"blob_id":    blobID,
@@ -153,7 +166,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	return nil
 }
 
-func (s *Service) processKYCBlob(ctx context.Context, blobID string, accountID string) error {
+func (s *Service) processKYCBlob(blobID string, accountID string) error {
 	blob, err := s.blobProvider.Blob(blobID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Blob from Horizon")
@@ -177,18 +190,64 @@ func (s *Service) processKYCBlob(ctx context.Context, blobID string, accountID s
 	}
 	email := user.Attributes.Email
 
-	// TODO Get Docs
-
 	applicationResponse, err := s.identityMind.Submit(*kycData, email)
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
 	}
 
-	// TODO Update Tx with docs
+	// TODO Make user we need TxID, not MTxID
+	err = s.fetchAndSubmitDocs(kycData.Documents, applicationResponse.TxID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to fetch and submit KYC documents")
+	}
 
 	// TODO Updated KYC ReviewableRequest with TxID, response-result?, ... got from IM (submit Op)
 	// FIXME Remove this hack
 	applicationResponse = applicationResponse
 
 	return errors.New("Not implemented.")
+}
+
+func (s *Service) fetchAndSubmitDocs(docs KYCDocuments, txID string) error {
+	doc, err := s.documentProvider.Document(docs.KYCIdDocument)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get KYCIdDocument by ID from Horizon")
+	}
+
+	resp, err := http.Get(fixDocURL(doc.URL))
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" {
+		// TODO ?
+	}
+
+	// FIXME appID
+	// FIXME file extension
+	err = s.identityMind.UploadDocument("424284", txID, "ID Document", "id_document.png", resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "Failed to submit KYCIdDocument to IdentityMind")
+	}
+
+	doc, err = s.documentProvider.Document(docs.KYCProofOfAddress)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get KYCProofOfAddress by ID from Horizon")
+	}
+
+	resp, err = http.Get(fixDocURL(doc.URL))
+	contentType = resp.Header.Get("Content-Type")
+	if contentType != "" {
+		// TODO ?
+	}
+
+	// FIXME appID
+	// FIXME file extension
+	err = s.identityMind.UploadDocument("424284", txID, "Proof of Address", "proof_of_address.png", resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "Failed to submit KYCProofOfAddress document to IdentityMind")
+	}
+
+	return nil
+}
+
+func fixDocURL(url string) string {
+	return strings.Replace(url, `\u0026`, `&`, -1)
 }
