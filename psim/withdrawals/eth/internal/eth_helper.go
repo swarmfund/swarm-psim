@@ -124,3 +124,16 @@ func (h *ETHHelper) ValidateTX(tx string, withdrawAddress string, withdrawAmount
 	// FIXME currently we are just mimicking real two-step flow
 	return "", nil
 }
+
+func (h *ETHHelper) GetHash(txHex string) (string, error) {
+	rlpbytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode tx hex")
+	}
+	tx := &types.Transaction{}
+	err = tx.DecodeRLP(rlp.NewStream(bytes.NewReader(rlpbytes), 0))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode tx rlp")
+	}
+	return tx.Hash().Hex(), nil
+}

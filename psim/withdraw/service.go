@@ -9,10 +9,10 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
@@ -72,6 +72,8 @@ type CommonOffchainHelper interface {
 
 	// SignTX must sign the provided TX. Provided offchain TX has all the data for transaction, except the signatures.
 	SignTX(tx string) (string, error)
+	// GetHash must return the hash of the provided TX.
+	GetHash(tx string) (string, error)
 }
 
 // OffchainHelper is the interface for specific Offchain(BTC or ETH) withdraw services to implement
@@ -137,7 +139,7 @@ func (s *Service) Run(ctx context.Context) {
 
 	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
 
-	app.RunOverIncrementalTimer(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second)
+	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second, 10*time.Minute)
 }
 
 func (s *Service) listenAndProcessRequests(ctx context.Context) error {
