@@ -6,6 +6,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"fmt"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
 
 func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID string) (bool, error) {
@@ -14,7 +16,7 @@ func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID 
 		Receiver:  balanceID,
 		Asset:     s.config.Asset,
 		Amount:    s.config.Amount,
-		Details:   `{"cause": "airdrop"}`,
+		Details:   fmt.Sprintf(`{"cause": "%s"}`, airdrop.EarlybirdIssuanceCause),
 	}
 
 	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.config.Source, s.config.Signer)
@@ -46,7 +48,7 @@ func (s *Service) submitIssuance(ctx context.Context, accountAddress, balanceID 
 func buildReference(accountAddress string) string {
 	const maxReferenceLen = 64
 
-	result := accountAddress + "-airdrop" // accountAddress should be 56 runes length
+	result := accountAddress + airdrop.EarlybirdReferenceSuffix
 
 	// Just in case.
 	if len(result) > maxReferenceLen {

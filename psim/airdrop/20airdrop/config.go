@@ -1,4 +1,4 @@
-package earlybird
+package mrefairdrop
 
 import (
 	"time"
@@ -8,24 +8,22 @@ import (
 )
 
 type Config struct {
-	airdrop.IssuanceConfig `fig:"issuance,required"`
-
-	RegisteredBefore *time.Time `fig:"registered_before,required"`
+	IssuanceAsset string    `fig:"issuance_asset,required"`
+	SnapshotTime  time.Time `fig:"snapshot_time,required"`
 
 	Source keypair.Address `fig:"source,required"`
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
 
 	airdrop.EmailsConfig `fig:"emails,required"`
 
-	WhiteList []string `fig:"white_list"`
+	BlackList []string `fig:"black_list"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"issuance_asset":    c.Asset,
-		"issuance_amount":   c.Amount,
-		"registered_before": c.RegisteredBefore.String(),
+		"issuance_asset":    c.IssuanceAsset,
+		"snapshot_time":     c.SnapshotTime,
 		"emails":            c.EmailsConfig,
-		"white_list_len":    len(c.WhiteList),
+		"black_list_length": len(c.BlackList),
 	}
 }

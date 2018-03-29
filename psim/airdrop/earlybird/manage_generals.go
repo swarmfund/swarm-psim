@@ -32,7 +32,7 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 			err := s.processGeneralAccount(ctx, acc)
 			if err != nil {
 				// Try this Account later
-				s.pendingGeneralAccounts.Put(acc)
+				s.pendingGeneralAccounts.Put(ctx, acc)
 				return errors.Wrap(err, "Failed to process GeneralAccount, will try later")
 			}
 
@@ -57,7 +57,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 
 	if email == "" {
 		// Not ready for Issuance yet
-		s.pendingGeneralAccounts.Put(accAddress)
+		s.pendingGeneralAccounts.Put(ctx, accAddress)
 		return nil
 	}
 	logger = logger.WithField("email", email)
@@ -105,7 +105,7 @@ func (s *Service) processIssuance(ctx context.Context, accAddress, email string)
 		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	s.emails.Put(email)
+	s.emails.Put(ctx, email)
 
 	return nil
 }

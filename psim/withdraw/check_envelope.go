@@ -65,6 +65,16 @@ func (s Service) checkApproveEnvelope(envelope xdr.TransactionEnvelope, requestI
 		return "", validationErr
 	}
 
+	expectedHash, err := s.offchainHelper.GetHash(offchainDetails.TXHex)
+	if err != nil {
+		// Almost unreal, as ValidateTX method above didn't fail(so Tx is parsable), but just in case.
+		return "", fmt.Sprintf("Failed to get hash of the Offchain TX: %s", err.Error())
+	}
+	if expectedHash != offchainDetails.TXHash {
+		return "", fmt.Sprintf("Invalid offchain TXHash in ExternalDetails of Op: (%s); expected TXHash: (%s).",
+			offchainDetails.TXHash, expectedHash)
+	}
+
 	return offchainDetails.TXHex, ""
 }
 
