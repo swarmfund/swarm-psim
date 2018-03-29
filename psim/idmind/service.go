@@ -94,7 +94,7 @@ func (s *Service) Run(ctx context.Context) {
 
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
-	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second, 5*time.Minute)
+	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
 
 	//appResp, err := s.identityMind.Submit(KYCData{
 	//	FirstName: "John",
@@ -117,22 +117,41 @@ func (s *Service) Run(ctx context.Context) {
 	//s.log.WithField("app_response", appResp).Info("Received.")
 }
 
-func (s *Service) listenAndProcessRequests(ctx context.Context) error {
+func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
-	case reqEvent := <-s.kycRequests:
+	case reqEvent, ok := <-s.kycRequests:
+		if !ok {
+			// No more KYC requests, start from the very beginning.
+			// TODO Consider timeToSleep to config?
+			timeToSleep := 30 * time.Second
+			s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
+
+			c := time.After(timeToSleep)
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-c:
+				s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
+				return nil
+			}
+		}
+
 		request, err := reqEvent.Unwrap()
 		if err != nil {
 			return errors.Wrap(err, "RequestListener sent error")
 		}
 
-		err = s.processRequest(*request)
-		if err != nil {
-			return errors.Wrap(err, "Failed to process KYC Request", logan.F{
-				"request": request,
-			})
-		}
+		// FIXME
+		//err = s.processRequest(*request)
+		//if err != nil {
+		//	return errors.Wrap(err, "Failed to process KYC Request", logan.F{
+		//		"request": request,
+		//	})
+		//}
+
+		s.log.WithField("kyc_request", request).Info("Found KYC Request.")
 
 		return nil
 	}
@@ -149,17 +168,22 @@ func (s *Service) processRequest(request horizon.Request) error {
 	}
 
 	s.log.WithField("request", request).Debug("Found pending KYC Request.")
+	kyc := request.Details.KYC
 
-	// FIXME Take from Request
-	blobID := "myAwesomeBlobID"
-	// FIXME Take from Request
-	accountID := "myAwesomeAccountID"
+	blobIDInterface, ok := kyc.KYCData["blob_id"]
+	if !ok {
+		return errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
+	}
+	blobID, ok := blobIDInterface.(string)
+	if !ok {
+		return errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
+	}
 
-	err := s.processKYCBlob(blobID, accountID)
+	err := s.processKYCBlob(blobID, kyc.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process KYC Blob", logan.F{
 			"blob_id":    blobID,
-			"account_id": accountID,
+			"account_id": kyc.AccountToUpdateKYC,
 		})
 	}
 
@@ -195,15 +219,21 @@ func (s *Service) processKYCBlob(blobID string, accountID string) error {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
 	}
 
-	// TODO Make user we need TxID, not MTxID
+	// TODO
+	if applicationResponse.KYCState == RejectedKYCState {
+		// TODO Reject KYC request with specific RejectReason
+	}
+	if applicationResponse.PolicyResult == DenyFraudResult {
+		// TODO Reject KYC request with specific RejectReason
+	}
+
+	// TODO Make sure we need TxID, not MTxID
 	err = s.fetchAndSubmitDocs(kycData.Documents, applicationResponse.TxID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch and submit KYC documents")
 	}
 
 	// TODO Updated KYC ReviewableRequest with TxID, response-result?, ... got from IM (submit Op)
-	// FIXME Remove this hack
-	applicationResponse = applicationResponse
 
 	return errors.New("Not implemented.")
 }
@@ -215,14 +245,10 @@ func (s *Service) fetchAndSubmitDocs(docs KYCDocuments, txID string) error {
 	}
 
 	resp, err := http.Get(fixDocURL(doc.URL))
-	contentType := resp.Header.Get("Content-Type")
-	if contentType != "" {
-		// TODO ?
-	}
+	// TODO parse response Content-Type to determine document file extension (do when it's ready in API)
 
-	// FIXME appID
-	// FIXME file extension
-	err = s.identityMind.UploadDocument("424284", txID, "ID Document", "id_document.png", resp.Body)
+	// FIXME appID (to config?)
+	err = s.identityMind.UploadDocument("424284", txID, "ID Document", "id_document", resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYCIdDocument to IdentityMind")
 	}
@@ -233,14 +259,10 @@ func (s *Service) fetchAndSubmitDocs(docs KYCDocuments, txID string) error {
 	}
 
 	resp, err = http.Get(fixDocURL(doc.URL))
-	contentType = resp.Header.Get("Content-Type")
-	if contentType != "" {
-		// TODO ?
-	}
+	// TODO parse response Content-Type to determine document file extension (do when it's ready in API)
 
-	// FIXME appID
-	// FIXME file extension
-	err = s.identityMind.UploadDocument("424284", txID, "Proof of Address", "proof_of_address.png", resp.Body)
+	// FIXME appID (to config?)
+	err = s.identityMind.UploadDocument("424284", txID, "Proof of Address", "proof_of_address", resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYCProofOfAddress document to IdentityMind")
 	}

@@ -19,6 +19,7 @@ import (
 type ConnectorConfig struct {
 	URL     string `fig:"url"`
 	AuthKey string `fig:"auth_key"`
+	// TODO Add AppID ?
 }
 
 func (c ConnectorConfig) GetLoganFields() map[string]interface{} {
@@ -149,3 +150,5 @@ func (c *Connector) UploadDocument(appID, txID, description string, fileName str
 
 	return nil
 }
+
+// TODO CheckTX
