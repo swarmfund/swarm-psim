@@ -27,6 +27,11 @@ func (d KYCData) GetLoganFields() map[string]interface{} {
 	}
 }
 
+func (d KYCData) IsUSA() bool {
+	return d.Address.Country == "United States of America" || d.Address.Country == "US" || d.Address.Country == "USA" ||
+		d.Address.Country == "United States"
+}
+
 // KYCAddress is only a nested structure in KYCData structure.
 type KYCAddress struct {
 	Line1      string `json:"line_1"`

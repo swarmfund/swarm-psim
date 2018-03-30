@@ -66,7 +66,7 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 	fields["app_response"] = applicationResponse
 
 	if applicationResponse.KYCState == RejectedKYCState {
-		err := s.reject(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected)
+		err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected, kycData.IsUSA())
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse", fields)
 		}
@@ -75,7 +75,7 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 		return nil
 	}
 	if applicationResponse.PolicyResult == DenyFraudResult {
-		err := s.reject(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied)
+		err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied, kycData.IsUSA())
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse", fields)
 		}
@@ -91,7 +91,7 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 	}
 
 	// TODO Make sure we need TxID, not MTxID
-	err = s.approveSubmitKYC(ctx, request.ID, request.Hash, applicationResponse.TxID)
+	err = s.approveSubmitKYC(ctx, request.ID, request.Hash, applicationResponse.TxID, kycData.IsUSA())
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}

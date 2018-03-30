@@ -20,6 +20,7 @@ const (
 	TaskDocsExpirationDate uint32 = 4
 	TaskSubmitIDMind       uint32 = 8
 	TaskCheckIDMind        uint32 = 16
+	TaskUSA                uint32 = 32
 
 	TxIDExtDetailsKey = "tx_id"
 )
@@ -58,9 +59,22 @@ func proveInterestingMask(pendingTasks uint32) error {
 	return nil
 }
 
-// TODO Blob submit
 // rejectReason must be absolutely human-readable, we show it to User
-func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string) error {
+func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, isUSA bool) error {
+	var tasksToAdd uint32
+	if isUSA {
+		tasksToAdd = TaskUSA
+	}
+
+	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd)
+}
+
+func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string) error {
+	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0)
+}
+
+// TODO Blob submit
+func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32) error {
 	// TODO Submit Blob with idMindRespBB to API, get blobID
 	//idMindRespBB, err := json.Marshal(idMindResp)
 	//if err != nil {
@@ -74,7 +88,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		Hash:   requestHash,
 		Action: xdr.ReviewRequestOpActionReject,
 		Details: xdrbuild.UpdateKYCDetails{
-			TasksToAdd:    0,
+			TasksToAdd:    tasksToAdd,
 			TasksToRemove: 0,
 			// FIXME
 			//ExternalDetails: fmt.Sprintf(`{"blob_id":"%s"}`, blobID),
@@ -96,9 +110,14 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 	return nil
 }
 
-func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string) error {
+func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string, isUSA bool) error {
+	var tasksToAdd = TaskCheckIDMind
+	if isUSA {
+		tasksToAdd = tasksToAdd|TaskUSA
+	}
+
 	extDetails := fmt.Sprintf(`{"%s":"%s"}`, TxIDExtDetailsKey, txID)
-	return s.approve(ctx, requestID, requestHash, TaskCheckIDMind, TaskSubmitIDMind, extDetails)
+	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind, extDetails)
 }
 
 func (s *Service) approveCheckKYC(ctx context.Context, requestID uint64, requestHash string) error {
