@@ -69,7 +69,7 @@ func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string)
 				continue
 			}
 
-			if stopOnEmptyPage || len(reqBatch) == 0 {
+			if stopOnEmptyPage && len(reqBatch) == 0 {
 				// The stream channel is closed in defer.
 				return
 			}

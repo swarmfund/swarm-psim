@@ -9,17 +9,17 @@ import (
 
 	"time"
 
+	"fmt"
+	"io"
+	"mime/multipart"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"fmt"
-	"mime/multipart"
-	"io"
 )
 
 type ConnectorConfig struct {
 	URL     string `fig:"url"`
 	AuthKey string `fig:"auth_key"`
-	// TODO Add AppID ?
 }
 
 func (c ConnectorConfig) GetLoganFields() map[string]interface{} {
@@ -95,7 +95,7 @@ func (c *Connector) Submit(data KYCData, email string) (*ApplicationResponse, er
 	return &appResp, nil
 }
 
-func (c *Connector) UploadDocument(appID, txID, description string, fileName string, fileReader io.Reader) error {
+func (c *Connector) UploadDocument(txID, description string, fileName string, fileReader io.Reader) error {
 	url := fmt.Sprintf("%s/account/consumer/%s/files", c.config.URL, txID)
 
 	var buffer bytes.Buffer
@@ -112,11 +112,11 @@ func (c *Connector) UploadDocument(appID, txID, description string, fileName str
 		return errors.Wrap(err, "Failed to copy file from Reader to Writer")
 	}
 
-	// Write simple fields
-	err = bufferWriter.WriteField("appID", appID)
-	if err != nil {
-		return errors.Wrap(err, "Failed to add appID field to request")
-	}
+	// This code is commented intentionally. IDMind says this field is required, but Sandbox works fine without it :/
+	//err = bufferWriter.WriteField("appID", c.config.AppID)
+	//if err != nil {
+	//	return errors.Wrap(err, "Failed to add appID field to request")
+	//}
 	if description != "" {
 		err = bufferWriter.WriteField("description", description)
 		if err != nil {
@@ -151,4 +151,42 @@ func (c *Connector) UploadDocument(appID, txID, description string, fileName str
 	return nil
 }
 
-// TODO CheckTX
+func (c *Connector) CheckState(txID string) (*CheckApplicationResponse, error) {
+	url := fmt.Sprintf("%s/account/consumer/%s", c.config.URL, txID)
+	fields := logan.F{
+		"url": url,
+	}
+
+	httpReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create HTTP request")
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Basic "+c.config.AuthKey)
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send http GET request", fields)
+	}
+	fields["status_code"] = resp.StatusCode
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.From(errors.New("Unsuccessful response from IdMind"), fields)
+	}
+
+	defer func() { _ = resp.Body.Close() }()
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to read response body bytes", fields)
+	}
+	fields["raw_response_body"] = string(respBytes)
+
+	var checkResp CheckApplicationResponse
+	err = json.Unmarshal(respBytes, &checkResp)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response bytes into CheckApplicationResponse structure", fields)
+	}
+
+	return &checkResp, nil
+}
+

@@ -12,27 +12,49 @@ import (
 
 // Don't ask why json keys are so strange - that's how IdentityMind works.
 type ApplicationResponse struct {
-	// I still donno what's the difference.
-	MTxID string `json:"mtid"`
-	TxID  string `json:"tid"`
+	CheckApplicationResponse
 
 	// The most interesting fields
-	KYCState     KYCState    `json:"state"`
 	PolicyResult FraudResult `json:"res"`
 
 	EDNAPolicyResult Reputation   `json:"user"`
-	EDNAScoreCard    ExtScoreCard `json:"ednaScoreCard"`
 
 	FraudResult               FraudResult `json:"frp"`
 	FiredFraudRule            string      `json:"frn"`
 	FiredFraudRuleDescription string      `json:"frd"`
 
 	ReputationReason string `json:"erd"`
+}
 
+func (r ApplicationResponse) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"m_tx_id":               r.MTxID,
+		"tx_id":                 r.TxID,
+		"kyc_state":             r.KYCState,
+		"policy_result":         r.PolicyResult,
+		"edna_policy_result":    r.EDNAPolicyResult,
+		"edna_score_card":       r.EDNAScoreCard,
+		"fraud_result":          r.FraudResult,
+		"fired_fraud_rule":      r.FiredFraudRule,
+		"fired_fraud_rule_desc": r.FiredFraudRuleDescription,
+		"reputation_reason":     r.ReputationReason,
+		"result_code":           r.ResultCodes,
+	}
+}
+
+type CheckApplicationResponse struct {
+	// I still donno what's the difference between MTxID and TxID.
+	MTxID string `json:"mtid"`
+	TxID  string `json:"tid"`
+
+	// The most interesting fields
+	KYCState KYCState `json:"state"`
+
+	EDNAScoreCard    ExtScoreCard `json:"ednaScoreCard"`
 	ResultCodes string `json:"rcd"`
 }
 
-func (r ApplicationResponse) GetResultCodes() ([]int, error) {
+func (r CheckApplicationResponse) GetResultCodes() ([]int, error) {
 	ss := strings.Split(r.ResultCodes, ",")
 
 	var result []int
@@ -51,18 +73,12 @@ func (r ApplicationResponse) GetResultCodes() ([]int, error) {
 	return result, nil
 }
 
-func (r ApplicationResponse) GetLoganFields() map[string]interface{} {
+func (r CheckApplicationResponse) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"m_tx_id":               r.MTxID,
 		"tx_id":                 r.TxID,
 		"kyc_state":             r.KYCState,
-		"policy_result":         r.PolicyResult,
-		"edna_policy_result":    r.EDNAPolicyResult,
 		"edna_score_card":       r.EDNAScoreCard,
-		"fraud_result":          r.FraudResult,
-		"fired_fraud_rule":      r.FiredFraudRule,
-		"fired_fraud_rule_desc": r.FiredFraudRuleDescription,
-		"reputation_reason":     r.ReputationReason,
 		"result_code":           r.ResultCodes,
 	}
 }
