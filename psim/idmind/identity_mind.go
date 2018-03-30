@@ -51,8 +51,10 @@ func (c *Connector) Submit(data KYCData, email string) (*ApplicationResponse, er
 		"url": url,
 	}
 
+	// TODO
 	req, err := buildCreateAccountRequest(data, email)
 	if err != nil {
+		// TODO Need to reject such a KYCRequest, as it's no point to retry this KYCRequest, it won't go
 		return nil, errors.Wrap(err, "Failed to create CreateAccount request to IdentityMind")
 	}
 	fields["create_account_request"] = req
