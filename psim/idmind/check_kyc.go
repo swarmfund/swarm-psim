@@ -1,18 +1,19 @@
 package idmind
 
 import (
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
-// TODO
-func (s *Service) checkKYCState(request horizon.Request) error {
+func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) error {
 	kyc := request.Details.KYC
 
 	var txID string
 	for _, extDetails := range kyc.ExternalDetails {
-		value, ok := extDetails["tx_id"]
+		value, ok := extDetails[TxIDExtDetailsKey]
 		if !ok {
 			// No 'tx_id' key in these externalDetails.
 			continue
@@ -40,12 +41,27 @@ func (s *Service) checkKYCState(request horizon.Request) error {
 	fields["check_response"] = checkResp
 
 	// TODO Maybe additionally determine, whether Application documents were already checked and the result is final (from the 'etr' field).
-	if checkResp.KYCState == UnderReviewKYCState {
-		// Not fully reviewed yet, skipping.
+	switch checkResp.KYCState {
+	case UnderReviewKYCState:
+		// Not fully reviewed yet, skipping. Will come back to this KYCRequest later.
+		return nil
+	case AcceptedKYCState:
+		err := s.approveCheckKYC(ctx, request.ID, request.Hash)
+		if err != nil {
+			return errors.Wrap(err, "Failed to approve during Check Task", fields)
+		}
+
+		s.log.WithField("request", request).Info("Approved KYCRequest during Check Task successfully.")
+		return nil
+	case RejectedKYCState:
+		err := s.reject(ctx, request.ID, request.Hash, checkResp, s.config.RejectReasons.KYCStateRejected)
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject during Check Task", fields)
+		}
+
+		s.log.WithField("request", request).Info("Rejected KYCRequest during Check Task successfully.")
 		return nil
 	}
 
-	// TODO Submit Operations to Core, include state from checkResp
-
-	return errors.New("Not fully implemented.")
+	return nil
 }

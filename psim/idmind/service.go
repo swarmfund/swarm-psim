@@ -26,6 +26,10 @@ type RequestListener interface {
 	StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time.Time, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
+type TXSubmitter interface {
+	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+}
+
 type BlobProvider interface {
 	Blob(blobID string) (*horizon.Blob, error)
 }
@@ -51,6 +55,7 @@ type Service struct {
 	source keypair.Address
 
 	requestListener  RequestListener
+	txSubmitter TXSubmitter
 	blobProvider     BlobProvider
 	documentProvider DocumentProvider
 	userProvider     UserProvider
@@ -65,6 +70,7 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	requestListener RequestListener,
+	txSubmitter TXSubmitter,
 	blobProvider BlobProvider,
 	userProvider UserProvider,
 	documentProvider DocumentProvider,
@@ -77,6 +83,7 @@ func NewService(
 		config: config,
 
 		requestListener:  requestListener,
+		txSubmitter: txSubmitter,
 		blobProvider:     blobProvider,
 		userProvider:     userProvider,
 		documentProvider: documentProvider,
@@ -92,26 +99,6 @@ func (s *Service) Run(ctx context.Context) {
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
 	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
-
-	//appResp, err := s.identityMind.Submit(KYCData{
-	//	FirstName: "John",
-	//	LastName:  "Doe",
-	//	Address: KYCAddress{
-	//		Line1:      "Baker street",
-	//		Line2:      "2B",
-	//		City:       "London",
-	//		Country:    "UK",
-	//		State:      "CoolState",
-	//		PostalCode: "123456",
-	//	},
-	//	ETHAddress: "",
-	//	KYCDocuments:  KYCDocuments{},
-	//}, "john.doe@example.com")
-	//if err != nil {
-	//	s.log.WithError(err).Error("Failed to submit KYC to IDMind.")
-	//	return
-	//}
-	//s.log.WithField("app_response", appResp).Info("Received.")
 }
 
 func (s *Service) listenAndProcessRequest(ctx context.Context) error {
@@ -140,7 +127,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 			return errors.Wrap(err, "RequestListener sent error")
 		}
 
-		err = s.processRequest(*request)
+		err = s.processRequest(ctx, *request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to process KYC Request", logan.F{
 				"request": request,
@@ -151,7 +138,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	}
 }
 
-func (s *Service) processRequest(request horizon.Request) error {
+func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	logger := s.log.WithField("request", request)
 
 	proveErr := proveInterestingRequest(request)
@@ -165,7 +152,7 @@ func (s *Service) processRequest(request horizon.Request) error {
 
 	if kyc.PendingTasks&TaskSubmitIDMind > 0 {
 		// Haven't submitted IDMind yet
-		err := s.submitKYCToIDMind(request)
+		err := s.submitKYCToIDMind(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to submit KYC data to IDMind")
 		}
@@ -175,7 +162,7 @@ func (s *Service) processRequest(request horizon.Request) error {
 	}
 
 	if kyc.PendingTasks&TaskCheckIDMind > 0 {
-		err := s.checkKYCState(request)
+		err := s.checkKYCState(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to check KYC state to IDMind")
 		}

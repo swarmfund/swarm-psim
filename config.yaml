@@ -349,6 +349,9 @@ identity_mind:
   connector:
     url: https://sandbox.identitymind.com/im
     auth_key: ID_MIND_AUTH_KEY # base64(user:password)
+  reject_reasons:
+    kyc_state_rejected: "KYC service rejected"
+    fraud_policy_result_denied: "KYC service policy evaluation denied"
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY

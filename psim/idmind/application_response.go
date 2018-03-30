@@ -14,10 +14,8 @@ import (
 type ApplicationResponse struct {
 	CheckApplicationResponse
 
-	// The most interesting fields
-	PolicyResult FraudResult `json:"res"`
-
-	EDNAPolicyResult Reputation   `json:"user"`
+	PolicyResult     FraudResult `json:"res"`
+	EDNAPolicyResult Reputation  `json:"user"`
 
 	FraudResult               FraudResult `json:"frp"`
 	FiredFraudRule            string      `json:"frn"`
@@ -47,11 +45,11 @@ type CheckApplicationResponse struct {
 	MTxID string `json:"mtid"`
 	TxID  string `json:"tid"`
 
-	// The most interesting fields
+	// The most interesting field
 	KYCState KYCState `json:"state"`
 
-	EDNAScoreCard    ExtScoreCard `json:"ednaScoreCard"`
-	ResultCodes string `json:"rcd"`
+	EDNAScoreCard ExtScoreCard `json:"ednaScoreCard"`
+	ResultCodes   string       `json:"rcd"`
 }
 
 func (r CheckApplicationResponse) GetResultCodes() ([]int, error) {
@@ -75,11 +73,11 @@ func (r CheckApplicationResponse) GetResultCodes() ([]int, error) {
 
 func (r CheckApplicationResponse) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"m_tx_id":               r.MTxID,
-		"tx_id":                 r.TxID,
-		"kyc_state":             r.KYCState,
-		"edna_score_card":       r.EDNAScoreCard,
-		"result_code":           r.ResultCodes,
+		"m_tx_id":         r.MTxID,
+		"tx_id":           r.TxID,
+		"kyc_state":       r.KYCState,
+		"edna_score_card": r.EDNAScoreCard,
+		"result_code":     r.ResultCodes,
 	}
 }
 

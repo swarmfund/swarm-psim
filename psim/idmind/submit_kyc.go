@@ -1,14 +1,17 @@
 package idmind
 
 import (
-	"strings"
-	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 	"net/http"
+	"strings"
+
+	"context"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
-func (s *Service) submitKYCToIDMind(request horizon.Request) error {
+func (s *Service) submitKYCToIDMind(ctx context.Context, request horizon.Request) error {
 	kyc := request.Details.KYC
 
 	blobIDInterface, ok := kyc.KYCData["blob_id"]
@@ -17,10 +20,11 @@ func (s *Service) submitKYCToIDMind(request horizon.Request) error {
 	}
 	blobID, ok := blobIDInterface.(string)
 	if !ok {
+		// Normally should never happen
 		return errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
 	}
 
-	err := s.submitKYCBlob(blobID, kyc.AccountToUpdateKYC)
+	err := s.submitKYCBlob(ctx, request, blobID, kyc.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process KYC Blob", logan.F{
 			"blob_id":    blobID,
@@ -31,8 +35,7 @@ func (s *Service) submitKYCToIDMind(request horizon.Request) error {
 	return nil
 }
 
-// TODO
-func (s *Service) submitKYCBlob(blobID string, accountID string) error {
+func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, blobID, accountID string) error {
 	blob, err := s.blobProvider.Blob(blobID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Blob from Horizon")
@@ -60,13 +63,25 @@ func (s *Service) submitKYCBlob(blobID string, accountID string) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
 	}
+	fields["app_response"] = applicationResponse
 
-	// TODO
 	if applicationResponse.KYCState == RejectedKYCState {
-		// TODO Reject KYC request with specific RejectReason
+		err := s.reject(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected)
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse", fields)
+		}
+
+		s.log.WithField("request", request).Info("Rejected KYCRequest during Submit Task successfully (rejected state).")
+		return nil
 	}
 	if applicationResponse.PolicyResult == DenyFraudResult {
-		// TODO Reject KYC request with specific RejectReason
+		err := s.reject(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied)
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse", fields)
+		}
+
+		s.log.WithField("request", request).Info("Rejected KYCRequest during Submit Task successfully (denied FraudPolicyResult).")
+		return nil
 	}
 
 	// TODO Make sure we need TxID, not MTxID
@@ -75,9 +90,14 @@ func (s *Service) submitKYCBlob(blobID string, accountID string) error {
 		return errors.Wrap(err, "Failed to fetch and submit KYC documents")
 	}
 
-	// TODO Updated KYC ReviewableRequest with TxID, response-result?, ... got from IM (submit Op)
+	// TODO Make sure we need TxID, not MTxID
+	err = s.approveSubmitKYC(ctx, request.ID, request.Hash, applicationResponse.TxID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
+	}
 
-	return errors.New("Not implemented.")
+	s.log.WithField("request", request).Info("Approved KYCRequest during Check Task successfully.")
+	return nil
 }
 
 func (s *Service) fetchAndSubmitDocs(docs KYCDocuments, txID string) error {

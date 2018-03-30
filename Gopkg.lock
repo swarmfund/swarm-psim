@@ -483,7 +483,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "936b07b8ae8fed3539db0f8bd93f51c9323a8cb1"
+  revision = "80fce354f44ab9c6d275075c4aa0519b0c12d6d1"
 
 [[projects]]
   branch = "features/updated_after_kyc_filter"

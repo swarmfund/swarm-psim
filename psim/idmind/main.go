@@ -48,6 +48,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		log,
 		config,
 		horizonConnector.Listener(),
+		horizonConnector.Submitter(),
 		horizonConnector.Blobs(),
 		horizonConnector.Users(),
 		horizonConnector.Documents(),
@@ -60,7 +61,7 @@ var hooks = figure.Hooks{
 	"idmind.ConnectorConfig": func(raw interface{}) (reflect.Value, error) {
 		rawConnectorConfig, err := cast.ToStringMapE(raw)
 		if err != nil {
-			return reflect.Value{}, errors.Wrap(err, "failed to cast provider to map[string]interface{}")
+			return reflect.Value{}, errors.Wrap(err, "Failed to cast provider to map[string]interface{}")
 		}
 
 		var config ConnectorConfig
@@ -70,7 +71,25 @@ var hooks = figure.Hooks{
 			With(figure.BaseHooks).
 			Please()
 		if err != nil {
-			return reflect.Value{}, errors.Wrap(err, "failed to figure out EmailsConfig")
+			return reflect.Value{}, errors.Wrap(err, "Failed to figure out ConnectorConfig")
+		}
+
+		return reflect.ValueOf(config), nil
+	},
+	"idmind.RejectReasonConfig": func(raw interface{}) (reflect.Value, error) {
+		rawRejReasonConfig, err := cast.ToStringMapE(raw)
+		if err != nil {
+			return reflect.Value{}, errors.Wrap(err, "Failed to cast provider to map[string]interface{}")
+		}
+
+		var config RejectReasonConfig
+		err = figure.
+			Out(&config).
+			From(rawRejReasonConfig).
+			With(figure.BaseHooks).
+			Please()
+		if err != nil {
+			return reflect.Value{}, errors.Wrap(err, "Failed to figure out RejectReasonConfig")
 		}
 
 		return reflect.ValueOf(config), nil
