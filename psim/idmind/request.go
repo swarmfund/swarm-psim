@@ -46,7 +46,7 @@ func proveInterestingRequest(request horizon.Request) error {
 }
 
 func proveInterestingMask(pendingTasks uint32) error {
-	if pendingTasks&(TaskFaceValidation|TaskDocsExpirationDate) > 0 {
+	if pendingTasks&(TaskFaceValidation|TaskDocsExpirationDate) != 0 {
 		// Some manual check hasn't completed - too early to process this request.
 		return errors.New("Either FaceValidation or DocsExpirationDate hasn't been checked yet - too early to process this Request.")
 	}

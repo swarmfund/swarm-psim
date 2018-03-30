@@ -55,7 +55,7 @@ type Service struct {
 	source keypair.Address
 
 	requestListener  RequestListener
-	txSubmitter TXSubmitter
+	txSubmitter      TXSubmitter
 	blobProvider     BlobProvider
 	documentProvider DocumentProvider
 	userProvider     UserProvider
@@ -83,7 +83,7 @@ func NewService(
 		config: config,
 
 		requestListener:  requestListener,
-		txSubmitter: txSubmitter,
+		txSubmitter:      txSubmitter,
 		blobProvider:     blobProvider,
 		userProvider:     userProvider,
 		documentProvider: documentProvider,
@@ -148,20 +148,20 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		return nil
 	}
 
+	logger.Debug("Found interesting KYC Request.")
 	kyc := request.Details.KYC
 
-	if kyc.PendingTasks&TaskSubmitIDMind > 0 {
+	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
 		err := s.submitKYCToIDMind(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to submit KYC data to IDMind")
 		}
 
-		logger.Info("Submitted KYC data to IDMind successfully.")
 		return nil
 	}
 
-	if kyc.PendingTasks&TaskCheckIDMind > 0 {
+	if kyc.PendingTasks&TaskCheckIDMind != 0 {
 		err := s.checkKYCState(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to check KYC state to IDMind")

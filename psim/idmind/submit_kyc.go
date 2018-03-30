@@ -96,7 +96,7 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}
 
-	s.log.WithField("request", request).Info("Approved KYCRequest during Check Task successfully.")
+	s.log.WithField("request", request).Info("Approved KYCRequest during Submit Task successfully.")
 	return nil
 }
 

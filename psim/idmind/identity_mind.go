@@ -75,16 +75,16 @@ func (c *Connector) Submit(data KYCData, email string) (*ApplicationResponse, er
 	}
 	fields["status_code"] = resp.StatusCode
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.From(errors.New("Unsuccessful response from IdMind"), fields)
-	}
-
 	defer func() { _ = resp.Body.Close() }()
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to read response body bytes", fields)
 	}
 	fields["response_body"] = string(respBytes)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.From(errors.New("Unsuccessful response from IdMind"), fields)
+	}
 
 	var appResp ApplicationResponse
 	err = json.Unmarshal(respBytes, &appResp)
@@ -113,10 +113,11 @@ func (c *Connector) UploadDocument(txID, description string, fileName string, fi
 	}
 
 	// This code is commented intentionally. IDMind says this field is required, but Sandbox works fine without it :/
-	//err = bufferWriter.WriteField("appID", c.config.AppID)
+	//err = bufferWriter.WriteField("appID", "424284")
 	//if err != nil {
 	//	return errors.Wrap(err, "Failed to add appID field to request")
 	//}
+
 	if description != "" {
 		err = bufferWriter.WriteField("description", description)
 		if err != nil {
@@ -133,9 +134,9 @@ func (c *Connector) UploadDocument(txID, description string, fileName string, fi
 	if err != nil {
 		return errors.Wrap(err, "Failed to create http request")
 	}
-	//bufferWriter.FormDataContentType()
 
 	req.Header.Set("Authorization", "Basic "+c.config.AuthKey)
+	req.Header.Set("Content-Type", bufferWriter.FormDataContentType())
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -170,16 +171,16 @@ func (c *Connector) CheckState(txID string) (*CheckApplicationResponse, error) {
 	}
 	fields["status_code"] = resp.StatusCode
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.From(errors.New("Unsuccessful response from IdMind"), fields)
-	}
-
 	defer func() { _ = resp.Body.Close() }()
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to read response body bytes", fields)
 	}
 	fields["raw_response_body"] = string(respBytes)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.From(errors.New("Unsuccessful response from IdMind"), fields)
+	}
 
 	var checkResp CheckApplicationResponse
 	err = json.Unmarshal(respBytes, &checkResp)
@@ -189,4 +190,3 @@ func (c *Connector) CheckState(txID string) (*CheckApplicationResponse, error) {
 
 	return &checkResp, nil
 }
-
