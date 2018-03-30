@@ -85,7 +85,7 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
+  branch = "features/updated_after_kyc_filter"
   name = "gitlab.com/swarmfund/horizon-connector"
 
 [[constraint]]
