@@ -7,8 +7,9 @@ import (
 )
 
 type Q struct {
-	tx *transaction.Q
-	op *operation.Q
+	txQ *transaction.Q
+	// TODO Rename - it'a actually RequestQ
+	opQ *operation.Q
 }
 
 func NewQ(tx *transaction.Q, op *operation.Q) *Q {
@@ -18,7 +19,7 @@ func NewQ(tx *transaction.Q, op *operation.Q) *Q {
 	}
 }
 
-// DEPRECATED Does not work any more. Can now only stream WithdrawalRequests.
+// DEPRECATED use StreamAllReviewableRequests instead
 func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -27,7 +28,7 @@ func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 		}()
 		cursor := ""
 		for {
-			requests, err := q.op.Requests(cursor)
+			requests, err := q.opQ.AllRequests(cursor)
 			if err != nil {
 				errs <- err
 				continue
@@ -42,6 +43,7 @@ func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 }
 
 // TODO Consider working with *Withdrawal* specific types.
+// DEPRECATED Use StreamWithdrawalRequests instead
 func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 
@@ -52,7 +54,7 @@ func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 
 		cursor := ""
 		for {
-			requests, err := q.op.WithdrawalRequests(cursor)
+			requests, err := q.opQ.WithdrawalRequests(cursor)
 			if err != nil {
 				errs <- err
 				continue

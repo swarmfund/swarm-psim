@@ -23,7 +23,7 @@ func NewQ(client internal.Client) *Q {
 }
 
 // User obtains a single User by AccountID.
-// If Users doesn't exist - nil,nil is returned.
+// If User doesn't exist - nil,nil is returned.
 func (q *Q) User(accountID string) (*resources.User, error) {
 	respBB, err := q.client.Get(fmt.Sprintf("/users/%s", accountID))
 	if err != nil {
