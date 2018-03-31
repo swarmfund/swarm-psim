@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"encoding/json"
 )
 
 const (
@@ -59,6 +60,19 @@ func proveInterestingMask(pendingTasks uint32) error {
 	return nil
 }
 
+func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, requestHash string, isUSA bool, validationErr error) error {
+	var tasksToAdd uint32
+	if isUSA {
+		tasksToAdd = TaskUSA
+	}
+
+	extDetails := map[string]string{
+		"validation_error": validationErr.Error(),
+	}
+
+	return s.reject(ctx, requestID, requestHash, nil, s.config.RejectReasons.InvalidKYCData, tasksToAdd, extDetails)
+}
+
 // rejectReason must be absolutely human-readable, we show it to User
 func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, isUSA bool) error {
 	var tasksToAdd uint32
@@ -66,22 +80,39 @@ func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, request
 		tasksToAdd = TaskUSA
 	}
 
-	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd)
+	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd, nil)
 }
 
 func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string) error {
-	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0)
+	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0, nil)
 }
 
 // TODO Blob submit
-func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32) error {
-	// TODO Submit Blob with idMindRespBB to API, get blobID
-	//idMindRespBB, err := json.Marshal(idMindResp)
-	//if err != nil {
-	//	return errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
-	//}
+// idMindResp can be nil
+// extDetails can be nil
+func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32, extDetails map[string]string) error {
+	if extDetails == nil {
+		extDetails = make(map[string]string)
+	}
 
 	// TODO Submit Blob with idMindRespBB to API, get blobID
+	//if idMindResp != nil {
+	//	idMindRespBB, err := json.Marshal(idMindResp)
+	//	if err != nil {
+	//		return errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
+	//	}
+	//}
+
+	// FIXME
+	//extDetails["blob_id"] = blobID
+	if idMindResp != nil {
+		extDetails["blob_id"] = "blob_id_stub"
+	}
+
+	extDetailsBB, err := json.Marshal(extDetails)
+	if err != nil {
+		return errors.Wrap(err, "Failed to marshal externalDetails", logan.F{"ext_details": extDetails})
+	}
 
 	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.Source).Op(xdrbuild.ReviewRequestOp{
 		ID:     requestID,
@@ -90,9 +121,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		Details: xdrbuild.UpdateKYCDetails{
 			TasksToAdd:    tasksToAdd,
 			TasksToRemove: 0,
-			// FIXME
-			//ExternalDetails: fmt.Sprintf(`{"blob_id":"%s"}`, blobID),
-			ExternalDetails: fmt.Sprintf(`{"blob_id":"%s"}`, "blob_id_stub"),
+			ExternalDetails: string(extDetailsBB),
 		},
 		Reason: rejectReason,
 	}).Sign(s.config.Signer).Marshal()

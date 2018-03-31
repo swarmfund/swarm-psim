@@ -12,7 +12,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
-func (s *Service) submitKYCToIDMind(ctx context.Context, request horizon.Request) error {
+func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) error {
 	kyc := request.Details.KYC
 
 	blobIDInterface, ok := kyc.KYCData["blob_id"]
@@ -25,7 +25,7 @@ func (s *Service) submitKYCToIDMind(ctx context.Context, request horizon.Request
 		return errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
 	}
 
-	err := s.submitKYCBlob(ctx, request, blobID, kyc.AccountToUpdateKYC)
+	err := s.processKYCBlob(ctx, request, blobID, kyc.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process KYC Blob", logan.F{
 			"blob_id":    blobID,
@@ -36,7 +36,8 @@ func (s *Service) submitKYCToIDMind(ctx context.Context, request horizon.Request
 	return nil
 }
 
-func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, blobID, accountID string) error {
+// TODO Refactor me - too long method
+func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, blobID, accountID string) error {
 	blob, err := s.blobProvider.Blob(blobID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Blob from Horizon")
@@ -60,7 +61,19 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 	}
 	email := user.Attributes.Email
 
-	applicationResponse, err := s.identityMind.Submit(*kycData, email)
+	createAccountReq, err := buildCreateAccountRequest(*kycData, email)
+	if err != nil {
+		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), err)
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData", fields)
+		}
+
+		// This log is of level Warn intentionally, as it's not normal situation, front-end must always provide valid KYC data
+		s.log.WithField("request", request).Warn("Rejected KYCRequest during Submit Task successfully (invalid KYC data).")
+		return nil
+	}
+
+	applicationResponse, err := s.identityMind.Submit(*createAccountReq)
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
 	}

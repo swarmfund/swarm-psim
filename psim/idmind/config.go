@@ -26,4 +26,5 @@ func (c Config) GetLoganFields() map[string]interface{} {
 type RejectReasonConfig struct {
 	KYCStateRejected        string `fig:"kyc_state_rejected,required"`
 	FraudPolicyResultDenied string `json:"fraud_policy_result_denied,required"`
+	InvalidKYCData          string `json:"invalid_kyc_data,required"`
 }

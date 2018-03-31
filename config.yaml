@@ -358,8 +358,9 @@ identity_mind:
     url: https://sandbox.identitymind.com/im
     auth_key: ID_MIND_AUTH_KEY # base64(user:password)
   reject_reasons:
-    kyc_state_rejected: "KYC service rejected"
-    fraud_policy_result_denied: "KYC service policy evaluation denied"
+    kyc_state_rejected: "KYC service rejected" # Make sure the string is shorter than 256
+    fraud_policy_result_denied: "KYC service policy evaluation denied" # Make sure the string is shorter than 256
+    invalid_kyc_data: "KYC data is invalid" # Make sure the string is shorter than 256
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY

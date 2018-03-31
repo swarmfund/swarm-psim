@@ -13,7 +13,6 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/keypair"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 const (
@@ -44,7 +43,7 @@ type UserProvider interface {
 }
 
 type IdentityMind interface {
-	Submit(data kyc.Data, email string) (*ApplicationResponse, error)
+	Submit(req CreateAccountRequest) (*ApplicationResponse, error)
 	UploadDocument(txID, description string, fileName string, fileReader io.Reader) error
 	CheckState(txID string) (*CheckApplicationResponse, error)
 }
@@ -140,24 +139,24 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 }
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	logger := s.log.WithField("request", request)
-
 	proveErr := proveInterestingRequest(request)
 	if proveErr != nil {
 		// No need to process the Request for now.
-		logger.WithError(proveErr).Debug("Found not interesting KYC Request.")
+
+		// I found this log useless
+		//s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
 		return nil
 	}
 
 	// I found this log useless
-	//logger.Debug("Found interesting KYC Request.")
+	//s.log.WithField("request", request).Debug("Found interesting KYC Request.")
 	kyc := request.Details.KYC
 
 	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
-		err := s.submitKYCToIDMind(ctx, request)
+		err := s.submitKYCData(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to submit KYC data to IDMind")
+			return errors.Wrap(err, "Failed to submit KYC data")
 		}
 
 		return nil
