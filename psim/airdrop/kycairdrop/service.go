@@ -5,8 +5,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 type IssuanceSubmitter interface {
@@ -21,6 +21,10 @@ type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
+type ReferencesProvider interface {
+	References(accountID string) ([]horizon.Reference, error)
+}
+
 type EmailProcessor interface {
 	Run(context.Context)
 	AddEmailAddress(ctx context.Context, emailAddress string)
@@ -32,14 +36,16 @@ type Service struct {
 
 	issuanceSubmitter IssuanceSubmitter
 	ledgerStreamer    LedgerStreamer
-	// TODO Consider substituting with some BalanceIDProvider entity.
-	accountsConnector airdrop.AccountsConnector
-	usersConnector    UsersConnector
+	// TODO Consider substituting with BalanceIDProvider entity.
+	accountsConnector  airdrop.AccountsConnector
+	usersConnector     UsersConnector
+	referencesProvider ReferencesProvider
 
 	emailProcessor EmailProcessor
 
-	blackList         map[string]struct{}
-	generalAccountsCh chan string
+	blackList          map[string]struct{}
+	generalAccountsCh  chan string
+	existingReferences []string
 }
 
 func NewService(
@@ -49,6 +55,7 @@ func NewService(
 	txStreamer LedgerStreamer,
 	accountsConnector airdrop.AccountsConnector,
 	usersConnector UsersConnector,
+	referencesProvider ReferencesProvider,
 	emailProcessor EmailProcessor,
 ) *Service {
 
@@ -58,9 +65,10 @@ func NewService(
 
 		issuanceSubmitter: issuanceSubmitter,
 
-		ledgerStreamer:    txStreamer,
-		accountsConnector: accountsConnector,
-		usersConnector:    usersConnector,
+		ledgerStreamer:     txStreamer,
+		accountsConnector:  accountsConnector,
+		usersConnector:     usersConnector,
+		referencesProvider: referencesProvider,
 
 		emailProcessor: emailProcessor,
 
@@ -77,10 +85,11 @@ func (s *Service) Run(ctx context.Context) {
 		s.blackList[accID] = struct{}{}
 	}
 
+	s.fetchAllReferences(ctx)
+	s.log.Infof("Fetched (%d) References.", len(s.existingReferences))
+
 	go s.listenLedgerChanges(ctx)
-
 	go s.consumeGeneralAccounts(ctx)
-
 	go s.emailProcessor.Run(ctx)
 
 	<-ctx.Done()

@@ -65,6 +65,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		ledgerChangesStreamer,
 		horizonConnector.Accounts(),
 		horizonConnector.Users(),
+		horizonConnector.Accounts(),
 		emailProcessor,
 	), nil
 }

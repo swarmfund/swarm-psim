@@ -20,3 +20,4 @@ type User = resources.User
 type Balance = resources.Balance
 type Blob = resources.Blob
 type Document = resources.Document
+type Reference = resources.Reference

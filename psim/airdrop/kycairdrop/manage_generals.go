@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
@@ -21,7 +22,7 @@ var (
 func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 	s.log.Info("Started consuming GeneralAccounts from stream.")
 
-	app.RunOverIncrementalTimer(ctx, s.log, "general_accounts_consumer", func(ctx context.Context) error {
+	running.WithBackOff(ctx, s.log, "general_accounts_consumer", func(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return nil
@@ -39,17 +40,28 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 
 			logger.Info("GeneralAccount was found, trying to process it.")
 
-			app.RunUntilSuccess(ctx, logger, "general_account_processor", func(ctx context.Context) error {
-				return s.processGeneralAccount(ctx, acc)
-			}, 5*time.Second)
+			running.UntilSuccess(ctx, logger, "general_account_processor", func(ctx context.Context) (bool, error) {
+				err := s.processGeneralAccount(ctx, acc)
+				if err != nil {
+					return false, err
+				} else {
+					return true, nil
+				}
+			}, 5*time.Second, time.Hour)
 
 			return nil
 		}
-	}, 0, 10*time.Second)
+	}, 0, 10*time.Second, time.Hour)
 }
 
 // ProcessGeneralAccount sends EmissionRequest and puts email into queue.
 func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) error {
+	if s.isAlreadyIssued(accAddress) {
+		s.log.WithField("account_id", accAddress).
+			Info("Reference duplication - already processed Deposit, skipping.")
+		return nil
+	}
+
 	emailAddress, err := s.getUserEmail(accAddress)
 	if err != nil {
 		if err == errUserNotFound {
@@ -63,7 +75,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return errors.Wrap(err, "Failed to get User's emailAddress")
 	}
 
-	issuanceOpt, issuanceHapenned, err := s.processIssuance(ctx, accAddress)
+	issuanceOpt, issuanceHappened, err := s.processIssuance(ctx, accAddress)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process Issuance", logan.F{
 			"email_address": emailAddress,
@@ -73,12 +85,12 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 	logger := s.log.WithFields(logan.F{
 		"account_address": accAddress,
 		"email_address":   emailAddress,
-		"issuance_opt": *issuanceOpt,
+		"issuance_opt":    *issuanceOpt,
 	})
-	if issuanceHapenned {
+	if issuanceHappened {
 		logger.Info("CoinEmissionRequest was sent successfully.")
 	} else {
-		logger.Info("Reference duplication - already processed Deposit, skipping.")
+		logger.Info("Reference duplication in Horizon response - already processed Deposit, skipping.")
 	}
 
 	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
