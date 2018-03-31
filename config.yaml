@@ -365,14 +365,6 @@ identity_mind:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
-  white_list: [
-"G_SOME_VALID_ACCOUNT_ADDRESS_1",
-"G_SOME_VALID_ACCOUNT_ADDRESS_2"]
-
-  black_list: [
-"G_SOME_VALID_ACCOUNT_ADDRESS_3",
-"G_SOME_VALID_ACCOUNT_ADDRESS_4"]
-
 template_provider:
   host: localhost
   port: 2323
