@@ -40,6 +40,12 @@ notifications_slack:
   channel_name: "#channel_name"
   icon_emoji: ":mega:"
 
+template_api:
+  host: localhost
+  port: 2323
+  bucket: "template"
+  skip_signature_check: true
+
 # services
 
 services:
@@ -65,6 +71,7 @@ services:
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
+- template_provider
 
 # BTC
 btc_deposit:
@@ -342,3 +349,11 @@ airdrop_march_20_20:
   black_list: [
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
+template_provider:
+  url: http://127.0.0.1:9000
+  access_key: 79JUU8NN3K8BPQBD0P2W
+  secret_key: N8sE8S5/0XRFVeqIJj2f7UWZYqqo6AClG5BRHCP/
+  region: us-west-2
+  disable_ssl: true
+  s3_force_path_style: true

@@ -29,6 +29,9 @@ const (
 	ServiceAirdropKYC            = "airdrop_kyc"
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
 	ServiceAirdropMarch20b20     = "airdrop_march_20_20"
+
+	//template-provider
+	ServiceTemplateProvider = "template_provider"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

@@ -3,6 +3,7 @@ package conf
 import (
 	"sync"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go/client"
@@ -35,6 +36,7 @@ type Config interface {
 	Bitcoin() *bitcoin.Client
 	Notificator() *notificator.Connector
 	NotificationSender() *notifications.SlackSender
+	TemplateProvider() *session.Session
 }
 
 type ViperConfig struct {
@@ -43,6 +45,7 @@ type ViperConfig struct {
 	// internal singletons
 	*sync.Mutex
 	horizon *horizon.Connector
+	session *session.Session
 }
 
 func NewViperConfig(fn string) *ViperConfig {
