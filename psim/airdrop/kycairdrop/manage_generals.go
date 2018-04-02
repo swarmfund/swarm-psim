@@ -10,6 +10,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
@@ -17,7 +18,8 @@ import (
 )
 
 const (
-	KYCFormBlobType = "kyc_form"
+	KYCFormBlobType         = "kyc_form"
+	AccountTypeGeneral uint = 2
 )
 
 func (s *Service) consumeGeneralAccounts(ctx context.Context) {
@@ -63,7 +65,17 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return nil
 	}
 
-	isUSA, err := s.checkIsUSA(accAddress)
+	acc, err := s.accountsConnector.ByAddress(accAddress)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get Account by AccountAddress")
+	}
+
+	if acc.AccountTypeI != AccountTypeGeneral {
+		s.log.WithField("account_id", accAddress).Warn("Found Account, which used to be General, but not General anymore, skipping.")
+		return nil
+	}
+
+	isUSA, err := s.checkIsUSA(acc)
 	if err != nil {
 		return errors.Wrap(err, "Failed to check whether User is from USA")
 	}
@@ -110,12 +122,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 	return nil
 }
 
-func (s *Service) checkIsUSA(accountAddress string) (bool, error) {
-	acc, err := s.accountsConnector.ByAddress(accountAddress)
-	if err != nil {
-		return false, errors.Wrap(err, "Failed to get Account by AccountAddress")
-	}
-
+func (s *Service) checkIsUSA(acc *horizon.Account) (bool, error) {
 	if acc.KYC.Data == nil {
 		return false, errors.New("KYCData is nil - could not find KYCBlobIDa.")
 	}
