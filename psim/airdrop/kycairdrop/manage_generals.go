@@ -13,10 +13,11 @@ import (
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
-var (
-	errUserNotFound = errors.New("User not found.")
+const (
+	KYCFormBlobType = "kyc_form"
 )
 
 func (s *Service) consumeGeneralAccounts(ctx context.Context) {
@@ -62,24 +63,35 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return nil
 	}
 
-	emailAddress, err := s.getUserEmail(accAddress)
+	isUSA, err := s.checkIsUSA(accAddress)
 	if err != nil {
-		if err == errUserNotFound {
-			// Actually situation is not very probable.
-			s.log.WithField("account_address", accAddress).
-				Error("Tried to get User's emailAddress, but User not found. I won't come back to this User again.")
-			// Returning nil, because we don't want to stop on this User and retry him.
-			return nil
-		}
+		return errors.Wrap(err, "Failed to check whether User is from USA")
+	}
+	if isUSA {
+		s.log.WithField("account_id", accAddress).Warn("Found USA User, no issuance for USA user, skipping.")
+		return nil
+	}
 
-		return errors.Wrap(err, "Failed to get User's emailAddress")
+	user, err := s.usersConnector.User(accAddress)
+	if err != nil {
+		return errors.Wrap(err, "Failed to obtain User by accountAddress")
+	}
+	if user == nil {
+		// Actually situation is not very probable.
+		s.log.WithField("account_address", accAddress).
+			Error("Tried to get User's emailAddress, but User not found. I won't come back to this User again.")
+		// Returning nil, because we don't want to stop on this User and retry him.
+		return nil
+	}
+
+	emailAddress := user.Attributes.Email
+	fields := logan.F{
+		"email_address": emailAddress,
 	}
 
 	issuanceOpt, issuanceHappened, err := s.processIssuance(ctx, accAddress)
 	if err != nil {
-		return errors.Wrap(err, "Failed to process Issuance", logan.F{
-			"email_address": emailAddress,
-		})
+		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
 	logger := s.log.WithFields(logan.F{
@@ -98,18 +110,37 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 	return nil
 }
 
-// TODO Return pointer to string and nil if no User existing. Avoid errUserNotFound.
-func (s *Service) getUserEmail(accountAddress string) (email string, err error) {
-	user, err := s.usersConnector.User(accountAddress)
+func (s *Service) checkIsUSA(accountAddress string) (bool, error) {
+	acc, err := s.accountsConnector.ByAddress(accountAddress)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to obtain User by accountAddress")
+		return false, errors.Wrap(err, "Failed to get Account by AccountAddress")
 	}
 
-	if user == nil {
-		return "", errUserNotFound
+	if acc.KYC.Data == nil {
+		return false, errors.New("KYCData is nil - could not find KYCBlobIDa.")
+	}
+	fields := logan.F{
+		"blob_id": acc.KYC.Data.BlobID,
 	}
 
-	return user.Attributes.Email, nil
+	blob, err := s.blobsConnector.Blob(acc.KYC.Data.BlobID)
+	if err != nil {
+		return false, errors.Wrap(err, "Failed to get Blob by BlobID", fields)
+	}
+	fields["blob"] = blob
+
+	if blob.Type != KYCFormBlobType {
+		return false, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
+			blob.Type, KYCFormBlobType), fields)
+	}
+
+	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
+	if err != nil {
+		return false, errors.Wrap(err, "Failed tot parse KYC data from Attributes.Value of the Blob", fields)
+	}
+	fields["kyc_data"] = kycData
+
+	return kycData.IsUSA(), nil
 }
 
 func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, bool, error) {

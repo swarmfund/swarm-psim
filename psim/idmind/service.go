@@ -13,6 +13,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 const (
@@ -43,7 +44,7 @@ type UserProvider interface {
 }
 
 type IdentityMind interface {
-	Submit(data KYCData, email string) (*ApplicationResponse, error)
+	Submit(data kyc.Data, email string) (*ApplicationResponse, error)
 	UploadDocument(txID, description string, fileName string, fileReader io.Reader) error
 	CheckState(txID string) (*CheckApplicationResponse, error)
 }

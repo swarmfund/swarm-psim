@@ -21,3 +21,4 @@ type Balance = resources.Balance
 type Blob = resources.Blob
 type Document = resources.Document
 type Reference = resources.Reference
+type Account = resources.Account

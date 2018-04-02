@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 func (s *Service) submitKYCToIDMind(ctx context.Context, request horizon.Request) error {
@@ -47,7 +48,7 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 			blob.Type, KYCFormBlobType), fields)
 	}
 
-	kycData, err := parseKYCData(blob.Attributes.Value)
+	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
 		return errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in from Blob", fields)
 	}
@@ -100,7 +101,7 @@ func (s *Service) submitKYCBlob(ctx context.Context, request horizon.Request, bl
 	return nil
 }
 
-func (s *Service) fetchAndSubmitDocs(docs KYCDocuments, txID string) error {
+func (s *Service) fetchAndSubmitDocs(docs kyc.Documents, txID string) error {
 	doc, err := s.documentProvider.Document(docs.KYCIdDocument)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get KYCIdDocument by ID from Horizon")

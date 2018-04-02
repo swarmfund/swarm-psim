@@ -85,7 +85,7 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "features/references"
+  branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
 
 [[constraint]]
