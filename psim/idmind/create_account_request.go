@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 // CreateAccountRequest describes the structure of CreateAccount request to IdentityMind.
@@ -55,7 +56,7 @@ func (r CreateAccountRequest) validate() error {
 	return nil
 }
 
-func buildCreateAccountRequest(data KYCData, email string) (*CreateAccountRequest, error) {
+func buildCreateAccountRequest(data kyc.Data, email string) (*CreateAccountRequest, error) {
 	countryCode, err := convertToISO(data.Address.Country)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to convert Country to ISO")

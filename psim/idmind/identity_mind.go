@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 type ConnectorConfig struct {
@@ -45,7 +46,7 @@ func newConnector(config ConnectorConfig) *Connector {
 // Submit retrieves the data accepted by IdentityMind from KYCData,
 // builds the data into the CreateAccountRequest structure
 // and submits a CreateAccount request to IdentityMind.
-func (c *Connector) Submit(data KYCData, email string) (*ApplicationResponse, error) {
+func (c *Connector) Submit(data kyc.Data, email string) (*ApplicationResponse, error) {
 	url := c.config.URL + "/account/consumer"
 	fields := logan.F{
 		"url": url,
