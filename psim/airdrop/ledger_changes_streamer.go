@@ -26,10 +26,7 @@ type LedgerChangesStreamer struct {
 	timedChangesStream chan TimedLedgerChange
 }
 
-func NewLedgerChangesStreamer(
-	log *logan.Entry,
-	txStreamer TXStreamer) *LedgerChangesStreamer {
-
+func NewLedgerChangesStreamer(log *logan.Entry, txStreamer TXStreamer) *LedgerChangesStreamer {
 	return &LedgerChangesStreamer{
 		log:        log.WithField("helper-runner", "ledger_changes_streamer"),
 		txStreamer: txStreamer,

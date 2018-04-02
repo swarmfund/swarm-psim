@@ -61,7 +61,7 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	issuanceSubmitter IssuanceSubmitter,
-	txStreamer LedgerStreamer,
+	ledgerStreamer LedgerStreamer,
 	accountsConnector AccountsConnector,
 	usersConnector UsersConnector,
 	blobsConnector BlobsConnector,
@@ -75,7 +75,7 @@ func NewService(
 
 		issuanceSubmitter: issuanceSubmitter,
 
-		ledgerStreamer:     txStreamer,
+		ledgerStreamer:     ledgerStreamer,
 		accountsConnector:  accountsConnector,
 		usersConnector:     usersConnector,
 		blobsConnector:     blobsConnector,
