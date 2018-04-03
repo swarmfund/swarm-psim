@@ -564,11 +564,12 @@
     "v2/internal/resources",
     "v2/internal/responses",
     "v2/internal/sale",
+    "v2/internal/templates",
     "v2/internal/transaction",
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "69568ecb69955cc49b0aa8cc26fd7106281092ae"
+  revision = "56f75ea32aaedf41d28d02cc4d175c533f80234c"
 
 [[projects]]
   branch = "master"

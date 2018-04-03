@@ -15,7 +15,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 type ConnectorConfig struct {
@@ -46,21 +45,13 @@ func newConnector(config ConnectorConfig) *Connector {
 // Submit retrieves the data accepted by IdentityMind from KYCData,
 // builds the data into the CreateAccountRequest structure
 // and submits a CreateAccount request to IdentityMind.
-func (c *Connector) Submit(data kyc.Data, email string) (*ApplicationResponse, error) {
+func (c *Connector) Submit(req CreateAccountRequest) (*ApplicationResponse, error) {
 	url := c.config.URL + "/account/consumer"
 	fields := logan.F{
 		"url": url,
 	}
 
-	// TODO
-	req, err := buildCreateAccountRequest(data, email)
-	if err != nil {
-		// TODO Need to reject such a KYCRequest, as it's no point to retry this KYCRequest, it won't go
-		return nil, errors.Wrap(err, "Failed to create CreateAccount request to IdentityMind")
-	}
-	fields["create_account_request"] = req
-
-	reqBB, err := json.Marshal(*req)
+	reqBB, err := json.Marshal(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to marshal CreateAccountRequest", fields)
 	}

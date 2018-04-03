@@ -26,31 +26,31 @@ type CreateAccountRequest struct {
 
 func (r CreateAccountRequest) validate() error {
 	if len(r.AccountName) > 60 {
-		return errors.New("AccountName cannot be larger than 60 letters.")
+		return errors.Errorf("AccountName cannot be larger than 60 letters (%s).", r.AccountName)
 	}
 	if len(r.Email) > 60 {
-		return errors.New("Email cannot be larger than 60 letters.")
+		return errors.Errorf("Email cannot be larger than 60 letters (%s).", r.Email)
 	}
 	if len(r.FirstName) > 30 {
-		return errors.New("FirstName cannot be larger than 30 letters.")
+		return errors.Errorf("FirstName cannot be larger than 30 letters (%s).", r.FirstName)
 	}
 	if len(r.LastName) > 50 {
-		return errors.New("LastName cannot be larger than 50 letters.")
+		return errors.Errorf("LastName cannot be larger than 50 letters (%s).", r.LastName)
 	}
 	if len(r.StreetAddress) > 100 {
-		return errors.New("StreetAddress cannot be larger than 100 letters.")
+		return errors.Errorf("StreetAddress cannot be larger than 100 letters (%s).", r.StreetAddress)
 	}
 	if len(r.Country) > 2 {
-		return errors.New("Country cannot be larger than 2 letters.")
+		return errors.Errorf("Country cannot be larger than 2 letters (%s).", r.Country)
 	}
 	if len(r.PostalCode) > 20 {
-		return errors.New("PostalCode cannot be larger than 20 letters.")
+		return errors.Errorf("PostalCode cannot be larger than 20 letters (%s).", r.PostalCode)
 	}
 	if len(r.City) > 30 {
-		return errors.New("City cannot be larger than 30 letters.")
+		return errors.Errorf("City cannot be larger than 30 letters (%s).", r.City)
 	}
 	if len(r.State) > 30 {
-		return errors.New("State cannot be larger than 30 letters.")
+		return errors.Errorf("State cannot be larger than 30 letters (%s).", r.State)
 	}
 
 	return nil
@@ -59,7 +59,7 @@ func (r CreateAccountRequest) validate() error {
 func buildCreateAccountRequest(data kyc.Data, email string) (*CreateAccountRequest, error) {
 	countryCode, err := convertToISO(data.Address.Country)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to convert Country to ISO")
+		return nil, errors.Wrap(err, fmt.Sprintf("Failed to convert Country '%s' to ISO", data.Address.Country))
 	}
 
 	r := CreateAccountRequest{

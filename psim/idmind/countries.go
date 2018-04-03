@@ -1,6 +1,7 @@
 package idmind
 
-// TODO Return error instead of empty string if Country is unparsable
+import "gitlab.com/distributed_lab/logan/v3/errors"
+
 func convertToISO(countryFromEnum string) (string, error) {
 	if len(countryFromEnum) == 2 {
 		// In case country is already of type ISO (2 letter)
@@ -10,8 +11,7 @@ func convertToISO(countryFromEnum string) (string, error) {
 	isoCountry, ok := countriesMap[countryFromEnum]
 
 	if !ok {
-		// TODO Return error instead of empty string if Country is unparsable
-		return "", nil
+		return "", errors.New("Cannot parse Country to 2-letter code by ISO.")
 	}
 
 	return isoCountry, nil

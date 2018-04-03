@@ -13,7 +13,6 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/keypair"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 const (
@@ -31,20 +30,21 @@ type TXSubmitter interface {
 	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
-type BlobProvider interface {
+type BlobsConnector interface {
 	Blob(blobID string) (*horizon.Blob, error)
+	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
 }
 
-type DocumentProvider interface {
+type DocumentsConnector interface {
 	Document(docID string) (*horizon.Document, error)
 }
 
-type UserProvider interface {
+type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
 type IdentityMind interface {
-	Submit(data kyc.Data, email string) (*ApplicationResponse, error)
+	Submit(req CreateAccountRequest) (*ApplicationResponse, error)
 	UploadDocument(txID, description string, fileName string, fileReader io.Reader) error
 	CheckState(txID string) (*CheckApplicationResponse, error)
 }
@@ -55,13 +55,13 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
-	requestListener  RequestListener
-	txSubmitter      TXSubmitter
-	blobProvider     BlobProvider
-	documentProvider DocumentProvider
-	userProvider     UserProvider
-	identityMind     IdentityMind
-	xdrbuilder       *xdrbuild.Builder
+	requestListener    RequestListener
+	txSubmitter        TXSubmitter
+	blobsConnector     BlobsConnector
+	documentsConnector DocumentsConnector
+	usersConnector     UsersConnector
+	identityMind       IdentityMind
+	xdrbuilder         *xdrbuild.Builder
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
 }
@@ -72,9 +72,9 @@ func NewService(
 	config Config,
 	requestListener RequestListener,
 	txSubmitter TXSubmitter,
-	blobProvider BlobProvider,
-	userProvider UserProvider,
-	documentProvider DocumentProvider,
+	blobProvider BlobsConnector,
+	userProvider UsersConnector,
+	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
 	builder *xdrbuild.Builder,
 ) *Service {
@@ -83,13 +83,13 @@ func NewService(
 		log:    log.WithField("service", conf.ServiceIdentityMind),
 		config: config,
 
-		requestListener:  requestListener,
-		txSubmitter:      txSubmitter,
-		blobProvider:     blobProvider,
-		userProvider:     userProvider,
-		documentProvider: documentProvider,
-		identityMind:     identityMind,
-		xdrbuilder:       builder,
+		requestListener:    requestListener,
+		txSubmitter:        txSubmitter,
+		blobsConnector:     blobProvider,
+		usersConnector:     userProvider,
+		documentsConnector: documentProvider,
+		identityMind:       identityMind,
+		xdrbuilder:         builder,
 	}
 }
 
@@ -140,24 +140,24 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 }
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	logger := s.log.WithField("request", request)
-
 	proveErr := proveInterestingRequest(request)
 	if proveErr != nil {
 		// No need to process the Request for now.
-		logger.WithError(proveErr).Debug("Found not interesting KYC Request.")
+
+		// I found this log useless
+		s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
 		return nil
 	}
 
 	// I found this log useless
-	//logger.Debug("Found interesting KYC Request.")
+	//s.log.WithField("request", request).Debug("Found interesting KYC Request.")
 	kyc := request.Details.KYC
 
 	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
-		err := s.submitKYCToIDMind(ctx, request)
+		err := s.submitKYCData(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to submit KYC data to IDMind")
+			return errors.Wrap(err, "Failed to submit KYC data")
 		}
 
 		return nil

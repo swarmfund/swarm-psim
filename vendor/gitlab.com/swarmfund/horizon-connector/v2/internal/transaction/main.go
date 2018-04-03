@@ -5,10 +5,10 @@ import (
 
 	"fmt"
 
-	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/responses"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type Q struct {

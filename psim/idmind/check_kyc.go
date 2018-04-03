@@ -54,12 +54,15 @@ func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) er
 		s.log.WithField("request", request).Info("Approved KYCRequest during Check Task successfully.")
 		return nil
 	case RejectedKYCState:
-		err := s.rejectCheckKYC(ctx, request.ID, request.Hash, checkResp, s.config.RejectReasons.KYCStateRejected)
+		blobID, err := s.rejectCheckKYC(ctx, request.ID, request.Hash, checkResp, s.config.RejectReasons.KYCStateRejected)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject during Check Task", fields)
 		}
 
-		s.log.WithField("request", request).Info("Rejected KYCRequest during Check Task successfully.")
+		s.log.WithFields(logan.F{
+			"request": request,
+			"blob_id": blobID,
+		}).Info("Rejected KYCRequest during Check Task successfully.")
 		return nil
 	}
 

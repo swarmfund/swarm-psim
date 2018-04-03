@@ -7,6 +7,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/distributed_lab/logan/v3"
+	"context"
+	"bytes"
 )
 
 type Q struct {
@@ -42,4 +44,43 @@ func (q *Q) Blob(blobID string) (*resources.Blob, error) {
 	}
 
 	return &response.Data, nil
+}
+
+func (q *Q) SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error) {
+	blob := resources.Blob {
+		Type: blobType,
+		Attributes: resources.BlobAttributes{
+			Value: attrValue,
+		},
+	}
+	for k, v := range relationships {
+		blob.AddRelationship(k, v)
+	}
+
+	reqBB, err := json.Marshal(struct{
+		Data resources.Blob `json:"data"`
+	}{
+		Data: blob,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to marshal request")
+	}
+
+	respBB, err := q.client.Post("/blobs", bytes.NewReader(reqBB))
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to send request")
+	}
+	fields := logan.F{
+		"raw_response": string(respBB),
+	}
+
+	var respBlob struct{
+		Data resources.Blob `json:"data"`
+	}
+	err = json.Unmarshal(respBB, &respBlob)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to unmarshal response bytes into Blob struct", fields)
+	}
+
+	return respBlob.Data.ID, nil
 }
