@@ -85,7 +85,7 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "features/submit_blob"
+  branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
 
 [[constraint]]

@@ -548,7 +548,7 @@
   revision = "80fce354f44ab9c6d275075c4aa0519b0c12d6d1"
 
 [[projects]]
-  branch = "features/submit_blob"
+  branch = "master"
   name = "gitlab.com/swarmfund/horizon-connector"
   packages = [
     "v2",
@@ -569,7 +569,7 @@
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "05870b0a01e8fa6a0a2b1a75328d26810b568f02"
+  revision = "56f75ea32aaedf41d28d02cc4d175c533f80234c"
 
 [[projects]]
   branch = "master"
@@ -659,6 +659,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "17af99bcdcc51148cacc05f206a18a9d252f505919ea0349b5b2a981ce657364"
+  inputs-digest = "9154b934d335ce89c2f72c70ec568780a168c5a00b8f1dfb82e00b9d53d897e4"
   solver-name = "gps-cdcl"
   solver-version = 1
