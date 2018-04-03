@@ -7,9 +7,9 @@ import (
 
 	"net/http"
 
-	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/responses"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 var (
@@ -39,7 +39,7 @@ func (r SubmitResult) GetLoganFields() map[string]interface{} {
 	}
 }
 
-// TODO Return error
+// TODO Return also error
 func (s *Submitter) Submit(ctx context.Context, envelope string) SubmitResult {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(&resources.TransactionSubmit{

@@ -30,15 +30,16 @@ type TXSubmitter interface {
 	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
-type BlobProvider interface {
+type BlobsConnector interface {
 	Blob(blobID string) (*horizon.Blob, error)
+	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
 }
 
-type DocumentProvider interface {
+type DocumentsConnector interface {
 	Document(docID string) (*horizon.Document, error)
 }
 
-type UserProvider interface {
+type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
@@ -54,13 +55,13 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
-	requestListener  RequestListener
-	txSubmitter      TXSubmitter
-	blobProvider     BlobProvider
-	documentProvider DocumentProvider
-	userProvider     UserProvider
-	identityMind     IdentityMind
-	xdrbuilder       *xdrbuild.Builder
+	requestListener    RequestListener
+	txSubmitter        TXSubmitter
+	blobsConnector     BlobsConnector
+	documentsConnector DocumentsConnector
+	usersConnector     UsersConnector
+	identityMind       IdentityMind
+	xdrbuilder         *xdrbuild.Builder
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
 }
@@ -71,9 +72,9 @@ func NewService(
 	config Config,
 	requestListener RequestListener,
 	txSubmitter TXSubmitter,
-	blobProvider BlobProvider,
-	userProvider UserProvider,
-	documentProvider DocumentProvider,
+	blobProvider BlobsConnector,
+	userProvider UsersConnector,
+	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
 	builder *xdrbuild.Builder,
 ) *Service {
@@ -82,13 +83,13 @@ func NewService(
 		log:    log.WithField("service", conf.ServiceIdentityMind),
 		config: config,
 
-		requestListener:  requestListener,
-		txSubmitter:      txSubmitter,
-		blobProvider:     blobProvider,
-		userProvider:     userProvider,
-		documentProvider: documentProvider,
-		identityMind:     identityMind,
-		xdrbuilder:       builder,
+		requestListener:    requestListener,
+		txSubmitter:        txSubmitter,
+		blobsConnector:     blobProvider,
+		usersConnector:     userProvider,
+		documentsConnector: documentProvider,
+		identityMind:       identityMind,
+		xdrbuilder:         builder,
 	}
 }
 

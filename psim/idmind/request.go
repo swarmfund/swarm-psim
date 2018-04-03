@@ -5,12 +5,15 @@ import (
 
 	"context"
 
+	"encoding/json"
+
+	"strconv"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
-	"encoding/json"
 )
 
 const (
@@ -87,7 +90,6 @@ func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestH
 	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0, nil)
 }
 
-// TODO Blob submit
 // idMindResp can be nil
 // extDetails can be nil
 func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32, extDetails map[string]string) error {
@@ -95,18 +97,22 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		extDetails = make(map[string]string)
 	}
 
-	// TODO Submit Blob with idMindRespBB to API, get blobID
-	//if idMindResp != nil {
-	//	idMindRespBB, err := json.Marshal(idMindResp)
-	//	if err != nil {
-	//		return errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
-	//	}
-	//}
-
-	// FIXME
-	//extDetails["blob_id"] = blobID
 	if idMindResp != nil {
-		extDetails["blob_id"] = "blob_id_stub"
+		// Pu IDMind response into Blob.
+		idMindRespBB, err := json.Marshal(idMindResp)
+		if err != nil {
+			return errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
+		}
+
+		blobID, err := s.blobsConnector.SubmitBlob(ctx, "kyc_form", string(idMindRespBB), map[string]string{
+			"request_id":   strconv.Itoa(int(requestID)),
+			"request_hash": requestHash,
+		})
+		if err != nil {
+			return errors.Wrap(err, "Failed to submit Blob via BlobsConnector")
+		}
+
+		extDetails["blob_id"] = blobID
 	}
 
 	extDetailsBB, err := json.Marshal(extDetails)
@@ -119,8 +125,8 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		Hash:   requestHash,
 		Action: xdr.ReviewRequestOpActionReject,
 		Details: xdrbuild.UpdateKYCDetails{
-			TasksToAdd:    tasksToAdd,
-			TasksToRemove: 0,
+			TasksToAdd:      tasksToAdd,
+			TasksToRemove:   0,
 			ExternalDetails: string(extDetailsBB),
 		},
 		Reason: rejectReason,
@@ -142,7 +148,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string, isUSA bool) error {
 	var tasksToAdd = TaskCheckIDMind
 	if isUSA {
-		tasksToAdd = tasksToAdd|TaskUSA
+		tasksToAdd = tasksToAdd | TaskUSA
 	}
 
 	extDetails := fmt.Sprintf(`{"%s":"%s"}`, TxIDExtDetailsKey, txID)

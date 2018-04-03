@@ -38,7 +38,7 @@ func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) er
 
 // TODO Refactor me - too long method
 func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, blobID, accountID string) error {
-	blob, err := s.blobProvider.Blob(blobID)
+	blob, err := s.blobsConnector.Blob(blobID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Blob from Horizon")
 	}
@@ -55,7 +55,7 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	}
 	fields["kyc_data"] = kycData
 
-	user, err := s.userProvider.User(accountID)
+	user, err := s.usersConnector.User(accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get User by AccountID from Horizon", fields)
 	}
@@ -114,8 +114,9 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	return nil
 }
 
+// FIXME
 func (s *Service) fetchAndSubmitDocs(docs kyc.Documents, txID string) error {
-	doc, err := s.documentProvider.Document(docs.KYCIdDocument)
+	doc, err := s.documentsConnector.Document(docs.KYCIdDocument)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get KYCIdDocument by ID from Horizon")
 	}
@@ -128,7 +129,7 @@ func (s *Service) fetchAndSubmitDocs(docs kyc.Documents, txID string) error {
 		return errors.Wrap(err, "Failed to submit KYCIdDocument to IdentityMind")
 	}
 
-	doc, err = s.documentProvider.Document(docs.KYCProofOfAddress)
+	doc, err = s.documentsConnector.Document(docs.KYCProofOfAddress)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get KYCProofOfAddress by ID from Horizon")
 	}

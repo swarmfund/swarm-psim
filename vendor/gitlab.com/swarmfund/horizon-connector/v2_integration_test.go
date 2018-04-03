@@ -1,13 +1,12 @@
 package horizon
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"testing"
 
 	"strings"
-
-	"context"
 
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
@@ -20,6 +19,36 @@ func TestConnectorV2(t *testing.T) {
 	base, _ := url.Parse("http://dev.swarm:8000")
 	master := keypair.MustParseSeed("SB3YDBQV7VPJEWBT5FLSKO5N2WMAFJR46JXPV7HKTANXW4IKTMKZ2VNE")
 	connector := horizon.NewConnector(base).WithSigner(master)
+
+	{
+		q := connector.Templates()
+		{
+			body := strings.NewReader(`<!DOCTYPE html>
+			<html>
+			<body>
+
+			<h1>My First Heading</h1>
+
+			<p>My first paragraph.</p>
+
+			</body>
+			</html>
+			`)
+
+			_, err := q.Put("test", body)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		{
+			body, err := q.Get("test")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			t.Log(string(body))
+		}
+	}
 
 	{
 		r, err := connector.Client().Post("/participants", strings.NewReader(`{
@@ -119,9 +148,9 @@ func TestConnectorV2(t *testing.T) {
 	}
 	fmt.Println(balances)
 
-	requests, err := connector.Operations().Requests("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(requests)
+	//requests, err := connector.Operations().Requests("")
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+	//fmt.Println(requests)
 }
