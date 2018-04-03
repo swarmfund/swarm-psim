@@ -26,7 +26,7 @@ func (c *ViperConfig) S3() *session.Session {
 	}
 
 	provider := &S3{}
-	config := c.Get(ServiceS3)
+	config := c.Get("s3")
 
 	if err := figure.Out(provider).From(config).Please(); err != nil {
 		panic(errors.Wrap(err, "failed to figure out S3"))

@@ -30,8 +30,7 @@ const (
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
 	ServiceAirdropMarch20b20     = "airdrop_march_20_20"
 
-	//s3
-	ServiceS3 = "s3"
+	ServiceTemplateProvider = "template_provider"
 
 	ServiceIdentityMind = "identity_mind"
 )

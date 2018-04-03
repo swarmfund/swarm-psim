@@ -372,7 +372,7 @@ identity_mind:
 "G_SOME_VALID_ACCOUNT_ADDRESS_3",
 "G_SOME_VALID_ACCOUNT_ADDRESS_4"]
 
-template_api:
+template_provider:
   host: localhost
   port: 2323
   bucket: "template"
