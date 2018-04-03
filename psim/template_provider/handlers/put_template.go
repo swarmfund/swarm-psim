@@ -20,7 +20,7 @@ func PutTemplate(w http.ResponseWriter, r *http.Request) {
 
 	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {
 		Log(r).WithField("Failed doorman", "signature check").Error()
-		ape.RenderErr(w, problems.BadRequest(err)...)
+		RenderDoormanErr(w, err)
 		return
 	}
 
