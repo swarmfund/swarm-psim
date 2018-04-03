@@ -19,6 +19,7 @@ func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) er
 	if !ok {
 		return errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
 	}
+
 	blobID, ok := blobIDInterface.(string)
 	if !ok {
 		// Normally should never happen
@@ -36,7 +37,6 @@ func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) er
 	return nil
 }
 
-// TODO Refactor me - too long method
 func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, blobID, accountID string) error {
 	blob, err := s.blobsConnector.Blob(blobID)
 	if err != nil {
@@ -61,11 +61,20 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	}
 	email := user.Attributes.Email
 
-	createAccountReq, err := buildCreateAccountRequest(*kycData, email)
+	err = s.processNewKYCApplication(ctx, *kycData, email, request)
+	if err != nil {
+		return errors.Wrap(err, "Failed to process new KYC Application", fields)
+	}
+
+	return nil
+}
+
+func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email string, request horizon.Request) error {
+	createAccountReq, err := buildCreateAccountRequest(kycData, email)
 	if err != nil {
 		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), err)
 		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData", fields)
+			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData")
 		}
 
 		// This log is of level Warn intentionally, as it's not normal situation, front-end must always provide valid KYC data
@@ -77,16 +86,26 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
 	}
-	fields["app_response"] = applicationResponse
 
+	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request)
+	if err != nil {
+		return errors.Wrap(err, "Failed to process response of new KYC Application", logan.F{
+			"app_response": applicationResponse,
+		})
+	}
+
+	return nil
+}
+
+func (s *Service) processNewApplicationResponse(ctx context.Context, applicationResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
 	if applicationResponse.KYCState == RejectedKYCState {
 		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected, kycData.IsUSA())
 		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse", fields)
+			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse")
 		}
 
 		s.log.WithFields(logan.F{
-			"request": request,
+			"request":        request,
 			"reject_blob_id": blobID,
 		}).Info("Rejected KYCRequest during Submit Task successfully (rejected state).")
 		return nil
@@ -94,18 +113,18 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	if applicationResponse.PolicyResult == DenyFraudResult {
 		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied, kycData.IsUSA())
 		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse", fields)
+			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse")
 		}
 
 		s.log.WithFields(logan.F{
-			"request": request,
+			"request":        request,
 			"reject_blob_id": blobID,
 		}).Info("Rejected KYCRequest during Submit Task successfully (denied FraudPolicyResult).")
 		return nil
 	}
 
 	// TODO Make sure we need TxID, not MTxID
-	err = s.fetchAndSubmitDocs(kycData.Documents, applicationResponse.TxID)
+	err := s.fetchAndSubmitDocs(kycData.Documents, applicationResponse.TxID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch and submit KYC documents")
 	}
