@@ -27,6 +27,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetter"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetterveri"
+	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 
 	// aridrops
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"
@@ -35,9 +36,6 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
 
 	_ "gitlab.com/swarmfund/psim/psim/idmind"
-
-	//minio
-	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 )
 
 var (
