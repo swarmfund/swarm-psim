@@ -73,11 +73,12 @@ func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, re
 		"validation_error": validationErr.Error(),
 	}
 
-	return s.reject(ctx, requestID, requestHash, nil, s.config.RejectReasons.InvalidKYCData, tasksToAdd, extDetails)
+	_, err := s.reject(ctx, requestID, requestHash, nil, s.config.RejectReasons.InvalidKYCData, tasksToAdd, extDetails)
+	return err
 }
 
 // rejectReason must be absolutely human-readable, we show it to User
-func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, isUSA bool) error {
+func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, isUSA bool) (blobID string, err error) {
 	var tasksToAdd uint32
 	if isUSA {
 		tasksToAdd = TaskUSA
@@ -86,30 +87,30 @@ func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, request
 	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd, nil)
 }
 
-func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string) error {
+func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string) (blobID string, err error) {
 	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0, nil)
 }
 
-// idMindResp can be nil
+// idMindResp can be nil (in this case blobID in return will be empty)
 // extDetails can be nil
-func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32, extDetails map[string]string) error {
+func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32, extDetails map[string]string) (blobID string, err error) {
 	if extDetails == nil {
 		extDetails = make(map[string]string)
 	}
 
 	if idMindResp != nil {
-		// Pu IDMind response into Blob.
+		// Put IDMind response into Blobs.
 		idMindRespBB, err := json.Marshal(idMindResp)
 		if err != nil {
-			return errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
+			return "", errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
 		}
 
-		blobID, err := s.blobsConnector.SubmitBlob(ctx, "kyc_form", string(idMindRespBB), map[string]string{
+		blobID, err = s.blobsConnector.SubmitBlob(ctx, "kyc_form", string(idMindRespBB), map[string]string{
 			"request_id":   strconv.Itoa(int(requestID)),
 			"request_hash": requestHash,
 		})
 		if err != nil {
-			return errors.Wrap(err, "Failed to submit Blob via BlobsConnector")
+			return "", errors.Wrap(err, "Failed to submit Blob via BlobsConnector")
 		}
 
 		extDetails["blob_id"] = blobID
@@ -117,7 +118,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 
 	extDetailsBB, err := json.Marshal(extDetails)
 	if err != nil {
-		return errors.Wrap(err, "Failed to marshal externalDetails", logan.F{"ext_details": extDetails})
+		return "", errors.Wrap(err, "Failed to marshal externalDetails", logan.F{"ext_details": extDetails})
 	}
 
 	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.Source).Op(xdrbuild.ReviewRequestOp{
@@ -132,17 +133,17 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		Reason: rejectReason,
 	}).Sign(s.config.Signer).Marshal()
 	if err != nil {
-		return errors.Wrap(err, "Failed to marshal signed Envelope")
+		return "", errors.Wrap(err, "Failed to marshal signed Envelope")
 	}
 
 	submitResult := s.txSubmitter.Submit(ctx, signedEnvelope)
 	if submitResult.Err != nil {
-		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{
+		return "", errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{
 			"submit_result": submitResult,
 		})
 	}
 
-	return nil
+	return blobID, nil
 }
 
 func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string, isUSA bool) error {

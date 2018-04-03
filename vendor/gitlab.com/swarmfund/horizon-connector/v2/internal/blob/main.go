@@ -67,19 +67,20 @@ func (q *Q) SubmitBlob(ctx context.Context, blobType, attrValue string, relation
 	}
 
 	respBB, err := q.client.Post("/blobs", bytes.NewReader(reqBB))
-	if err == nil {
-		// successful submission
+	if err != nil {
 		return "", errors.Wrap(err, "Failed to send request")
 	}
 	fields := logan.F{
 		"raw_response": string(respBB),
 	}
 
-	var respBlob resources.Blob
+	var respBlob struct{
+		Data resources.Blob `json:"data"`
+	}
 	err = json.Unmarshal(respBB, &respBlob)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to unmarshal response bytes into Blob struct", fields)
 	}
 
-	return respBlob.ID, nil
+	return respBlob.Data.ID, nil
 }

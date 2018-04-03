@@ -145,7 +145,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		// No need to process the Request for now.
 
 		// I found this log useless
-		//s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
+		s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
 		return nil
 	}
 

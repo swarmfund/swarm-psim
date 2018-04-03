@@ -569,7 +569,7 @@
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "7b7224bd171a8ac61e47e871607f580fb49b67a3"
+  revision = "05870b0a01e8fa6a0a2b1a75328d26810b568f02"
 
 [[projects]]
   branch = "master"

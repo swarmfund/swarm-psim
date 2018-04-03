@@ -13,9 +13,9 @@ import (
 )
 
 func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) error {
-	kyc := request.Details.KYC
+	kycRequest := request.Details.KYC
 
-	blobIDInterface, ok := kyc.KYCData["blob_id"]
+	blobIDInterface, ok := kycRequest.KYCData["blob_id"]
 	if !ok {
 		return errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
 	}
@@ -25,11 +25,11 @@ func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) er
 		return errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
 	}
 
-	err := s.processKYCBlob(ctx, request, blobID, kyc.AccountToUpdateKYC)
+	err := s.processKYCBlob(ctx, request, blobID, kycRequest.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process KYC Blob", logan.F{
 			"blob_id":    blobID,
-			"account_id": kyc.AccountToUpdateKYC,
+			"account_id": kycRequest.AccountToUpdateKYC,
 		})
 	}
 
@@ -80,21 +80,27 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	fields["app_response"] = applicationResponse
 
 	if applicationResponse.KYCState == RejectedKYCState {
-		err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected, kycData.IsUSA())
+		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected, kycData.IsUSA())
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse", fields)
 		}
 
-		s.log.WithField("request", request).Info("Rejected KYCRequest during Submit Task successfully (rejected state).")
+		s.log.WithFields(logan.F{
+			"request": request,
+			"reject_blob_id": blobID,
+		}).Info("Rejected KYCRequest during Submit Task successfully (rejected state).")
 		return nil
 	}
 	if applicationResponse.PolicyResult == DenyFraudResult {
-		err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied, kycData.IsUSA())
+		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied, kycData.IsUSA())
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse", fields)
 		}
 
-		s.log.WithField("request", request).Info("Rejected KYCRequest during Submit Task successfully (denied FraudPolicyResult).")
+		s.log.WithFields(logan.F{
+			"request": request,
+			"reject_blob_id": blobID,
+		}).Info("Rejected KYCRequest during Submit Task successfully (denied FraudPolicyResult).")
 		return nil
 	}
 
