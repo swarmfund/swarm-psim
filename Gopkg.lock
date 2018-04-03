@@ -29,6 +29,42 @@
   revision = "18a2f1dd52bb9abbc1e898439df06c74f28f63a4"
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/corehandlers",
+    "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/stscreds",
+    "aws/defaults",
+    "aws/ec2metadata",
+    "aws/endpoints",
+    "aws/request",
+    "aws/session",
+    "aws/signer/v4",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "private/protocol",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/restxml",
+    "private/protocol/xml/xmlutil",
+    "service/s3",
+    "service/s3/s3iface",
+    "service/s3/s3manager",
+    "service/sts"
+  ]
+  revision = "5a33d0a4f5d9c27e6cd10b4c156e85b46c4501d7"
+  version = "v1.13.26"
+
+[[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = [
@@ -116,9 +152,18 @@
 
 [[projects]]
   name = "github.com/go-chi/chi"
-  packages = ["."]
+  packages = [
+    ".",
+    "middleware"
+  ]
   revision = "687d2792aedd8e8ac3bbd8592cf55b91d7ea8ce9"
   version = "v3.3.1"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "5e9692864e22d02ac79e2fa499cffb00520b4fea"
+  version = "v1.34.0"
 
 [[projects]]
   name = "github.com/go-ozzo/ozzo-validation"
@@ -195,6 +240,11 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/jtolds/gls"
@@ -429,6 +479,15 @@
   revision = "2c9cfd17756470a0b7c3e4b7954bae7d11035504"
 
 [[projects]]
+  name = "gitlab.com/distributed_lab/ape"
+  packages = [
+    ".",
+    "problems"
+  ]
+  revision = "d91553d505e0ffb7bcc38d75271338ef3f5c3e0b"
+  version = "v0.2"
+
+[[projects]]
   branch = "dev"
   name = "gitlab.com/distributed_lab/discovery-go"
   packages = ["."]
@@ -474,9 +533,12 @@
   packages = [
     "amount",
     "crc16",
+    "doorman",
+    "doorman/data",
     "hash",
     "keypair",
     "network",
+    "resources",
     "signcontrol",
     "strkey",
     "xdr",
@@ -594,6 +656,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f9f5843afd72c0c97c514aab4db3436a3392ea19cea63669875aac1fcf51515c"
+  inputs-digest = "9154b934d335ce89c2f72c70ec568780a168c5a00b8f1dfb82e00b9d53d897e4"
   solver-name = "gps-cdcl"
   solver-version = 1
