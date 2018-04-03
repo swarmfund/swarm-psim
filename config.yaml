@@ -9,8 +9,8 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  #addr: http://swarm:8000
-  addr: http://localhost:1488
+  addr: http://swarm:8000
+  #addr: http://localhost:1488
 
 notificator:
   url: http://swarm:9009
@@ -71,7 +71,7 @@ services:
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
-- template_provider
+#- template_provider
 
 # BTC
 btc_deposit:
