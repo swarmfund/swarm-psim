@@ -23,11 +23,12 @@ import (
 )
 
 type Service struct {
-	API        TemplateAPI
+	API        Config
 	uploader   *s3.S3
 	downloader *s3manager.Downloader
 	log        *logan.Entry
 	horizon    *horizon.Connector
+	info       *horizon.Info
 }
 
 func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
@@ -54,30 +55,25 @@ func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
 	return r
 }
 
-func New(sess *session.Session, log *logan.Entry, api TemplateAPI, horizon *horizon.Connector) *Service {
+func New(sess *session.Session, log *logan.Entry, api Config, info *horizon.Info, horizon *horizon.Connector) *Service {
 	return &Service{
 		API:        api,
 		uploader:   s3.New(sess),
 		downloader: s3manager.NewDownloader(sess),
 		log:        log,
 		horizon:    horizon,
+		info:       info,
 	}
 }
 
 func (s *Service) Run(ctx context.Context) {
-
-	info, err := s.horizon.Info()
-	if err != nil {
-		s.log.WithField("Failed to load", "horizon info").WithError(err).Info()
-		return
-	}
 
 	r := Router(
 		s.log,
 		s.uploader,
 		s.downloader,
 		s.API.Bucket,
-		info,
+		s.info,
 		doorman.New(
 			s.API.SkipSignatureCheck,
 			data.NewAccountQ(s.horizon),
@@ -86,7 +82,7 @@ func (s *Service) Run(ctx context.Context) {
 
 	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
 	if err := http.ListenAndServe(addr, r); err != nil {
-		s.log.WithField("CloudAPI", "failed").WithError(err).Error()
+		s.log.WithError(err).Error("failed to listen and serve")
 		return
 	}
 }

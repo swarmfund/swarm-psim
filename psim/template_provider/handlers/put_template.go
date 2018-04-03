@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,15 +10,21 @@ import (
 	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/doorman"
 )
 
 func PutTemplate(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "template")
 	bucket := Bucket(r)
 
+	//TODO ADD VALIDATION KEY
+	key := chi.URLParam(r, "template")
+	if len(key) == 0 {
+		ape.RenderErr(w, problems.BadRequest(errors.New("invalid key"))...)
+		return
+	}
 	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {
-		Log(r).WithField("Failed doorman", "signature check").Error()
 		RenderDoormanErr(w, err)
 		return
 	}
@@ -28,7 +33,6 @@ func PutTemplate(w http.ResponseWriter, r *http.Request) {
 
 	template, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log(r).WithField("Can't read", "body").WithError(err).Error()
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
@@ -39,7 +43,7 @@ func PutTemplate(w http.ResponseWriter, r *http.Request) {
 		Key:    &key,
 	})
 	if err != nil {
-		Log(r).WithField("Failed to upload data", fmt.Sprintf("%s %s", bucket, key)).WithError(err).Error()
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": key}).WithError(err).Error("Failed to download")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}

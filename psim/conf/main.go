@@ -36,7 +36,7 @@ type Config interface {
 	Bitcoin() *bitcoin.Client
 	Notificator() *notificator.Connector
 	NotificationSender() *notifications.SlackSender
-	TemplateProvider() *session.Session
+	S3() *session.Session
 }
 
 type ViperConfig struct {

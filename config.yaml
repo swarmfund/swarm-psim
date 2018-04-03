@@ -40,11 +40,13 @@ notifications_slack:
   channel_name: "#channel_name"
   icon_emoji: ":mega:"
 
-template_api:
-  host: localhost
-  port: 2323
-  bucket: "template"
-  skip_signature_check: true
+s3:
+  url: http://127.0.0.1:9000
+  access_key: 79JUU8NN3K8BPQBD0P2W
+  secret_key: N8sE8S5/0XRFVeqIJj2f7UWZYqqo6AClG5BRHCP/
+  region: us-west-2
+  disable_ssl: true
+  s3_force_path_style: true
 
 # services
 
@@ -370,10 +372,8 @@ identity_mind:
 "G_SOME_VALID_ACCOUNT_ADDRESS_3",
 "G_SOME_VALID_ACCOUNT_ADDRESS_4"]
 
-template_provider:
-  url: http://127.0.0.1:9000
-  access_key: 79JUU8NN3K8BPQBD0P2W
-  secret_key: N8sE8S5/0XRFVeqIJj2f7UWZYqqo6AClG5BRHCP/
-  region: us-west-2
-  disable_ssl: true
-  s3_force_path_style: true
+template_api:
+  host: localhost
+  port: 2323
+  bucket: "template"
+  skip_signature_check: true

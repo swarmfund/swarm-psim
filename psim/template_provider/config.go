@@ -2,7 +2,7 @@ package template_provider
 
 const templateAPI = "template_api"
 
-type TemplateAPI struct {
+type Config struct {
 	Host               string `fig:"host"`
 	Port               int    `fig:"port"`
 	Bucket             string `fig:"bucket,required"`
