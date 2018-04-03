@@ -32,6 +32,8 @@ const (
 
 	//template-provider
 	ServiceTemplateProvider = "template_provider"
+
+	ServiceIdentityMind = "identity_mind"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

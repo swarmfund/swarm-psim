@@ -5,8 +5,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
+	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 type IssuanceSubmitter interface {
@@ -17,8 +17,21 @@ type LedgerStreamer interface {
 	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
 }
 
+type AccountsConnector interface {
+	airdrop.AccountsConnector
+	ByAddress(address string) (*horizon.Account, error)
+}
+
 type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
+}
+
+type ReferencesProvider interface {
+	References(accountID string) ([]horizon.Reference, error)
+}
+
+type BlobsConnector interface {
+	Blob(blobID string) (*horizon.Blob, error)
 }
 
 type EmailProcessor interface {
@@ -30,25 +43,29 @@ type Service struct {
 	log    *logan.Entry
 	config Config
 
-	issuanceSubmitter IssuanceSubmitter
-	ledgerStreamer    LedgerStreamer
-	// TODO Consider substituting with some BalanceIDProvider entity.
-	accountsConnector airdrop.AccountsConnector
-	usersConnector    UsersConnector
+	issuanceSubmitter  IssuanceSubmitter
+	ledgerStreamer     LedgerStreamer
+	accountsConnector  AccountsConnector
+	usersConnector     UsersConnector
+	blobsConnector     BlobsConnector
+	referencesProvider ReferencesProvider
 
 	emailProcessor EmailProcessor
 
-	blackList         map[string]struct{}
-	generalAccountsCh chan string
+	blackList          map[string]struct{}
+	generalAccountsCh  chan string
+	existingReferences []string
 }
 
 func NewService(
 	log *logan.Entry,
 	config Config,
 	issuanceSubmitter IssuanceSubmitter,
-	txStreamer LedgerStreamer,
-	accountsConnector airdrop.AccountsConnector,
+	ledgerStreamer LedgerStreamer,
+	accountsConnector AccountsConnector,
 	usersConnector UsersConnector,
+	blobsConnector BlobsConnector,
+	referencesProvider ReferencesProvider,
 	emailProcessor EmailProcessor,
 ) *Service {
 
@@ -58,9 +75,11 @@ func NewService(
 
 		issuanceSubmitter: issuanceSubmitter,
 
-		ledgerStreamer:    txStreamer,
-		accountsConnector: accountsConnector,
-		usersConnector:    usersConnector,
+		ledgerStreamer:     ledgerStreamer,
+		accountsConnector:  accountsConnector,
+		usersConnector:     usersConnector,
+		blobsConnector:     blobsConnector,
+		referencesProvider: referencesProvider,
 
 		emailProcessor: emailProcessor,
 
@@ -77,10 +96,11 @@ func (s *Service) Run(ctx context.Context) {
 		s.blackList[accID] = struct{}{}
 	}
 
+	s.fetchAllReferences(ctx)
+	s.log.Infof("Fetched (%d) References.", len(s.existingReferences))
+
 	go s.listenLedgerChanges(ctx)
-
 	go s.consumeGeneralAccounts(ctx)
-
 	go s.emailProcessor.Run(ctx)
 
 	<-ctx.Done()

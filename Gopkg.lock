@@ -545,7 +545,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "c71a5b7d45aa6ace2e4f8567ca71389dc14877ee"
+  revision = "80fce354f44ab9c6d275075c4aa0519b0c12d6d1"
 
 [[projects]]
   branch = "master"
@@ -556,6 +556,8 @@
     "v2/internal/account",
     "v2/internal/asset",
     "v2/internal/balance",
+    "v2/internal/blob",
+    "v2/internal/document",
     "v2/internal/errors",
     "v2/internal/listener",
     "v2/internal/operation",
@@ -566,7 +568,7 @@
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "f53a5eb83865fb1d7f108077f1e4f5c666b889c1"
+  revision = "69568ecb69955cc49b0aa8cc26fd7106281092ae"
 
 [[projects]]
   branch = "master"

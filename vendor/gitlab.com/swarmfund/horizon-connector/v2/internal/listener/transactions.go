@@ -1,6 +1,5 @@
 package listener
 
-
 import (
 	"context"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
@@ -17,7 +16,7 @@ func (q *Q) Transactions(result chan<- resources.TransactionEvent) <-chan error 
 		}()
 		cursor := ""
 		for {
-			transactions, meta, err := q.tx.Transactions(cursor)
+			transactions, meta, err := q.txQ.Transactions(cursor)
 			if err != nil {
 				errs <- err
 				continue
@@ -65,7 +64,7 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 				break
 			}
 
-			transactions, meta, err := q.tx.Transactions(cursor)
+			transactions, meta, err := q.txQ.Transactions(cursor)
 			if err != nil {
 				errChan <- errors.Wrap(err, "Failed to obtain Transactions", logan.F{"cursor": cursor})
 				continue
@@ -108,6 +107,7 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 	return txStream, errChan
 }
 
+// TODO Make a function, not a method (q is not used inside)
 func (q *Q) streamTxEvent(ctx context.Context, txEvent resources.TransactionEvent, txStream chan<- resources.TransactionEvent) bool {
 	select {
 	case <- ctx.Done():

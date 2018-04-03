@@ -59,6 +59,7 @@ func (t *incrementalTimer) next() <-chan time.Time {
 // you should return error instead - errors returned from runner will be logged with stack.
 //
 // RunOverIncrementalTimer returns only if ctx is canceled.
+// DEPRECATED, use package distributed_lab/running instead
 func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error,
 	normalPeriod time.Duration, abnormalPeriod time.Duration) {
 
@@ -106,6 +107,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 //
 // RunUntilSuccess returns only if the runner returns nil or ctx canceled.
 // TODO pass maxPausePeriod
+// DEPRECATED, use package distributed_lab/running instead
 func RunUntilSuccess(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, initialRetryPeriod time.Duration) {
 	log = log.WithField("runner", runnerName)
 

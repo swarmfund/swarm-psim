@@ -16,6 +16,8 @@ import (
 	"gitlab.com/tokend/keypair"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/user"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/balance"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/blob"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/document"
 )
 
 type Connector struct {
@@ -88,4 +90,12 @@ func (c *Connector) Listener() *listener.Q {
 // TODO Rename to Requests? it does actually manages Requests only.
 func (c *Connector) Operations() *operation.Q {
 	return operation.NewQ(c.client)
+}
+
+func (c *Connector) Blobs() *blob.Q {
+	return blob.NewQ(c.client)
+}
+
+func (c *Connector) Documents() *documnet.Q {
+	return documnet.NewQ(c.client)
 }

@@ -34,6 +34,8 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
 
+	_ "gitlab.com/swarmfund/psim/psim/idmind"
+
 	//minio
 	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 )
