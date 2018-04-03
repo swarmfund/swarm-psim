@@ -9,8 +9,8 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  addr: http://swarm:8000
-#  addr: http://localhost:8000
+  #addr: http://swarm:8000
+  addr: http://localhost:1488
 
 notificator:
   url: http://swarm:9009

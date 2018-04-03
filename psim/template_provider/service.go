@@ -48,8 +48,8 @@ func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
 		),
 	)
 
-	r.Get("/{template-id}", handlers.GetTemplate)
-	r.Put("/{template-id}", handlers.AddTemplate)
+	r.Get("/templates/{template}", handlers.GetTemplate)
+	r.Put("/templates/{template}", handlers.PutTemplate)
 
 	return r
 }

@@ -14,8 +14,8 @@ import (
 	"gitlab.com/swarmfund/go/doorman"
 )
 
-func AddTemplate(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "template-id")
+func PutTemplate(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "template")
 	bucket := Bucket(r)
 
 	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {

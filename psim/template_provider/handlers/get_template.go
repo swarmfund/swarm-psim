@@ -12,7 +12,7 @@ import (
 )
 
 func GetTemplate(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "template-id")
+	key := chi.URLParam(r, "template")
 	bucket := Bucket(r)
 
 	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {
