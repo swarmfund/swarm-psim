@@ -3,7 +3,11 @@ package idmind
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	"encoding/base64"
+	"net/http"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
@@ -22,6 +26,12 @@ type CreateAccountRequest struct {
 	State         string `json:"bs"`            // Max 30 chars Use official postal state/region abbreviations whenever possible (e.g. CA for California)
 	//PhoneNumber   string `json:"bc,omitempty"`  // Max 60 chars
 	//DateOfBirth string `json:"dob,omitempty"`
+
+	ScanData          string  `json:"scanData"`
+	BacksideImageData string  `json:"backsideImageData,omitempty"`
+	DocType           DocType `json:"docType"`
+	DocCountry        string  `json:"docCountry"`
+	//DocState          string  `json:"docState"` // Issuing State in 2 letter ANSI format, to be provided if different from bs/as and if docCountry is US
 }
 
 func (r CreateAccountRequest) validate() error {
@@ -56,10 +66,40 @@ func (r CreateAccountRequest) validate() error {
 	return nil
 }
 
-func buildCreateAccountRequest(data kyc.Data, email string) (*CreateAccountRequest, error) {
+type DocType string
+
+const (
+	PassportDocType        DocType = "PP"
+	DrivingLicenseDocType  DocType = "DL"
+	IdentityCardDocType    DocType = "IC"
+	ResidencePermitDocType DocType = "RP"
+)
+
+// fileBack can be nil
+func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, faceFile []byte, backFile []byte) (*CreateAccountRequest, error) {
 	countryCode, err := convertToISO(data.Address.Country)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to convert Country '%s' to ISO", data.Address.Country))
+	}
+
+	faceMime := http.DetectContentType(faceFile)
+	if faceMime != "image/png" && faceMime != "image/jpeg" {
+		return nil, errors.Wrap(err, "Detected Content-Type of faceFile is neither 'image/jpeg' nor 'image/jpeg'", logan.F{
+			"detected_file_content_type": faceMime,
+		})
+	}
+	faceB64 := fmt.Sprintf("%s;base64,%s", faceMime, base64.StdEncoding.EncodeToString(faceFile))
+
+	var backB64 string
+	if backFile != nil {
+		backMime := http.DetectContentType(backFile)
+		if faceMime != "image/png" && faceMime != "image/jpeg" {
+			return nil, errors.Wrap(err, "Detected Content-Type of backFile is neither 'image/jpeg' nor 'image/jpeg'", logan.F{
+				"detected_file_content_type": backMime,
+			})
+		}
+
+		backB64 = fmt.Sprintf("%s;base64,%s", backMime, base64.StdEncoding.EncodeToString(backFile))
 	}
 
 	r := CreateAccountRequest{
@@ -74,6 +114,11 @@ func buildCreateAccountRequest(data kyc.Data, email string) (*CreateAccountReque
 		PostalCode:    data.Address.PostalCode,
 		City:          data.Address.City,
 		State:         data.Address.State,
+
+		ScanData:          faceB64,
+		BacksideImageData: backB64,
+		DocType:           docType,
+		DocCountry:        countryCode,
 	}
 
 	validateErr := r.validate()
