@@ -1,12 +1,10 @@
 package kyc
 
 type Data struct {
-	FirstName  string    `json:"first_name"`
-	LastName   string    `json:"last_name"`
-	Address    Address   `json:"address"`
-	ETHAddress string    `json:"eth_address"`
-	Documents  Documents `json:"documents"`
-	Sequence   string    `json:"sequence"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Address   Address   `json:"address"`
+	Documents Documents `json:"documents"`
 }
 
 func (d Data) IsUSA() bool {
@@ -16,12 +14,10 @@ func (d Data) IsUSA() bool {
 
 func (d Data) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"first_name":  d.FirstName,
-		"last_name":   d.LastName,
-		"address":     d.Address,
-		"eth_address": d.ETHAddress,
-		"documents":   d.Documents,
-		"sequence":    d.Sequence,
+		"first_name": d.FirstName,
+		"last_name":  d.LastName,
+		"address":    d.Address,
+		"documents":  d.Documents,
 	}
 }
 
@@ -30,18 +26,25 @@ type Documents struct {
 	ProofOfAddr ProofOfAddrDoc `json:"kyc_poa"`
 }
 
-// TODO
-//func (d Documents) GetLoganFields() map[string]interface{} {
-//	return map[string]interface{}{
-//		"kyc_id":               d.KYCIdDocument,
-//		"kyc_proof_of_address": d.KYCProofOfAddress,
-//	}
-//}
+func (d Documents) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"id":               d.IDDocument,
+		"proof_of_address": d.ProofOfAddr,
+	}
+}
 
 type IDDocument struct {
-	FaceFileID string  `json:"front"`
-	BackFileID string  `json:"back"`
-	Type       DocType `json:"type"`
+	FaceDocID string  `json:"front"`
+	BackDocID string  `json:"back"`
+	Type      DocType `json:"type"`
+}
+
+func (d IDDocument) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"face": d.FaceDocID,
+		"back": d.BackDocID,
+		"type": d.Type,
+	}
 }
 
 type DocType string
@@ -54,5 +57,11 @@ const (
 )
 
 type ProofOfAddrDoc struct {
-	Face string `json:"front"`
+	FaceFileID string `json:"front"`
+}
+
+func (d ProofOfAddrDoc) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"face": d.FaceFileID,
+	}
 }

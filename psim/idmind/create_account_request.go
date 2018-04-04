@@ -63,17 +63,13 @@ func (r CreateAccountRequest) validate() error {
 		return errors.Errorf("State cannot be larger than 30 letters (%s).", r.State)
 	}
 
+	_, ok := validDocTypes[r.DocType]
+	if !ok {
+		return errors.Errorf("DocType (%s) is invalid.", r.DocType)
+	}
+
 	return nil
 }
-
-type DocType string
-
-const (
-	PassportDocType        DocType = "PP"
-	DrivingLicenseDocType  DocType = "DL"
-	IdentityCardDocType    DocType = "IC"
-	ResidencePermitDocType DocType = "RP"
-)
 
 // fileBack can be nil
 func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, faceFile []byte, backFile []byte) (*CreateAccountRequest, error) {

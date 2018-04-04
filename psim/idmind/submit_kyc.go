@@ -72,7 +72,19 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 }
 
 func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email string, request horizon.Request) error {
-	docType, faceFile, backFile, err := s.fetchIDDocument(kycData.Documents.IDDocument)
+	var docType DocType
+	switch kycData.Documents.IDDocument.Type {
+	case kyc.PassportDocType:
+		docType = PassportDocType
+	case kyc.DrivingLicenseDocType:
+		docType = DrivingLicenseDocType
+	case kyc.IdentityCardDocType:
+		docType = IdentityCardDocType
+	case kyc.ResidencePermitDocType:
+		docType = ResidencePermitDocType
+	}
+
+	faceFile, backFile, err := s.fetchIDDocument(kycData.Documents.IDDocument)
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch Documents")
 	}
@@ -108,45 +120,32 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	return nil
 }
 
-func (s *Service) fetchIDDocument(doc kyc.IDDocument) (docType DocType, faceFile, backFile []byte, err error) {
-	switch doc.Type {
-	case kyc.PassportDocType:
-		docType = PassportDocType
-	case kyc.DrivingLicenseDocType:
-		docType = DrivingLicenseDocType
-	case kyc.IdentityCardDocType:
-		docType = IdentityCardDocType
-	case kyc.ResidencePermitDocType:
-		docType = ResidencePermitDocType
-	default:
-		return DocType(""), nil, nil, errors.Errorf("Unknown DocumentType: (%s).", string(doc.Type))
-	}
-
-	faceDoc, err := s.documentsConnector.Document(doc.FaceFileID)
+func (s *Service) fetchIDDocument(doc kyc.IDDocument) (faceFile, backFile []byte, err error) {
+	faceDoc, err := s.documentsConnector.Document(doc.FaceDocID)
 	if err != nil {
-		return "", nil, nil, errors.Wrap(err, "Failed to get Face Document by ID from Horizon")
+		return nil, nil, errors.Wrap(err, "Failed to get Face Document by ID from Horizon")
 	}
 
 	faceFileResp, err := http.Get(fixDocURL(faceDoc.URL))
 	faceFile, err = ioutil.ReadAll(faceFileResp.Body)
 	if err != nil {
-		return "", nil, nil, errors.Wrap(err, "Failed to read faceFile response into bytes")
+		return nil, nil, errors.Wrap(err, "Failed to read faceFile response into bytes")
 	}
 
-	if doc.BackFileID != "" {
-		backDoc, err := s.documentsConnector.Document(doc.BackFileID)
+	if doc.BackDocID != "" {
+		backDoc, err := s.documentsConnector.Document(doc.BackDocID)
 		if err != nil {
-			return "", nil, nil, errors.Wrap(err, "Failed to get Back Document by ID from Horizon")
+			return nil, nil, errors.Wrap(err, "Failed to get Back Document by ID from Horizon")
 		}
 
 		backFileResp, err := http.Get(fixDocURL(backDoc.URL))
 		backFile, err = ioutil.ReadAll(backFileResp.Body)
 		if err != nil {
-			return "", nil, nil, errors.Wrap(err, "Failed to read backFile response into bytes")
+			return nil, nil, errors.Wrap(err, "Failed to read backFile response into bytes")
 		}
 	}
 
-	return docType, faceFile, backFile, nil
+	return faceFile, backFile, nil
 }
 
 func fixDocURL(url string) string {

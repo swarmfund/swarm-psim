@@ -13,7 +13,6 @@ type parsingData struct {
 	Address    Address     `json:"address"`
 	ETHAddress string      `json:"eth_address"`
 	Documents  DocumentsV1 `json:"documents"`
-	Sequence   string      `json:"sequence"`
 
 	Version string `json:"version"`
 	V2      Data   `json:"v2"`
@@ -40,18 +39,16 @@ func ParseKYCData(data string) (*Data, error) {
 			FirstName:  parsingKYCData.FirstName,
 			LastName:   parsingKYCData.LastName,
 			Address:    parsingKYCData.Address,
-			ETHAddress: parsingKYCData.ETHAddress,
 			Documents: Documents{
 				IDDocument: IDDocument{
-					FaceFileID: parsingKYCData.Documents.KYCIdDocument,
-					BackFileID: "",
-					Type:       PassportDocType,
+					FaceDocID: parsingKYCData.Documents.KYCIdDocument,
+					BackDocID: "",
+					Type:      PassportDocType,
 				},
 				ProofOfAddr: ProofOfAddrDoc{
-					Face: parsingKYCData.Documents.KYCProofOfAddress,
+					FaceFileID: parsingKYCData.Documents.KYCProofOfAddress,
 				},
 			},
-			Sequence: parsingKYCData.Sequence,
 		}, nil
 	}
 }
