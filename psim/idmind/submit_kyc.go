@@ -72,8 +72,10 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 }
 
 func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email string, request horizon.Request) error {
+	idDoc := kycData.Documents.IDDocument
+
 	var docType DocType
-	switch kycData.Documents.IDDocument.Type {
+	switch idDoc.Type {
 	case kyc.PassportDocType:
 		docType = PassportDocType
 	case kyc.DrivingLicenseDocType:
@@ -84,7 +86,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 		docType = ResidencePermitDocType
 	}
 
-	faceFile, backFile, err := s.fetchIDDocument(kycData.Documents.IDDocument)
+	faceFile, backFile, err := s.fetchIDDocument(idDoc)
 	if err != nil {
 		return errors.Wrap(err, "Failed to fetch Documents")
 	}
@@ -152,38 +154,42 @@ func fixDocURL(url string) string {
 	return strings.Replace(url, `\u0026`, `&`, -1)
 }
 
-func (s *Service) processNewApplicationResponse(ctx context.Context, applicationResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
-	if applicationResponse.KYCState == RejectedKYCState {
-		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected, kycData.IsUSA())
+func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
+	rejectReason, details := s.getAppRespRejectReason(appResponse)
+	if rejectReason != "" {
+		// Need to reject
+		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, appResponse, rejectReason, details, kycData.IsUSA())
 		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse")
+			return errors.Wrap(err, "Failed to reject KYCRequest due to reason from immediate ApplicationResponse")
 		}
 
 		s.log.WithFields(logan.F{
 			"request":        request,
 			"reject_blob_id": blobID,
-		}).Info("Rejected KYCRequest during Submit Task successfully (rejected state).")
-		return nil
-	}
-	if applicationResponse.PolicyResult == DenyFraudResult {
-		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied, kycData.IsUSA())
-		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse")
-		}
-
-		s.log.WithFields(logan.F{
-			"request":        request,
-			"reject_blob_id": blobID,
-		}).Info("Rejected KYCRequest during Submit Task successfully (denied FraudPolicyResult).")
+		}).Infof("Rejected KYCRequest during Submit Task successfully (%s).", rejectReason)
 		return nil
 	}
 
 	// TODO Make sure we need TxID, not MTxID
-	err := s.approveSubmitKYC(ctx, request.ID, request.Hash, applicationResponse.TxID, kycData.IsUSA())
+	err := s.approveSubmitKYC(ctx, request.ID, request.Hash, appResponse.TxID, kycData.IsUSA())
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}
 
 	s.log.WithField("request", request).Info("Approved KYCRequest during Submit Task successfully.")
 	return nil
+}
+
+// GetAppRespRejectReason returns "", nil if no reject reasons in immediate Application response.
+func (s *Service) getAppRespRejectReason(appResponse ApplicationResponse) (rejectReason string, details map[string]string) {
+	rejectReason, details = s.getCheckRespRejectReason(appResponse.CheckApplicationResponse)
+	if rejectReason != "" {
+		return rejectReason, details
+	}
+
+	if appResponse.FraudResult == DenyFraudResult {
+		return s.config.RejectReasons.FraudPolicyResultDenied, nil
+	}
+
+	return "", nil
 }

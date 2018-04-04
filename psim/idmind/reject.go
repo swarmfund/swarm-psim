@@ -26,17 +26,17 @@ func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, re
 }
 
 // rejectReason must be absolutely human-readable, we show it to User
-func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, isUSA bool) (blobID string, err error) {
+func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, extDetails map[string]string, isUSA bool) (blobID string, err error) {
 	var tasksToAdd uint32
 	if isUSA {
 		tasksToAdd = TaskUSA
 	}
 
-	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd, nil)
+	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd, extDetails)
 }
 
-func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string) (blobID string, err error) {
-	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0, nil)
+func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, extDetails map[string]string) (blobID string, err error) {
+	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0, extDetails)
 }
 
 // idMindResp can be nil (in this case blobID in return will be empty)
