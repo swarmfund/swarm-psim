@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"io"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
@@ -45,7 +43,6 @@ type UsersConnector interface {
 
 type IdentityMind interface {
 	Submit(req CreateAccountRequest) (*ApplicationResponse, error)
-	UploadDocument(txID, description string, fileName string, fileReader io.Reader) error
 	CheckState(txID string) (*CheckApplicationResponse, error)
 }
 
@@ -150,7 +147,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	// I found this log useless
-	//s.log.WithField("request", request).Debug("Found interesting KYC Request.")
+	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
 	kyc := request.Details.KYC
 
 	if kyc.PendingTasks&TaskSubmitIDMind != 0 {

@@ -6,6 +6,8 @@ import (
 
 	"context"
 
+	"io/ioutil"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2"
@@ -19,6 +21,7 @@ func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) er
 	if !ok {
 		return errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
 	}
+
 	blobID, ok := blobIDInterface.(string)
 	if !ok {
 		// Normally should never happen
@@ -36,7 +39,6 @@ func (s *Service) submitKYCData(ctx context.Context, request horizon.Request) er
 	return nil
 }
 
-// TODO Refactor me - too long method
 func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, blobID, accountID string) error {
 	blob, err := s.blobsConnector.Blob(blobID)
 	if err != nil {
@@ -61,9 +63,42 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	}
 	email := user.Attributes.Email
 
-	createAccountReq, err := buildCreateAccountRequest(*kycData, email)
+	err = s.processNewKYCApplication(ctx, *kycData, email, request)
 	if err != nil {
-		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), err)
+		return errors.Wrap(err, "Failed to process new KYC Application", fields)
+	}
+
+	return nil
+}
+
+func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email string, request horizon.Request) error {
+	idDoc := kycData.Documents.IDDocument
+
+	var docType DocType
+	switch idDoc.Type {
+	case kyc.PassportDocType:
+		docType = PassportDocType
+	case kyc.DrivingLicenseDocType:
+		docType = DrivingLicenseDocType
+	case kyc.IdentityCardDocType:
+		docType = IdentityCardDocType
+	case kyc.ResidencePermitDocType:
+		docType = ResidencePermitDocType
+	}
+
+	faceFile, backFile, err := s.fetchIDDocument(idDoc)
+	if err != nil {
+		return errors.Wrap(err, "Failed to fetch Documents")
+	}
+	fields := logan.F{
+		"doc_type":          docType,
+		"face_doc_file_len": len(faceFile),
+		"back_doc_file_len": len(backFile),
+	}
+
+	createAccountReq, reqValidationErr := buildCreateAccountRequest(kycData, email, docType, faceFile, backFile)
+	if reqValidationErr != nil {
+		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), reqValidationErr)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData", fields)
 		}
@@ -75,43 +110,69 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 
 	applicationResponse, err := s.identityMind.Submit(*createAccountReq)
 	if err != nil {
-		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind")
+		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind", fields)
 	}
-	fields["app_response"] = applicationResponse
+	fields["application_response"] = applicationResponse
 
-	if applicationResponse.KYCState == RejectedKYCState {
-		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.KYCStateRejected, kycData.IsUSA())
-		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of KYCState rejected in immediate ApplicationResponse", fields)
-		}
-
-		s.log.WithFields(logan.F{
-			"request": request,
-			"reject_blob_id": blobID,
-		}).Info("Rejected KYCRequest during Submit Task successfully (rejected state).")
-		return nil
-	}
-	if applicationResponse.PolicyResult == DenyFraudResult {
-		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, applicationResponse, s.config.RejectReasons.FraudPolicyResultDenied, kycData.IsUSA())
-		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of PolicyResult(fraud) denied in immediate ApplicationResponse", fields)
-		}
-
-		s.log.WithFields(logan.F{
-			"request": request,
-			"reject_blob_id": blobID,
-		}).Info("Rejected KYCRequest during Submit Task successfully (denied FraudPolicyResult).")
-		return nil
-	}
-
-	// TODO Make sure we need TxID, not MTxID
-	err = s.fetchAndSubmitDocs(kycData.Documents, applicationResponse.TxID)
+	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request)
 	if err != nil {
-		return errors.Wrap(err, "Failed to fetch and submit KYC documents")
+		return errors.Wrap(err, "Failed to process response of new KYC Application", fields)
+	}
+
+	return nil
+}
+
+func (s *Service) fetchIDDocument(doc kyc.IDDocument) (faceFile, backFile []byte, err error) {
+	faceDoc, err := s.documentsConnector.Document(doc.FaceDocID)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to get Face Document by ID from Horizon")
+	}
+
+	faceFileResp, err := http.Get(fixDocURL(faceDoc.URL))
+	faceFile, err = ioutil.ReadAll(faceFileResp.Body)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to read faceFile response into bytes")
+	}
+
+	if doc.BackDocID != "" {
+		backDoc, err := s.documentsConnector.Document(doc.BackDocID)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Failed to get Back Document by ID from Horizon")
+		}
+
+		backFileResp, err := http.Get(fixDocURL(backDoc.URL))
+		backFile, err = ioutil.ReadAll(backFileResp.Body)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Failed to read backFile response into bytes")
+		}
+	}
+
+	return faceFile, backFile, nil
+}
+
+func fixDocURL(url string) string {
+	return strings.Replace(url, `\u0026`, `&`, -1)
+}
+
+func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
+	rejectReason, details := s.getAppRespRejectReason(appResponse)
+	if rejectReason != "" {
+		// Need to reject
+		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, appResponse, rejectReason, details, kycData.IsUSA())
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest due to reason from immediate ApplicationResponse")
+		}
+
+		s.log.WithFields(logan.F{
+			"request":            request,
+			"reject_blob_id":     blobID,
+			"reject_ext_details": details,
+		}).Infof("Rejected KYCRequest during Submit Task successfully (%s).", rejectReason)
+		return nil
 	}
 
 	// TODO Make sure we need TxID, not MTxID
-	err = s.approveSubmitKYC(ctx, request.ID, request.Hash, applicationResponse.TxID, kycData.IsUSA())
+	err := s.approveSubmitKYC(ctx, request.ID, request.Hash, appResponse.TxID, kycData.IsUSA())
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}
@@ -120,37 +181,16 @@ func (s *Service) processKYCBlob(ctx context.Context, request horizon.Request, b
 	return nil
 }
 
-// FIXME
-func (s *Service) fetchAndSubmitDocs(docs kyc.Documents, txID string) error {
-	doc, err := s.documentsConnector.Document(docs.KYCIdDocument)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get KYCIdDocument by ID from Horizon")
+// GetAppRespRejectReason returns "", nil if no reject reasons in immediate Application response.
+func (s *Service) getAppRespRejectReason(appResponse ApplicationResponse) (rejectReason string, details map[string]string) {
+	rejectReason, details = s.getCheckRespRejectReason(appResponse.CheckApplicationResponse)
+	if rejectReason != "" {
+		return rejectReason, details
 	}
 
-	resp, err := http.Get(fixDocURL(doc.URL))
-	// TODO parse response Content-Type to determine document file extension (do when it's ready in API)
-
-	err = s.identityMind.UploadDocument(txID, "ID Document", "id_document", resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "Failed to submit KYCIdDocument to IdentityMind")
+	if appResponse.FraudResult == DenyFraudResult {
+		return s.config.RejectReasons.FraudPolicyResultDenied, nil
 	}
 
-	doc, err = s.documentsConnector.Document(docs.KYCProofOfAddress)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get KYCProofOfAddress by ID from Horizon")
-	}
-
-	resp, err = http.Get(fixDocURL(doc.URL))
-	// TODO parse response Content-Type to determine document file extension (do when it's ready in API)
-
-	err = s.identityMind.UploadDocument(txID, "Proof of Address", "proof_of_address", resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "Failed to submit KYCProofOfAddress document to IdentityMind")
-	}
-
-	return nil
-}
-
-func fixDocURL(url string) string {
-	return strings.Replace(url, `\u0026`, `&`, -1)
+	return "", nil
 }

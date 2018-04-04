@@ -127,8 +127,9 @@ type ConditionResult struct {
 
 // TODO Implement GetLoganFields
 type ExtEvalResult struct {
-	ReportedRule ExtRule `json:"reportedRule"`
-	Profile      string  `json:"profile"`
+	FiredRules   []ExtRule `json:"firedRules"`
+	ReportedRule ExtRule   `json:"reportedRule"`
+	Profile      string    `json:"profile"`
 }
 
 // TODO Implement GetLoganFields
