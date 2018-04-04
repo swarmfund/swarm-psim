@@ -82,6 +82,10 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to convert Country '%s' to ISO", data.Address.Country))
 	}
 
+	if faceFile == nil {
+		return nil, errors.New("FaceFile cannot be nil.")
+	}
+
 	faceMime := http.DetectContentType(faceFile)
 	if faceMime != "image/png" && faceMime != "image/jpeg" {
 		return nil, errors.Wrap(err, "Detected Content-Type of faceFile is neither 'image/jpeg' nor 'image/jpeg'", logan.F{
@@ -93,7 +97,7 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 	var backB64 string
 	if backFile != nil {
 		backMime := http.DetectContentType(backFile)
-		if faceMime != "image/png" && faceMime != "image/jpeg" {
+		if backMime != "image/png" && backMime != "image/jpeg" {
 			return nil, errors.Wrap(err, "Detected Content-Type of backFile is neither 'image/jpeg' nor 'image/jpeg'", logan.F{
 				"detected_file_content_type": backMime,
 			})

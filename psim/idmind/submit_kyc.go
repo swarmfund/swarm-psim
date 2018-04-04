@@ -82,9 +82,9 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 		"back_doc_file_len": len(backFile),
 	}
 
-	createAccountReq, err := buildCreateAccountRequest(kycData, email, docType, faceFile, backFile)
-	if err != nil {
-		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), err)
+	createAccountReq, reqValidationErr := buildCreateAccountRequest(kycData, email, docType, faceFile, backFile)
+	if reqValidationErr != nil {
+		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), reqValidationErr)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData", fields)
 		}
@@ -98,7 +98,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	if err != nil {
 		return errors.Wrap(err, "Failed to submit KYC data to IdentityMind", fields)
 	}
-	fields["app_response"] = applicationResponse
+	fields["application_response"] = applicationResponse
 
 	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request)
 	if err != nil {

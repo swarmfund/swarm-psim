@@ -147,7 +147,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	// I found this log useless
-	//s.log.WithField("request", request).Debug("Found interesting KYC Request.")
+	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
 	kyc := request.Details.KYC
 
 	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
