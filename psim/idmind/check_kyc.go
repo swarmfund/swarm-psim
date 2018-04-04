@@ -50,8 +50,9 @@ func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) er
 		}
 
 		s.log.WithFields(logan.F{
-			"request":        request,
-			"reject_blob_id": blobID,
+			"request":            request,
+			"reject_blob_id":     blobID,
+			"reject_ext_details": details,
 		}).Infof("Rejected KYCRequest during Check Task successfully (%s).", rejectReason)
 		return nil
 	}

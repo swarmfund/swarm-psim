@@ -164,8 +164,9 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 		}
 
 		s.log.WithFields(logan.F{
-			"request":        request,
-			"reject_blob_id": blobID,
+			"request":            request,
+			"reject_blob_id":     blobID,
+			"reject_ext_details": details,
 		}).Infof("Rejected KYCRequest during Submit Task successfully (%s).", rejectReason)
 		return nil
 	}
