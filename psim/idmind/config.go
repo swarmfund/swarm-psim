@@ -4,26 +4,30 @@ import "gitlab.com/tokend/keypair"
 
 type Config struct {
 	Connector     ConnectorConfig    `fig:"connector,required"`
-	RejectReasons RejectReasonConfig `fig:"reject_reasons"`
+	RejectReasons RejectReasonConfig `fig:"reject_reasons,required"`
 
 	Source keypair.Address `fig:"source,required"`
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
-
-	WhiteList []string `fig:"white_list"`
-	BlackList []string `fig:"black_list"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"connector":      c.Connector,
 		"reject_reasons": c.RejectReasons,
-
-		"white_list_len": len(c.WhiteList),
-		"black_list_len": len(c.BlackList),
 	}
 }
 
 type RejectReasonConfig struct {
-	KYCStateRejected        string `fig:"kyc_state_rejected,required"`
-	FraudPolicyResultDenied string `json:"fraud_policy_result_denied,required"`
+	KYCStateRejected           string `fig:"kyc_state_rejected,required"`
+	FraudPolicyResultDenied    string `json:"fraud_policy_result_denied,required"`
+	InvalidKYCData             string `json:"invalid_kyc_data,required"`
+	PolicyEvaluationRulesFired string `fig:"policy_evaluation_rules_fired,required"`
+}
+
+func (c RejectReasonConfig) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"kyc_state_rejected":         c.KYCStateRejected,
+		"fraud_policy_result_denied": c.FraudPolicyResultDenied,
+		"invalid_kyc_data":           c.InvalidKYCData,
+	}
 }

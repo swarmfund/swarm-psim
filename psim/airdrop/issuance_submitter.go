@@ -59,7 +59,7 @@ func NewIssuanceSubmitter(
 // If reference duplication occurred, Submit returns nil, nil.
 func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceID string, amount uint64, opDetails string) (*issuance.RequestOpt, bool, error) {
 	issuanceOpt := issuance.RequestOpt{
-		Reference: buildReference(accountAddress, s.referenceSuffix),
+		Reference: BuildReference(accountAddress, s.referenceSuffix),
 		Receiver:  balanceID,
 		Asset:     s.asset,
 		Amount:    amount,
@@ -84,7 +84,7 @@ func (s *IssuanceSubmitter) Submit(ctx context.Context, accountAddress, balanceI
 	return &issuanceOpt, ok, nil
 }
 
-func buildReference(accountAddress, suffix string) string {
+func BuildReference(accountAddress, suffix string) string {
 	result := accountAddress + suffix
 
 	// Just in case.

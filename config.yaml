@@ -9,8 +9,8 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  addr: http://swarm:8000
-#  addr: http://localhost:8000
+  #addr: http://swarm:8000
+  addr: http://localhost:8000
 
 notificator:
   url: http://swarm:9009
@@ -40,6 +40,14 @@ notifications_slack:
   channel_name: "#channel_name"
   icon_emoji: ":mega:"
 
+s3:
+  url: http://127.0.0.1:9000
+  access_key: 79JUU8NN3K8BPQBD0P2W
+  secret_key: N8sE8S5/0XRFVeqIJj2f7UWZYqqo6AClG5BRHCP/
+  region: us-west-2
+  disable_ssl: true
+  s3_force_path_style: true
+
 # services
 
 services:
@@ -65,6 +73,7 @@ services:
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
+#- template_provider
 #  - identity_mind
 
 # BTC
@@ -166,7 +175,6 @@ eth_withdraw:
   gas_price: 1000000000
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-
 
 forfeit_listener:
   pprof: true
@@ -350,16 +358,16 @@ identity_mind:
     url: https://sandbox.identitymind.com/im
     auth_key: ID_MIND_AUTH_KEY # base64(user:password)
   reject_reasons:
-    kyc_state_rejected: "KYC service rejected"
-    fraud_policy_result_denied: "KYC service policy evaluation denied"
+    kyc_state_rejected: "KYC service rejected" # Make sure the string is shorter than 256
+    fraud_policy_result_denied: "KYC service policy evaluation denied" # Make sure the string is shorter than 256
+    invalid_kyc_data: "KYC data is invalid" # Make sure the string is shorter than 256
+    policy_evaluation_rules_fired: "Policy evaluation rules fired" # Make sure the string is shorter than 256
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
-  white_list: [
-"G_SOME_VALID_ACCOUNT_ADDRESS_1",
-"G_SOME_VALID_ACCOUNT_ADDRESS_2"]
-
-  black_list: [
-"G_SOME_VALID_ACCOUNT_ADDRESS_3",
-"G_SOME_VALID_ACCOUNT_ADDRESS_4"]
+template_provider:
+  host: localhost
+  port: 2323
+  bucket: "template"
+  skip_signature_check: true

@@ -8,6 +8,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
+// TODO Refactor me - too long method
 func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) error {
 	kyc := request.Details.KYC
 
@@ -40,12 +41,29 @@ func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) er
 	}
 	fields["check_response"] = checkResp
 
+	rejectReason, details := s.getCheckRespRejectReason(*checkResp)
+	if rejectReason != "" {
+		// Need to reject
+		blobID, err := s.rejectCheckKYC(ctx, request.ID, request.Hash, *checkResp, rejectReason, details)
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest due to reason from CheckResponse")
+		}
+
+		s.log.WithFields(logan.F{
+			"request":            request,
+			"reject_blob_id":     blobID,
+			"reject_ext_details": details,
+		}).Infof("Rejected KYCRequest during Check Task successfully (%s).", rejectReason)
+		return nil
+	}
+
 	// TODO Maybe additionally determine, whether Application documents were already checked and the result is final (from the 'etr' field).
-	switch checkResp.KYCState {
-	case UnderReviewKYCState:
+	if checkResp.KYCState == UnderReviewKYCState {
 		// Not fully reviewed yet, skipping. Will come back to this KYCRequest later.
 		return nil
-	case AcceptedKYCState:
+	}
+
+	if checkResp.KYCState == AcceptedKYCState {
 		err := s.approveCheckKYC(ctx, request.ID, request.Hash)
 		if err != nil {
 			return errors.Wrap(err, "Failed to approve during Check Task", fields)
@@ -53,15 +71,25 @@ func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) er
 
 		s.log.WithField("request", request).Info("Approved KYCRequest during Check Task successfully.")
 		return nil
-	case RejectedKYCState:
-		err := s.rejectCheckKYC(ctx, request.ID, request.Hash, checkResp, s.config.RejectReasons.KYCStateRejected)
-		if err != nil {
-			return errors.Wrap(err, "Failed to reject during Check Task", fields)
-		}
-
-		s.log.WithField("request", request).Info("Rejected KYCRequest during Check Task successfully.")
-		return nil
 	}
 
 	return nil
+}
+
+func (s *Service) getCheckRespRejectReason(checkAppResponse CheckApplicationResponse) (rejectReason string, details map[string]string) {
+	if checkAppResponse.KYCState == RejectedKYCState {
+		return s.config.RejectReasons.KYCStateRejected, nil
+	}
+
+	firedRules := checkAppResponse.EDNAScoreCard.FraudPolicyEvaluation.FiredRules
+	if len(firedRules) > 0 {
+		details = make(map[string]string)
+		for _, rule := range firedRules {
+			details[rule.Name] = rule.Description
+		}
+
+		return s.config.RejectReasons.PolicyEvaluationRulesFired, details
+	}
+
+	return "", nil
 }
