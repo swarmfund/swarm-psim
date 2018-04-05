@@ -154,7 +154,10 @@ func fixDocURL(url string) string {
 	return strings.Replace(url, `\u0026`, `&`, -1)
 }
 
+// TODO Send emails
 func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
+	logger := s.log.WithField("request", request)
+
 	rejectReason, details := s.getAppRespRejectReason(appResponse)
 	if rejectReason != "" {
 		// Need to reject
@@ -176,16 +179,21 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}
+	logger = logger.WithField("tx_id", appResponse.TxID)
 
-	s.log.WithField("request", request).Info("Approved KYCRequest during Submit Task successfully.")
+	if appResponse.FraudResult == ManualReviewFraudResult {
+		// TODO Send emails
+		logger.Info("Result of immediate response for Application submit is ManualReview")
+	}
+
+	logger.Info("Approved KYCRequest during Submit Task successfully.")
 	return nil
 }
 
 // GetAppRespRejectReason returns "", nil if no reject reasons in immediate Application response.
 func (s *Service) getAppRespRejectReason(appResponse ApplicationResponse) (rejectReason string, details map[string]string) {
-	rejectReason, details = s.getCheckRespRejectReason(appResponse.CheckApplicationResponse)
-	if rejectReason != "" {
-		return rejectReason, details
+	if appResponse.CheckApplicationResponse.KYCState == RejectedKYCState {
+		return s.config.RejectReasons.KYCStateRejected, nil
 	}
 
 	if appResponse.FraudResult == DenyFraudResult {

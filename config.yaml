@@ -361,7 +361,7 @@ identity_mind:
     kyc_state_rejected: "KYC service rejected" # Make sure the string is shorter than 256
     fraud_policy_result_denied: "KYC service policy evaluation denied" # Make sure the string is shorter than 256
     invalid_kyc_data: "KYC data is invalid" # Make sure the string is shorter than 256
-    policy_evaluation_rules_fired: "Policy evaluation rules fired" # Make sure the string is shorter than 256
+#    policy_evaluation_rules_fired: "Policy evaluation rules fired" # Make sure the string is shorter than 256
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
