@@ -37,3 +37,22 @@ func (q *Q) Sales() ([]resources.Sale, error) {
 
 	return result, nil
 }
+
+func (q *Q) SaleByID(saleID uint64) (*resources.Sale, error) {
+	response, err := q.client.Get(fmt.Sprintf("/sales/%d", saleID))
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if response == nil {
+		// No such sale
+		return nil, nil
+	}
+
+	var result resources.Sale
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	return &result, nil
+}

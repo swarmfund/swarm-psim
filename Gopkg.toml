@@ -85,7 +85,7 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
+  branch = "cancelled_sale_notifications"
   name = "gitlab.com/swarmfund/horizon-connector"
 
 [[constraint]]

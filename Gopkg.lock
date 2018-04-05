@@ -548,7 +548,7 @@
   revision = "80fce354f44ab9c6d275075c4aa0519b0c12d6d1"
 
 [[projects]]
-  branch = "master"
+  branch = "cancelled_sale_notifications"
   name = "gitlab.com/swarmfund/horizon-connector"
   packages = [
     "v2",
@@ -562,6 +562,7 @@
     "v2/internal/listener",
     "v2/internal/operation",
     "v2/internal/resources",
+    "v2/internal/resources/operations",
     "v2/internal/responses",
     "v2/internal/sale",
     "v2/internal/templates",
@@ -569,7 +570,7 @@
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "56f75ea32aaedf41d28d02cc4d175c533f80234c"
+  revision = "35358fb8a18fb3e9e2dc3e9cf6833c584de19eb3"
 
 [[projects]]
   branch = "master"
@@ -659,6 +660,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9154b934d335ce89c2f72c70ec568780a168c5a00b8f1dfb82e00b9d53d897e4"
+  inputs-digest = "3db4cb96d3643ce6a5dcd1e230c3e95bade4f5746743f1ceabe9ba240432fe5f"
   solver-name = "gps-cdcl"
   solver-version = 1
