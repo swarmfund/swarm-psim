@@ -172,7 +172,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	if kyc.PendingTasks&TaskCheckIDMind != 0 {
 		err := s.checkKYCState(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to check KYC state to IDMind")
+			return errors.Wrap(err, "Failed to check KYC state in IDMind")
 		}
 
 		return nil

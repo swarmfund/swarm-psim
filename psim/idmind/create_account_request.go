@@ -24,8 +24,8 @@ type CreateAccountRequest struct {
 	PostalCode    string `json:"bz"`            // Max 20 chars
 	City          string `json:"bc"`            // Max 30 chars
 	State         string `json:"bs"`            // Max 30 chars Use official postal state/region abbreviations whenever possible (e.g. CA for California)
+	DateOfBirth   string `json:"dob,omitempty"`
 	//PhoneNumber   string `json:"bc,omitempty"`  // Max 60 chars
-	//DateOfBirth string `json:"dob,omitempty"`
 
 	ScanData          string  `json:"scanData"`
 	BacksideImageData string  `json:"backsideImageData,omitempty"`
@@ -102,6 +102,11 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 		backB64 = fmt.Sprintf("%s;base64,%s", backMime, base64.StdEncoding.EncodeToString(backFile))
 	}
 
+	var dateOfBirthStr string
+	if !data.DateOfBirth.IsZero() {
+		dateOfBirthStr = data.DateOfBirth.Format("2006-01-02")
+	}
+
 	r := CreateAccountRequest{
 		// Not sure email is a good data to put here
 		AccountName: email,
@@ -114,6 +119,7 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 		PostalCode:    data.Address.PostalCode,
 		City:          data.Address.City,
 		State:         data.Address.State,
+		DateOfBirth:   dateOfBirthStr,
 
 		ScanData:          faceB64,
 		BacksideImageData: backB64,

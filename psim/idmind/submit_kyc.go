@@ -8,6 +8,8 @@ import (
 
 	"io/ioutil"
 
+	"fmt"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2"
@@ -97,6 +99,16 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	}
 
 	createAccountReq, reqValidationErr := buildCreateAccountRequest(kycData, email, docType, faceFile, backFile)
+
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	// FIXME
+	fmt.Println(createAccountReq)
+
 	if reqValidationErr != nil {
 		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), reqValidationErr)
 		if err != nil {
