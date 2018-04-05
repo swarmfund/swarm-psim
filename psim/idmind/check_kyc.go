@@ -49,7 +49,14 @@ func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) er
 		return nil
 	}
 
-	// Not fully reviewed yet, skipping. Will come back to this KYCRequest later.
+	// Not fully reviewed yet
+	if checkResp.IsManualReview() {
+		s.log.WithField("request", request).WithFields(fields).
+			Info("Result of immediate response for Application submit is ManualReview, adding notification emails to sending.")
+
+		s.emailProcessor.AddEmailAddresses(ctx, s.config.EmailsToNotify)
+	}
+
 	return nil
 }
 

@@ -154,7 +154,6 @@ func fixDocURL(url string) string {
 	return strings.Replace(url, `\u0026`, `&`, -1)
 }
 
-// TODO Send emails
 func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
 	logger := s.log.WithField("request", request)
 
@@ -180,11 +179,6 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}
 	logger = logger.WithField("tx_id", appResponse.TxID)
-
-	if appResponse.FraudResult == ManualReviewFraudResult {
-		// TODO Send emails
-		logger.Info("Result of immediate response for Application submit is ManualReview")
-	}
 
 	logger.Info("Approved KYCRequest during Submit Task successfully.")
 	return nil

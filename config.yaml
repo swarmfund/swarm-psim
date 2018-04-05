@@ -362,6 +362,14 @@ identity_mind:
     fraud_policy_result_denied: "KYC service policy evaluation denied" # Make sure the string is shorter than 256
     invalid_kyc_data: "KYC data is invalid" # Make sure the string is shorter than 256
 #    policy_evaluation_rules_fired: "Policy evaluation rules fired" # Make sure the string is shorter than 256
+  emails:
+    subject: "IDMind pending KYC requests waiting for manual review"
+    request_type: 7 # 7 means that email with unique token will be sent only once in 24h
+    message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."
+    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  emails_to_notify: [
+"john.doe@example.com",
+"jane.doe@example.com"]
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
