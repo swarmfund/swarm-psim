@@ -29,6 +29,42 @@
   revision = "18a2f1dd52bb9abbc1e898439df06c74f28f63a4"
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/corehandlers",
+    "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/stscreds",
+    "aws/defaults",
+    "aws/ec2metadata",
+    "aws/endpoints",
+    "aws/request",
+    "aws/session",
+    "aws/signer/v4",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "private/protocol",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/restxml",
+    "private/protocol/xml/xmlutil",
+    "service/s3",
+    "service/s3/s3iface",
+    "service/s3/s3manager",
+    "service/sts"
+  ]
+  revision = "5a33d0a4f5d9c27e6cd10b4c156e85b46c4501d7"
+  version = "v1.13.26"
+
+[[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = [
@@ -116,9 +152,18 @@
 
 [[projects]]
   name = "github.com/go-chi/chi"
-  packages = ["."]
+  packages = [
+    ".",
+    "middleware"
+  ]
   revision = "687d2792aedd8e8ac3bbd8592cf55b91d7ea8ce9"
   version = "v3.3.1"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "5e9692864e22d02ac79e2fa499cffb00520b4fea"
+  version = "v1.34.0"
 
 [[projects]]
   name = "github.com/go-ozzo/ozzo-validation"
@@ -195,6 +240,11 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/jtolds/gls"
@@ -429,6 +479,15 @@
   revision = "2c9cfd17756470a0b7c3e4b7954bae7d11035504"
 
 [[projects]]
+  name = "gitlab.com/distributed_lab/ape"
+  packages = [
+    ".",
+    "problems"
+  ]
+  revision = "d91553d505e0ffb7bcc38d75271338ef3f5c3e0b"
+  version = "v0.2"
+
+[[projects]]
   branch = "dev"
   name = "gitlab.com/distributed_lab/discovery-go"
   packages = ["."]
@@ -438,7 +497,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "39e395366b85671855be2cb4c3cfae679755566c"
+  revision = "43959d82aba203d057a8279d93a00716a1eca626"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -447,14 +506,20 @@
     "v3/errors",
     "v3/fields"
   ]
-  revision = "b3e799b86348d6b59d52fbdb6f35347ab3b10274"
-  version = "v3.4.1"
+  revision = "0c279a3a45143457b569e979e395481778e1ba42"
+  version = "v3.5.0"
 
 [[projects]]
   branch = "master"
   name = "gitlab.com/distributed_lab/notificator-server"
   packages = ["client"]
   revision = "75511e83f31d094326de3601201e8a42f490cc4b"
+
+[[projects]]
+  name = "gitlab.com/distributed_lab/running"
+  packages = ["."]
+  revision = "667d287dd5911ac80c6822dc816a7c56bc2d6462"
+  version = "v0.2"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/sse-go"
@@ -468,16 +533,19 @@
   packages = [
     "amount",
     "crc16",
+    "doorman",
+    "doorman/data",
     "hash",
     "keypair",
     "network",
+    "resources",
     "signcontrol",
     "strkey",
     "xdr",
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "c71a5b7d45aa6ace2e4f8567ca71389dc14877ee"
+  revision = "80fce354f44ab9c6d275075c4aa0519b0c12d6d1"
 
 [[projects]]
   branch = "master"
@@ -488,17 +556,20 @@
     "v2/internal/account",
     "v2/internal/asset",
     "v2/internal/balance",
+    "v2/internal/blob",
+    "v2/internal/document",
     "v2/internal/errors",
     "v2/internal/listener",
     "v2/internal/operation",
     "v2/internal/resources",
     "v2/internal/responses",
     "v2/internal/sale",
+    "v2/internal/templates",
     "v2/internal/transaction",
     "v2/internal/user",
     "v2/types"
   ]
-  revision = "f53a5eb83865fb1d7f108077f1e4f5c666b889c1"
+  revision = "56f75ea32aaedf41d28d02cc4d175c533f80234c"
 
 [[projects]]
   branch = "master"
@@ -588,6 +659,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "672a696ae89b0b72403272a287a36cc956f9a980c10eb1ac3506e1f085bee9fb"
+  inputs-digest = "9154b934d335ce89c2f72c70ec568780a168c5a00b8f1dfb82e00b9d53d897e4"
   solver-name = "gps-cdcl"
   solver-version = 1

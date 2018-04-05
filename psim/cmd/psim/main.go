@@ -27,10 +27,15 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetter"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetterveri"
+	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 
 	// airdrops
+	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/earlybird"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"
+	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
+
+	_ "gitlab.com/swarmfund/psim/psim/idmind"
 
 	// order notifier
 	_ "gitlab.com/swarmfund/psim/psim/ordernotifier"

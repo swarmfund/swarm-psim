@@ -8,14 +8,14 @@ import (
 )
 
 type Config struct {
-	Asset            string     `fig:"issuance_asset"`
-	Amount           uint64     `fig:"issuance_amount"`
-	RegisteredBefore *time.Time `fig:"registered_before"`
+	airdrop.IssuanceConfig `fig:"issuance,required"`
 
-	Source keypair.Address `fig:"source"`
-	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
+	RegisteredBefore *time.Time `fig:"registered_before,required"`
 
-	airdrop.EmailsConfig `fig:"emails"`
+	Source keypair.Address `fig:"source,required"`
+	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
+
+	airdrop.EmailsConfig `fig:"emails,required"`
 
 	WhiteList []string `fig:"white_list"`
 }

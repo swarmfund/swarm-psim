@@ -8,6 +8,8 @@ import (
 
 	"time"
 
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -69,7 +71,9 @@ func (h *ETHHelper) SendTX(txhex string) (hash string, err error) {
 	}
 
 	if err = h.eth.SendTransaction(context.TODO(), tx); err != nil {
-		return "", errors.Wrap(err, "failed to submit tx")
+		if !strings.Contains(err.Error(), "known transaction") {
+			return "", errors.Wrap(err, "failed to submit tx")
+		}
 	}
 
 	// wait while transaction is mined to avoid nonce mismatch issues
@@ -119,4 +123,17 @@ func (h *ETHHelper) SignTX(txhex string) (string, error) {
 func (h *ETHHelper) ValidateTX(tx string, withdrawAddress string, withdrawAmount int64) (string, error) {
 	// FIXME currently we are just mimicking real two-step flow
 	return "", nil
+}
+
+func (h *ETHHelper) GetHash(txHex string) (string, error) {
+	rlpbytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode tx hex")
+	}
+	tx := &types.Transaction{}
+	err = tx.DecodeRLP(rlp.NewStream(bytes.NewReader(rlpbytes), 0))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode tx rlp")
+	}
+	return tx.Hash().Hex(), nil
 }
