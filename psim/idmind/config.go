@@ -1,10 +1,16 @@
 package idmind
 
-import "gitlab.com/tokend/keypair"
+import (
+	"time"
+
+	"gitlab.com/tokend/keypair"
+)
 
 type Config struct {
-	Connector     ConnectorConfig    `fig:"connector,required"`
-	RejectReasons RejectReasonConfig `fig:"reject_reasons,required"`
+	Connector      ConnectorConfig    `fig:"connector,required"`
+	RejectReasons  RejectReasonConfig `fig:"reject_reasons,required"`
+	EmailsConfig   EmailsConfig       `fig:"emails,required"`
+	EmailsToNotify []string           `fig:"emails_to_notify,required"`
 
 	Source keypair.Address `fig:"source,required"`
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
@@ -12,16 +18,17 @@ type Config struct {
 
 func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"connector":      c.Connector,
-		"reject_reasons": c.RejectReasons,
+		"connector":            c.Connector,
+		"reject_reasons":       c.RejectReasons,
+		"emails_config":        c.EmailsConfig,
+		"emails_to_notify_len": len(c.EmailsToNotify),
 	}
 }
 
 type RejectReasonConfig struct {
-	KYCStateRejected           string `fig:"kyc_state_rejected,required"`
-	FraudPolicyResultDenied    string `json:"fraud_policy_result_denied,required"`
-	InvalidKYCData             string `json:"invalid_kyc_data,required"`
-	PolicyEvaluationRulesFired string `fig:"policy_evaluation_rules_fired,required"`
+	KYCStateRejected        string `fig:"kyc_state_rejected,required"`
+	FraudPolicyResultDenied string `json:"fraud_policy_result_denied,required"`
+	InvalidKYCData          string `json:"invalid_kyc_data,required"`
 }
 
 func (c RejectReasonConfig) GetLoganFields() map[string]interface{} {
@@ -29,5 +36,21 @@ func (c RejectReasonConfig) GetLoganFields() map[string]interface{} {
 		"kyc_state_rejected":         c.KYCStateRejected,
 		"fraud_policy_result_denied": c.FraudPolicyResultDenied,
 		"invalid_kyc_data":           c.InvalidKYCData,
+	}
+}
+
+type EmailsConfig struct {
+	Subject     string        `fig:"subject,required"`
+	RequestType int           `fig:"request_type,required"`
+	Message     string        `fig:"message,required"`
+	SendPeriod  time.Duration `fig:"send_period,required"`
+}
+
+func (c EmailsConfig) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"subject":      c.Subject,
+		"request_type": c.RequestType,
+		"message":      c.Message,
+		"send_period":  c.SendPeriod,
 	}
 }
