@@ -54,7 +54,7 @@ func (s *checkSaleStateStreamer) stream(ctx context.Context, cursor string) (new
 		}
 	}()
 
-	checkSaleStateOperations, err := s.q.op.CheckSaleStateOperations(newCursor)
+	checkSaleStateOperations, err := s.q.opQ.CheckSaleStateOperations(newCursor)
 	if err != nil {
 		s.send(ctx, nil, errors.Wrap(err, "failed to get check sale state operations"))
 		return
