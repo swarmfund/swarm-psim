@@ -161,7 +161,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
-		err := s.submitKYCData(ctx, request)
+		err := s.processNotSubmitted(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to submit KYC data")
 		}
@@ -170,7 +170,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	if kyc.PendingTasks&TaskCheckIDMind != 0 {
-		err := s.checkKYCState(ctx, request)
+		err := s.processNotChecked(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to check KYC state in IDMind")
 		}

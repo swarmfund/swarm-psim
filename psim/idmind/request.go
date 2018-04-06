@@ -15,6 +15,7 @@ const (
 	TaskSubmitIDMind       uint32 = 8
 	TaskCheckIDMind        uint32 = 16
 	TaskUSA                uint32 = 32
+	TaskNonLatinDoc        uint32 = 64
 
 	TxIDExtDetailsKey = "tx_id"
 )

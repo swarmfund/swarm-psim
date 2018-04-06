@@ -8,7 +8,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
-func (s *Service) checkKYCState(ctx context.Context, request horizon.Request) error {
+func (s *Service) processNotChecked(ctx context.Context, request horizon.Request) error {
 	txID := getIDMindTXId(request)
 	if txID == "" {
 		return errors.New("No tx_id in the whole ExternalDetails history, cannot check KYC state without TxID.")
