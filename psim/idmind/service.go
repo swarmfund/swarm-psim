@@ -169,6 +169,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		return nil
 	}
 
+	// Already submitted
 	if kyc.PendingTasks&TaskCheckIDMind != 0 {
 		err := s.processNotChecked(ctx, request)
 		if err != nil {

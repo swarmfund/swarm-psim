@@ -14,6 +14,8 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
+// ProcessNotSubmitted approves Users from USA or with non-Latin document,
+// submits all others KYCs to IDMind.
 func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Request) error {
 	kycRequest := request.Details.KYC
 
@@ -44,6 +46,10 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	return nil
 }
 
+// RetrieveKYCData retrieves BlobID from KYCRequest,
+// obtains Blob by BlobID,
+// check Blob's type
+// and parses KYCData from the Blob.Attributes.Value
 func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (*kyc.Data, error) {
 	kycRequest := request.Details.KYC
 

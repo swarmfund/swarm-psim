@@ -20,6 +20,8 @@ const (
 	TxIDExtDetailsKey = "tx_id"
 )
 
+// ProveInterestingRequest returns non-nil error if the provided Request
+// doesn't need to be considered by this Service.
 func proveInterestingRequest(request horizon.Request) error {
 	if request.State != RequestStatePending {
 		// State is not pending
