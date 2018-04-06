@@ -27,11 +27,12 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return errors.Wrap(err, "Failed to retrieve KYCData", fields)
 	}
 
-	if kycRequest.AllTasks&TaskNonLatinDoc != 0 {
-		// The documents of User don't have Latin letters, mark him as reviewed without sending to IDMind
-		err := s.approveBothTasks(ctx, request.ID, request.Hash, kycData.IsUSA())
+	isUSA := kycData.IsUSA()
+	if kycRequest.AllTasks&TaskNonLatinDoc != 0 || isUSA {
+		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
+		err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
 		if err != nil {
-			return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
+			return errors.Wrap(err, "Failed to approve both Tasks (without IDMind processing)")
 		}
 	}
 
@@ -194,7 +195,7 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 	}
 
 	// TODO Make sure we need TxID, not MTxID
-	err := s.approveSubmitKYC(ctx, request.ID, request.Hash, appResponse.TxID, kycData.IsUSA())
+	err := s.approveSubmitKYC(ctx, request.ID, request.Hash, appResponse.TxID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")
 	}

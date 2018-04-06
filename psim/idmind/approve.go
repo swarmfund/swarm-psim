@@ -15,17 +15,12 @@ func (s *Service) approveBothTasks(ctx context.Context, requestID uint64, reques
 		tasksToAdd = tasksToAdd | TaskUSA
 	}
 
-	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind|TaskCheckIDMind, "{}")
+	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind|TaskCheckIDMind|TaskNonLatinDoc, "{}")
 }
 
-func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string, isUSA bool) error {
-	var tasksToAdd = TaskCheckIDMind
-	if isUSA {
-		tasksToAdd = tasksToAdd | TaskUSA
-	}
-
+func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string) error {
 	extDetails := fmt.Sprintf(`{"%s":"%s"}`, TxIDExtDetailsKey, txID)
-	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind, extDetails)
+	return s.approve(ctx, requestID, requestHash, 0, TaskSubmitIDMind, extDetails)
 }
 
 func (s *Service) approveCheckKYC(ctx context.Context, requestID uint64, requestHash string) error {
