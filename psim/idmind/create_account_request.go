@@ -11,6 +11,10 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
+const (
+	NoAddressProfile = "NoAddress"
+)
+
 // CreateAccountRequest describes the structure of CreateAccount request to IdentityMind.
 type CreateAccountRequest struct {
 	AccountName string `json:"man"`           // The only required field in the request // 60 chars max
@@ -32,7 +36,10 @@ type CreateAccountRequest struct {
 	DocType           DocType `json:"docType"`
 	DocCountry        string  `json:"docCountry"`
 	//DocState          string  `json:"docState"` // Issuing State in 2 letter ANSI format, to be provided if different from bs/as and if docCountry is US
+	Profile string `json:"profile,omitempty"`
 }
+
+// TODO GetLoganFields implementation
 
 func (r CreateAccountRequest) validate() error {
 	if len(r.AccountName) > 60 {
@@ -107,6 +114,11 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 		dateOfBirthStr = data.DateOfBirth.Format("2006-01-02")
 	}
 
+	var profile string
+	if docType == PassportDocType {
+		profile = NoAddressProfile
+	}
+
 	r := CreateAccountRequest{
 		// Not sure email is a good data to put here
 		AccountName: email,
@@ -125,6 +137,7 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 		BacksideImageData: backB64,
 		DocType:           docType,
 		DocCountry:        countryCode,
+		Profile:           profile,
 	}
 
 	validateErr := r.validate()

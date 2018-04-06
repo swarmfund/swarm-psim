@@ -9,14 +9,18 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
-func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string, isUSA bool) error {
+func (s *Service) approveBothTasks(ctx context.Context, requestID uint64, requestHash string, isUSA bool) error {
 	var tasksToAdd = TaskCheckIDMind
 	if isUSA {
 		tasksToAdd = tasksToAdd | TaskUSA
 	}
 
+	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind|TaskCheckIDMind|TaskNonLatinDoc, "{}")
+}
+
+func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string) error {
 	extDetails := fmt.Sprintf(`{"%s":"%s"}`, TxIDExtDetailsKey, txID)
-	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind, extDetails)
+	return s.approve(ctx, requestID, requestHash, 0, TaskSubmitIDMind, extDetails)
 }
 
 func (s *Service) approveCheckKYC(ctx context.Context, requestID uint64, requestHash string) error {
@@ -25,6 +29,11 @@ func (s *Service) approveCheckKYC(ctx context.Context, requestID uint64, request
 }
 
 func (s *Service) approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails string) error {
+	if extDetails == "" {
+		// Just in case
+		extDetails = "{}"
+	}
+
 	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.Source).Op(xdrbuild.ReviewRequestOp{
 		ID:     requestID,
 		Hash:   requestHash,
