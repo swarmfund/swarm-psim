@@ -36,9 +36,6 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
 
 	_ "gitlab.com/swarmfund/psim/psim/idmind"
-
-	// order notifier
-	_ "gitlab.com/swarmfund/psim/psim/ordernotifier"
 )
 
 var (

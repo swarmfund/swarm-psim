@@ -21,7 +21,6 @@ const (
 	ServiceStripeVerify = "stripe_verify"
 
 	ServiceOperationNotifier = "notifier"
-	ServiceOrderNotifier     = "order_notifier"
 	ServiceBearer            = "bearer"
 	ServicePriceSetter       = "price_setter"
 	ServicePriceSetterVerify = "price_setter_verify"

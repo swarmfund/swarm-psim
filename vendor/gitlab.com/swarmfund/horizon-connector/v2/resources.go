@@ -27,3 +27,5 @@ type Blob = resources.Blob
 type Document = resources.Document
 type Reference = resources.Reference
 type Account = resources.Account
+type CreateKYCRequestOp = operations.CreateKYCRequest
+type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse

@@ -1,64 +1,74 @@
 package notifier
 
 import (
-	"context"
-
-	"sync"
-
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/notificator-server/client"
-	"gitlab.com/distributed_lab/sse-go"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"golang.org/x/net/context"
+	"time"
+	"gitlab.com/distributed_lab/running"
 )
 
-type Service struct {
-	*Config
-	horizon *horizon.Connector
-	sender  *notificator.Connector
-	logger  *logan.Entry
-	sse     *sse.Listener
+// UserConnector is an interface for retrieving specific user
+type UserConnector interface {
+	// User retrieves a single User by AccountID.
+	// If User doesn't exist - nil,nil is returned.
+	User(accountID string) (*horizon.User, error)
 }
 
-// New returns new instance of the Service service.
+// TransactionConnector is an interface for retrieving transaction
+// specified by provided transaction ID
+type TransactionConnector interface {
+	// TransactionByID retrieves Transaction with given transaction ID
+	// If Transaction doesn't exist - nil,nil is returned.
+	TransactionByID(txID string) (*horizon.Transaction, error)
+}
+
+// SaleConnector is an interface for retrieving sale
+// specified by provided sale ID
+type SaleConnector interface {
+	// SaleByID retrieves Sale with given sale ID
+	// If Sale doesn't exist - nil,nil is returned.
+	SaleByID(saleID uint64) (*horizon.Sale, error)
+}
+
+type EmailSender interface {
+	SendEmail(ctx context.Context, emailAddress, emailUniqueToken string, data interface{}) error
+}
+
+type Service struct {
+	config Config
+	logger *logan.Entry
+
+	cancelledSaleNotifier CancelledSaleNotifier
+}
+
+// New is a constructor of a service
 func New(
-	config *Config,
-	sender *notificator.Connector,
-	horizonConn *horizon.Connector,
+	config Config,
 	logger *logan.Entry,
+	emailSender EmailSender,
+	saleConnector SaleConnector,
+	transactionConnector TransactionConnector,
+	userConnector UserConnector,
+	checkSaleStateResponses <-chan horizon.CheckSaleStateResponse,
 ) *Service {
 	return &Service{
-		Config:  config,
-		horizon: horizonConn,
-		logger:  logger,
-		sender:  sender,
+		config: config,
+		logger: logger,
+
+		cancelledSaleNotifier: CancelledSaleNotifier{
+			emailSender:             emailSender,
+			emailsConfig:            config.SaleCancelled,
+			saleConnector:           saleConnector,
+			transactionConnector:    transactionConnector,
+			userConnector:           userConnector,
+			checkSaleStateResponses: checkSaleStateResponses,
+		},
 	}
 }
 
-// Run start service executing
 func (s *Service) Run(ctx context.Context) {
-	wg := sync.WaitGroup{}
-	// TODO Make runners return error
-	// TODO Consider running runners over Incremental timer
-	enabledRunners := []func(ctx context.Context){
-		s.checkAssetsIssuanceAmount,
-		s.listenOperations,
-		s.servePProfAPI,
-	}
-
-	for _, fn := range enabledRunners {
-		serviceRunner := fn
-		wg.Add(1)
-		go func() {
-			defer func() {
-				if rec := recover(); rec != nil {
-					s.logger.WithError(errors.FromPanic(rec)).Error("runner panicked")
-				}
-				wg.Done()
-			}()
-			serviceRunner(ctx)
-		}()
-	}
-
-	wg.Wait()
+	s.logger.Info("Starting...")
+	go running.WithBackOff(ctx, s.logger, "cancelled_sale_notifier",
+		s.cancelledSaleNotifier.listenAndProcessCancelledSales, 0, 5*time.Second, time.Second)
 }

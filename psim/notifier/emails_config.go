@@ -1,4 +1,4 @@
-package ordernotifier
+package notifier
 
 import (
 	"github.com/spf13/cast"
@@ -26,7 +26,7 @@ func (c EmailsConfig) GetLoganFields() map[string]interface{} {
 }
 
 var EmailsHooks = figure.Hooks{
-	"ordernotifier.EmailsConfig": func(raw interface{}) (reflect.Value, error) {
+	"notifier.EmailsConfig": func(raw interface{}) (reflect.Value, error) {
 		rawEmails, err := cast.ToStringMapE(raw)
 		if err != nil {
 			return reflect.Value{}, errors.Wrap(err, "failed to cast provider to map[string]interface{}")
