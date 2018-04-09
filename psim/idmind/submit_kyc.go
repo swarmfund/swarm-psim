@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
@@ -24,6 +25,17 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		"account_id": accountID,
 	}
 
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+		// Mark as reviewed without sending to IDMind (Syndicate - we don't handle Syndicates via IDMind)
+		err := s.approveBothTasks(ctx, request.ID, request.Hash, false)
+		if err != nil {
+			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind - nonGeneral Account requested)")
+		}
+
+		s.log.WithField("request", request).Info("Successfully approved without sending to IDMind (nonGeneral requested).")
+		return nil
+	}
+
 	kycData, err := s.retrieveKYCData(request, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve KYCData", fields)
@@ -34,13 +46,13 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
 		err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
 		if err != nil {
-			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind)")
+			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind - nonLatin or USA)")
 		}
 
 		s.log.WithFields(logan.F{
 			"is_usa":  isUSA,
 			"request": request,
-		}).Info("Successfully approved without sending to IDMind.")
+		}).Info("Successfully approved without sending to IDMind - nonLatin or USA.")
 		return nil
 	}
 
