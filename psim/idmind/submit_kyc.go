@@ -143,7 +143,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	}
 	fields["application_response"] = applicationResponse
 
-	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request)
+	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request, email)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process response of new KYC Application", fields)
 	}
@@ -168,7 +168,7 @@ func getDocType(kycDocType kyc.DocType) DocType {
 }
 
 func (s *Service) fetchIDDocument(doc kyc.IDDocument) (faceFile, backFile []byte, err error) {
-	faceDoc, err := s.documentsConnector.Document(doc.FaceDocID)
+	faceDoc, err := s.documentsConnector.Document(doc.FaceFile.ID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Failed to get Face Document by ID from Horizon")
 	}
@@ -179,8 +179,8 @@ func (s *Service) fetchIDDocument(doc kyc.IDDocument) (faceFile, backFile []byte
 		return nil, nil, errors.Wrap(err, "Failed to read faceFile response into bytes")
 	}
 
-	if doc.BackDocID != "" {
-		backDoc, err := s.documentsConnector.Document(doc.BackDocID)
+	if doc.BackFile != nil {
+		backDoc, err := s.documentsConnector.Document(doc.BackFile.ID)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "Failed to get Back Document by ID from Horizon")
 		}
@@ -199,8 +199,11 @@ func fixDocURL(url string) string {
 	return strings.Replace(url, `\u0026`, `&`, -1)
 }
 
-func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
-	logger := s.log.WithField("request", request)
+func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request, email string) error {
+	logger := s.log.WithFields(logan.F{
+		"request": request,
+		"email":   email,
+	})
 
 	rejectReason, details := s.getAppRespRejectReason(appResponse)
 	if rejectReason != "" {
@@ -210,8 +213,7 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 			return errors.Wrap(err, "Failed to reject KYCRequest due to reason from immediate ApplicationResponse")
 		}
 
-		s.log.WithFields(logan.F{
-			"request":            request,
+		logger.WithFields(logan.F{
 			"reject_blob_id":     blobID,
 			"reject_ext_details": details,
 		}).Infof("Rejected KYCRequest during Submit Task successfully (%s).", rejectReason)
