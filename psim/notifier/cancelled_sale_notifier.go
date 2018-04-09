@@ -7,11 +7,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
+	"strconv"
 )
 
 type CancelledSaleNotifier struct {
 	emailSender          EmailSender
-	emailsConfig         EmailsConfig
+	eventConfig          EventConfig
 	saleConnector        SaleConnector
 	transactionConnector TransactionConnector
 	userConnector        UserConnector
@@ -31,6 +32,16 @@ func (n *CancelledSaleNotifier) listenAndProcessCancelledSales(ctx context.Conte
 		checkSaleStateOp, err := checkSaleStateResponse.Unwrap()
 		if err != nil {
 			return errors.Wrap(err, "CheckSaleStateListener sent error")
+		}
+
+		cursor, err := strconv.ParseUint(checkSaleStateOp.PT, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse paging token", logan.F{
+				"paging_token": checkSaleStateOp.PT,
+			})
+		}
+		if cursor < n.eventConfig.Cursor {
+			return nil
 		}
 
 		err = n.processCheckSaleStateOperation(ctx, *checkSaleStateOp)
@@ -68,7 +79,7 @@ func (n *CancelledSaleNotifier) processCheckSaleStateOperation(ctx context.Conte
 		}
 		err = n.notifyAboutCancelledOrder(ctx, *offer, checkSaleStateOperation.SaleID)
 		if err != nil {
-			return errors.Wrap(err, "failed to notify abount cancelled order", logan.F{
+			return errors.Wrap(err, "failed to notify about cancelled order", logan.F{
 				"sale_id": checkSaleStateOperation.SaleID,
 			})
 		}
@@ -126,7 +137,7 @@ func (n *CancelledSaleNotifier) notifyAboutCancelledOrder(ctx context.Context, o
 		Link string
 	}{
 		Fund: sale.Name(),
-		Link: n.emailsConfig.TemplateLinkURL,
+		Link: n.eventConfig.Emails.TemplateLinkURL,
 	}
 
 	err = n.emailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
@@ -138,7 +149,7 @@ func (n *CancelledSaleNotifier) notifyAboutCancelledOrder(ctx context.Context, o
 }
 
 func (n *CancelledSaleNotifier) buildSaleCancelledUniqueToken(emailAddress string, offerID, saleID uint64) string {
-	return fmt.Sprintf("%s:%d:%d:%s", emailAddress, offerID, saleID, n.emailsConfig.RequestTokenSuffix)
+	return fmt.Sprintf("%s:%d:%d:%s", emailAddress, offerID, saleID, n.eventConfig.Emails.RequestTokenSuffix)
 }
 
 func (n *CancelledSaleNotifier) getSale(saleID uint64) (*horizon.Sale, error) {

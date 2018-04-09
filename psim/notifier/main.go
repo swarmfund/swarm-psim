@@ -2,9 +2,9 @@ package notifier
 
 import (
 	"context"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
@@ -22,7 +22,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	err := figure.
 		Out(&config).
 		From(globalConfig.GetRequired(conf.ServiceOperationNotifier)).
-		With(figure.BaseHooks, utils.CommonHooks, EmailsHooks).
+		With(figure.BaseHooks, utils.ETHHooks, EventHooks, EmailsHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to figure out", logan.F{
@@ -40,42 +40,39 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
 	checkSaleStateResponses := horizonConnector.Listener().StreamAllCheckSaleStateOps(ctx, 0)
+	createKYCRequestOpResponses := horizonConnector.Listener().StreamAllCreateKYCRequestOps(ctx, 0)
 
-	cancelledSaleEmailSender, err := NewOpEmailSender(
-		config.SaleCancelled.Subject,
-		config.SaleCancelled.TemplateName,
-		config.SaleCancelled.RequestType,
+	service, err := New(
+		config,
 		log,
 		globalConfig.Notificator(),
+		horizonConnector.Sales(),
+		horizonConnector.Templates(),
+		horizonConnector.Transactions(),
+		horizonConnector.Users(),
+		checkSaleStateResponses,
+		createKYCRequestOpResponses,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create cancelled sale email sender", logan.F{
+		return nil, errors.Wrap(err, "failed to create service", logan.F{
 			"service": conf.ServiceOperationNotifier,
 		})
 	}
 
-	return New(
-		config,
-		log,
-		cancelledSaleEmailSender,
-		horizonConnector.Sales(),
-		horizonConnector.Transactions(),
-		horizonConnector.Users(),
-		checkSaleStateResponses,
-	), nil
+	return service, nil
 }
 
 func checkRequestTokenSuffixesValidity(config Config) error {
-	if len(config.SaleCancelled.RequestTokenSuffix) == 0 {
+	if len(config.SaleCancelled.Emails.RequestTokenSuffix) == 0 {
 		return errors.New("'email_request_token_suffix' in sale_cancelled must not be empty")
 	}
-	if len(config.KYCCreated.RequestTokenSuffix) == 0 {
+	if len(config.KYCCreated.Emails.RequestTokenSuffix) == 0 {
 		return errors.New("'email_request_token_suffix' in kyc_created must not be empty")
 	}
-	if len(config.KYCApproved.RequestTokenSuffix) == 0 {
+	if len(config.KYCApproved.Emails.RequestTokenSuffix) == 0 {
 		return errors.New("'email_request_token_suffix' in kyc_approved must not be empty")
 	}
-	if len(config.KYCRejected.RequestTokenSuffix) == 0 {
+	if len(config.KYCRejected.Emails.RequestTokenSuffix) == 0 {
 		return errors.New("'email_request_token_suffix' in kyc_rejected must not be empty")
 	}
 

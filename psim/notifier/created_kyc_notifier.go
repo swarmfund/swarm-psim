@@ -7,11 +7,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
 	"gitlab.com/swarmfund/go/xdr"
+	"strconv"
 )
 
 type CreatedKYCNotifier struct {
 	emailSender          EmailSender
-	emailsConfig         EmailsConfig
+	eventConfig          EventConfig
 	transactionConnector TransactionConnector
 	userConnector        UserConnector
 
@@ -30,6 +31,16 @@ func (n *CreatedKYCNotifier) listenAndProcessCreatedKYCRequests(ctx context.Cont
 		createKYCRequestOp, err := createKYCRequestOpResponse.Unwrap()
 		if err != nil {
 			return errors.Wrap(err, "CreateKYCRequestOpListener sent error")
+		}
+
+		cursor, err := strconv.ParseUint(createKYCRequestOp.PT, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse paging token", logan.F{
+				"paging_token": createKYCRequestOp.PT,
+			})
+		}
+		if cursor < n.eventConfig.Cursor {
+			return nil
 		}
 
 		err = n.processCreateKYCRequestOperation(ctx, *createKYCRequestOp)
@@ -110,7 +121,7 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, a
 	data := struct {
 		Link string
 	}{
-		Link: n.emailsConfig.TemplateLinkURL,
+		Link: n.eventConfig.Emails.TemplateLinkURL,
 	}
 
 	err = n.emailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
@@ -122,5 +133,5 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, a
 }
 
 func (n *CreatedKYCNotifier) buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC, operationID string) string {
-	return fmt.Sprintf("%s:%s:%s:%s", emailAddress, accountToUpdateKYC, operationID, n.emailsConfig.RequestTokenSuffix)
+	return fmt.Sprintf("%s:%s:%s:%s", emailAddress, accountToUpdateKYC, operationID, n.eventConfig.Emails.RequestTokenSuffix)
 }

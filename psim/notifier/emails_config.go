@@ -2,8 +2,8 @@ package notifier
 
 import (
 	"github.com/spf13/cast"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/figure"
 	"reflect"
 )
 

@@ -4,17 +4,20 @@ import (
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"net/http"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
 	"time"
-	"gitlab.com/swarmfund/psim/psim/templates"
 	"bytes"
 	"html/template"
 	"gitlab.com/distributed_lab/logan/v3"
 	"context"
+	"gitlab.com/distributed_lab/running"
 )
 
 type NotificatorConnector interface {
 	Send(requestType int, token string, payload notificator.Payload) (*notificator.Response, error)
+}
+
+type TemplatesConnector interface {
+	Get(id string) ([]byte, error)
 }
 
 type OpEmailSender struct {
@@ -24,9 +27,16 @@ type OpEmailSender struct {
 	logger               *logan.Entry
 	template             *template.Template
 	notificatorConnector NotificatorConnector
+	templatesConnector   TemplatesConnector
 }
 
-func NewOpEmailSender(subject, templateName string, requestType int, logger *logan.Entry, notificatorConnector NotificatorConnector) (*OpEmailSender, error) {
+func NewOpEmailSender(
+	subject, templateName string,
+	requestType int,
+	logger *logan.Entry,
+	notificatorConnector NotificatorConnector,
+	templatesConnector TemplatesConnector,
+) (*OpEmailSender, error) {
 	var opEmailSender OpEmailSender
 
 	opEmailSender.subject = subject
@@ -34,12 +44,14 @@ func NewOpEmailSender(subject, templateName string, requestType int, logger *log
 	opEmailSender.requestType = requestType
 	opEmailSender.logger = logger
 
-	var err error
-	opEmailSender.template, err = templates.GetHtmlTemplate(templateName)
+	bb, err := templatesConnector.Get(templateName)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get html Template", logan.F{
-			"template_name": templateName,
-		})
+		return nil, errors.Wrap(err, "Failed to obtain template bytes")
+	}
+
+	opEmailSender.template, err = template.New("kyc-created").Parse(string(bb))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parse html.Template")
 	}
 
 	opEmailSender.notificatorConnector = notificatorConnector
@@ -64,33 +76,28 @@ func (ns *OpEmailSender) SendEmail(ctx context.Context, emailAddress, emailUniqu
 		Message:     msg,
 	}
 
-	app.RunUntilSuccess(
-		ctx,
-		ns.logger,
-		"email_sender",
-		func(ctx context.Context) error {
-			resp, err := ns.notificatorConnector.Send(ns.requestType, emailUniqueToken, payload)
+	running.UntilSuccess(ctx, ns.logger, "email_sender", func(ctx context.Context) (bool, error) {
+		resp, err := ns.notificatorConnector.Send(ns.requestType, emailUniqueToken, payload)
 
-			if err != nil {
-				return errors.Wrap(err, "failed to send email via Notificator")
-			}
+		if err != nil {
+			return false, errors.Wrap(err, "failed to send email via Notificator")
+		}
 
-			if resp.StatusCode == http.StatusTooManyRequests {
-				ns.logger.Info("Email has already been sent, skipping")
-				return nil
-			}
+		if resp.StatusCode == http.StatusTooManyRequests {
+			ns.logger.Info("Email has already been sent, skipping")
+			return true, nil
+		}
 
-			if !resp.IsSuccess() {
-				return errors.From(errors.New("unsuccessful response for email sending request"), logan.F{
-					"notificator_response": resp,
-				})
-			}
+		if !resp.IsSuccess() {
+			return false, errors.From(errors.New("unsuccessful response for email sending request"), logan.F{
+				"notificator_response": resp,
+			})
+		}
 
-			ns.logger.Info("Notificator accepted email successfully")
+		ns.logger.Info("Notificator accepted email successfully")
 
-			return nil
-		},
-		5*time.Second)
+		return true, nil
+	}, time.Second, 5*time.Second)
 
 	return nil
 }
