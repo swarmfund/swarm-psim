@@ -49,16 +49,6 @@ var (
 		Use:   "run",
 		Short: "Start service with all the whistles",
 		Run: func(cmd *cobra.Command, args []string) {
-			//env := xdr.TransactionResult{}
-			//err := xdr.SafeUnmarshalBase64("AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAB8AAAAAAzz4Jdvviw2AsGupbfHplbP4jaVAfQz4RHtZuwu6ZbaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", &env)
-			//if err != nil {
-			//	panic(err)
-			//}
-			//bytes, err := json.Marshal(&env)
-			//if err != nil {
-			//	panic(err)
-			//}
-			//fmt.Printf(string(bytes))
 			instance, err := app.New(configInstance)
 			if err != nil {
 				entry.WithError(err).Fatal("failed to init app instance")
@@ -81,4 +71,16 @@ func main() {
 	if err != nil {
 		entry.WithError(err).Fatal("something bad happened")
 	}
+
+	// // This snippet is used to quick unmarsahlling of an XDR string.
+	//env := xdr.TransactionResult{}
+	//err := xdr.SafeUnmarshalBase64("AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAB8AAAAAAzz4Jdvviw2AsGupbfHplbP4jaVAfQz4RHtZuwu6ZbaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", &env)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//bytes, err := json.Marshal(&env)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Printf(string(bytes))
 }

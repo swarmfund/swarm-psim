@@ -34,8 +34,14 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
 		err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
 		if err != nil {
-			return errors.Wrap(err, "Failed to approve both Tasks (without IDMind processing)")
+			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind)")
 		}
+
+		s.log.WithFields(logan.F{
+			"is_usa":  isUSA,
+			"request": request,
+		}).Info("Successfully approved without sending to IDMind.")
+		return nil
 	}
 
 	err = s.processNewKYCApplication(ctx, *kycData, accountID, request)

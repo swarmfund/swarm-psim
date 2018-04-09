@@ -163,7 +163,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		// Haven't submitted IDMind yet
 		err := s.processNotSubmitted(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to submit KYC data")
+			return errors.Wrap(err, "Failed to process not submitted (to IDMind) KYCRequest")
 		}
 
 		return nil
