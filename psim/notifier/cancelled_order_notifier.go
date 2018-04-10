@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-type CancelledSaleNotifier struct {
+type CancelledOrderNotifier struct {
 	emailSender          EmailSender
 	eventConfig          EventConfig
 	saleConnector        SaleConnector
@@ -20,7 +20,7 @@ type CancelledSaleNotifier struct {
 	checkSaleStateResponses <-chan horizon.CheckSaleStateResponse
 }
 
-func (n *CancelledSaleNotifier) listenAndProcessCancelledSales(ctx context.Context) error {
+func (n *CancelledOrderNotifier) listenAndProcessCancelledOrders(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
@@ -53,7 +53,7 @@ func (n *CancelledSaleNotifier) listenAndProcessCancelledSales(ctx context.Conte
 	}
 }
 
-func (n *CancelledSaleNotifier) processCheckSaleStateOperation(ctx context.Context, checkSaleStateOperation horizon.CheckSaleState) error {
+func (n *CancelledOrderNotifier) processCheckSaleStateOperation(ctx context.Context, checkSaleStateOperation horizon.CheckSaleState) error {
 	if checkSaleStateOperation.Effect != xdr.CheckSaleStateEffectUpdated.String() {
 		return nil
 	}
@@ -88,7 +88,7 @@ func (n *CancelledSaleNotifier) processCheckSaleStateOperation(ctx context.Conte
 	return nil
 }
 
-func (n *CancelledSaleNotifier) getRemovedOffer(change xdr.LedgerEntryChange) (offerPtr *xdr.LedgerKeyOffer, ok bool) {
+func (n *CancelledOrderNotifier) getRemovedOffer(change xdr.LedgerEntryChange) (offerPtr *xdr.LedgerKeyOffer, ok bool) {
 	if change.Type != xdr.LedgerEntryChangeTypeRemoved {
 		return nil, false
 	}
@@ -104,7 +104,7 @@ func (n *CancelledSaleNotifier) getRemovedOffer(change xdr.LedgerEntryChange) (o
 	return &offer, true
 }
 
-func (n *CancelledSaleNotifier) notifyAboutCancelledOrder(ctx context.Context, offer xdr.LedgerKeyOffer, saleID uint64) error {
+func (n *CancelledOrderNotifier) notifyAboutCancelledOrder(ctx context.Context, offer xdr.LedgerKeyOffer, saleID uint64) error {
 	ownerID := offer.OwnerId.Address()
 
 	user, err := n.userConnector.User(ownerID)
@@ -119,7 +119,7 @@ func (n *CancelledSaleNotifier) notifyAboutCancelledOrder(ctx context.Context, o
 	}
 
 	emailAddress := user.Attributes.Email
-	emailUniqueToken := n.buildSaleCancelledUniqueToken(emailAddress, uint64(offer.OfferId), saleID)
+	emailUniqueToken := n.buildOrderCancelledUniqueToken(emailAddress, uint64(offer.OfferId), saleID)
 
 	sale, err := n.getSale(saleID)
 	if err != nil {
@@ -148,11 +148,11 @@ func (n *CancelledSaleNotifier) notifyAboutCancelledOrder(ctx context.Context, o
 	return nil
 }
 
-func (n *CancelledSaleNotifier) buildSaleCancelledUniqueToken(emailAddress string, offerID, saleID uint64) string {
+func (n *CancelledOrderNotifier) buildOrderCancelledUniqueToken(emailAddress string, offerID, saleID uint64) string {
 	return fmt.Sprintf("%s:%d:%d:%s", emailAddress, offerID, saleID, n.eventConfig.Emails.RequestTokenSuffix)
 }
 
-func (n *CancelledSaleNotifier) getSale(saleID uint64) (*horizon.Sale, error) {
+func (n *CancelledOrderNotifier) getSale(saleID uint64) (*horizon.Sale, error) {
 	sale, err := n.saleConnector.SaleByID(saleID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load sale", logan.F{

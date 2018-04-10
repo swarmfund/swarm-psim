@@ -40,7 +40,7 @@ type Service struct {
 	config Config
 	logger *logan.Entry
 
-	cancelledSaleNotifier      CancelledSaleNotifier
+	cancelledOrderNotifier     CancelledOrderNotifier
 	createdKYCNotifier         CreatedKYCNotifier
 	reviewedKYCRequestNotifier ReviewedKYCRequestNotifier
 }
@@ -60,16 +60,16 @@ func New(
 	reviewRequestOpResponses <-chan horizon.ReviewRequestOpResponse,
 ) (*Service, error) {
 
-	cancelledSaleEmailSender, err := NewOpEmailSender(
-		config.SaleCancelled.Emails.Subject,
-		config.SaleCancelled.Emails.TemplateName,
-		config.SaleCancelled.Emails.RequestType,
+	cancelledOrderEmailSender, err := NewOpEmailSender(
+		config.OrderCancelled.Emails.Subject,
+		config.OrderCancelled.Emails.TemplateName,
+		config.OrderCancelled.Emails.RequestType,
 		logger,
 		notificatorConnector,
 		templatesConnector,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create cancelledSaleEmailSender")
+		return nil, errors.Wrap(err, "failed to create cancelledOrderEmailSender")
 	}
 
 	createdKYCEmailSender, err := NewOpEmailSender(
@@ -112,9 +112,9 @@ func New(
 		config: config,
 		logger: logger,
 
-		cancelledSaleNotifier: CancelledSaleNotifier{
-			emailSender:             cancelledSaleEmailSender,
-			eventConfig:             config.SaleCancelled,
+		cancelledOrderNotifier: CancelledOrderNotifier{
+			emailSender:             cancelledOrderEmailSender,
+			eventConfig:             config.OrderCancelled,
 			saleConnector:           saleConnector,
 			transactionConnector:    transactionConnector,
 			userConnector:           userConnector,
@@ -143,10 +143,10 @@ func New(
 
 func (s *Service) Run(ctx context.Context) {
 	s.logger.Info("Starting")
-	//running.WithBackOff(ctx, s.logger, "cancelled_sale_notifier",
-	//	s.cancelledSaleNotifier.listenAndProcessCancelledSales, 0, 5*time.Second, time.Second)
-	running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
+	go running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
+		s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
+	go running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 		s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
-	//running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
-	//	s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
+	go running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
+		s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
 }

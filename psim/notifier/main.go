@@ -66,8 +66,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 }
 
 func checkRequestTokenSuffixesValidity(config Config) error {
-	if len(config.SaleCancelled.Emails.RequestTokenSuffix) == 0 {
-		return errors.New("'email_request_token_suffix' in sale_cancelled must not be empty")
+	if len(config.OrderCancelled.Emails.RequestTokenSuffix) == 0 {
+		return errors.New("'email_request_token_suffix' in order_cancelled must not be empty")
 	}
 	if len(config.KYCCreated.Emails.RequestTokenSuffix) == 0 {
 		return errors.New("'email_request_token_suffix' in kyc_created must not be empty")
