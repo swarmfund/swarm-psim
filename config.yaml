@@ -371,8 +371,7 @@ identity_mind:
     subject: "USA User - needs additional KYC step to pass" # FIXME
     request_type: 10 # 10 means that email will be sent only once per each unique token
     message: "remove_me.html" # FIXME
-#    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
-    send_period: 1m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
   emails_to_notify: [
 "john.doe@example.com",
 "jane.doe@example.com"]
