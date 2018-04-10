@@ -73,6 +73,7 @@ func (d RequestWithdrawDetails) GetLoganFields() map[string]interface{} {
 
 type RequestKYCDetails struct {
 	AccountToUpdateKYC string                   `json:"account_to_update_kyc"`
+	AccountTypeToSet   AccountTypeToSet         `json:"account_type_to_set"`
 	KYCLevel           uint32                   `json:"kyc_level"`
 	KYCData            map[string]interface{}   `json:"kyc_data"`
 	AllTasks           uint32                   `json:"all_tasks"`
@@ -84,6 +85,7 @@ type RequestKYCDetails struct {
 func (d RequestKYCDetails) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"account_to_update_kyc": d.AccountToUpdateKYC,
+		"account_type_to_set":   d.AccountTypeToSet.String,
 		"kyc_level_i":           d.KYCLevel,
 		"kyc_data_map":          d.KYCData,
 		"all_tasks":             d.AllTasks,
@@ -91,4 +93,9 @@ func (d RequestKYCDetails) GetLoganFields() map[string]interface{} {
 		"sequence_number":       d.SequenceNumber,
 		"external_details":      d.ExternalDetails,
 	}
+}
+
+type AccountTypeToSet struct {
+	Int    int    `json:"int"`
+	String string `json:"string"`
 }
