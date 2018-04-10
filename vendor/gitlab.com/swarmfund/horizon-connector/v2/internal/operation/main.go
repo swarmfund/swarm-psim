@@ -86,7 +86,9 @@ func (q *Q) CheckSaleStateOperations(cursor string) ([]operations.CheckSaleState
 	operationType := xdr.OperationTypeCheckSaleState
 	response, err := q.Operations(cursor, &operationType)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get operations")
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypeCheckSaleState.String(),
+		})
 	}
 
 	var result responses.CheckSaleStateOperationsIndex
@@ -101,12 +103,33 @@ func (q *Q) CreateKYCRequestOperations(cursor string) ([]operations.CreateKYCReq
 	operationType := xdr.OperationTypeCreateKycRequest
 	response, err := q.Operations(cursor, &operationType)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get operations")
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypeCreateKycRequest.String(),
+		})
 	}
 
 	var result responses.CreateKYCRequestOperationIndex
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{"response": string(response)})
+	}
+
+	return result.Embedded.Records, nil
+}
+
+func (q *Q) ReviewRequestOperations(cursor string) ([]operations.ReviewRequest, error) {
+	operationType := xdr.OperationTypeReviewRequest
+	response, err := q.Operations(cursor, &operationType)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypeReviewRequest.String(),
+		})
+	}
+
+	var result responses.ReviewRequestOperationIndex
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{
+			"response": string(response),
+		})
 	}
 
 	return result.Embedded.Records, nil

@@ -77,3 +77,7 @@ func (q *Q) StreamAllCheckSaleStateOps(ctx context.Context, buffer int) <-chan C
 func (q *Q) StreamAllCreateKYCRequestOps(ctx context.Context, buffer int) <-chan CreateKYCRequestOpResponse {
 	return streamCreateKYCRequestOp(q, ctx, buffer)
 }
+
+func (q *Q) StreamAllReviewRequestOps(ctx context.Context, buffer int) <-chan ReviewRequestOpResponse {
+	return streamReviewRequestOp(q, ctx, buffer)
+}

@@ -29,3 +29,5 @@ type Reference = resources.Reference
 type Account = resources.Account
 type CreateKYCRequestOp = operations.CreateKYCRequest
 type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
+type ReviewRequestOp = operations.ReviewRequest
+type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
