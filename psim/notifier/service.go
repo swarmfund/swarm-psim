@@ -4,9 +4,9 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"golang.org/x/net/context"
-	"time"
-	"gitlab.com/distributed_lab/running"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
+	"time"
 )
 
 // UserConnector is an interface for retrieving specific user
@@ -40,8 +40,9 @@ type Service struct {
 	config Config
 	logger *logan.Entry
 
-	cancelledSaleNotifier CancelledSaleNotifier
-	createdKYCNotifier    CreatedKYCNotifier
+	cancelledSaleNotifier      CancelledSaleNotifier
+	createdKYCNotifier         CreatedKYCNotifier
+	reviewedKYCRequestNotifier ReviewedKYCRequestNotifier
 }
 
 // New is a constructor of a service
@@ -49,12 +50,14 @@ func New(
 	config Config,
 	logger *logan.Entry,
 	notificatorConnector NotificatorConnector,
+	requestConnector ReviewableRequestConnector,
 	saleConnector SaleConnector,
 	templatesConnector TemplatesConnector,
 	transactionConnector TransactionConnector,
 	userConnector UserConnector,
 	checkSaleStateResponses <-chan horizon.CheckSaleStateResponse,
 	createKYCRequestOpResponses <-chan horizon.CreateKYCRequestOpResponse,
+	reviewRequestOpResponses <-chan horizon.ReviewRequestOpResponse,
 ) (*Service, error) {
 
 	cancelledSaleEmailSender, err := NewOpEmailSender(
@@ -81,6 +84,30 @@ func New(
 		return nil, errors.Wrap(err, "failed to create createdKYCEmailSender")
 	}
 
+	approvedKYCEmailSender, err := NewOpEmailSender(
+		config.KYCApproved.Emails.Subject,
+		config.KYCApproved.Emails.TemplateName,
+		config.KYCApproved.Emails.RequestType,
+		logger,
+		notificatorConnector,
+		templatesConnector,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create approvedKYCEmailSender")
+	}
+
+	rejectedKYCEmailSender, err := NewOpEmailSender(
+		config.KYCRejected.Emails.Subject,
+		config.KYCRejected.Emails.TemplateName,
+		config.KYCRejected.Emails.RequestType,
+		logger,
+		notificatorConnector,
+		templatesConnector,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create rejectedKYCEmailSender")
+	}
+
 	return &Service{
 		config: config,
 		logger: logger,
@@ -101,6 +128,16 @@ func New(
 			userConnector:               userConnector,
 			createKYCRequestOpResponses: createKYCRequestOpResponses,
 		},
+
+		reviewedKYCRequestNotifier: ReviewedKYCRequestNotifier{
+			approvedKYCEmailSender:   approvedKYCEmailSender,
+			rejectedKYCEmailSender:   rejectedKYCEmailSender,
+			approvedRequestConfig:    config.KYCApproved,
+			rejectedRequestConfig:    config.KYCRejected,
+			requestConnector:         requestConnector,
+			userConnector:            userConnector,
+			reviewRequestOpResponses: reviewRequestOpResponses,
+		},
 	}, nil
 }
 
@@ -110,4 +147,6 @@ func (s *Service) Run(ctx context.Context) {
 	//	s.cancelledSaleNotifier.listenAndProcessCancelledSales, 0, 5*time.Second, time.Second)
 	running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 		s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
+	//running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
+	//	s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
 }

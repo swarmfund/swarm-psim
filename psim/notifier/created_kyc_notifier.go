@@ -39,7 +39,8 @@ func (n *CreatedKYCNotifier) listenAndProcessCreatedKYCRequests(ctx context.Cont
 				"paging_token": createKYCRequestOp.PT,
 			})
 		}
-		if cursor < n.eventConfig.Cursor {
+
+		if !n.canNotifyAboutCreatedKYC(cursor) {
 			return nil
 		}
 
@@ -50,6 +51,10 @@ func (n *CreatedKYCNotifier) listenAndProcessCreatedKYCRequests(ctx context.Cont
 
 		return nil
 	}
+}
+
+func (n *CreatedKYCNotifier) canNotifyAboutCreatedKYC(cursor uint64) bool {
+	return cursor >= n.eventConfig.Cursor
 }
 
 func (n *CreatedKYCNotifier) processCreateKYCRequestOperation(ctx context.Context, createKYCRequestOperation horizon.CreateKYCRequestOp) error {

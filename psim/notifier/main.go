@@ -41,17 +41,20 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	checkSaleStateResponses := horizonConnector.Listener().StreamAllCheckSaleStateOps(ctx, 0)
 	createKYCRequestOpResponses := horizonConnector.Listener().StreamAllCreateKYCRequestOps(ctx, 0)
+	reviewRequestOpResponses := horizonConnector.Listener().StreamAllReviewRequestOps(ctx, 0)
 
 	service, err := New(
 		config,
 		log,
 		globalConfig.Notificator(),
+		horizonConnector.Operations(),
 		horizonConnector.Sales(),
 		horizonConnector.Templates(),
 		horizonConnector.Transactions(),
 		horizonConnector.Users(),
 		checkSaleStateResponses,
 		createKYCRequestOpResponses,
+		reviewRequestOpResponses,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create service", logan.F{

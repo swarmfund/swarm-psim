@@ -66,6 +66,25 @@ func (q *Q) getRequests(url string) ([]resources.Request, error) {
 	return result.Embedded.Records, nil
 }
 
+func (q *Q) GetRequestByID(requestID uint64) (*resources.Request, error) {
+	response, err := q.client.Get(fmt.Sprintf("/requests/%d", requestID))
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if response == nil {
+		// No such Request
+		return nil, nil
+	}
+
+	var result resources.Request
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	return &result, nil
+}
+
 func (q *Q) Operations(cursor string, operationType *xdr.OperationType) ([]byte, error) {
 	var url string
 	if operationType != nil {
