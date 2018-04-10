@@ -54,7 +54,7 @@ func (s *Service) processNotChecked(ctx context.Context, request horizon.Request
 		s.log.WithField("request", request).WithFields(fields).
 			Info("Result of immediate response for Application submit is ManualReview, adding notification emails to sending.")
 
-		s.emailProcessor.AddEmailAddresses(ctx, s.config.EmailsToNotify)
+		s.adminNotifyEmails.AddEmailAddresses(ctx, s.config.AdminEmailsToNotify)
 	}
 
 	return nil

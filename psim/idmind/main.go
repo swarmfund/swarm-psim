@@ -13,6 +13,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/emails"
+	"gitlab.com/swarmfund/psim/psim/templates"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
@@ -45,12 +46,28 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
-	emailProcessor := emails.NewProcessor(log, emails.Config{
-		Subject:               config.EmailsConfig.Subject,
-		Message:               config.EmailsConfig.Message,
-		RequestType:           config.EmailsConfig.RequestType,
+	adminNotifyEmails := emails.NewProcessor(log, emails.Config{
+		Subject:               config.AdminNotifyEmailsConfig.Subject,
+		Message:               config.AdminNotifyEmailsConfig.Message,
+		RequestType:           config.AdminNotifyEmailsConfig.RequestType,
 		UniquenessTokenSuffix: "-kyc-manual-reviews-notification",
-		SendPeriod:            config.EmailsConfig.SendPeriod,
+		SendPeriod:            config.AdminNotifyEmailsConfig.SendPeriod,
+	}, globalConfig.Notificator())
+
+	// FIXME file template with proper data, when html template is ready.
+	msg, err := templates.BuildTemplateEmailMessage(config.USAUsersEmailConfig.Message, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build Email message from Template", logan.F{
+			"template_name": config.USAUsersEmailConfig.Message,
+		})
+	}
+
+	usaUsersEmail := emails.NewProcessor(log, emails.Config{
+		Subject:               config.USAUsersEmailConfig.Subject,
+		Message:               msg,
+		RequestType:           config.USAUsersEmailConfig.RequestType,
+		UniquenessTokenSuffix: "-usa-user-notification",
+		SendPeriod:            config.USAUsersEmailConfig.SendPeriod,
 	}, globalConfig.Notificator())
 
 	return NewService(
@@ -63,7 +80,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Documents(),
 		newConnector(config.Connector),
 		builder,
-		emailProcessor,
+		adminNotifyEmails,
+		usaUsersEmail,
 	), nil
 }
 
@@ -104,20 +122,20 @@ var hooks = figure.Hooks{
 
 		return reflect.ValueOf(config), nil
 	},
-	"idmind.EmailsConfig": func(raw interface{}) (reflect.Value, error) {
+	"idmind.EmailConfig": func(raw interface{}) (reflect.Value, error) {
 		rawEmails, err := cast.ToStringMapE(raw)
 		if err != nil {
 			return reflect.Value{}, errors.Wrap(err, "failed to cast provider to map[string]interface{}")
 		}
 
-		var emailsConfig EmailsConfig
+		var emailsConfig EmailConfig
 		err = figure.
 			Out(&emailsConfig).
 			From(rawEmails).
 			With(figure.BaseHooks).
 			Please()
 		if err != nil {
-			return reflect.Value{}, errors.Wrap(err, "failed to figure out EmailsConfig")
+			return reflect.Value{}, errors.Wrap(err, "failed to figure out EmailConfig")
 		}
 
 		return reflect.ValueOf(emailsConfig), nil
