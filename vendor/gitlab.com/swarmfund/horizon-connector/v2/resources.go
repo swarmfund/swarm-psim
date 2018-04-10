@@ -1,8 +1,8 @@
 package horizon
 
 import (
-	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/listener"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 )
 
 // don't blame me, just make sure all exported types are really exported
@@ -22,3 +22,4 @@ type Blob = resources.Blob
 type Document = resources.Document
 type Reference = resources.Reference
 type Account = resources.Account
+type Wallet = resources.Wallet

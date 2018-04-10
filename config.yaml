@@ -75,6 +75,7 @@ services:
 #  - airdrop_march_20_20
 #- template_provider
 #  - identity_mind
+#-wallet_cleaner
 
 # BTC
 btc_deposit:
@@ -379,3 +380,6 @@ template_provider:
   port: 2323
   bucket: "template"
   skip_signature_check: true
+
+wallet_cleaner:
+  expire_duration: 128h
