@@ -22,5 +22,5 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "failed to figure out")
 	}
 
-	return New(app.Log(ctx), app.Config(ctx).Horizon(), config), nil
+	return New(app.Log(ctx), app.Config(ctx).Horizon(), config.ExpireDuration), nil
 }
