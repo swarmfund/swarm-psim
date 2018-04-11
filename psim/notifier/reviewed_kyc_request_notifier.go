@@ -26,47 +26,46 @@ type ReviewedKYCRequestNotifier struct {
 }
 
 func (n *ReviewedKYCRequestNotifier) listenAndProcessReviewedKYCRequests(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	case reviewRequestOpResponse, ok := <-n.reviewRequestOpResponses:
-		if !ok {
+	for {
+		select {
+		case <-ctx.Done():
 			return nil
-		}
+		case reviewRequestOpResponse, ok := <-n.reviewRequestOpResponses:
+			if !ok {
+				return nil
+			}
 
-		reviewRequestOp, err := reviewRequestOpResponse.Unwrap()
-		if err != nil {
-			return errors.Wrap(err, "ReviewRequestOpListener sent error")
-		}
-
-		cursor, err := strconv.ParseUint(reviewRequestOp.PT, 10, 64)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse paging token", logan.F{
-				"paging_token": reviewRequestOp.PT,
-			})
-		}
-
-		if n.isFullyApprovedKYC(*reviewRequestOp) && n.canNotifyAboutApprovedKYC(cursor) {
-			err := n.notifyAboutApprovedKYCRequest(ctx, reviewRequestOp.RequestID)
+			reviewRequestOp, err := reviewRequestOpResponse.Unwrap()
 			if err != nil {
-				return errors.Wrap(err, "failed to notify about approved KYC request", logan.F{
-					"request_id": reviewRequestOp.RequestID,
+				return errors.Wrap(err, "ReviewRequestOpListener sent error")
+			}
+
+			cursor, err := strconv.ParseUint(reviewRequestOp.PT, 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "failed to parse paging token", logan.F{
+					"paging_token": reviewRequestOp.PT,
 				})
 			}
-		}
 
-		if n.isRejectedKYC(*reviewRequestOp) && n.canNotifyAboutRejectedKYC(cursor) {
-			err := n.notifyAboutRejectedKYCRequest(ctx, reviewRequestOp.RequestID, reviewRequestOp.ID)
-			if err != nil {
-				return errors.Wrap(err, "failed to notify about rejected KYC request", logan.F{
-					"request_id": reviewRequestOp.RequestID,
-				})
+			if n.canNotifyAboutApprovedKYC(cursor) && n.isFullyApprovedKYC(*reviewRequestOp) {
+				err := n.notifyAboutApprovedKYCRequest(ctx, reviewRequestOp.RequestID)
+				if err != nil {
+					return errors.Wrap(err, "failed to notify about approved KYC request", logan.F{
+						"request_id": reviewRequestOp.RequestID,
+					})
+				}
+			}
+
+			if n.canNotifyAboutRejectedKYC(cursor) && n.isRejectedKYC(*reviewRequestOp) {
+				err := n.notifyAboutRejectedKYCRequest(ctx, reviewRequestOp.RequestID, reviewRequestOp.ID)
+				if err != nil {
+					return errors.Wrap(err, "failed to notify about rejected KYC request", logan.F{
+						"request_id": reviewRequestOp.RequestID,
+					})
+				}
 			}
 		}
-
-		return nil
 	}
-
 }
 
 func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.Context, requestID uint64) error {
@@ -123,7 +122,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 	}
 
 	emailAddress := user.Attributes.Email
-	emailUniqueToken := n.buildRejectedKYCUniqueToken(emailAddress, request.Details.KYC.AccountToUpdateKYC, operationID, requestID)
+	emailUniqueToken := n.buildRejectedKYCUniqueToken(emailAddress, request.Details.KYC.AccountToUpdateKYC, request.Details.KYC.SequenceNumber, requestID)
 
 	data := struct {
 		Link string
@@ -148,11 +147,7 @@ func (n *ReviewedKYCRequestNotifier) isFullyApprovedKYC(reviewRequestOp horizon.
 		return false
 	}
 
-	if !reviewRequestOp.IsFulfilled {
-		return false
-	}
-
-	return true
+	return reviewRequestOp.IsFulfilled
 }
 
 func (n *ReviewedKYCRequestNotifier) isRejectedKYC(reviewRequestOp horizon.ReviewRequestOp) bool {
@@ -179,6 +174,6 @@ func (n *ReviewedKYCRequestNotifier) buildApprovedKYCUniqueToken(emailAddress, a
 	return fmt.Sprintf("%s:%s:%d:%s", emailAddress, accountToUpdateKYC, requestID, n.approvedRequestConfig.Emails.RequestTokenSuffix)
 }
 
-func (n *ReviewedKYCRequestNotifier) buildRejectedKYCUniqueToken(emailAddress, accountToUpdateKYC, operationID string, requestID uint64) string {
-	return fmt.Sprintf("%s:%s:%s:%d:%s", emailAddress, accountToUpdateKYC, operationID, requestID, n.rejectedRequestConfig.Emails.RequestTokenSuffix)
+func (n *ReviewedKYCRequestNotifier) buildRejectedKYCUniqueToken(emailAddress, accountToUpdateKYC string, kycSequence uint32, requestID uint64) string {
+	return fmt.Sprintf("%s:%s:%d:%d:%s", emailAddress, accountToUpdateKYC, kycSequence, requestID, n.rejectedRequestConfig.Emails.RequestTokenSuffix)
 }

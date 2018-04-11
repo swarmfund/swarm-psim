@@ -21,35 +21,35 @@ type CancelledOrderNotifier struct {
 }
 
 func (n *CancelledOrderNotifier) listenAndProcessCancelledOrders(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	case checkSaleStateResponse, ok := <-n.checkSaleStateResponses:
-		if !ok {
+	for {
+		select {
+		case <-ctx.Done():
 			return nil
-		}
+		case checkSaleStateResponse, ok := <-n.checkSaleStateResponses:
+			if !ok {
+				return nil
+			}
 
-		checkSaleStateOp, err := checkSaleStateResponse.Unwrap()
-		if err != nil {
-			return errors.Wrap(err, "CheckSaleStateListener sent error")
-		}
+			checkSaleStateOp, err := checkSaleStateResponse.Unwrap()
+			if err != nil {
+				return errors.Wrap(err, "CheckSaleStateListener sent error")
+			}
 
-		cursor, err := strconv.ParseUint(checkSaleStateOp.PT, 10, 64)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse paging token", logan.F{
-				"paging_token": checkSaleStateOp.PT,
-			})
-		}
-		if cursor < n.eventConfig.Cursor {
-			return nil
-		}
+			cursor, err := strconv.ParseUint(checkSaleStateOp.PT, 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "failed to parse paging token", logan.F{
+					"paging_token": checkSaleStateOp.PT,
+				})
+			}
+			if cursor < n.eventConfig.Cursor {
+				continue
+			}
 
-		err = n.processCheckSaleStateOperation(ctx, *checkSaleStateOp)
-		if err != nil {
-			return errors.Wrap(err, "failed to process CheckSaleState operation")
+			err = n.processCheckSaleStateOperation(ctx, *checkSaleStateOp)
+			if err != nil {
+				return errors.Wrap(err, "failed to process CheckSaleState operation")
+			}
 		}
-
-		return nil
 	}
 }
 
@@ -66,15 +66,14 @@ func (n *CancelledOrderNotifier) processCheckSaleStateOperation(ctx context.Cont
 		})
 	}
 	if tx == nil {
-		// Transaction doesn't exist
-		return nil
+		return errors.New("transaction doesn't exist")
 	}
 
 	ledgerChanges := tx.LedgerChanges()
 
 	for _, change := range ledgerChanges {
-		offer, ok := n.getRemovedOffer(change)
-		if !ok {
+		offer := n.getRemovedOffer(change)
+		if offer == nil {
 			continue
 		}
 		err = n.notifyAboutCancelledOrder(ctx, *offer, checkSaleStateOperation.SaleID)
@@ -88,20 +87,20 @@ func (n *CancelledOrderNotifier) processCheckSaleStateOperation(ctx context.Cont
 	return nil
 }
 
-func (n *CancelledOrderNotifier) getRemovedOffer(change xdr.LedgerEntryChange) (offerPtr *xdr.LedgerKeyOffer, ok bool) {
+func (n *CancelledOrderNotifier) getRemovedOffer(change xdr.LedgerEntryChange) *xdr.LedgerKeyOffer {
 	if change.Type != xdr.LedgerEntryChangeTypeRemoved {
-		return nil, false
+		return nil
 	}
 
 	removedEntryKey := change.Removed
 
 	if removedEntryKey.Type != xdr.LedgerEntryTypeOfferEntry {
-		return nil, false
+		return nil
 	}
 
 	offer := removedEntryKey.MustOffer()
 
-	return &offer, true
+	return &offer
 }
 
 func (n *CancelledOrderNotifier) notifyAboutCancelledOrder(ctx context.Context, offer xdr.LedgerKeyOffer, saleID uint64) error {

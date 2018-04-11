@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"time"
+	"sync"
 )
 
 // UserConnector is an interface for retrieving specific user
@@ -143,10 +144,29 @@ func New(
 
 func (s *Service) Run(ctx context.Context) {
 	s.logger.Info("Starting")
-	go running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
-		s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
-	go running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
-		s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
-	go running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
-		s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
+
+	var opNotifiersWaitGroup sync.WaitGroup
+
+	go func(w *sync.WaitGroup) {
+		w.Add(1)
+		running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
+			s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
+		w.Done()
+	}(&opNotifiersWaitGroup)
+
+	go func(w *sync.WaitGroup) {
+		w.Add(1)
+		running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
+			s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
+		w.Done()
+	}(&opNotifiersWaitGroup)
+
+	go func(w *sync.WaitGroup) {
+		w.Add(1)
+		running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
+			s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
+		w.Done()
+	}(&opNotifiersWaitGroup)
+
+	opNotifiersWaitGroup.Wait()
 }

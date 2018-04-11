@@ -20,36 +20,36 @@ type CreatedKYCNotifier struct {
 }
 
 func (n *CreatedKYCNotifier) listenAndProcessCreatedKYCRequests(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	case createKYCRequestOpResponse, ok := <-n.createKYCRequestOpResponses:
-		if !ok {
+	for {
+		select {
+		case <-ctx.Done():
 			return nil
-		}
+		case createKYCRequestOpResponse, ok := <-n.createKYCRequestOpResponses:
+			if !ok {
+				return nil
+			}
 
-		createKYCRequestOp, err := createKYCRequestOpResponse.Unwrap()
-		if err != nil {
-			return errors.Wrap(err, "CreateKYCRequestOpListener sent error")
-		}
+			createKYCRequestOp, err := createKYCRequestOpResponse.Unwrap()
+			if err != nil {
+				return errors.Wrap(err, "CreateKYCRequestOpListener sent error")
+			}
 
-		cursor, err := strconv.ParseUint(createKYCRequestOp.PT, 10, 64)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse paging token", logan.F{
-				"paging_token": createKYCRequestOp.PT,
-			})
-		}
+			cursor, err := strconv.ParseUint(createKYCRequestOp.PT, 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "failed to parse paging token", logan.F{
+					"paging_token": createKYCRequestOp.PT,
+				})
+			}
 
-		if !n.canNotifyAboutCreatedKYC(cursor) {
-			return nil
-		}
+			if !n.canNotifyAboutCreatedKYC(cursor) {
+				continue
+			}
 
-		err = n.processCreateKYCRequestOperation(ctx, *createKYCRequestOp)
-		if err != nil {
-			return errors.Wrap(err, "failed to process CreateKYCRequest operation")
+			err = n.processCreateKYCRequestOperation(ctx, *createKYCRequestOp)
+			if err != nil {
+				return errors.Wrap(err, "failed to process CreateKYCRequest operation")
+			}
 		}
-
-		return nil
 	}
 }
 
@@ -66,10 +66,10 @@ func (n *CreatedKYCNotifier) processCreateKYCRequestOperation(ctx context.Contex
 		})
 	}
 	if tx == nil {
-		// Transaction doesn't exist
-		return nil
+		return errors.New("transaction doesn't exist")
 	}
 
+	// we need ledger changes to ensure that KYCRequest was created but not updated through CreateKYCRequestOperation
 	ledgerChanges := tx.LedgerChanges()
 
 	for _, change := range ledgerChanges {
@@ -77,7 +77,7 @@ func (n *CreatedKYCNotifier) processCreateKYCRequestOperation(ctx context.Contex
 			continue
 		}
 
-		err := n.notifyAboutCreatedKYCRequest(ctx, createKYCRequestOperation.AccountToUpdateKYC, createKYCRequestOperation.ID)
+		err := n.notifyAboutCreatedKYCRequest(ctx, createKYCRequestOperation.AccountToUpdateKYC, createKYCRequestOperation.RequestID)
 		if err != nil {
 			return errors.Wrap(err, "failed to notify about created KYC request", logan.F{
 				"account_to_update_kyc": createKYCRequestOperation.AccountToUpdateKYC,
@@ -109,7 +109,7 @@ func (n *CreatedKYCNotifier) isCreatedKYCRequest(change xdr.LedgerEntryChange) b
 	return true
 }
 
-func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, accountToUpdateKYC string, operationID string) error {
+func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, accountToUpdateKYC string, requestID uint64) error {
 	user, err := n.userConnector.User(accountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "failed to load user", logan.F{
@@ -121,7 +121,7 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, a
 	}
 
 	emailAddress := user.Attributes.Email
-	emailUniqueToken := n.buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC, operationID)
+	emailUniqueToken := n.buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC, requestID)
 
 	data := struct {
 		Link string
@@ -137,6 +137,6 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, a
 	return nil
 }
 
-func (n *CreatedKYCNotifier) buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC, operationID string) string {
-	return fmt.Sprintf("%s:%s:%s:%s", emailAddress, accountToUpdateKYC, operationID, n.eventConfig.Emails.RequestTokenSuffix)
+func (n *CreatedKYCNotifier) buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC string, requestID uint64) string {
+	return fmt.Sprintf("%s:%s:%d:%s", emailAddress, accountToUpdateKYC, requestID, n.eventConfig.Emails.RequestTokenSuffix)
 }
