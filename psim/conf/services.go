@@ -2,29 +2,34 @@ package conf
 
 // All services existing in PSIM
 const (
-	// eth
+	// deposits
+	ServiceBTCDeposit         = "btc_deposit"
+	ServiceBTCDepositVerify   = "btc_deposit_verify"
 	ServiceETHSupervisor      = "eth_supervisor"
-	ServiceETHFunnel          = "eth_funnel"
-	ServiceETHWithdraw        = "eth_withdraw"
-	ServiceETHWithdrawVerify  = "eth_withdraw_verify"
 	ServiceERC20Deposit       = "erc20_deposit"
 	ServiceERC20DepositVerify = "erc20_deposit_verify"
 
-	// btc
-	ServiceBTCDeposit        = "btc_deposit"
-	ServiceBTCDepositVerify  = "btc_deposit_verify"
-	ServiceBTCFunnel         = "btc_funnel"
+	// funnels
+	ServiceETHFunnel = "eth_funnel"
+	ServiceBTCFunnel = "btc_funnel"
+
+	// withdrawals
 	ServiceBTCWithdraw       = "btc_withdraw"
 	ServiceBTCWithdrawVerify = "btc_withdraw_verify"
+	ServiceETHWithdraw       = "eth_withdraw"
+	ServiceETHWithdrawVerify = "eth_withdraw_verify"
 
 	// Verifies
 	ServiceStripeVerify = "stripe_verify"
 
 	ServiceOperationNotifier = "notifier"
 	ServiceBearer            = "bearer"
+
+	// prices
 	ServicePriceSetter       = "price_setter"
 	ServicePriceSetterVerify = "price_setter_verify"
 
+	// airdrops
 	ServiceAirdropEarlybird      = "airdrop_earlybird"
 	ServiceAirdropKYC            = "airdrop_kyc"
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
