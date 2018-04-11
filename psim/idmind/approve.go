@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Service) approveBothTasks(ctx context.Context, requestID uint64, requestHash string, isUSA bool) error {
-	var tasksToAdd = TaskCheckIDMind
+	var tasksToAdd uint32
 	if isUSA {
 		tasksToAdd = tasksToAdd | TaskUSA
 	}

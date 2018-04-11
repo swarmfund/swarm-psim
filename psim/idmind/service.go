@@ -49,6 +49,7 @@ type IdentityMind interface {
 type EmailsProcessor interface {
 	Run(ctx context.Context)
 	AddEmailAddresses(ctx context.Context, emailAddresses []string)
+	AddEmailAddress(ctx context.Context, emailAddress string)
 }
 
 type Service struct {
@@ -64,7 +65,8 @@ type Service struct {
 	usersConnector     UsersConnector
 	identityMind       IdentityMind
 	xdrbuilder         *xdrbuild.Builder
-	emailProcessor     EmailsProcessor
+	adminNotifyEmails  EmailsProcessor
+	usaUsersEmail      EmailsProcessor
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
 }
@@ -80,7 +82,8 @@ func NewService(
 	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
 	builder *xdrbuild.Builder,
-	emailProcessor EmailsProcessor,
+	adminNotifyEmails EmailsProcessor,
+	usaUsersEmail EmailsProcessor,
 ) *Service {
 
 	return &Service{
@@ -94,7 +97,8 @@ func NewService(
 		documentsConnector: documentProvider,
 		identityMind:       identityMind,
 		xdrbuilder:         builder,
-		emailProcessor:     emailProcessor,
+		adminNotifyEmails:  adminNotifyEmails,
+		usaUsersEmail:      usaUsersEmail,
 	}
 }
 
@@ -102,7 +106,8 @@ func NewService(
 func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
-	go s.emailProcessor.Run(ctx)
+	go s.adminNotifyEmails.Run(ctx)
+	go s.usaUsersEmail.Run(ctx)
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
 	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
@@ -163,7 +168,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		// Haven't submitted IDMind yet
 		err := s.processNotSubmitted(ctx, request)
 		if err != nil {
-			return errors.Wrap(err, "Failed to submit KYC data")
+			return errors.Wrap(err, "Failed to process not submitted (to IDMind) KYCRequest")
 		}
 
 		return nil

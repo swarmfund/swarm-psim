@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	NoAddressProfile = "NoAddress"
+	NoAddressProfile  = "NoAddress"
+	HasAddressProfile = "HasAddress"
 )
 
 // CreateAccountRequest describes the structure of CreateAccount request to IdentityMind.
@@ -36,7 +37,7 @@ type CreateAccountRequest struct {
 	DocType           DocType `json:"docType"`
 	DocCountry        string  `json:"docCountry"`
 	//DocState          string  `json:"docState"` // Issuing State in 2 letter ANSI format, to be provided if different from bs/as and if docCountry is US
-	Profile string `json:"profile,omitempty"`
+	Profile string `json:"profile"`
 }
 
 // TODO GetLoganFields implementation
@@ -117,6 +118,8 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 	var profile string
 	if docType == PassportDocType {
 		profile = NoAddressProfile
+	} else {
+		profile = HasAddressProfile
 	}
 
 	r := CreateAccountRequest{

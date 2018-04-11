@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
@@ -24,7 +25,18 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		"account_id": accountID,
 	}
 
-	kycData, err := s.retrieveKYCData(request, accountID)
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+		// Mark as reviewed without sending to IDMind (Syndicate - we don't handle Syndicates via IDMind)
+		err := s.approveBothTasks(ctx, request.ID, request.Hash, false)
+		if err != nil {
+			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind - nonGeneral Account requested)")
+		}
+
+		s.log.WithField("request", request).Info("Successfully approved without sending to IDMind (nonGeneral requested).")
+		return nil
+	}
+
+	kycData, email, err := s.retrieveKYCData(request, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve KYCData", fields)
 	}
@@ -34,11 +46,23 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
 		err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
 		if err != nil {
-			return errors.Wrap(err, "Failed to approve both Tasks (without IDMind processing)")
+			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind - nonLatin docs or USA)")
 		}
+
+		s.log.WithFields(logan.F{
+			"is_usa":  isUSA,
+			"request": request,
+		}).Info("Successfully approved without sending to IDMind - nonLatin docs or USA.")
+
+		if isUSA {
+			// Notify User, he needs to pass AccreditedInvestor check
+			s.usaUsersEmail.AddEmailAddress(ctx, email)
+		}
+
+		return nil
 	}
 
-	err = s.processNewKYCApplication(ctx, *kycData, accountID, request)
+	err = s.processNewKYCApplication(ctx, *kycData, email, accountID, request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process new KYC Application", fields)
 	}
@@ -50,53 +74,50 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 // obtains Blob by BlobID,
 // check Blob's type
 // and parses KYCData from the Blob.Attributes.Value
-func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (*kyc.Data, error) {
+func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (data *kyc.Data, email string, err error) {
+	user, err := s.usersConnector.User(accountID)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "Failed to get User by AccountID from Horizon")
+	}
+	email = user.Attributes.Email
+
 	kycRequest := request.Details.KYC
 
 	blobIDInterface, ok := kycRequest.KYCData["blob_id"]
 	if !ok {
-		return nil, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
+		return nil, email, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
 	}
 
 	blobID, ok := blobIDInterface.(string)
 	if !ok {
 		// Normally should never happen
-		return nil, errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
+		return nil, email, errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
 	}
 
 	blob, err := s.blobsConnector.Blob(blobID)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Blob from Horizon")
+		return nil, email, errors.Wrap(err, "Failed to get Blob from Horizon")
 	}
 	fields := logan.F{"blob": blob}
 
 	if blob.Type != KYCFormBlobType {
-		return nil, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
+		return nil, email, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
 			blob.Type, KYCFormBlobType), fields)
 	}
 
 	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in from Blob", fields)
+		return nil, email, errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in from Blob", fields)
 	}
 
-	return kycData, nil
+	return kycData, email, nil
 }
 
-func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, accID string, request horizon.Request) error {
-	user, err := s.usersConnector.User(accID)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get User by AccountID from Horizon")
-	}
-	email := user.Attributes.Email
-	fields := logan.F{
-		"email": email,
-	}
-
+func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email, accID string, request horizon.Request) error {
 	idDoc := kycData.Documents.IDDocument
 
 	docType := getDocType(idDoc.Type)
-	fields["doc_type"] = docType
+	fields := logan.F{"doc_type": docType}
 
 	faceFile, backFile, err := s.fetchIDDocument(idDoc)
 	if err != nil {
@@ -125,7 +146,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	}
 	fields["application_response"] = applicationResponse
 
-	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request)
+	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request, email)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process response of new KYC Application", fields)
 	}
@@ -150,7 +171,7 @@ func getDocType(kycDocType kyc.DocType) DocType {
 }
 
 func (s *Service) fetchIDDocument(doc kyc.IDDocument) (faceFile, backFile []byte, err error) {
-	faceDoc, err := s.documentsConnector.Document(doc.FaceDocID)
+	faceDoc, err := s.documentsConnector.Document(doc.FaceFile.ID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Failed to get Face Document by ID from Horizon")
 	}
@@ -161,8 +182,8 @@ func (s *Service) fetchIDDocument(doc kyc.IDDocument) (faceFile, backFile []byte
 		return nil, nil, errors.Wrap(err, "Failed to read faceFile response into bytes")
 	}
 
-	if doc.BackDocID != "" {
-		backDoc, err := s.documentsConnector.Document(doc.BackDocID)
+	if doc.BackFile != nil {
+		backDoc, err := s.documentsConnector.Document(doc.BackFile.ID)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "Failed to get Back Document by ID from Horizon")
 		}
@@ -181,8 +202,11 @@ func fixDocURL(url string) string {
 	return strings.Replace(url, `\u0026`, `&`, -1)
 }
 
-func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request) error {
-	logger := s.log.WithField("request", request)
+func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request, email string) error {
+	logger := s.log.WithFields(logan.F{
+		"request": request,
+		"email":   email,
+	})
 
 	rejectReason, details := s.getAppRespRejectReason(appResponse)
 	if rejectReason != "" {
@@ -192,8 +216,7 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 			return errors.Wrap(err, "Failed to reject KYCRequest due to reason from immediate ApplicationResponse")
 		}
 
-		s.log.WithFields(logan.F{
-			"request":            request,
+		logger.WithFields(logan.F{
 			"reject_blob_id":     blobID,
 			"reject_ext_details": details,
 		}).Infof("Rejected KYCRequest during Submit Task successfully (%s).", rejectReason)

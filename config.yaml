@@ -368,6 +368,11 @@ identity_mind:
     request_type: 7 # 7 means that email with unique token will be sent only once in 24h
     message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  usa_email:
+    subject: "Accreditation status verification"
+    request_type: 10 # 10 means that email will be sent only once per each unique token
+    message: us_residents.html
+    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
   emails_to_notify: [
 "john.doe@example.com",
 "jane.doe@example.com"]
