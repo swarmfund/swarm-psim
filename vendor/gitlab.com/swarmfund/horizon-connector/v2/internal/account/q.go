@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/responses"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type Q struct {
@@ -92,4 +93,27 @@ func (q *Q) Balances(address string) ([]resources.Balance, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return result, nil
+}
+
+func (q *Q) References(address string) ([]resources.Reference, error) {
+	respBB, err := q.client.Get(fmt.Sprintf("/accounts/%s/references", address))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send GET request")
+	}
+
+	if respBB == nil {
+		// No References
+		return nil, nil
+	}
+
+	var response struct {
+		Data []resources.Reference `json:"data"`
+	}
+	if err := json.Unmarshal(respBB, &response); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response bytes", logan.F{
+			"raw_response": string(respBB),
+		})
+	}
+
+	return response.Data, nil
 }

@@ -11,7 +11,10 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/lchanges"
 )
+
+// KYCAirdrop service's goal is to issue 10 SWM to users who have successfully passed KYC.
 
 func init() {
 	app.RegisterService(conf.ServiceAirdropKYC, setupFn)
@@ -56,7 +59,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
 
-	ledgerChangesStreamer := airdrop.NewLedgerChangesStreamer(log, horizonConnector.Listener())
+	ledgerChangesStreamer := lchanges.NewStreamer(log, horizonConnector.Listener())
 
 	return NewService(
 		log,
@@ -65,6 +68,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		ledgerChangesStreamer,
 		horizonConnector.Accounts(),
 		horizonConnector.Users(),
+		horizonConnector.Blobs(),
+		horizonConnector.Accounts(),
 		emailProcessor,
 	), nil
 }

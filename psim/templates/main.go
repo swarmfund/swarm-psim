@@ -1,8 +1,11 @@
 package templates
 
 import (
-	"gitlab.com/distributed_lab/logan/v3/errors"
+	"bytes"
 	"html/template"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 //go:generate go-bindata -nometadata -ignore .+\.go$ -pkg templates -o bindata.go ./...
@@ -20,4 +23,25 @@ func GetHtmlTemplate(templateName string) (*template.Template, error) {
 	}
 
 	return t, nil
+}
+
+// TODO Cache the html template once and reuse it
+func BuildTemplateEmailMessage(templateName string, templateData interface{}) (string, error) {
+	fields := logan.F{
+		"template_name": templateName,
+	}
+
+	t, err := GetHtmlTemplate(templateName)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get html Template", fields)
+	}
+
+	var buff bytes.Buffer
+
+	err = t.Execute(&buff, templateData)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to execute html Template", fields)
+	}
+
+	return buff.String(), nil
 }

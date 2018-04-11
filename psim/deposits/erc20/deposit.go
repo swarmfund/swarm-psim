@@ -9,7 +9,7 @@ import (
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/deposit"
+	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )

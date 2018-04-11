@@ -30,6 +30,9 @@ const (
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
 	ServiceAirdropMarch20b20     = "airdrop_march_20_20"
 
+	ServiceTemplateProvider = "template_provider"
+	ServiceWalletCleaner    = "wallet_cleaner"
+
 	ServiceIdentityMind = "identity_mind"
 )
 

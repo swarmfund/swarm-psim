@@ -70,7 +70,7 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	bytes, err := ioutil.ReadAll(response.Body)
+	bodyBB, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, errors.E(
 			"failed to read response body",
@@ -81,9 +81,9 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 	}
 
 	switch response.StatusCode {
-	case http.StatusOK:
-		return bytes, nil
-	case http.StatusNotFound:
+	case http.StatusOK, http.StatusCreated:
+		return bodyBB, nil
+	case http.StatusNotFound, http.StatusNoContent:
 		return nil, nil
 	case http.StatusTooManyRequests:
 		// TODO look at x-rate-limit headers and slow down
@@ -92,7 +92,7 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 		return nil, errors.E(
 			"request was invalid in some way",
 			errors.Runtime,
-			errors.Response(bytes),
+			errors.Response(bodyBB),
 			errors.Status(response.StatusCode),
 			errors.Path(request.URL.String()),
 		)
@@ -100,7 +100,7 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 		return nil, errors.E(
 			"signer is not allowed to access resource",
 			errors.Runtime,
-			errors.Response(bytes),
+			errors.Response(bodyBB),
 			errors.Status(response.StatusCode),
 			errors.Path(request.URL.String()),
 		)
@@ -108,7 +108,7 @@ func (c *Client) Do(request *http.Request) ([]byte, error) {
 		return nil, errors.E(
 			"something bad happened",
 			errors.Runtime,
-			errors.Response(bytes),
+			errors.Response(bodyBB),
 			errors.Status(response.StatusCode),
 			errors.Path(request.URL.String()),
 		)
@@ -153,6 +153,42 @@ func (c *Client) Post(endpoint string, body io.Reader) ([]byte, error) {
 	}
 
 	request, err := http.NewRequest("POST", endpoint, body)
+	if err != nil {
+		return nil, errors.E(
+			"failed to build request",
+			err,
+			errors.Runtime,
+		)
+	}
+
+	return c.Do(request)
+}
+
+func (c *Client) Put(endpoint string, body io.Reader) ([]byte, error) {
+	endpoint, err := c.prepareURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest("PUT", endpoint, body)
+	if err != nil {
+		return nil, errors.E(
+			"failed to build request",
+			err,
+			errors.Runtime,
+		)
+	}
+
+	return c.Do(request)
+}
+
+func (c *Client) Delete(endpoint string) ([]byte, error) {
+	endpoint, err := c.prepareURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest("DELETE", endpoint, nil)
 	if err != nil {
 		return nil, errors.E(
 			"failed to build request",
