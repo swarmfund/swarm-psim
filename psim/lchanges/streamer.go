@@ -1,4 +1,4 @@
-package airdrop
+package lchanges
 
 import (
 	"context"
@@ -19,17 +19,15 @@ type TimedLedgerChange struct {
 	Time   time.Time
 }
 
-// DEPRECATED Use lchanges.Streamer instead
-type LedgerChangesStreamer struct {
+type Streamer struct {
 	log        *logan.Entry
 	txStreamer TXStreamer
 
 	timedChangesStream chan TimedLedgerChange
 }
 
-// DEPRECATED Use lchanges.NewStreamer instead
-func NewLedgerChangesStreamer(log *logan.Entry, txStreamer TXStreamer) *LedgerChangesStreamer {
-	return &LedgerChangesStreamer{
+func NewStreamer(log *logan.Entry, txStreamer TXStreamer) *Streamer {
+	return &Streamer{
 		log:        log.WithField("helper-runner", "ledger_changes_streamer"),
 		txStreamer: txStreamer,
 
@@ -37,51 +35,47 @@ func NewLedgerChangesStreamer(log *logan.Entry, txStreamer TXStreamer) *LedgerCh
 	}
 }
 
-// DEPRECATED Use lchanges.Streamer instead
-func (s *LedgerChangesStreamer) Run(ctx context.Context) <-chan TimedLedgerChange {
-	s.log.Info("Started listening Transactions stream.")
-	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
-
-	var isFirstTX = true
-	// TODO Consider counting TXs per day and logging this number with each TX day log.
-	var lastLoggedTXYearDay int
-	go app.RunOverIncrementalTimer(ctx, s.log, "ledger_changes_processor", func(ctx context.Context) error {
-		select {
-		case <-ctx.Done():
-			return nil
-		case txEvent := <-txStream:
-			if app.IsCanceled(ctx) {
-				return nil
-			}
-
-			if txEvent.Transaction == nil {
-				return nil
-			}
-
-			if isFirstTX {
-				s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received first TX.")
-				lastLoggedTXYearDay = txEvent.Meta.LatestLedger.ClosedAt.YearDay()
-				isFirstTX = false
-			} else {
-				if txEvent.Meta.LatestLedger.ClosedAt.YearDay() != lastLoggedTXYearDay {
-					// New day TX
-					s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received next day TX.")
-					lastLoggedTXYearDay = txEvent.Meta.LatestLedger.ClosedAt.YearDay()
-				}
-			}
-
-			s.streamChanges(ctx, *txEvent.Transaction)
-			return nil
-		case txStreamerErr := <-txStreamerErrs:
-			s.log.WithError(txStreamerErr).Error("TXStreamer sent error into its error channel.")
-			return nil
-		}
-	}, 0, 10*time.Second)
-
+func (s Streamer) GetStream() <-chan TimedLedgerChange {
 	return s.timedChangesStream
 }
 
-func (s *LedgerChangesStreamer) streamChanges(ctx context.Context, tx horizon.Transaction) {
+// Run is a blocking method, Run returns only if ctx cancelled.
+func (s *Streamer) Run(ctx context.Context) {
+	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
+	s.log.Info("Started listening Transactions stream.")
+
+	// TODO Consider counting TXs per day and logging this number with each TX day log.
+	var lastLoggedTXYearDay int
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case txEvent := <-txStream:
+			if app.IsCanceled(ctx) {
+				s.log.Info("Received cancel - closing.")
+				return
+			}
+
+			if txEvent.Transaction == nil {
+				continue
+			}
+
+			if txEvent.Meta.LatestLedger.ClosedAt.YearDay() != lastLoggedTXYearDay {
+				// New day TX
+				s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received next day TX.")
+				lastLoggedTXYearDay = txEvent.Meta.LatestLedger.ClosedAt.YearDay()
+			}
+
+			s.streamChanges(ctx, *txEvent.Transaction)
+			continue
+		case txStreamerErr := <-txStreamerErrs:
+			s.log.WithError(txStreamerErr).Error("TXStreamer sent error into its error channel.")
+			continue
+		}
+	}
+}
+
+func (s *Streamer) streamChanges(ctx context.Context, tx horizon.Transaction) {
 	for _, change := range tx.LedgerChanges() {
 		timedChange := TimedLedgerChange{
 			Change: change,
