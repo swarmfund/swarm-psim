@@ -368,9 +368,9 @@ identity_mind:
     message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
   usa_email:
-    subject: "USA User - needs additional KYC step to pass" # FIXME
+    subject: "Accreditation status verification"
     request_type: 10 # 10 means that email will be sent only once per each unique token
-    message: "remove_me.html" # FIXME
+    message: us_residents.html
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
   emails_to_notify: [
 "john.doe@example.com",
