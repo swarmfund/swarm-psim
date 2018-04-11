@@ -4,10 +4,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/agl/ed25519"
-  packages = [
-    ".",
-    "edwards25519"
-  ]
+  packages = [".","edwards25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
@@ -54,20 +51,13 @@
 
 [[projects]]
   name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "mock"
-  ]
+  packages = ["assert","mock"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
-  packages = [
-    "v3",
-    "v3/errors",
-    "v3/fields"
-  ]
+  packages = ["v3","v3/errors","v3/fields"]
   revision = "33632ccd631258ce552cfea05961a4844cf1c4b9"
   version = "v3.4"
 
@@ -86,41 +76,29 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "504f88d57f8e23e3eba75c825fd02ed2b9214a30"
+  revision = "250aa964012e5e6267316f3c0f0106bbe6872e73"
 
 [[projects]]
   branch = "master"
   name = "gitlab.com/tokend/keypair"
-  packages = [
-    ".",
-    "internal",
-    "internal/crc16",
-    "internal/strkey"
-  ]
+  packages = [".","internal","internal/crc16","internal/strkey"]
   revision = "c148f15306edac6a1ad994d8b218e8ae61a0b2c1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = [
-    "ed25519",
-    "ed25519/internal/edwards25519",
-    "ssh/terminal"
-  ]
+  packages = ["ed25519","ed25519/internal/edwards25519","ssh/terminal"]
   revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix","windows"]
   revision = "1006bb3484c92b19a5b6612452e038b554fadb9c"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5746e1380dd674a52dfd669d6c5004fbe6dd6c2876589ab4ad60812f60c6d62b"
+  inputs-digest = "db8acfd5d82dad9530a07a6ea2f8b68cad8c8b179f114b2603d87c0556b9c8a1"
   solver-name = "gps-cdcl"
   solver-version = 1
