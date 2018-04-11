@@ -8,7 +8,7 @@ import (
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/psim/deposit"
+	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"context"
 )
 

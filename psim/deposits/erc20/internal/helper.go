@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/hash"
-	"gitlab.com/swarmfund/psim/psim/deposit"
+	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 )
 
 func NewERC20Helper(eth *ethclient.Client, depositAsset string, token common.Address) *ERC20Helper {

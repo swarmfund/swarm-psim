@@ -9,9 +9,9 @@ import (
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/btcdeposit"
+	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/depositveri"
+	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 

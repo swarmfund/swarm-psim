@@ -52,30 +52,33 @@ s3:
 
 services:
 #  - bearer
-  #- notifier
-  #- charger
-  #- notifier
+#  - notifier
+#  - charger
 
 #  - btc_deposit
 #  - btc_deposit_verify
-#  - btc_funnel
-#  - btc_withdraw
-#  - btc_withdraw_verify
+#  - eth_supervisor
 
-  #- eth_supervisor
+#  - btc_funnel
 #  - eth_funnel
 
-  #- taxman
-  #- price_setter
+#  - btc_withdraw
+#  - btc_withdraw_verify
+#  - eth_withdraw
+
+#  - taxman
+#  - price_setter
 #  - price_setter_verify
 
 #  - airdrop_earlybird
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
-#- template_provider
+
 #  - identity_mind
-#-wallet_cleaner
+
+#  - template_provider
+#  - wallet_cleaner
 
 # BTC
 btc_deposit:
