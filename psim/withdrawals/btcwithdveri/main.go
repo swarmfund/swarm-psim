@@ -1,4 +1,5 @@
-package btcwithdraw
+// BTC Withdraw Verify
+package btcwithdveri
 
 import (
 	"context"
@@ -6,15 +7,17 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdveri"
 )
 
 func init() {
-	app.RegisterService(conf.ServiceBTCWithdraw, setupFn)
+	app.RegisterService(conf.ServiceBTCWithdrawVerify, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -24,13 +27,18 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceBTCWithdraw)).
+		From(app.Config(ctx).GetRequired(conf.ServiceBTCWithdrawVerify)).
 		With(figure.BaseHooks, utils.CommonHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceBTCWithdraw,
+			"service": conf.ServiceBTCWithdrawVerify,
 		})
+	}
+
+	listener, err := ape.Listener(config.Host, config.Port)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init listener")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
@@ -40,18 +48,16 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
-	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
-
-	return withdraw.New(
-		conf.ServiceBTCWithdraw,
+	return withdveri.New(
 		conf.ServiceBTCWithdrawVerify,
-		config.SignerKP,
 		log,
-		horizonConnector.Listener(),
+		config.SourceKP,
+		config.SignerKP,
 		horizonConnector,
-		builder,
+		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
+		listener,
 		globalConfig.Discovery(),
-		NewBTCHelper(
+		btcwithdraw.NewBTCHelper(
 			log,
 			config.MinWithdrawAmount,
 			config.HotWalletAddress,
