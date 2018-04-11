@@ -8,20 +8,20 @@ import (
 
 	// import services for side effects
 
-	// deposit
+	// deposits
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdepositveri"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 
-	// withdraw
+	// withdrawals
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdveri"
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/eth"
 
-	// funnel
-	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
-	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
+	// funnels
+	_ "gitlab.com/swarmfund/psim/psim/funnels/btcfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/funnels/ethfunnel"
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
@@ -37,6 +37,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
 
+	// kyc
 	_ "gitlab.com/swarmfund/psim/psim/kyc/idmind"
 )
 
