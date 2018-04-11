@@ -7,6 +7,7 @@ import (
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/swarmfund/psim/psim/lchanges"
 )
 
 type IssuanceSubmitter interface {
@@ -14,7 +15,8 @@ type IssuanceSubmitter interface {
 }
 
 type LedgerStreamer interface {
-	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
+	Run(ctx context.Context)
+	GetStream() <-chan lchanges.TimedLedgerChange
 }
 
 type AccountsConnector interface {

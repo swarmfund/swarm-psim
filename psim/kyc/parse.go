@@ -36,17 +36,21 @@ func ParseKYCData(data string) (*Data, error) {
 	default:
 		// v1
 		return &Data{
-			FirstName:  parsingKYCData.FirstName,
-			LastName:   parsingKYCData.LastName,
-			Address:    parsingKYCData.Address,
+			FirstName: parsingKYCData.FirstName,
+			LastName:  parsingKYCData.LastName,
+			Address:   parsingKYCData.Address,
 			Documents: Documents{
 				IDDocument: IDDocument{
-					FaceDocID: parsingKYCData.Documents.KYCIdDocument,
-					BackDocID: "",
-					Type:      PassportDocType,
+					FaceFile: DocFile{
+						ID: parsingKYCData.Documents.KYCIdDocument,
+					},
+					BackFile: nil,
+					Type:     PassportDocType,
 				},
 				ProofOfAddr: ProofOfAddrDoc{
-					FaceFileID: parsingKYCData.Documents.KYCProofOfAddress,
+					FaceFile: DocFile{
+						ID: parsingKYCData.Documents.KYCProofOfAddress,
+					},
 				},
 			},
 		}, nil

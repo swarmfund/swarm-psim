@@ -64,7 +64,18 @@
 [[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/go"
-  packages = ["amount","crc16","hash","keypair","network","signcontrol","strkey","xdr","xdrbuild","xdrbuild/internal"]
+  packages = [
+    "amount",
+    "crc16",
+    "hash",
+    "keypair",
+    "network",
+    "signcontrol",
+    "strkey",
+    "xdr",
+    "xdrbuild",
+    "xdrbuild/internal"
+  ]
   revision = "250aa964012e5e6267316f3c0f0106bbe6872e73"
 
 [[projects]]

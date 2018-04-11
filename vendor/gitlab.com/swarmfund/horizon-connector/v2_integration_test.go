@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/horizon-connector/v2/types"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -19,6 +20,33 @@ func TestConnectorV2(t *testing.T) {
 	base, _ := url.Parse("http://dev.swarm:8000")
 	master := keypair.MustParseSeed("SB3YDBQV7VPJEWBT5FLSKO5N2WMAFJR46JXPV7HKTANXW4IKTMKZ2VNE")
 	connector := horizon.NewConnector(base).WithSigner(master)
+	{
+		q := connector.Wallets()
+		{
+			verified := false
+			page := int32(2)
+
+			ops := types.GetOpts{
+				Verified: &verified,
+				Page:     &page,
+			}
+
+			wallets, resultPage, err := q.Filter(&ops)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			fmt.Println(wallets)
+			fmt.Println(resultPage)
+		}
+
+		{
+			err := q.Delete("22c25cd3151661a01d7f0c502169f4acf4c0d366a606ec4194334f3846b0b195")
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 
 	{
 		q := connector.Templates()
