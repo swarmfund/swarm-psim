@@ -10,7 +10,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/swarmfund/psim/psim/verification"
 )
 

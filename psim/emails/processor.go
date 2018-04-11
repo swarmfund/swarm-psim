@@ -49,7 +49,7 @@ func (p *Processor) Run(ctx context.Context) {
 	running.WithBackOff(ctx, p.log, "emails_processor", func(ctx context.Context) error {
 		emailsNumber := p.emails.Length()
 		if emailsNumber == 0 {
-			p.log.Debug("No emails to send - waiting for next wake up.")
+			p.log.Debugf("No emails to send - waiting for next wake up (%s).", p.config.SendPeriod.String())
 			return nil
 		}
 

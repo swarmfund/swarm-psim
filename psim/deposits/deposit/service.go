@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/go/amount"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
@@ -68,8 +69,13 @@ type OffchainHelper interface {
 	GetBlock(number uint64) (*Block, error)
 }
 
-// Service implements app.Service interface, it supervises Offchain blockchain
-// and send CoinEmissionRequests to Horizon if arrived Deposit detected.
+// Service implements app.Service interface.
+// Service supervises Offchain blockchain,
+// detects arriving deposits,
+// verifies Issuance via Verifier
+// and sends Issuance(CoinEmissionRequests) to Horizon.
+//
+// Service uses OffchainHelper to do offchain-specific operations.
 type Service struct {
 	log *logan.Entry
 
@@ -126,7 +132,7 @@ type Opts struct {
 
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
-	app.RunOverIncrementalTimer(ctx, s.log, s.serviceName, s.processNewBlocks, 5*time.Second, 5*time.Second)
+	running.WithBackOff(ctx, s.log, s.serviceName, s.processNewBlocks, 5*time.Second, 5*time.Second, time.Hour)
 }
 
 func (s *Service) processNewBlocks(ctx context.Context) error {

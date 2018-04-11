@@ -4,13 +4,25 @@ import (
 	"context"
 
 	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"sync"
 )
 
+// ListenLedgerChanges listens the stream from LedgerStreamer infinitely
+// and processes each incoming LedgerChange.
+// ListenLedgerChanges is a blocking method, it only returns when ctx is cancelled.
 func (s *Service) listenLedgerChanges(ctx context.Context) {
+	ledgerStream := s.ledgerStreamer.GetStream()
+	lStreamerWG := sync.WaitGroup{}
+	go func() {
+		lStreamerWG.Add(1)
+		s.ledgerStreamer.Run(ctx)
+		lStreamerWG.Done()
+	}()
 	s.log.Info("Started listening TimedLedgers stream.")
-	ledgerStream := s.ledgerStreamer.Run(ctx)
+
+	defer lStreamerWG.Wait()
 
 	for {
 		select {
@@ -26,7 +38,7 @@ func (s *Service) listenLedgerChanges(ctx context.Context) {
 	}
 }
 
-func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLedgerChange) {
+func (s *Service) processChange(ctx context.Context, timedLedger lchanges.TimedLedgerChange) {
 	change := timedLedger.Change
 
 	switch change.Type {

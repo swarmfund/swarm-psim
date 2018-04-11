@@ -1,4 +1,4 @@
-package btcwithdraw
+package btcdepositveri
 
 import (
 	"context"
@@ -6,15 +6,17 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
 )
 
 func init() {
-	app.RegisterService(conf.ServiceBTCWithdraw, setupFn)
+	app.RegisterService(conf.ServiceBTCDepositVerify, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -24,40 +26,42 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceBTCWithdraw)).
+		From(app.Config(ctx).GetRequired(conf.ServiceBTCDepositVerify)).
 		With(figure.BaseHooks, utils.CommonHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceBTCWithdraw,
+			"service": conf.ServiceBTCDepositVerify,
 		})
 	}
 
-	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
+	listener, err := ape.Listener(config.Host, config.Port)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init listener")
+	}
+
+	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
 	horizonInfo, err := horizonConnector.Info()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
-	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
-
-	return withdraw.New(
-		conf.ServiceBTCWithdraw,
-		conf.ServiceBTCWithdrawVerify,
-		config.SignerKP,
+	return depositveri.New(
+		"bitcoin",
+		conf.ServiceBTCDepositVerify,
 		log,
-		horizonConnector.Listener(),
+		config.Signer,
+		config.LastBlocksNotWatch,
 		horizonConnector,
-		builder,
+		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
+		listener,
 		globalConfig.Discovery(),
-		NewBTCHelper(
+		btcdeposit.NewBTCHelper(
 			log,
-			config.MinWithdrawAmount,
-			config.HotWalletAddress,
-			config.HotWalletScriptPubKey,
-			config.HotWalletRedeemScript,
-			config.PrivateKey,
+			config.DepositAsset,
+			config.MinDepositAmount,
+			config.FixedDepositFee,
 			globalConfig.Bitcoin(),
 		),
 	), nil

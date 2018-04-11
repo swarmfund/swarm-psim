@@ -10,7 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/withdraw"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/eth/internal"
 )
 

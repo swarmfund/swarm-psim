@@ -7,10 +7,11 @@ import (
 )
 
 type Config struct {
-	Connector      ConnectorConfig    `fig:"connector,required"`
-	RejectReasons  RejectReasonConfig `fig:"reject_reasons,required"`
-	EmailsConfig   EmailsConfig       `fig:"emails,required"`
-	EmailsToNotify []string           `fig:"emails_to_notify,required"`
+	Connector               ConnectorConfig    `fig:"connector,required"`
+	RejectReasons           RejectReasonConfig `fig:"reject_reasons,required"`
+	AdminNotifyEmailsConfig EmailConfig        `fig:"emails,required"`
+	USAUsersEmailConfig     EmailConfig        `fig:"usa_email,required"`
+	AdminEmailsToNotify     []string           `fig:"emails_to_notify,required"`
 
 	Source keypair.Address `fig:"source,required"`
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
@@ -20,8 +21,9 @@ func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"connector":            c.Connector,
 		"reject_reasons":       c.RejectReasons,
-		"emails_config":        c.EmailsConfig,
-		"emails_to_notify_len": len(c.EmailsToNotify),
+		"emails_config":        c.AdminNotifyEmailsConfig,
+		"usa_email_config":     c.USAUsersEmailConfig,
+		"emails_to_notify_len": len(c.AdminEmailsToNotify),
 	}
 }
 
@@ -39,14 +41,14 @@ func (c RejectReasonConfig) GetLoganFields() map[string]interface{} {
 	}
 }
 
-type EmailsConfig struct {
+type EmailConfig struct {
 	Subject     string        `fig:"subject,required"`
 	RequestType int           `fig:"request_type,required"`
 	Message     string        `fig:"message,required"`
 	SendPeriod  time.Duration `fig:"send_period,required"`
 }
 
-func (c EmailsConfig) GetLoganFields() map[string]interface{} {
+func (c EmailConfig) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"subject":      c.Subject,
 		"request_type": c.RequestType,

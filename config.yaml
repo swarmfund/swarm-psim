@@ -52,30 +52,33 @@ s3:
 
 services:
 #  - bearer
-  #- notifier
-  #- charger
-  #- notifier
+#  - notifier
+#  - charger
 
 #  - btc_deposit
 #  - btc_deposit_verify
-#  - btc_funnel
-#  - btc_withdraw
-#  - btc_withdraw_verify
+#  - eth_supervisor
 
-  #- eth_supervisor
+#  - btc_funnel
 #  - eth_funnel
 
-  #- taxman
-  #- price_setter
+#  - btc_withdraw
+#  - btc_withdraw_verify
+#  - eth_withdraw
+
+#  - taxman
+#  - price_setter
 #  - price_setter_verify
 
 #  - airdrop_earlybird
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
-#- template_provider
+
 #  - identity_mind
-#-wallet_cleaner
+
+#  - template_provider
+#  - wallet_cleaner
 
 # BTC
 btc_deposit:
@@ -367,6 +370,11 @@ identity_mind:
     subject: "IDMind pending KYC requests waiting for manual review"
     request_type: 7 # 7 means that email with unique token will be sent only once in 24h
     message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."
+    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  usa_email:
+    subject: "Accreditation status verification"
+    request_type: 10 # 10 means that email will be sent only once per each unique token
+    message: us_residents.html
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
   emails_to_notify: [
 "john.doe@example.com",
