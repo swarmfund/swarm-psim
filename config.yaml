@@ -61,6 +61,7 @@ services:
 #  - btc_deposit
 #  - btc_deposit_verify
 #  - eth_supervisor
+#   - eth_contracts
 
 #  - btc_funnel
 #  - eth_funnel
@@ -194,6 +195,12 @@ eth_supervisor:
     leadership_key: eth_supervisor
     exchange: G_SOME_VALID_PUBLIC_KEY
     signer: S_SOME_VALID_PRIVATE_KEY
+
+eth_contracts:
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+  eth_private_key: "contracts_owner_private_key_hex"
+  gas_price: 1000000000 # TODO Add comment
 
 # funnels
 btc_funnel:

@@ -108,10 +108,10 @@ func (wallet *Wallet) SignTX(address common.Address, tx *types.Transaction) (*ty
 	if !ok {
 		return nil, ErrNoKey
 	}
-	return wallet.SignTXWithPrivate(&key, tx)
+	return SignTXWithPrivate(&key, tx)
 }
 
-func (wallet *Wallet) SignTXWithPrivate(key *ecdsa.PrivateKey, tx *types.Transaction) (*types.Transaction, error) {
+func SignTXWithPrivate(key *ecdsa.PrivateKey, tx *types.Transaction) (*types.Transaction, error) {
 	return types.SignTx(tx, types.HomesteadSigner{}, key)
 }
 

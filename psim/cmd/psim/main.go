@@ -13,6 +13,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdepositveri"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
+	_ "gitlab.com/swarmfund/psim/psim/deposits/ethcontracts"
 
 	// withdrawals
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"

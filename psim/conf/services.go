@@ -8,6 +8,7 @@ const (
 	ServiceETHSupervisor      = "eth_supervisor"
 	ServiceERC20Deposit       = "erc20_deposit"
 	ServiceERC20DepositVerify = "erc20_deposit_verify"
+	ServiceETHContracts       = "eth_contracts"
 
 	// funnels
 	ServiceETHFunnel = "eth_funnel"
@@ -34,6 +35,9 @@ const (
 	ServiceAirdropKYC            = "airdrop_kyc"
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
 	ServiceAirdropMarch20b20     = "airdrop_march_20_20"
+
+	// kyc
+	ServiceIdentityMind = "identity_mind"
 
 	ServiceTemplateProvider = "template_provider"
 	ServiceWalletCleaner    = "wallet_cleaner"
