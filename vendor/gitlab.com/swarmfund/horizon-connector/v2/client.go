@@ -182,6 +182,24 @@ func (c *Client) Put(endpoint string, body io.Reader) ([]byte, error) {
 	return c.Do(request)
 }
 
+func (c *Client) Delete(endpoint string) ([]byte, error) {
+	endpoint, err := c.prepareURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest("DELETE", endpoint, nil)
+	if err != nil {
+		return nil, errors.E(
+			"failed to build request",
+			err,
+			errors.Runtime,
+		)
+	}
+
+	return c.Do(request)
+}
+
 func (c *Client) WithSigner(kp keypair.Full) *Client {
 	return &Client{
 		c.base, kp, c.throttle, http.DefaultClient,

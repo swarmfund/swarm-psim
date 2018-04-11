@@ -12,6 +12,7 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/emails"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
@@ -44,6 +45,14 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
+	emailProcessor := emails.NewProcessor(log, emails.Config{
+		Subject:               config.EmailsConfig.Subject,
+		Message:               config.EmailsConfig.Message,
+		RequestType:           config.EmailsConfig.RequestType,
+		UniquenessTokenSuffix: "-kyc-manual-reviews-notification",
+		SendPeriod:            config.EmailsConfig.SendPeriod,
+	}, globalConfig.Notificator())
+
 	return NewService(
 		log,
 		config,
@@ -54,6 +63,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Documents(),
 		newConnector(config.Connector),
 		builder,
+		emailProcessor,
 	), nil
 }
 
@@ -93,5 +103,23 @@ var hooks = figure.Hooks{
 		}
 
 		return reflect.ValueOf(config), nil
+	},
+	"idmind.EmailsConfig": func(raw interface{}) (reflect.Value, error) {
+		rawEmails, err := cast.ToStringMapE(raw)
+		if err != nil {
+			return reflect.Value{}, errors.Wrap(err, "failed to cast provider to map[string]interface{}")
+		}
+
+		var emailsConfig EmailsConfig
+		err = figure.
+			Out(&emailsConfig).
+			From(rawEmails).
+			With(figure.BaseHooks).
+			Please()
+		if err != nil {
+			return reflect.Value{}, errors.Wrap(err, "failed to figure out EmailsConfig")
+		}
+
+		return reflect.ValueOf(emailsConfig), nil
 	},
 }

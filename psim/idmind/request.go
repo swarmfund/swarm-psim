@@ -15,10 +15,13 @@ const (
 	TaskSubmitIDMind       uint32 = 8
 	TaskCheckIDMind        uint32 = 16
 	TaskUSA                uint32 = 32
+	TaskNonLatinDoc        uint32 = 64
 
 	TxIDExtDetailsKey = "tx_id"
 )
 
+// ProveInterestingRequest returns non-nil error if the provided Request
+// doesn't need to be considered by this Service.
 func proveInterestingRequest(request horizon.Request) error {
 	if request.State != RequestStatePending {
 		// State is not pending

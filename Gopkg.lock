@@ -567,9 +567,10 @@
     "v2/internal/templates",
     "v2/internal/transaction",
     "v2/internal/user",
+    "v2/internal/wallets",
     "v2/types"
   ]
-  revision = "56f75ea32aaedf41d28d02cc4d175c533f80234c"
+  revision = "71d1cab0df6194c4e83aa637887150c977ea88c7"
 
 [[projects]]
   branch = "master"

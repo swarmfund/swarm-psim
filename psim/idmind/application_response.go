@@ -71,6 +71,10 @@ func (r CheckApplicationResponse) GetResultCodes() ([]int, error) {
 	return result, nil
 }
 
+func (r CheckApplicationResponse) IsManualReview() bool {
+	return r.EDNAScoreCard.FraudPolicyEvaluation.ReportedRule.ResultCode == ManualReviewFraudResult
+}
+
 func (r CheckApplicationResponse) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"m_tx_id":         r.MTxID,
