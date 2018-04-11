@@ -52,7 +52,7 @@ s3:
 
 services:
 #  - bearer
-  - notifier
+#  - notifier
 #  - charger
 
 #  - btc_deposit
