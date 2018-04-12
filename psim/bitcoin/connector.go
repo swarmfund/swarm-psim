@@ -411,44 +411,39 @@ func (c *NodeConnector) ListUnspent(minConfirmations, maxConfirmations int, addr
 }
 
 func (c *NodeConnector) sendRequest(methodName, params string, response interface{}) error {
-	request, err := c.buildRequest("hardcoded_request_id", methodName, params)
+	bodyStr := c.buildRequestBody("hardcoded_request_id", methodName, params)
+	fields := logan.F{
+		"node_url":     c.getNodeURL(),
+		"request_body": bodyStr,
+	}
+
+	body := bytes.NewReader([]byte(bodyStr))
+	request, err := http.NewRequest("POST", c.getNodeURL(), body)
 	if err != nil {
-		return errors.Wrap(err, "Failed to build request")
+		return errors.Wrap(err, "Failed to create http POST request", fields)
 	}
 
 	request.Header.Set("Authorization", "Basic "+c.config.NodeAuthKey)
 
 	resp, err := c.client.Do(request)
 	if err != nil {
-		return errors.Wrap(err, "Failed to send request")
+		return errors.Wrap(err, "Failed to send request", fields)
 	}
+	fields["response_status_code"] = resp.StatusCode
 
 	defer func() { _ = resp.Body.Close() }()
-	body, err := ioutil.ReadAll(resp.Body)
+	respBodyBB, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "Failed to read response body")
+		return errors.Wrap(err, "Failed to read response body", fields)
 	}
+	fields["raw_response_body"] = string(respBodyBB)
 
-	err = json.Unmarshal(body, response)
+	err = json.Unmarshal(respBodyBB, response)
 	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal response body to JSON", logan.F{
-			"raw_response_body": string(body),
-		})
+		return errors.Wrap(err, "Failed to unmarshal response body to JSON", fields)
 	}
 
 	return nil
-}
-
-func (c *NodeConnector) buildRequest(requestID, methodName, params string) (*http.Request, error) {
-	bodyStr := c.buildRequestBody(requestID, methodName, params)
-	body := bytes.NewReader([]byte(bodyStr))
-
-	request, err := http.NewRequest("POST", c.getNodeURL(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	return request, nil
 }
 
 func (c *NodeConnector) getNodeURL() string {
