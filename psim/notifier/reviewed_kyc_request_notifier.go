@@ -79,6 +79,10 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 
 	kycRequest := request.Details.KYC
 
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+		return nil
+	}
+
 	user, err := n.userConnector.User(kycRequest.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "failed to load user", logan.F{
@@ -122,6 +126,10 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 	}
 
 	kycRequest := request.Details.KYC
+
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+		return nil
+	}
 
 	user, err := n.userConnector.User(kycRequest.AccountToUpdateKYC)
 	if err != nil {

@@ -78,7 +78,7 @@ func (n *CreatedKYCNotifier) processCreateKYCRequestOperation(ctx context.Contex
 			continue
 		}
 
-		err := n.notifyAboutCreatedKYCRequest(ctx, createKYCRequestOperation.AccountToUpdateKYC, createKYCRequestOperation.RequestID, createKYCRequestOperation.KYCData)
+		err := n.notifyAboutCreatedKYCRequest(ctx, createKYCRequestOperation)
 		if err != nil {
 			return errors.Wrap(err, "failed to notify about created KYC request", logan.F{
 				"account_to_update_kyc": createKYCRequestOperation.AccountToUpdateKYC,
@@ -110,24 +110,28 @@ func (n *CreatedKYCNotifier) isCreatedKYCRequest(change xdr.LedgerEntryChange) b
 	return true
 }
 
-func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, accountToUpdateKYC string, requestID uint64, kycData map[string]interface{}) error {
-	user, err := n.userConnector.User(accountToUpdateKYC)
+func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, createKYCRequestOperation horizon.CreateKYCRequestOp) error {
+	if createKYCRequestOperation.AccountTypeToSet != int32(xdr.AccountTypeGeneral) {
+		return nil
+	}
+
+	user, err := n.userConnector.User(createKYCRequestOperation.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "failed to load user", logan.F{
-			"account_id": accountToUpdateKYC,
+			"account_id": createKYCRequestOperation.AccountToUpdateKYC,
 		})
 	}
 	if user == nil {
 		return nil
 	}
 
-	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycData)
+	blobKYCData, err := n.kycDataHelper.getBlobKYCData(createKYCRequestOperation.KYCData)
 	if err != nil {
 		return errors.Wrap(err, "failed to get blob KYC data")
 	}
 
 	emailAddress := user.Attributes.Email
-	emailUniqueToken := n.buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC, requestID)
+	emailUniqueToken := n.buildCreatedKYCUniqueToken(emailAddress, createKYCRequestOperation.AccountToUpdateKYC, createKYCRequestOperation.RequestID)
 
 	data := struct {
 		Link      string
