@@ -48,8 +48,8 @@ type IdentityMind interface {
 
 type EmailsProcessor interface {
 	Run(ctx context.Context)
-	AddEmailAddresses(ctx context.Context, emailAddresses []string)
-	AddEmailAddress(ctx context.Context, emailAddress string)
+	AddEmailAddresses(ctx context.Context, subject, message string, emailAddresses []string)
+	AddTask(ctx context.Context, emailAddress, subject, message string)
 }
 
 type Service struct {
@@ -113,6 +113,7 @@ func (s *Service) Run(ctx context.Context) {
 	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
 }
 
+// TODO timeToSleep to config
 func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
@@ -120,7 +121,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	case reqEvent, ok := <-s.kycRequests:
 		if !ok {
 			// No more KYC requests, start from the very beginning.
-			// TODO Consider timeToSleep to config?
+			// TODO timeToSleep to config
 			timeToSleep := 30 * time.Second
 			s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
 
@@ -156,7 +157,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		// No need to process the Request for now.
 
 		// I found this log useless
-		s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
+		//s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
 		return nil
 	}
 

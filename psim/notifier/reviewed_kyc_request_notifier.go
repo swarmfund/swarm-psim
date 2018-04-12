@@ -21,6 +21,7 @@ type ReviewedKYCRequestNotifier struct {
 	rejectedRequestConfig  EventConfig
 	requestConnector       ReviewableRequestConnector
 	userConnector          UserConnector
+	kycDataHelper          KYCDataHelper
 
 	reviewRequestOpResponses <-chan horizon.ReviewRequestOpResponse
 }
@@ -57,7 +58,7 @@ func (n *ReviewedKYCRequestNotifier) listenAndProcessReviewedKYCRequests(ctx con
 			}
 
 			if n.canNotifyAboutRejectedKYC(cursor) && n.isRejectedKYC(*reviewRequestOp) {
-				err := n.notifyAboutRejectedKYCRequest(ctx, reviewRequestOp.RequestID, reviewRequestOp.ID)
+				err := n.notifyAboutRejectedKYCRequest(ctx, reviewRequestOp.RequestID)
 				if err != nil {
 					return errors.Wrap(err, "failed to notify about rejected KYC request", logan.F{
 						"request_id": reviewRequestOp.RequestID,
@@ -76,10 +77,16 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 		})
 	}
 
-	user, err := n.userConnector.User(request.Details.KYC.AccountToUpdateKYC)
+	kycRequest := request.Details.KYC
+
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+		return nil
+	}
+
+	user, err := n.userConnector.User(kycRequest.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "failed to load user", logan.F{
-			"account_id": request.Details.KYC.AccountToUpdateKYC,
+			"account_id": kycRequest.AccountToUpdateKYC,
 		})
 	}
 	if user == nil {
@@ -87,12 +94,19 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 	}
 
 	emailAddress := user.Attributes.Email
-	emailUniqueToken := n.buildApprovedKYCUniqueToken(emailAddress, request.Details.KYC.AccountToUpdateKYC, requestID)
+	emailUniqueToken := n.buildApprovedKYCUniqueToken(emailAddress, kycRequest.AccountToUpdateKYC, requestID)
+
+	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycRequest.KYCData)
+	if err != nil {
+		return errors.Wrap(err, "failed to get blob KYC data")
+	}
 
 	data := struct {
-		Link string
+		Link      string
+		FirstName string
 	}{
-		Link: n.approvedRequestConfig.Emails.TemplateLinkURL,
+		Link:      n.approvedRequestConfig.Emails.TemplateLinkURL,
+		FirstName: blobKYCData.FirstName,
 	}
 
 	err = n.approvedKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
@@ -103,7 +117,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 	return nil
 }
 
-func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.Context, requestID uint64, operationID string) error {
+func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.Context, requestID uint64) error {
 	request, err := n.requestConnector.GetRequestByID(requestID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get reviewable request", logan.F{
@@ -111,23 +125,38 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 		})
 	}
 
-	user, err := n.userConnector.User(request.Details.KYC.AccountToUpdateKYC)
+	kycRequest := request.Details.KYC
+
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+		return nil
+	}
+
+	user, err := n.userConnector.User(kycRequest.AccountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "failed to load user", logan.F{
-			"account_id": request.Details.KYC.AccountToUpdateKYC,
+			"account_id": kycRequest.AccountToUpdateKYC,
 		})
 	}
 	if user == nil {
 		return nil
 	}
 
+	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycRequest.KYCData)
+	if err != nil {
+		return errors.Wrap(err, "failed to get blob KYC data")
+	}
+
 	emailAddress := user.Attributes.Email
-	emailUniqueToken := n.buildRejectedKYCUniqueToken(emailAddress, request.Details.KYC.AccountToUpdateKYC, request.Details.KYC.SequenceNumber, requestID)
+	emailUniqueToken := n.buildRejectedKYCUniqueToken(emailAddress, kycRequest.AccountToUpdateKYC, kycRequest.SequenceNumber, requestID)
 
 	data := struct {
-		Link string
+		Link         string
+		FirstName    string
+		RejectReason string
 	}{
-		Link: n.rejectedRequestConfig.Emails.TemplateLinkURL,
+		Link:         n.rejectedRequestConfig.Emails.TemplateLinkURL,
+		FirstName:    blobKYCData.FirstName,
+		RejectReason: request.RejectReason,
 	}
 
 	err = n.rejectedKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
