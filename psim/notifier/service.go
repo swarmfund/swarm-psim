@@ -8,6 +8,11 @@ import (
 	"gitlab.com/distributed_lab/running"
 	"time"
 	"sync"
+	"gitlab.com/swarmfund/psim/psim/kyc"
+)
+
+const (
+	KYCFormBlobType = "kyc_form"
 )
 
 // UserConnector is an interface for retrieving specific user
@@ -37,6 +42,10 @@ type EmailSender interface {
 	SendEmail(ctx context.Context, emailAddress, emailUniqueToken string, data interface{}) error
 }
 
+type KYCDataHelper interface {
+	getBlobKYCData(kycData map[string]interface{}) (*kyc.Data, error)
+}
+
 type Service struct {
 	config Config
 	logger *logan.Entry
@@ -56,6 +65,7 @@ func New(
 	templatesConnector TemplatesConnector,
 	transactionConnector TransactionConnector,
 	userConnector UserConnector,
+	blobsConnector BlobsConnector,
 	checkSaleStateResponses <-chan horizon.CheckSaleStateResponse,
 	createKYCRequestOpResponses <-chan horizon.CreateKYCRequestOpResponse,
 	reviewRequestOpResponses <-chan horizon.ReviewRequestOpResponse,
@@ -127,6 +137,7 @@ func New(
 			eventConfig:                 config.KYCCreated,
 			transactionConnector:        transactionConnector,
 			userConnector:               userConnector,
+			kycDataHelper:               &KYCDataGetter{blobsConnector: blobsConnector},
 			createKYCRequestOpResponses: createKYCRequestOpResponses,
 		},
 
@@ -137,6 +148,7 @@ func New(
 			rejectedRequestConfig:    config.KYCRejected,
 			requestConnector:         requestConnector,
 			userConnector:            userConnector,
+			kycDataHelper:            &KYCDataGetter{blobsConnector: blobsConnector},
 			reviewRequestOpResponses: reviewRequestOpResponses,
 		},
 	}, nil

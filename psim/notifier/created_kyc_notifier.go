@@ -15,6 +15,7 @@ type CreatedKYCNotifier struct {
 	eventConfig          EventConfig
 	transactionConnector TransactionConnector
 	userConnector        UserConnector
+	kycDataHelper        KYCDataHelper
 
 	createKYCRequestOpResponses <-chan horizon.CreateKYCRequestOpResponse
 }
@@ -77,7 +78,7 @@ func (n *CreatedKYCNotifier) processCreateKYCRequestOperation(ctx context.Contex
 			continue
 		}
 
-		err := n.notifyAboutCreatedKYCRequest(ctx, createKYCRequestOperation.AccountToUpdateKYC, createKYCRequestOperation.RequestID)
+		err := n.notifyAboutCreatedKYCRequest(ctx, createKYCRequestOperation.AccountToUpdateKYC, createKYCRequestOperation.RequestID, createKYCRequestOperation.KYCData)
 		if err != nil {
 			return errors.Wrap(err, "failed to notify about created KYC request", logan.F{
 				"account_to_update_kyc": createKYCRequestOperation.AccountToUpdateKYC,
@@ -109,7 +110,7 @@ func (n *CreatedKYCNotifier) isCreatedKYCRequest(change xdr.LedgerEntryChange) b
 	return true
 }
 
-func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, accountToUpdateKYC string, requestID uint64) error {
+func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, accountToUpdateKYC string, requestID uint64, kycData map[string]interface{}) error {
 	user, err := n.userConnector.User(accountToUpdateKYC)
 	if err != nil {
 		return errors.Wrap(err, "failed to load user", logan.F{
@@ -120,13 +121,20 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, a
 		return nil
 	}
 
+	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycData)
+	if err != nil {
+		return errors.Wrap(err, "failed to get blob KYC data")
+	}
+
 	emailAddress := user.Attributes.Email
 	emailUniqueToken := n.buildCreatedKYCUniqueToken(emailAddress, accountToUpdateKYC, requestID)
 
 	data := struct {
-		Link string
+		Link      string
+		FirstName string
 	}{
-		Link: n.eventConfig.Emails.TemplateLinkURL,
+		Link:      n.eventConfig.Emails.TemplateLinkURL,
+		FirstName: blobKYCData.FirstName,
 	}
 
 	err = n.emailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)

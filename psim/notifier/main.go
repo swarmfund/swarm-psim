@@ -52,6 +52,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Templates(),
 		horizonConnector.Transactions(),
 		horizonConnector.Users(),
+		horizonConnector.Blobs(),
 		checkSaleStateResponses,
 		createKYCRequestOpResponses,
 		reviewRequestOpResponses,
