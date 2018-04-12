@@ -180,5 +180,4 @@ func (s *Service) Run(ctx context.Context) {
 	}(&opNotifiersWaitGroup)
 
 	opNotifiersWaitGroup.Wait()
-	<-make(chan struct{})
 }
