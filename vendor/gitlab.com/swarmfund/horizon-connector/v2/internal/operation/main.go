@@ -10,6 +10,8 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/responses"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources/operations"
+	"gitlab.com/swarmfund/go/xdr"
 )
 
 type Q struct {
@@ -57,7 +59,95 @@ func (q *Q) getRequests(url string) ([]resources.Request, error) {
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{
 			"raw_response": string(response),
-			"request_url": url,
+			"request_url":  url,
+		})
+	}
+
+	return result.Embedded.Records, nil
+}
+
+func (q *Q) GetRequestByID(requestID uint64) (*resources.Request, error) {
+	response, err := q.client.Get(fmt.Sprintf("/requests/%d", requestID))
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if response == nil {
+		// No such Request
+		return nil, nil
+	}
+
+	var result resources.Request
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	return &result, nil
+}
+
+func (q *Q) Operations(cursor string, operationType *xdr.OperationType) ([]byte, error) {
+	var url string
+	if operationType != nil {
+		url = fmt.Sprintf("/operations?cursor=%s&operation_type=%d", cursor, *operationType)
+	} else {
+		url = fmt.Sprintf("/operations?cursor=%s", cursor)
+	}
+
+	response, err := q.client.Get(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed", logan.F{"request_url": url})
+	}
+
+	return response, err
+}
+
+func (q *Q) CheckSaleStateOperations(cursor string) ([]operations.CheckSaleState, error) {
+	operationType := xdr.OperationTypeCheckSaleState
+	response, err := q.Operations(cursor, &operationType)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypeCheckSaleState.String(),
+		})
+	}
+
+	var result responses.CheckSaleStateOperationsIndex
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{"response": string(response)})
+	}
+
+	return result.Embedded.Records, nil
+}
+
+func (q *Q) CreateKYCRequestOperations(cursor string) ([]operations.CreateKYCRequest, error) {
+	operationType := xdr.OperationTypeCreateKycRequest
+	response, err := q.Operations(cursor, &operationType)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypeCreateKycRequest.String(),
+		})
+	}
+
+	var result responses.CreateKYCRequestOperationIndex
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{"response": string(response)})
+	}
+
+	return result.Embedded.Records, nil
+}
+
+func (q *Q) ReviewRequestOperations(cursor string) ([]operations.ReviewRequest, error) {
+	operationType := xdr.OperationTypeReviewRequest
+	response, err := q.Operations(cursor, &operationType)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypeReviewRequest.String(),
+		})
+	}
+
+	var result responses.ReviewRequestOperationIndex
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{
+			"response": string(response),
 		})
 	}
 
