@@ -33,3 +33,22 @@ func (q *Q) Transactions(cursor string) ([]resources.Transaction, *resources.Pag
 	}
 	return result.Embedded.Records, &result.Embedded.Meta, nil
 }
+
+func (q *Q) TransactionByID(txID string) (*resources.Transaction, error) {
+	response, err := q.client.Get(fmt.Sprintf("/transactions/%s", txID))
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+	
+	if response == nil {
+		// No such Transaction
+		return nil, nil
+	}
+
+	var result resources.Transaction
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	return &result, nil
+}
