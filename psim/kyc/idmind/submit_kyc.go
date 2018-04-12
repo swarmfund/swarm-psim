@@ -13,6 +13,7 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/swarmfund/psim/psim/templates"
 )
 
 // ProcessNotSubmitted approves Users from USA or with non-Latin document,
@@ -36,7 +37,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return nil
 	}
 
-	kycData, email, err := s.retrieveKYCData(request, accountID)
+	kycData, emailAddr, err := s.retrieveKYCData(request, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve KYCData", fields)
 	}
@@ -44,25 +45,15 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	isUSA := kycData.IsUSA()
 	if kycRequest.AllTasks&TaskNonLatinDoc != 0 || isUSA {
 		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
-		err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
+		err := s.approveWithoutSubmit(ctx, request, isUSA, kycData.FirstName, emailAddr)
 		if err != nil {
-			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind - nonLatin docs or USA)")
-		}
-
-		s.log.WithFields(logan.F{
-			"is_usa":  isUSA,
-			"request": request,
-		}).Info("Successfully approved without sending to IDMind - nonLatin docs or USA.")
-
-		if isUSA {
-			// Notify User, he needs to pass AccreditedInvestor check
-			s.usaUsersEmail.AddEmailAddress(ctx, email)
+			return errors.Wrap(err, "Failed to approve without sending to IDMind - nonLatin docs or USA")
 		}
 
 		return nil
 	}
 
-	err = s.processNewKYCApplication(ctx, *kycData, email, accountID, request)
+	err = s.processNewKYCApplication(ctx, *kycData, emailAddr, accountID, request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process new KYC Application", fields)
 	}
@@ -111,6 +102,45 @@ func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (da
 	}
 
 	return kycData, email, nil
+}
+
+func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Request, isUSA bool, firstName, emailAddr string) error {
+	err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
+	if err != nil {
+		return errors.Wrap(err, "Failed to approve both Tasks")
+	}
+
+	var logDetail string
+	if isUSA {
+		logDetail = "USA User"
+	} else {
+		logDetail = "nonLatin docs"
+	}
+	s.log.WithFields(logan.F{
+		"is_usa":  isUSA,
+		"request": request,
+	}).Infof("Successfully approved without sending to IDMind - %s.", logDetail)
+
+	if isUSA {
+		// Notify User, he needs to pass AccreditedInvestor check
+		templateData := struct {
+			Link      string
+			FirstName string
+		}{
+			Link:      s.config.TemplateLinkURL,
+			FirstName: firstName,
+		}
+
+		msg, err := templates.BuildTemplateEmailMessage(s.config.USAUsersEmailConfig.Message, templateData)
+		if err != nil {
+			return errors.Wrap(err, "Failed to build Email message from Template", logan.F{
+				"template_name": s.config.USAUsersEmailConfig.Message,
+			})
+		}
+		s.usaUsersEmail.AddTask(ctx, emailAddr, s.config.USAUsersEmailConfig.Subject, msg)
+	}
+
+	return nil
 }
 
 func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email, accID string, request horizon.Request) error {
