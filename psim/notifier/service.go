@@ -147,26 +147,26 @@ func (s *Service) Run(ctx context.Context) {
 
 	var opNotifiersWaitGroup sync.WaitGroup
 
+	opNotifiersWaitGroup.Add(3)
+
 	go func(w *sync.WaitGroup) {
-		w.Add(1)
 		running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
 			s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
 		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
-		w.Add(1)
 		running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 			s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
 		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
-		w.Add(1)
 		running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
 			s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
 		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	opNotifiersWaitGroup.Wait()
+	<-make(chan struct{})
 }
