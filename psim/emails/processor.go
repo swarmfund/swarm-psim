@@ -38,7 +38,7 @@ func NewProcessor(
 		config:      config,
 		notificator: notificator,
 
-		emails: NewSyncSet(),
+		emails: newSyncSet(),
 	}
 }
 
@@ -47,7 +47,7 @@ func (p *Processor) Run(ctx context.Context) {
 	p.log.WithField("", p.config).Info("Started emails processor.")
 
 	running.WithBackOff(ctx, p.log, "emails_processor", func(ctx context.Context) error {
-		emailsNumber := p.emails.Length()
+		emailsNumber := p.emails.length()
 		if emailsNumber == 0 {
 			p.log.Debugf("No emails to send - waiting for next wake up (%s).", p.config.SendPeriod.String())
 			return nil
@@ -55,21 +55,17 @@ func (p *Processor) Run(ctx context.Context) {
 
 		p.log.WithField("emails_number", emailsNumber).Debug("Sending emails.")
 
-		var processedEmails []string
-		p.emails.Range(ctx, func(emailAddr string) {
-			logger := p.log.WithField("email_addr", emailAddr)
+		var processedTasks []Task
+		p.emails.rangeThrough(ctx, func(task Task) {
+			logger := p.log.WithField("task", task)
 
-			emailWasSent, err := p.sendEmail(notificator.EmailRequestPayload{
-				Destination: emailAddr,
-				Subject:     p.config.Subject,
-				Message:     p.config.Message,
-			})
+			emailWasSent, err := p.sendEmail(task.toPayload())
 			if err != nil {
 				logger.WithError(err).Error("Failed to send email.")
 				return
 			}
 
-			processedEmails = append(processedEmails, emailAddr)
+			processedTasks = append(processedTasks, task)
 
 			if emailWasSent {
 				logger.Info("Notificator accepted email successfully.")
@@ -78,19 +74,23 @@ func (p *Processor) Run(ctx context.Context) {
 			}
 		})
 
-		p.emails.Delete(processedEmails)
+		p.emails.delete(processedTasks)
 		return nil
 	}, p.config.SendPeriod, 30*time.Second, time.Hour)
 }
 
-func (p *Processor) AddEmailAddresses(ctx context.Context, addresses []string) {
-	for _, addr := range addresses {
-		p.emails.Put(ctx, addr)
+func (p *Processor) AddEmailAddresses(ctx context.Context, subject, message string, emailAddresses []string) {
+	for _, addr := range emailAddresses {
+		p.emails.put(ctx, Task {
+			Destination: addr,
+			Subject:     subject,
+			Message: message,
+		})
 	}
 }
 
-func (p *Processor) AddEmailAddress(ctx context.Context, emailAddress string) {
-	p.AddEmailAddresses(ctx, []string{emailAddress})
+func (p *Processor) AddTask(ctx context.Context, emailAddress, subject, message string) {
+	p.AddEmailAddresses(ctx, subject, message, []string{emailAddress})
 }
 
 func (p *Processor) sendEmail(payload notificator.EmailRequestPayload) (bool, error) {
