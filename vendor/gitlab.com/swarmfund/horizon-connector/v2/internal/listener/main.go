@@ -4,11 +4,13 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/operation"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/transaction"
+	"context"
 )
 
 type Q struct {
-	tx *transaction.Q
-	op *operation.Q
+	txQ *transaction.Q
+	// TODO Rename - it'a actually RequestQ
+	opQ *operation.Q
 }
 
 func NewQ(tx *transaction.Q, op *operation.Q) *Q {
@@ -18,7 +20,7 @@ func NewQ(tx *transaction.Q, op *operation.Q) *Q {
 	}
 }
 
-// DEPRECATED Does not work any more. Can now only stream WithdrawalRequests.
+// DEPRECATED use StreamAllReviewableRequests instead
 func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -27,7 +29,7 @@ func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 		}()
 		cursor := ""
 		for {
-			requests, err := q.op.Requests(cursor)
+			requests, err := q.opQ.AllRequests(cursor)
 			if err != nil {
 				errs <- err
 				continue
@@ -42,6 +44,7 @@ func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 }
 
 // TODO Consider working with *Withdrawal* specific types.
+// DEPRECATED Use StreamWithdrawalRequests instead
 func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 
@@ -52,7 +55,7 @@ func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 
 		cursor := ""
 		for {
-			requests, err := q.op.WithdrawalRequests(cursor)
+			requests, err := q.opQ.WithdrawalRequests(cursor)
 			if err != nil {
 				errs <- err
 				continue
@@ -65,4 +68,16 @@ func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 	}()
 
 	return errs
+}
+
+func (q *Q) StreamAllCheckSaleStateOps(ctx context.Context, buffer int) <-chan CheckSaleStateResponse {
+	return streamCheckSaleState(q, ctx, buffer)
+}
+
+func (q *Q) StreamAllCreateKYCRequestOps(ctx context.Context, buffer int) <-chan CreateKYCRequestOpResponse {
+	return streamCreateKYCRequestOp(q, ctx, buffer)
+}
+
+func (q *Q) StreamAllReviewRequestOps(ctx context.Context, buffer int) <-chan ReviewRequestOpResponse {
+	return streamReviewRequestOp(q, ctx, buffer)
 }

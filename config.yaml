@@ -9,8 +9,8 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  addr: http://swarm:8000
-#  addr: http://localhost:8000
+  #addr: http://swarm:8000
+  addr: http://localhost:8000
 
 notificator:
   url: http://swarm:9009
@@ -40,31 +40,45 @@ notifications_slack:
   channel_name: "#channel_name"
   icon_emoji: ":mega:"
 
+s3:
+  url: http://127.0.0.1:9000
+  access_key: 79JUU8NN3K8BPQBD0P2W
+  secret_key: N8sE8S5/0XRFVeqIJj2f7UWZYqqo6AClG5BRHCP/
+  region: us-west-2
+  disable_ssl: true
+  s3_force_path_style: true
+
 # services
 
 services:
 #  - bearer
-  #- notifier
-  #- charger
-  #- notifier
+#  - notifier
+#  - charger
 
 #  - btc_deposit
 #  - btc_deposit_verify
-#  - btc_funnel
-#  - btc_withdraw
-#  - btc_withdraw_verify
+#  - eth_supervisor
 
-  #- eth_supervisor
+#  - btc_funnel
 #  - eth_funnel
 
-  #- taxman
-  #- price_setter
+#  - btc_withdraw
+#  - btc_withdraw_verify
+#  - eth_withdraw
+
+#  - taxman
+#  - price_setter
 #  - price_setter_verify
 
 #  - airdrop_earlybird
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
+
+#  - identity_mind
+
+#  - template_provider
+#  - wallet_cleaner
 
 # BTC
 btc_deposit:
@@ -225,27 +239,61 @@ charger:
   pprof: true
 
 notifier:
-  signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-  pprof: true
-  project_name: "Swarm Fund"
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
 
-  operations:
-    enable: false
-    payload_id: 9
-    ignore_older_than: 48h
-    client_url: http://staging.app.sun.swarm.fund
-    cursor: ""
+  order_cancelled:
+    cursor: 1
 
-  assets:
-    enable: true
-    payload_id: 9
-    emission_threshold: 1000000 # should be valid: val = amount * 10000 (ONE)
-#    check_period: 20s
-    check_period: 24h
-    notification_receivers:
-      - rago@minex-coin.com
-    codes:
-      - SUN
+    emails:
+      subject: "IO cancelled"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _io_cancelled # Email with same token will be sent only once
+
+      template_name: io-cancelled
+
+      template_link_url: https://invest.swarm.fund
+
+  kyc_created:
+    cursor: 1
+
+    emails:
+      subject: "KYC request created"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_created # Email with same token will be sent only once
+
+      template_name: kyc-created
+
+      template_link_url: https://invest.swarm.fund
+
+  kyc_approved:
+    cursor: 1
+
+    emails:
+      subject: "KYC request approved"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_approved # Email with same token will be sent only once
+
+      template_name: kyc-approved
+
+      template_link_url: https://invest.swarm.fund
+
+  kyc_rejected:
+    cursor: 1
+
+    emails:
+      subject: "KYC request rejected"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_rejected # Email with same token will be sent only once
+
+      template_name: kyc-rejected
+
+      template_link_url: https://invest.swarm.fund
+
 
 bearer:
   source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
@@ -342,3 +390,38 @@ airdrop_march_20_20:
   black_list: [
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
+identity_mind:
+  connector:
+    url: https://sandbox.identitymind.com/im
+    auth_key: ID_MIND_AUTH_KEY # base64(user:password)
+  reject_reasons:
+    kyc_state_rejected: "KYC service rejected" # Make sure the string is shorter than 256
+    fraud_policy_result_denied: "KYC service policy evaluation denied" # Make sure the string is shorter than 256
+    invalid_kyc_data: "KYC data is invalid" # Make sure the string is shorter than 256
+#    policy_evaluation_rules_fired: "Policy evaluation rules fired" # Make sure the string is shorter than 256
+  emails:
+    subject: "IDMind pending KYC requests waiting for manual review"
+    request_type: 7 # 7 means that email with unique token will be sent only once in 24h
+    message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."
+    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  usa_email:
+    subject: "Accreditation status verification"
+    request_type: 10 # 10 means that email will be sent only once per each unique token
+    message: us_residents.html
+    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  emails_to_notify: [
+"john.doe@example.com",
+"jane.doe@example.com"]
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+template_provider:
+  host: localhost
+  port: 2323
+  bucket: "template"
+  skip_signature_check: true
+
+wallet_cleaner:
+  expire_duration: 128h

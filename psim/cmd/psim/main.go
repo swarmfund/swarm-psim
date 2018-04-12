@@ -8,31 +8,37 @@ import (
 
 	// import services for side effects
 
-	// eth
+	// deposits
+	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
+	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdepositveri"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
-	_ "gitlab.com/swarmfund/psim/psim/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
-	//_ "gitlab.com/swarmfund/psim/psim/ethwithdraw"
+
+	// withdrawals
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdveri"
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/eth"
 
-	// btc
-	_ "gitlab.com/swarmfund/psim/psim/btcdeposit"
-	_ "gitlab.com/swarmfund/psim/psim/btcdepositveri"
-	_ "gitlab.com/swarmfund/psim/psim/btcfunnel"
-	_ "gitlab.com/swarmfund/psim/psim/btcwithdraw"
-	_ "gitlab.com/swarmfund/psim/psim/btcwithdveri"
+	// funnels
+	_ "gitlab.com/swarmfund/psim/psim/funnels/btcfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/funnels/ethfunnel"
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetter"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetterveri"
+	_ "gitlab.com/swarmfund/psim/psim/template_provider"
+	_ "gitlab.com/swarmfund/psim/psim/wallet_cleaner"
 
-	// aridrops
+	// airdrops
+	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/earlybird"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/mrefairdrop"
-	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"
+
+	// kyc
+	_ "gitlab.com/swarmfund/psim/psim/kyc/idmind"
 )
 
 var (
@@ -46,16 +52,6 @@ var (
 		Use:   "run",
 		Short: "Start service with all the whistles",
 		Run: func(cmd *cobra.Command, args []string) {
-			//env := xdr.TransactionResult{}
-			//err := xdr.SafeUnmarshalBase64("AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAB8AAAAAAzz4Jdvviw2AsGupbfHplbP4jaVAfQz4RHtZuwu6ZbaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", &env)
-			//if err != nil {
-			//	panic(err)
-			//}
-			//bytes, err := json.Marshal(&env)
-			//if err != nil {
-			//	panic(err)
-			//}
-			//fmt.Printf(string(bytes))
 			instance, err := app.New(configInstance)
 			if err != nil {
 				entry.WithError(err).Fatal("failed to init app instance")
@@ -78,4 +74,16 @@ func main() {
 	if err != nil {
 		entry.WithError(err).Fatal("something bad happened")
 	}
+
+	// // This snippet is used to quick unmarsahlling of an XDR string.
+	//env := xdr.TransactionResult{}
+	//err := xdr.SafeUnmarshalBase64("AAAAAAAAAAAAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAB8AAAAAAzz4Jdvviw2AsGupbfHplbP4jaVAfQz4RHtZuwu6ZbaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", &env)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//bytes, err := json.Marshal(&env)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Printf(string(bytes))
 }

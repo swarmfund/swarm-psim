@@ -19,6 +19,7 @@ type TimedLedgerChange struct {
 	Time   time.Time
 }
 
+// DEPRECATED Use lchanges.Streamer instead
 type LedgerChangesStreamer struct {
 	log        *logan.Entry
 	txStreamer TXStreamer
@@ -26,10 +27,8 @@ type LedgerChangesStreamer struct {
 	timedChangesStream chan TimedLedgerChange
 }
 
-func NewLedgerChangesStreamer(
-	log *logan.Entry,
-	txStreamer TXStreamer) *LedgerChangesStreamer {
-
+// DEPRECATED Use lchanges.NewStreamer instead
+func NewLedgerChangesStreamer(log *logan.Entry, txStreamer TXStreamer) *LedgerChangesStreamer {
 	return &LedgerChangesStreamer{
 		log:        log.WithField("helper-runner", "ledger_changes_streamer"),
 		txStreamer: txStreamer,
@@ -38,6 +37,7 @@ func NewLedgerChangesStreamer(
 	}
 }
 
+// DEPRECATED Use lchanges.Streamer instead
 func (s *LedgerChangesStreamer) Run(ctx context.Context) <-chan TimedLedgerChange {
 	s.log.Info("Started listening Transactions stream.")
 	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)

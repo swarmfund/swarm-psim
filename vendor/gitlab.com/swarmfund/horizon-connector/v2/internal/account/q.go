@@ -4,10 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/responses"
+)
+
+var (
+	ErrNoSigner      = errors.New("No such signer")
+	ErrNotEnoughType = errors.New("Not enough types")
 )
 
 type Q struct {
@@ -18,6 +25,36 @@ func NewQ(client internal.Client) *Q {
 	return &Q{
 		client,
 	}
+}
+func (q *Q) IsSigner(master string, signer string, signerType ...xdr.SignerType) error {
+	signers, err := q.Signers(master)
+	if err != nil {
+		return errors.Wrap(err, "Failed to load master signers")
+	}
+
+	isAllowedSigner := false
+	var notEnoughTypes []xdr.SignerType
+	for _, s := range signers {
+		if signer == s.PublicKey {
+			isAllowedSigner = true
+		}
+
+		for _, t := range signerType {
+			if s.Type&int32(t) == 0 {
+				notEnoughTypes = append(notEnoughTypes, t)
+			}
+		}
+	}
+
+	if !isAllowedSigner {
+		return errors.Wrap(ErrNoSigner, "Unknown signer", logan.F{"address": signer})
+	}
+
+	if len(notEnoughTypes) != 0 {
+		return errors.Wrap(ErrNotEnoughType, "Signer type not valid", logan.F{"types": notEnoughTypes})
+	}
+
+	return nil
 }
 
 func (q *Q) Signers(address string) ([]resources.Signer, error) {
@@ -92,4 +129,27 @@ func (q *Q) Balances(address string) ([]resources.Balance, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return result, nil
+}
+
+func (q *Q) References(address string) ([]resources.Reference, error) {
+	respBB, err := q.client.Get(fmt.Sprintf("/accounts/%s/references", address))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to send GET request")
+	}
+
+	if respBB == nil {
+		// No References
+		return nil, nil
+	}
+
+	var response struct {
+		Data []resources.Reference `json:"data"`
+	}
+	if err := json.Unmarshal(respBB, &response); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response bytes", logan.F{
+			"raw_response": string(respBB),
+		})
+	}
+
+	return response.Data, nil
 }

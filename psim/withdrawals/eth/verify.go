@@ -12,7 +12,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/eth/internal"
-	"gitlab.com/swarmfund/psim/psim/withdveri"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdveri"
 )
 
 func init() {

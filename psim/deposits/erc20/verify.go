@@ -10,7 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
-	"gitlab.com/swarmfund/psim/psim/depositveri"
+	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
