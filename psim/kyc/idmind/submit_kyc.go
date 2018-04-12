@@ -19,6 +19,7 @@ import (
 // ProcessNotSubmitted approves Users from USA or with non-Latin document,
 // submits all others KYCs to IDMind.
 func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Request) error {
+	logger := s.log.WithField("request", request)
 	kycRequest := request.Details.KYC
 
 	accountID := kycRequest.AccountToUpdateKYC
@@ -27,19 +28,32 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	}
 
 	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
-		// Mark as reviewed without sending to IDMind (Syndicate - we don't handle Syndicates via IDMind)
+		// Mark as reviewed without sending to IDMind (it's probably Syndicate - we don't handle Syndicates via IDMind)
 		err := s.approveBothTasks(ctx, request.ID, request.Hash, false)
 		if err != nil {
 			return errors.Wrap(err, "Failed to approve both Tasks (without sending to IDMind - nonGeneral Account requested)")
 		}
 
-		s.log.WithField("request", request).Info("Successfully approved without sending to IDMind (nonGeneral requested).")
+		logger.Info("Successfully approved without sending to IDMind (nonGeneral requested).")
 		return nil
 	}
 
-	kycData, emailAddr, err := s.retrieveKYCData(request, accountID)
+	blob, emailAddr, err := s.retrieveBlobAndEmail(request, accountID)
 	if err != nil {
-		return errors.Wrap(err, "Failed to retrieve KYCData", fields)
+		return errors.Wrap(err, "Failed to retrieve Blob or email", fields)
+	}
+	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
+	if err != nil {
+		// Blob data is unparsable - rejecting.
+		_, err = s.reject(ctx, request.ID, request.Hash, nil, "Something went wrong, please try again", 0, map[string]string{
+			"additional_info": "Tried to parse KYC data from Blob.Attributes.Values, but failed.",
+		})
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest because of unparsable KYCData from Blob")
+		}
+
+		logger.WithField("blob", blob).Info("Successfully rejected KYCRequest (because of unparsable KYCData from Blob).")
+		return nil
 	}
 
 	isUSA := kycData.IsUSA()
@@ -65,7 +79,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 // obtains Blob by BlobID,
 // check Blob's type
 // and parses KYCData from the Blob.Attributes.Value
-func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (data *kyc.Data, email string, err error) {
+func (s *Service) retrieveBlobAndEmail(request horizon.Request, accountID string) (blob *horizon.Blob, email string, err error) {
 	user, err := s.usersConnector.User(accountID)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "Failed to get User by AccountID from Horizon")
@@ -85,7 +99,7 @@ func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (da
 		return nil, email, errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
 	}
 
-	blob, err := s.blobsConnector.Blob(blobID)
+	blob, err = s.blobsConnector.Blob(blobID)
 	if err != nil {
 		return nil, email, errors.Wrap(err, "Failed to get Blob from Horizon")
 	}
@@ -96,12 +110,7 @@ func (s *Service) retrieveKYCData(request horizon.Request, accountID string) (da
 			blob.Type, KYCFormBlobType), fields)
 	}
 
-	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
-	if err != nil {
-		return nil, email, errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in from Blob", fields)
-	}
-
-	return kycData, email, nil
+	return blob, email, nil
 }
 
 func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Request, isUSA bool, firstName, emailAddr string) error {
