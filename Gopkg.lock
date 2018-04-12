@@ -497,7 +497,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "43959d82aba203d057a8279d93a00716a1eca626"
+  revision = "3ac974e331b6f6d5372706aeae4570ff298718ae"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"

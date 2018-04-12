@@ -4,9 +4,9 @@ import (
 	"reflect"
 
 	"github.com/mitchellh/mapstructure"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/swarmfund/go/keypair"
 	horizon "gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/psim/figure"
 )
 
 type Config struct {

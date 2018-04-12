@@ -43,7 +43,7 @@ func TestParseFieldTag(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			actualTag, err := parseFieldTag(c.field)
+			actualTag, err := parseFieldTag(c.field, keyTag)
 
 			assert.Equal(t, actualTag, c.expectedTag)
 			assert.NoError(t, err)
@@ -71,7 +71,7 @@ func TestParseFieldTagErr(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := parseFieldTag(c.field)
+			_, err := parseFieldTag(c.field, keyTag)
 			assert.Equal(t, c.expectedErr, err)
 		})
 	}

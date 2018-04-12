@@ -18,10 +18,10 @@ type Tag struct {
 	IsRequired bool
 }
 
-func parseFieldTag(field reflect.StructField) (*Tag, error) {
+func parseFieldTag(field reflect.StructField, tagKey string) (*Tag, error) {
 	tag := &Tag{}
 
-	fieldTag := field.Tag.Get(keyTag)
+	fieldTag := field.Tag.Get(tagKey)
 	if fieldTag == "" {
 		tag.Key = toSnakeCase(field.Name)
 		return tag, nil
