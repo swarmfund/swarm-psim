@@ -410,6 +410,7 @@ identity_mind:
     request_type: 10 # 10 means that email will be sent only once per each unique token
     message: us_residents.html
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  template_link_url: https://invest.swarm.fund
   emails_to_notify: [
 "john.doe@example.com",
 "jane.doe@example.com"]

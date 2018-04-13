@@ -24,7 +24,7 @@ type Processor struct {
 	config      Config
 	notificator NotificatorConnector
 
-	emails TaskSyncSet
+	tasks TaskSyncSet
 }
 
 // NewProcessor is just a constructor for Processor
@@ -38,7 +38,7 @@ func NewProcessor(
 		config:      config,
 		notificator: notificator,
 
-		emails: NewSyncSet(),
+		tasks: newSyncSet(),
 	}
 }
 
@@ -47,50 +47,50 @@ func (p *Processor) Run(ctx context.Context) {
 	p.log.WithField("", p.config).Info("Started emails processor.")
 
 	running.WithBackOff(ctx, p.log, "emails_processor", func(ctx context.Context) error {
-		emailsNumber := p.emails.Length()
-		if emailsNumber == 0 {
+		tasksNumber := p.tasks.length()
+		if tasksNumber == 0 {
 			p.log.Debugf("No emails to send - waiting for next wake up (%s).", p.config.SendPeriod.String())
 			return nil
 		}
 
-		p.log.WithField("emails_number", emailsNumber).Debug("Sending emails.")
+		p.log.WithField("tasks_number", tasksNumber).Debug("Sending emails.")
 
-		var processedEmails []string
-		p.emails.Range(ctx, func(emailAddr string) {
-			logger := p.log.WithField("email_addr", emailAddr)
+		var processedTasks []Task
+		p.tasks.rangeThrough(ctx, func(task Task) {
+			logger := p.log.WithField("task", task)
 
-			emailWasSent, err := p.sendEmail(notificator.EmailRequestPayload{
-				Destination: emailAddr,
-				Subject:     p.config.Subject,
-				Message:     p.config.Message,
-			})
+			emailWasSent, err := p.sendEmail(task.toPayload())
 			if err != nil {
 				logger.WithError(err).Error("Failed to send email.")
 				return
 			}
 
-			processedEmails = append(processedEmails, emailAddr)
+			processedTasks = append(processedTasks, task)
 
 			if emailWasSent {
-				logger.Info("Notificator accepted email successfully.")
+				logger.Info("Notificator accepted email task successfully.")
 			} else {
 				logger.Debug("Email has been already sent earlier - skipping.")
 			}
 		})
 
-		p.emails.Delete(processedEmails)
+		p.tasks.delete(processedTasks)
 		return nil
 	}, p.config.SendPeriod, 30*time.Second, time.Hour)
 }
 
-func (p *Processor) AddEmailAddresses(ctx context.Context, addresses []string) {
-	for _, addr := range addresses {
-		p.emails.Put(ctx, addr)
+func (p *Processor) AddEmailAddresses(ctx context.Context, subject, message string, emailAddresses []string) {
+	for _, addr := range emailAddresses {
+		p.tasks.put(ctx, Task{
+			Destination: addr,
+			Subject:     subject,
+			Message:     message,
+		})
 	}
 }
 
-func (p *Processor) AddEmailAddress(ctx context.Context, emailAddress string) {
-	p.AddEmailAddresses(ctx, []string{emailAddress})
+func (p *Processor) AddTask(ctx context.Context, emailAddress, subject, message string) {
+	p.AddEmailAddresses(ctx, subject, message, []string{emailAddress})
 }
 
 func (p *Processor) sendEmail(payload notificator.EmailRequestPayload) (bool, error) {
@@ -109,6 +109,7 @@ func (p *Processor) sendEmail(payload notificator.EmailRequestPayload) (bool, er
 	if !resp.IsSuccess() {
 		return false, errors.From(errors.New("Unsuccessful response for email sending request."), logan.F{
 			"notificator_response": resp,
+			"status_code":          resp.StatusCode,
 		})
 	}
 

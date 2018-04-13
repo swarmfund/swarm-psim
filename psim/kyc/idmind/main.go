@@ -13,7 +13,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/emails"
-	"gitlab.com/swarmfund/psim/psim/templates"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
@@ -47,24 +46,12 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
 	adminNotifyEmails := emails.NewProcessor(log, emails.Config{
-		Subject:               config.AdminNotifyEmailsConfig.Subject,
-		Message:               config.AdminNotifyEmailsConfig.Message,
 		RequestType:           config.AdminNotifyEmailsConfig.RequestType,
 		UniquenessTokenSuffix: "-kyc-manual-reviews-notification",
 		SendPeriod:            config.AdminNotifyEmailsConfig.SendPeriod,
 	}, globalConfig.Notificator())
 
-	// FIXME file template with proper data, when html template is ready.
-	msg, err := templates.BuildTemplateEmailMessage(config.USAUsersEmailConfig.Message, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build Email message from Template", logan.F{
-			"template_name": config.USAUsersEmailConfig.Message,
-		})
-	}
-
 	usaUsersEmail := emails.NewProcessor(log, emails.Config{
-		Subject:               config.USAUsersEmailConfig.Subject,
-		Message:               msg,
 		RequestType:           config.USAUsersEmailConfig.RequestType,
 		UniquenessTokenSuffix: "-usa-user-notification",
 		SendPeriod:            config.USAUsersEmailConfig.SendPeriod,

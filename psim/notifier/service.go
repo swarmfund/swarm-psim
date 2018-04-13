@@ -8,6 +8,11 @@ import (
 	"gitlab.com/distributed_lab/running"
 	"time"
 	"sync"
+	"gitlab.com/swarmfund/psim/psim/kyc"
+)
+
+const (
+	KYCFormBlobType = "kyc_form"
 )
 
 // UserConnector is an interface for retrieving specific user
@@ -37,6 +42,10 @@ type EmailSender interface {
 	SendEmail(ctx context.Context, emailAddress, emailUniqueToken string, data interface{}) error
 }
 
+type KYCDataHelper interface {
+	getBlobKYCData(kycData map[string]interface{}) (*kyc.Data, error)
+}
+
 type Service struct {
 	config Config
 	logger *logan.Entry
@@ -56,6 +65,7 @@ func New(
 	templatesConnector TemplatesConnector,
 	transactionConnector TransactionConnector,
 	userConnector UserConnector,
+	blobsConnector BlobsConnector,
 	checkSaleStateResponses <-chan horizon.CheckSaleStateResponse,
 	createKYCRequestOpResponses <-chan horizon.CreateKYCRequestOpResponse,
 	reviewRequestOpResponses <-chan horizon.ReviewRequestOpResponse,
@@ -127,6 +137,7 @@ func New(
 			eventConfig:                 config.KYCCreated,
 			transactionConnector:        transactionConnector,
 			userConnector:               userConnector,
+			kycDataHelper:               &KYCDataGetter{blobsConnector: blobsConnector},
 			createKYCRequestOpResponses: createKYCRequestOpResponses,
 		},
 
@@ -137,6 +148,7 @@ func New(
 			rejectedRequestConfig:    config.KYCRejected,
 			requestConnector:         requestConnector,
 			userConnector:            userConnector,
+			kycDataHelper:            &KYCDataGetter{blobsConnector: blobsConnector},
 			reviewRequestOpResponses: reviewRequestOpResponses,
 		},
 	}, nil
@@ -147,22 +159,21 @@ func (s *Service) Run(ctx context.Context) {
 
 	var opNotifiersWaitGroup sync.WaitGroup
 
+	opNotifiersWaitGroup.Add(3)
+
 	go func(w *sync.WaitGroup) {
-		w.Add(1)
 		running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
 			s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
 		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
-		w.Add(1)
 		running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 			s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
 		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
-		w.Add(1)
 		running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
 			s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
 		w.Done()
