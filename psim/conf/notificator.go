@@ -14,9 +14,9 @@ var (
 )
 
 type NotificatorConfig struct {
-	URL    *url.URL `fig:url,required`
-	Secret string
-	Public string
+	URL    *url.URL `fig:"url,required"`
+	Secret string   `fig:"secret,required"`
+	Public string   `fig:"public,required"`
 }
 
 func (c *ViperConfig) Notificator() *notificator.Connector {
