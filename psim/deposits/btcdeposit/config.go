@@ -2,9 +2,7 @@ package btcdeposit
 
 import (
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/keypair"
@@ -32,9 +30,7 @@ func NewConfig(configData map[string]interface{}) (*Config, error) {
 		With(figure.BaseHooks, utils.CommonHooks).
 		Please()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceBTCDeposit,
-		})
+		return nil, errors.Wrap(err, "Failed to figure out")
 	}
 
 	return config, nil

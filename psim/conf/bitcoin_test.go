@@ -26,7 +26,8 @@ func ConfigHelper(t *testing.T, raw string) ViperConfig {
 }
 
 func TestViperConfig_Bitcoin(t *testing.T) {
-	btcConfigRaw := `
+	t.Run("Successfully set config", func(t *testing.T) {
+		btcConfigRaw := `
 bitcoin:
   node_host: swarm
   node_port: 8332
@@ -34,11 +35,23 @@ bitcoin:
   testnet: true
   request_timeout_s: 30
 `
+		config := ConfigHelper(t, btcConfigRaw)
+		assert.NotPanics(t, func() {
+			btc := config.Bitcoin()
+			assert.NotNil(t, btc)
+			assert.Equal(t, true, btc.IsTestnet())
+		})
 
+	})
+}
+
+func TestViperConfig_BitcoinFailed(t *testing.T) {
+	btcConfigRaw := `
+bitcoin:
+  invalid: 123`
 	config := ConfigHelper(t, btcConfigRaw)
-	assert.NotPanics(t, func() {
+	assert.Panics(t, func() {
 		btc := config.Bitcoin()
-		assert.NotNil(t, btc)
-		assert.Equal(t, true, btc.IsTestnet())
+		assert.Nil(t, btc)
 	})
 }

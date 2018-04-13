@@ -3,6 +3,7 @@ package btcwithdraw
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -20,7 +21,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	config, err := NewConfig(app.Config(ctx).GetRequired(conf.ServiceBTCWithdraw))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create ServiceBTCWithdraw config")
+		return nil, errors.Wrap(err, "Failed to create config", logan.F{
+			"service": conf.ServiceBTCWithdraw,
+		})
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)

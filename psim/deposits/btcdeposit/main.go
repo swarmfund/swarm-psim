@@ -3,6 +3,7 @@ package btcdeposit
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/addrstate"
@@ -22,7 +23,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	config, err := NewConfig(globalConfig.GetRequired(conf.ServiceBTCDeposit))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create ServiceBTCDeposit config")
+		return nil, errors.Wrap(err, "Failed to create config", logan.F{
+			"service": conf.ServiceBTCDeposit,
+		})
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
@@ -66,16 +69,3 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		),
 	}), nil
 }
-
-/*
-config.DepositAsset,
-			config.MinDepositAmount,
-			config.FixedDepositFee,
-config.LastProcessedBlock,
-		config.LastBlocksNotWatch,
-config.Source,
-		config.Signer,
-
-
-
-*/

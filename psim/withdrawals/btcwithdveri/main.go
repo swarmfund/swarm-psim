@@ -4,6 +4,7 @@ package btcwithdveri
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/ape"
@@ -23,7 +24,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	config, err := NewConfig(app.Config(ctx).GetRequired(conf.ServiceBTCWithdrawVerify))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create ServiceBTCWithdrawVerify config")
+		return nil, errors.Wrap(err, "Failed to create config", logan.F{
+			"service": conf.ServiceBTCWithdrawVerify,
+		})
 	}
 
 	listener, err := ape.Listener(config.Host, config.Port)

@@ -20,3 +20,15 @@ notificator:
 		assert.NotNil(t, notificator)
 	})
 }
+
+func TestViperConfig_NotificatorFailed(t *testing.T) {
+	notificatorConfigRaw := `
+notificator:
+  invalid: 123`
+
+	config := ConfigHelper(t, notificatorConfigRaw)
+	assert.Panics(t, func() {
+		notificator := config.Notificator()
+		assert.Nil(t, notificator)
+	})
+}

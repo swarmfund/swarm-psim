@@ -3,6 +3,7 @@ package btcdepositveri
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/ape"
@@ -22,7 +23,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	config, err := NewConfig(globalConfig.GetRequired(conf.ServiceBTCDepositVerify))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create ServiceBTCDepositVerify config")
+		return nil, errors.Wrap(err, "Failed to create config", logan.F{
+			"service": conf.ServiceBTCDepositVerify,
+		})
 	}
 
 	listener, err := ape.Listener(config.Host, config.Port)
