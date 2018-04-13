@@ -8,12 +8,6 @@ import (
 	"gitlab.com/distributed_lab/notificator-server/client"
 )
 
-type Task struct {
-	Destination string
-	Subject     string
-	Message     string
-}
-
 func (t Task) toPayload() notificator.EmailRequestPayload {
 	return notificator.EmailRequestPayload {
 		Destination: t.Destination,
