@@ -11,6 +11,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 const (
@@ -163,9 +164,9 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// I found this log useless
 	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
-	kyc := request.Details.KYC
+	kycReq := request.Details.KYC
 
-	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
+	if kycReq.PendingTasks&kyc.TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
 		err := s.processNotSubmitted(ctx, request)
 		if err != nil {
@@ -176,7 +177,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	// Already submitted
-	if kyc.PendingTasks&TaskCheckIDMind != 0 {
+	if kycReq.PendingTasks&kyc.TaskCheckIDMind != 0 {
 		err := s.processNotChecked(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to check KYC state in IDMind")

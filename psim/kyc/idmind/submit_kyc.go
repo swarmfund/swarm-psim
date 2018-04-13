@@ -57,7 +57,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	}
 
 	isUSA := kycData.IsUSA()
-	if kycRequest.AllTasks&TaskNonLatinDoc != 0 || isUSA {
+	if kycRequest.AllTasks&kyc.TaskNonLatinDoc != 0 || isUSA {
 		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
 		err := s.approveWithoutSubmit(ctx, request, isUSA, kycData.FirstName, emailAddr)
 		if err != nil {
