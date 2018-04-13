@@ -92,7 +92,7 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 
 	faceMime := http.DetectContentType(faceFile)
 	if faceMime != "image/png" && faceMime != "image/jpeg" {
-		return nil, errors.Wrap(err, "Detected Content-Type of faceFile is neither 'image/jpeg' nor 'image/jpeg'", logan.F{
+		return nil, errors.From(errors.New("Detected Content-Type of faceFile is neither 'image/jpeg' nor 'image/jpeg'"), logan.F{
 			"detected_file_content_type": faceMime,
 		})
 	}
