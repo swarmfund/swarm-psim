@@ -3,8 +3,6 @@ package btcdepositveri
 import (
 	"context"
 
-	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/ape"
@@ -12,7 +10,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
-	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
@@ -23,16 +20,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx)
 
-	var config Config
-	err := figure.
-		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceBTCDepositVerify)).
-		With(figure.BaseHooks, utils.CommonHooks).
-		Please()
+	config, err := NewConfig(globalConfig.GetRequired(conf.ServiceBTCDepositVerify))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceBTCDepositVerify,
-		})
+		return nil, errors.Wrap(err, "Failed to create ServiceBTCDepositVerify config")
 	}
 
 	listener, err := ape.Listener(config.Host, config.Port)

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/distributed_lab/discovery-go"
 	"github.com/spf13/viper"
+	"gitlab.com/distributed_lab/discovery-go"
 )
 
 func TestViperConfig_Discovery(t *testing.T) {

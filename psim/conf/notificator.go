@@ -14,7 +14,7 @@ var (
 )
 
 type NotificatorConfig struct {
-	URL    *url.URL
+	URL    *url.URL `fig:url,required`
 	Secret string
 	Public string
 }
