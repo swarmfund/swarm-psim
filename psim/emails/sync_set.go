@@ -5,21 +5,36 @@ import (
 	"sync"
 
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/notificator-server/client"
 )
 
-type TaskSyncSet struct {
-	mu   sync.Mutex
-	data map[string]struct{}
+type Task struct {
+	Destination string
+	Subject     string
+	Message     string
 }
 
-func NewSyncSet() TaskSyncSet {
-	return TaskSyncSet{
-		mu:   sync.Mutex{},
-		data: make(map[string]struct{}),
+func (t Task) toPayload() notificator.EmailRequestPayload {
+	return notificator.EmailRequestPayload {
+		Destination: t.Destination,
+		Subject: t.Subject,
+		Message: t.Message,
 	}
 }
 
-func (s *TaskSyncSet) Put(ctx context.Context, new string) {
+type TaskSyncSet struct {
+	mu   sync.Mutex
+	data map[Task]struct{}
+}
+
+func newSyncSet() TaskSyncSet {
+	return TaskSyncSet{
+		mu:   sync.Mutex{},
+		data: make(map[Task]struct{}),
+	}
+}
+
+func (s *TaskSyncSet) put(ctx context.Context, new Task) {
 	put := func() <-chan struct{} {
 		c := make(chan struct{})
 
@@ -43,15 +58,7 @@ func (s *TaskSyncSet) Put(ctx context.Context, new string) {
 	}
 }
 
-func (s *TaskSyncSet) Exists(key string) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	_, ok := s.data[key]
-	return ok
-}
-
-func (s *TaskSyncSet) Delete(values []string) {
+func (s *TaskSyncSet) delete(values []Task) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -60,14 +67,14 @@ func (s *TaskSyncSet) Delete(values []string) {
 	}
 }
 
-func (s *TaskSyncSet) Length() int {
+func (s *TaskSyncSet) length() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	return len(s.data)
 }
 
-func (s *TaskSyncSet) Range(ctx context.Context, f func(s string)) {
+func (s *TaskSyncSet) rangeThrough(ctx context.Context, f func(task Task)) {
 	// TODO Listen to ctx along with mutex
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -31,7 +31,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 	_ "gitlab.com/swarmfund/psim/psim/wallet_cleaner"
 
-	// aridrops
+	// airdrops
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/earlybird"
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/kycairdrop"

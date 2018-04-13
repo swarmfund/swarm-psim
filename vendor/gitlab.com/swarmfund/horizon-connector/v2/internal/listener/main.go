@@ -4,6 +4,7 @@ import (
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/operation"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/resources"
 	"gitlab.com/swarmfund/horizon-connector/v2/internal/transaction"
+	"context"
 )
 
 type Q struct {
@@ -67,4 +68,16 @@ func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 	}()
 
 	return errs
+}
+
+func (q *Q) StreamAllCheckSaleStateOps(ctx context.Context, buffer int) <-chan CheckSaleStateResponse {
+	return streamCheckSaleState(q, ctx, buffer)
+}
+
+func (q *Q) StreamAllCreateKYCRequestOps(ctx context.Context, buffer int) <-chan CreateKYCRequestOpResponse {
+	return streamCreateKYCRequestOp(q, ctx, buffer)
+}
+
+func (q *Q) StreamAllReviewRequestOps(ctx context.Context, buffer int) <-chan ReviewRequestOpResponse {
+	return streamReviewRequestOp(q, ctx, buffer)
 }

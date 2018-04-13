@@ -239,27 +239,61 @@ charger:
   pprof: true
 
 notifier:
-  signer: SBMFQCGDVJBC2NYBRPURK3ISC4XJGGOLHMGHF7MIHVXE2DIQSMY6NYRH
-  pprof: true
-  project_name: "Swarm Fund"
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
 
-  operations:
-    enable: false
-    payload_id: 9
-    ignore_older_than: 48h
-    client_url: http://staging.app.sun.swarm.fund
-    cursor: ""
+  order_cancelled:
+    cursor: 1
 
-  assets:
-    enable: true
-    payload_id: 9
-    emission_threshold: 1000000 # should be valid: val = amount * 10000 (ONE)
-#    check_period: 20s
-    check_period: 24h
-    notification_receivers:
-      - rago@minex-coin.com
-    codes:
-      - SUN
+    emails:
+      subject: "IO cancelled"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _io_cancelled # Email with same token will be sent only once
+
+      template_name: io-cancelled
+
+      template_link_url: https://invest.swarm.fund
+
+  kyc_created:
+    cursor: 1
+
+    emails:
+      subject: "KYC request created"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_created # Email with same token will be sent only once
+
+      template_name: kyc-created
+
+      template_link_url: https://invest.swarm.fund
+
+  kyc_approved:
+    cursor: 1
+
+    emails:
+      subject: "KYC request approved"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_approved # Email with same token will be sent only once
+
+      template_name: kyc-approved
+
+      template_link_url: https://invest.swarm.fund
+
+  kyc_rejected:
+    cursor: 1
+
+    emails:
+      subject: "KYC request rejected"
+
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_rejected # Email with same token will be sent only once
+
+      template_name: kyc-rejected
+
+      template_link_url: https://invest.swarm.fund
+
 
 bearer:
   source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
@@ -376,6 +410,7 @@ identity_mind:
     request_type: 10 # 10 means that email will be sent only once per each unique token
     message: us_residents.html
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  template_link_url: https://invest.swarm.fund
   emails_to_notify: [
 "john.doe@example.com",
 "jane.doe@example.com"]

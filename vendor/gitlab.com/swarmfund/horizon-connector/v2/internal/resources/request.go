@@ -6,13 +6,14 @@ import (
 )
 
 type Request struct {
-	ID          uint64         `json:"id,string"`
-	PagingToken string         `json:"paging_token"`
-	Hash        string         `json:"hash"`
-	State       int32          `json:"request_state_i"`
-	Details     RequestDetails `json:"details"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	ID           uint64         `json:"id,string"`
+	PagingToken  string         `json:"paging_token"`
+	Hash         string         `json:"hash"`
+	RejectReason string         `json:"reject_reason"`
+	State        int32          `json:"request_state_i"`
+	Details      RequestDetails `json:"details"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 func (r Request) GetLoganFields() map[string]interface{} {
@@ -24,6 +25,7 @@ func (r Request) GetLoganFields() map[string]interface{} {
 		"details":         r.Details,
 		"created_at":      r.CreatedAt,
 		"updated_at":      r.UpdatedAt,
+		"reject_reason":   r.RejectReason,
 	}
 }
 
@@ -39,7 +41,7 @@ func (d RequestDetails) GetLoganFields() map[string]interface{} {
 		"request_type_i":      d.RequestType,
 		"withdraw":            d.Withdraw,
 		"two_step_withdrawal": d.TwoStepWithdraw,
-		"kyc": d.KYC,
+		"kyc":                 d.KYC,
 	}
 }
 

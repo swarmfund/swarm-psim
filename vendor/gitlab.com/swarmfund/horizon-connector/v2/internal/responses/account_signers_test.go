@@ -9,75 +9,114 @@ import (
 
 func TestAccountSignersUnmarshal(t *testing.T) {
 	data := []byte(`{
-    "signers": [
+  "signers": [
+    {
+      "public_key": "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636",
+      "weight": 1,
+      "signer_type_i": 16777215,
+      "signer_types": [
         {
-            "public_key": "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636",
-            "signer_identity": 1,
-            "signer_name": "foobar",
-            "signer_type": {
-                "flags": [
-                    {
-                        "name": "reader",
-                        "value": 1
-                    },
-                    {
-                        "name": "not_verified_acc_manager",
-                        "value": 2
-                    },
-                    {
-                        "name": "general_acc_manager",
-                        "value": 4
-                    },
-                    {
-                        "name": "direct_debit_operator",
-                        "value": 8
-                    },
-                    {
-                        "name": "asset_manager",
-                        "value": 16
-                    },
-                    {
-                        "name": "asset_rate_manager",
-                        "value": 32
-                    },
-                    {
-                        "name": "balance_manager",
-                        "value": 64
-                    },
-                    {
-                        "name": "issuance_manager",
-                        "value": 128
-                    },
-                    {
-                        "name": "invoice_manager",
-                        "value": 256
-                    },
-                    {
-                        "name": "payment_operator",
-                        "value": 512
-                    },
-                    {
-                        "name": "limits_manager",
-                        "value": 1024
-                    },
-                    {
-                        "name": "account_manager",
-                        "value": 2048
-                    },
-                    {
-                        "name": "commission_balance_manager",
-                        "value": 4096
-                    },
-                    {
-                        "name": "operational_balance_manager",
-                        "value": 8192
-                    }
-                ],
-                "int": 16383
-            },
-            "weight": 1
+          "name": "SignerTypeReader",
+          "value": 1
+        },
+        {
+          "name": "SignerTypeNotVerifiedAccManager",
+          "value": 2
+        },
+        {
+          "name": "SignerTypeGeneralAccManager",
+          "value": 4
+        },
+        {
+          "name": "SignerTypeDirectDebitOperator",
+          "value": 8
+        },
+        {
+          "name": "SignerTypeAssetManager",
+          "value": 16
+        },
+        {
+          "name": "SignerTypeAssetRateManager",
+          "value": 32
+        },
+        {
+          "name": "SignerTypeBalanceManager",
+          "value": 64
+        },
+        {
+          "name": "SignerTypeIssuanceManager",
+          "value": 128
+        },
+        {
+          "name": "SignerTypeInvoiceManager",
+          "value": 256
+        },
+        {
+          "name": "SignerTypePaymentOperator",
+          "value": 512
+        },
+        {
+          "name": "SignerTypeLimitsManager",
+          "value": 1024
+        },
+        {
+          "name": "SignerTypeAccountManager",
+          "value": 2048
+        },
+        {
+          "name": "SignerTypeCommissionBalanceManager",
+          "value": 4096
+        },
+        {
+          "name": "SignerTypeOperationalBalanceManager",
+          "value": 8192
+        },
+        {
+          "name": "SignerTypeEventsChecker",
+          "value": 16384
+        },
+        {
+          "name": "SignerTypeExchangeAccManager",
+          "value": 32768
+        },
+        {
+          "name": "SignerTypeSyndicateAccManager",
+          "value": 65536
+        },
+        {
+          "name": "SignerTypeUserAssetManager",
+          "value": 131072
+        },
+        {
+          "name": "SignerTypeUserIssuanceManager",
+          "value": 262144
+        },
+        {
+          "name": "SignerTypeWithdrawManager",
+          "value": 524288
+        },
+        {
+          "name": "SignerTypeFeesManager",
+          "value": 1048576
+        },
+        {
+          "name": "SignerTypeTxSender",
+          "value": 2097152
+        },
+        {
+          "name": "SignerTypeAmlAlertManager",
+          "value": 4194304
+        },
+        {
+          "name": "SignerTypeAmlAlertReviewer",
+          "value": 8388608
         }
-    ]}`)
+      ],
+      "signer_identity": 1,
+      "signer_name": "foobar"
+    }
+  ]
+}`)
 
 	var got AccountSigners
 	if err := json.Unmarshal(data, &got); err != nil {
@@ -87,7 +126,7 @@ func TestAccountSignersUnmarshal(t *testing.T) {
 	assert.Len(t, got.Signers, 1)
 	signer := got.Signers[0]
 	assert.EqualValues(t, 1, signer.Weight)
-	assert.EqualValues(t, 16383, signer.Type)
+	assert.EqualValues(t, 16777215, signer.Type)
 	assert.EqualValues(t, "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636", signer.PublicKey)
 	assert.EqualValues(t, 1, signer.Identity)
 	assert.EqualValues(t, "foobar", signer.Name)

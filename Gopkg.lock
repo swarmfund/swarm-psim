@@ -522,12 +522,6 @@
   version = "v0.2"
 
 [[projects]]
-  name = "gitlab.com/distributed_lab/sse-go"
-  packages = ["."]
-  revision = "388ea1372a9a6807e2c9eb2c47200241a7d27484"
-  version = "v1"
-
-[[projects]]
   branch = "master"
   name = "gitlab.com/swarmfund/go"
   packages = [
@@ -562,6 +556,7 @@
     "v2/internal/listener",
     "v2/internal/operation",
     "v2/internal/resources",
+    "v2/internal/resources/operations",
     "v2/internal/responses",
     "v2/internal/sale",
     "v2/internal/templates",
@@ -570,7 +565,7 @@
     "v2/internal/wallets",
     "v2/types"
   ]
-  revision = "71d1cab0df6194c4e83aa637887150c977ea88c7"
+  revision = "6e812c0df67caf7ccc1189876750bed73e87fa22"
 
 [[projects]]
   branch = "master"
@@ -660,6 +655,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9154b934d335ce89c2f72c70ec568780a168c5a00b8f1dfb82e00b9d53d897e4"
+  inputs-digest = "7b486d9f026d51ed6a549a39c21e695a04f23e97e1c2ae2891e4f9d1be8a888c"
   solver-name = "gps-cdcl"
   solver-version = 1
