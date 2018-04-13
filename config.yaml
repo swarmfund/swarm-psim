@@ -180,10 +180,6 @@ eth_withdraw:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
-forfeit_listener:
-  pprof: true
-  signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
-  exchange: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
 
 price_setter:
   base_asset: "ETH"
@@ -279,6 +275,16 @@ notifier:
 
       template_name: kyc-approved
 
+      template_link_url: https://invest.swarm.fund
+
+  usa_kyc:
+    cursor: 1
+
+    emails:
+      subject: "Accreditation status verification"
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: -usa-user-notification # Email with same token will be sent only once
+      template_name: us_residents
       template_link_url: https://invest.swarm.fund
 
   kyc_rejected:

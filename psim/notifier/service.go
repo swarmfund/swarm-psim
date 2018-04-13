@@ -145,6 +145,7 @@ func New(
 			approvedKYCEmailSender:   approvedKYCEmailSender,
 			rejectedKYCEmailSender:   rejectedKYCEmailSender,
 			approvedRequestConfig:    config.KYCApproved,
+			usaKYCConfig:             config.USAKyc,
 			rejectedRequestConfig:    config.KYCRejected,
 			requestConnector:         requestConnector,
 			userConnector:            userConnector,
