@@ -74,9 +74,7 @@ func (n *ReviewedKYCRequestNotifier) listenAndProcessReviewedKYCRequests(ctx con
 			}
 		}
 
-		if n.canNotifyAboutUSAKyc(cursor) &&
-			reviewRequestOp.Action == xdr.ReviewRequestOpActionApprove.ShortString() {
-
+		if n.canNotifyAboutUSAKyc(cursor) && reviewRequestOp.Action == xdr.ReviewRequestOpActionApprove.ShortString() {
 			err := n.tryNotifyAboutUSAKyc(ctx, reviewRequestOp.RequestID)
 			if err != nil {
 				return errors.Wrap(err, "Failed to notify about USA KYC request", logan.F{
@@ -212,6 +210,7 @@ func (n *ReviewedKYCRequestNotifier) tryNotifyAboutUSAKyc(ctx context.Context, r
 	if user == nil {
 		return errors.From(errors.New("No User found in Horizon"), fields)
 	}
+	fields["user"] = user
 
 	emailAddr := user.Attributes.Email
 	emailUniqueToken := emailAddr + n.usaKYCConfig.Emails.RequestTokenSuffix
@@ -221,7 +220,7 @@ func (n *ReviewedKYCRequestNotifier) tryNotifyAboutUSAKyc(ctx context.Context, r
 		return errors.Wrap(err, "Failed to obtain Blob KYCData")
 	}
 
-	data := struct {
+	templateData := struct {
 		Link      string
 		FirstName string
 	}{
@@ -229,7 +228,7 @@ func (n *ReviewedKYCRequestNotifier) tryNotifyAboutUSAKyc(ctx context.Context, r
 		FirstName: blobKYCData.FirstName,
 	}
 
-	err = n.usaKYCEmailSender.SendEmail(ctx, emailAddr, emailUniqueToken, data)
+	err = n.usaKYCEmailSender.SendEmail(ctx, emailAddr, emailUniqueToken, templateData)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send email")
 	}
