@@ -13,7 +13,6 @@ import (
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/swarmfund/psim/psim/templates"
 )
 
 // ProcessNotSubmitted approves Users from USA or with non-Latin document,
@@ -129,25 +128,6 @@ func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Requ
 		"is_usa":  isUSA,
 		"request": request,
 	}).Infof("Successfully approved without sending to IDMind - %s.", logDetail)
-
-	if isUSA {
-		// Notify User, he needs to pass AccreditedInvestor check
-		templateData := struct {
-			Link      string
-			FirstName string
-		}{
-			Link:      s.config.TemplateLinkURL,
-			FirstName: firstName,
-		}
-
-		msg, err := templates.BuildTemplateEmailMessage(s.config.USAUsersEmailConfig.Message, templateData)
-		if err != nil {
-			return errors.Wrap(err, "Failed to build Email message from Template", logan.F{
-				"template_name": s.config.USAUsersEmailConfig.Message,
-			})
-		}
-		s.usaUsersEmail.AddTask(ctx, emailAddr, s.config.USAUsersEmailConfig.Subject, msg)
-	}
 
 	return nil
 }

@@ -10,7 +10,6 @@ type Config struct {
 	Connector               ConnectorConfig    `fig:"connector,required"`
 	RejectReasons           RejectReasonConfig `fig:"reject_reasons,required"`
 	AdminNotifyEmailsConfig EmailConfig        `fig:"emails,required"`
-	USAUsersEmailConfig     EmailConfig        `fig:"usa_email,required"`
 	TemplateLinkURL         string             `fig:"template_link_url,required"`
 	AdminEmailsToNotify     []string           `fig:"emails_to_notify,required"`
 
@@ -23,7 +22,6 @@ func (c Config) GetLoganFields() map[string]interface{} {
 		"connector":            c.Connector,
 		"reject_reasons":       c.RejectReasons,
 		"emails_config":        c.AdminNotifyEmailsConfig,
-		"usa_email_config":     c.USAUsersEmailConfig,
 		"emails_to_notify_len": len(c.AdminEmailsToNotify),
 	}
 }

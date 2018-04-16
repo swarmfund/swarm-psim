@@ -10,8 +10,8 @@ import (
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/tokend/keypair"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/keypair"
 )
 
 const (
@@ -67,7 +67,6 @@ type Service struct {
 	identityMind       IdentityMind
 	xdrbuilder         *xdrbuild.Builder
 	adminNotifyEmails  EmailsProcessor
-	usaUsersEmail      EmailsProcessor
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
 }
@@ -84,7 +83,6 @@ func NewService(
 	identityMind IdentityMind,
 	builder *xdrbuild.Builder,
 	adminNotifyEmails EmailsProcessor,
-	usaUsersEmail EmailsProcessor,
 ) *Service {
 
 	return &Service{
@@ -99,7 +97,6 @@ func NewService(
 		identityMind:       identityMind,
 		xdrbuilder:         builder,
 		adminNotifyEmails:  adminNotifyEmails,
-		usaUsersEmail:      usaUsersEmail,
 	}
 }
 
@@ -108,7 +105,6 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
 	go s.adminNotifyEmails.Run(ctx)
-	go s.usaUsersEmail.Run(ctx)
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
 	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
