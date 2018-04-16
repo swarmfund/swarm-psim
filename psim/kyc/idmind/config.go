@@ -10,7 +10,6 @@ type Config struct {
 	Connector               ConnectorConfig    `fig:"connector,required"`
 	RejectReasons           RejectReasonConfig `fig:"reject_reasons,required"`
 	AdminNotifyEmailsConfig EmailConfig        `fig:"emails,required"`
-	TemplateLinkURL         string             `fig:"template_link_url,required"`
 	AdminEmailsToNotify     []string           `fig:"emails_to_notify,required"`
 
 	Source keypair.Address `fig:"source,required"`
