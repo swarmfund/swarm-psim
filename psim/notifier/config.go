@@ -11,5 +11,6 @@ type Config struct {
 	OrderCancelled EventConfig `fig:"order_cancelled"`
 	KYCCreated     EventConfig `fig:"kyc_created"`
 	KYCApproved    EventConfig `fig:"kyc_approved"`
+	USAKyc         EventConfig `fig:"usa_kyc,required"`
 	KYCRejected    EventConfig `fig:"kyc_rejected"`
 }
