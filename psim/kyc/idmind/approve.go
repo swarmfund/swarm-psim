@@ -7,25 +7,26 @@ import (
 	"context"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 func (s *Service) approveBothTasks(ctx context.Context, requestID uint64, requestHash string, isUSA bool) error {
 	var tasksToAdd uint32
 	if isUSA {
-		tasksToAdd = tasksToAdd | TaskUSA
+		tasksToAdd = tasksToAdd | kyc.TaskUSA
 	}
 
-	return s.approve(ctx, requestID, requestHash, tasksToAdd, TaskSubmitIDMind|TaskCheckIDMind|TaskNonLatinDoc, "{}")
+	return s.approve(ctx, requestID, requestHash, tasksToAdd, kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind|kyc.TaskNonLatinDoc, "{}")
 }
 
 func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string) error {
 	extDetails := fmt.Sprintf(`{"%s":"%s"}`, TxIDExtDetailsKey, txID)
-	return s.approve(ctx, requestID, requestHash, 0, TaskSubmitIDMind, extDetails)
+	return s.approve(ctx, requestID, requestHash, 0, kyc.TaskSubmitIDMind, extDetails)
 }
 
 func (s *Service) approveCheckKYC(ctx context.Context, requestID uint64, requestHash string) error {
 	// TODO In future we will probably need to add some Task at this point (e.g. for some particular admin to make some final review of final accept, or whatever)
-	return s.approve(ctx, requestID, requestHash, 0, TaskCheckIDMind, "{}")
+	return s.approve(ctx, requestID, requestHash, 0, kyc.TaskCheckIDMind, "{}")
 }
 
 func (s *Service) approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails string) error {

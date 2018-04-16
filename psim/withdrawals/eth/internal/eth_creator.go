@@ -21,7 +21,7 @@ type ETHCreator struct {
 
 func NewETHCreator(gasPrice *big.Int, eth *ethclient.Client, address common.Address, wallet *eth.Wallet) *ETHCreator {
 	return &ETHCreator{
-		gasPrice,
+		fromGwei(gasPrice),
 		eth,
 		address,
 		wallet,
