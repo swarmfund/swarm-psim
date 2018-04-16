@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"time"
-
 	"fmt"
 	"io"
 	"mime/multipart"
+
+	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -38,7 +38,7 @@ func newConnector(config ConnectorConfig) *Connector {
 	return &Connector{
 		config: config,
 
-		client: &http.Client{Timeout: 30 * time.Second},
+		client: &http.Client{Timeout: 2 * time.Minute},
 	}
 }
 

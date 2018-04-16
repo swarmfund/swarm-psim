@@ -5,7 +5,7 @@ type DocType string
 const (
 	PassportDocType        DocType = "PP"
 	DrivingLicenseDocType  DocType = "DL"
-	IdentityCardDocType    DocType = "IC"
+	IdentityCardDocType    DocType = "ID"
 	ResidencePermitDocType DocType = "RP"
 )
 

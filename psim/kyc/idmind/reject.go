@@ -9,12 +9,13 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/go/xdr"
 	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, requestHash string, isUSA bool, validationErr error) error {
 	var tasksToAdd uint32
 	if isUSA {
-		tasksToAdd = TaskUSA
+		tasksToAdd = kyc.TaskUSA
 	}
 
 	extDetails := map[string]string{
@@ -29,7 +30,7 @@ func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, re
 func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, extDetails map[string]string, isUSA bool) (blobID string, err error) {
 	var tasksToAdd uint32
 	if isUSA {
-		tasksToAdd = TaskUSA
+		tasksToAdd = kyc.TaskUSA
 	}
 
 	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd, extDetails)
