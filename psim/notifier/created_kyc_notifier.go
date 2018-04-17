@@ -132,7 +132,7 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, c
 
 	blobKYCData, err := n.kycDataHelper.getBlobKYCData(createKYCRequestOperation.KYCData)
 	if err != nil {
-		return errors.Wrap(err, "failed to get blob KYC data")
+		return errors.Wrap(err, "Failed to get Blob KYCData")
 	}
 
 	emailAddress := user.Attributes.Email

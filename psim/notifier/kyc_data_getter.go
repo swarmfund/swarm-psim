@@ -25,13 +25,15 @@ func (g *KYCDataGetter) getBlobKYCData(kycData map[string]interface{}) (*kyc.Dat
 	if !ok {
 		return nil, errors.New("BlobID from KYCData map is not a string")
 	}
+	fields := logan.F{
+		"blob_id": blobID,
+	}
 
 	blob, err := g.blobsConnector.Blob(blobID)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Blob from Horizon")
+		return nil, errors.Wrap(err, "Failed to get Blob from Horizon", fields)
 	}
-
-	fields := logan.F{"blob": blob}
+	fields["blob"] = blob
 
 	if blob.Type != KYCFormBlobType {
 		return nil, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
