@@ -49,37 +49,34 @@ func (n *ReviewedKYCRequestNotifier) listenAndProcessReviewedKYCRequests(ctx con
 			return nil
 		}
 
+		fields := logan.F{
+			"request_id":   reviewRequestOp.RequestID,
+			"paging_token": reviewRequestOp.PT,
+		}
+
 		cursor, err := strconv.ParseUint(reviewRequestOp.PT, 10, 64)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse paging token", logan.F{
-				"paging_token": reviewRequestOp.PT,
-			})
+			return errors.Wrap(err, "Failed to parse PagingToken", fields)
 		}
 
 		if n.canNotifyAboutApprovedKYC(cursor) && n.isFullyApprovedKYC(*reviewRequestOp) {
 			err := n.notifyAboutApprovedKYCRequest(ctx, reviewRequestOp.RequestID)
 			if err != nil {
-				return errors.Wrap(err, "failed to notify about approved KYC request", logan.F{
-					"request_id": reviewRequestOp.RequestID,
-				})
+				return errors.Wrap(err, "failed to notify about approved KYC request", fields)
 			}
 		}
 
 		if n.canNotifyAboutRejectedKYC(cursor) && n.isRejectedKYC(*reviewRequestOp) {
 			err := n.notifyAboutRejectedKYCRequest(ctx, reviewRequestOp.RequestID)
 			if err != nil {
-				return errors.Wrap(err, "failed to notify about rejected KYC request", logan.F{
-					"request_id": reviewRequestOp.RequestID,
-				})
+				return errors.Wrap(err, "Failed to notify about rejected KYCRequest", fields)
 			}
 		}
 
 		if n.canNotifyAboutUSAKyc(cursor) && reviewRequestOp.Action == xdr.ReviewRequestOpActionApprove.ShortString() {
 			err := n.tryNotifyAboutUSAKyc(ctx, reviewRequestOp.RequestID)
 			if err != nil {
-				return errors.Wrap(err, "Failed to notify about USA KYC request", logan.F{
-					"request_id": reviewRequestOp.RequestID,
-				})
+				return errors.Wrap(err, "Failed to notify about USA KYC request", fields)
 			}
 		}
 
@@ -161,7 +158,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 
 	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycRequest.KYCData)
 	if err != nil {
-		return errors.Wrap(err, "failed to get blob KYC data")
+		return errors.Wrap(err, "Failed to get Blob KYCData")
 	}
 
 	emailAddress := user.Attributes.Email
