@@ -107,7 +107,7 @@ func (s *Service) Run(ctx context.Context) {
 	go s.adminNotifyEmails.Run(ctx)
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
-	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
+	running.WithBackOff(ctx, s.log, "kyc_request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
 }
 
 // TODO timeToSleep to config
