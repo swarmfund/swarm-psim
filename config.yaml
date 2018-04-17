@@ -2,6 +2,7 @@
 
 log:
   level: debug
+  env: not-provided # set dev/stage/prod here
   #slack_webhook: "https://hooks.slack.com/services/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"
   #slack_channel: "#reports"
   #slack_level: error

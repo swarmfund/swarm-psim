@@ -12,7 +12,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-const NLinesAroundErrorPoint = 2
+const (
+	NLinesAroundErrorPoint = 2
+
+	defaultLogLevel = "warn"
+)
 
 var (
 	defaultLog *logan.Entry
@@ -23,15 +27,16 @@ func (c *ViperConfig) Log() (*logan.Entry, error) {
 		return defaultLog, nil
 	}
 
-	v := c.viper.Sub("log")
-	if v == nil {
+	// TODO Consider creating LogConfig struct and adding parsing of the 'log' config block into this struct using viper.Unmarshal()
+	logViper := c.viper.Sub("log")
+	if logViper == nil {
 		return nil, errors.New("Log config is required.")
 	}
 
 	entry := logan.New()
-	level := v.GetString("level")
+	level := logViper.GetString("level")
 	if level == "" {
-		level = "warn"
+		level = defaultLogLevel
 	}
 	lvl, err := logan.ParseLevel(level)
 	if err != nil {
@@ -43,18 +48,18 @@ func (c *ViperConfig) Log() (*logan.Entry, error) {
 	// FIXME Make horizon-connector use logrus Hooks, not logan and then ei will work and can be uncommented.
 	//entry.AddLogrusHook(&horizon.TXFailedHook{})
 
-	err = addSlackHook(v, entry)
+	err = addSlackHook(logViper, entry)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to add Slack hook")
 	}
 
-	err = addSentryHook(v, entry)
+	err = addSentryHook(logViper, entry)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to add Sentry hook")
 	}
 
 	// set log formatter
-	formatter := v.GetString("formatter")
+	formatter := logViper.GetString("formatter")
 	if formatter != "" {
 		switch formatter {
 		case "json":
@@ -114,6 +119,12 @@ func addSentryHook(v *viper.Viper, entry *logan.Entry) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to create Sentry hook")
 	}
+
+	env := v.GetString("env")
+	if env == "" {
+		env = "unknown"
+	}
+	hook.SetEnvironment(env)
 
 	hook.StacktraceConfiguration.Enable = true
 	// TODO Consider using log level from config
