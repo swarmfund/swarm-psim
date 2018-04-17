@@ -99,7 +99,7 @@ func (ns *OpEmailSender) SendEmail(ctx context.Context, emailAddress, emailUniqu
 		logger.Info("Notificator accepted email successfully")
 
 		return true, nil
-	}, time.Second, 5*time.Second)
+	}, time.Second, 10*time.Minute)
 
 	return nil
 }
