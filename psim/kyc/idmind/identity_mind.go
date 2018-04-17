@@ -15,7 +15,10 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"strings"
 )
+
+var ErrAppNotFound = errors.New("IDMind failed to find Application with the provided TXId.")
 
 type ConnectorConfig struct {
 	URL     string `fig:"url"`
@@ -170,9 +173,15 @@ func (c *Connector) CheckState(txID string) (*CheckApplicationResponse, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to read response body bytes", fields)
 	}
-	fields["raw_response_body"] = string(respBytes)
+	respS := string(respBytes)
+	fields["raw_response_body"] = respS
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// The way of detecting this particular error from IDMind is quite dirty, but they don't have any error codes to parse their errors more strictly.
+		if resp.StatusCode == http.StatusBadRequest && strings.Contains(respS, fmt.Sprintf(`{"error_message":"Failed to find application with id: %s"}`, txID)) {
+			return nil, ErrAppNotFound
+		}
+
 		return nil, errors.From(errors.New("Unsuccessful response from IdMind"), fields)
 	}
 
