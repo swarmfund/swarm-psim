@@ -34,6 +34,7 @@ const (
 	ServiceWalletCleaner    = "wallet_cleaner"
 
 	ServiceIdentityMind = "identity_mind"
+	ServiceMetrics      = "metrics"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

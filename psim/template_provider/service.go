@@ -29,6 +29,7 @@ type Service struct {
 	log        *logan.Entry
 	horizon    *horizon.Connector
 	info       *horizon.Info
+	isHealthy  bool
 }
 
 func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
@@ -80,9 +81,15 @@ func (s *Service) Run(ctx context.Context) {
 		),
 	)
 
+	s.isHealthy = true
 	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
 	if err := http.ListenAndServe(addr, r); err != nil {
+		s.isHealthy = false
 		s.log.WithError(err).Error("failed to listen and serve")
 		return
 	}
+}
+
+func (s Service) HealthCheck() bool {
+	return s.isHealthy
 }

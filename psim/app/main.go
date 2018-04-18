@@ -11,6 +11,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/app/internal/data"
+	"gitlab.com/swarmfund/psim/psim/app/internal/metrics"
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
@@ -81,10 +83,11 @@ func Register(name string, service DeprecatedService) {
 }
 
 type App struct {
-	log    *logan.Entry
-	config conf.Config
-	ctx    context.Context
-	cancel context.CancelFunc
+	log     *logan.Entry
+	config  conf.Config
+	ctx     context.Context
+	cancel  context.CancelFunc
+	metrics metrics.Metrics
 }
 
 func New(config conf.Config) (*App, error) {
@@ -93,11 +96,18 @@ func New(config conf.Config) (*App, error) {
 		return nil, errors.Wrap(err, "failed to get logger")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+
+	metrics, err := metrics.New(entry, config.GetRequired(conf.ServiceMetrics))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create metrics")
+	}
+
 	return &App{
-		config: config,
-		log:    entry.WithField("service", "app"),
-		ctx:    ctx,
-		cancel: cancel,
+		config:  config,
+		log:     entry.WithField("service", "app"),
+		ctx:     ctx,
+		cancel:  cancel,
+		metrics: *metrics,
 	}, nil
 }
 
@@ -155,6 +165,10 @@ func (app *App) Run() {
 		}
 	}()
 
+	go func() {
+		app.metrics.Run()
+	}()
+
 	for name, setup := range registerServiceSetUp {
 		if !app.isServiceEnabled(name) {
 			continue
@@ -178,6 +192,10 @@ func (app *App) Run() {
 				// TODO Consider panicking here instead of Error log and return.
 				entry.WithError(err).Error("App failed to set up service.")
 				return
+			}
+
+			if metricsService, impl := service.(data.MetricsKeeper); impl {
+				app.metrics.AddService(metricsService)
 			}
 
 			// TODO Pass another ctx here - just for cancelling.

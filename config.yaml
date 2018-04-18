@@ -79,6 +79,7 @@ services:
 
 #  - template_provider
 #  - wallet_cleaner
+#  - metrics
 
 # BTC
 btc_deposit:
@@ -426,3 +427,7 @@ template_provider:
 
 wallet_cleaner:
   expire_duration: 128h
+
+metrics:
+  host: localhost
+  port: 1234
