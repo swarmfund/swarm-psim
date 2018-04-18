@@ -82,9 +82,12 @@ func (s *Service) Run(ctx context.Context) {
 	)
 
 	s.isHealthy = true
+	defer func() {
+		s.isHealthy = false
+	}()
+
 	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
 	if err := http.ListenAndServe(addr, r); err != nil {
-		s.isHealthy = false
 		s.log.WithError(err).Error("failed to listen and serve")
 		return
 	}

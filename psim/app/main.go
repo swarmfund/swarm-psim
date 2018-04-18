@@ -165,8 +165,13 @@ func (app *App) Run() {
 		}
 	}()
 
-	app.metrics.Lock()
 	go func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				err := errors.FromPanic(rec)
+				app.log.WithStack(errors.WithStack(err)).WithError(err).Error("metrics panicked")
+			}
+		}()
 		app.metrics.Run()
 	}()
 
@@ -195,7 +200,7 @@ func (app *App) Run() {
 				return
 			}
 
-			if metricsService, impl := service.(data.MetricsKeeper); impl {
+			if metricsService, impl := service.(data.Metered); impl {
 				app.metrics.AddService(metricsService)
 			}
 
@@ -204,7 +209,7 @@ func (app *App) Run() {
 			entry.Warn("died")
 		}()
 	}
-	app.metrics.Unlock()
+	app.metrics.SetDone(true)
 
 	wg.Wait()
 	time.Sleep(1)
