@@ -44,7 +44,7 @@ func (h *ERC20Creator) CreateTX(desthex string, amount int64) (string, error) {
 	}
 
 	tx := types.NewTransaction(
-		nonce, h.token.Address(), big.NewInt(0), big.NewInt(200000), fromGwei(h.gasPrice), input)
+		nonce, h.token.Address(), big.NewInt(0), 200000, fromGwei(h.gasPrice), input)
 
 	// asserting just in case
 	if tx.Nonce() != nonce {

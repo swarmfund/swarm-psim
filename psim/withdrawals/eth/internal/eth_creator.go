@@ -30,8 +30,8 @@ func NewETHCreator(gasPrice *big.Int, eth *ethclient.Client, address common.Addr
 }
 
 func (h *ETHCreator) CreateTX(desthex string, amount int64) (string, error) {
-	txGas := big.NewInt(21000)
-	txFee := new(big.Int).Mul(txGas, h.gasPrice)
+	txGas := uint64(21000)
+	txFee := new(big.Int).Mul(big.NewInt(int64(txGas)), h.gasPrice)
 	withdrawAmount := fromGwei(big.NewInt(amount))
 	destination := common.HexToAddress(desthex)
 

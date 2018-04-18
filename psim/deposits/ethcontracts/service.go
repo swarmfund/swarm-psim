@@ -78,7 +78,7 @@ func (s *Service) deployContract(ctx context.Context) (*common.Address, error) {
 	}
 
 	// FIXME GasLimit to config
-	tx := types.NewContractCreation(nonce, big.NewInt(0), big.NewInt(407266), s.config.GasPrice, contractBytes)
+	tx := types.NewContractCreation(nonce, big.NewInt(0), 407266, s.config.GasPrice, contractBytes)
 	tx, err = s.ethWallet.SignTX(s.ethAddress, tx)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to sign ContractCreation TX", fields)
