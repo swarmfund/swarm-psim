@@ -199,7 +199,9 @@ eth_supervisor:
 eth_contracts_deploy:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-  eth_private_key: "contracts_owner_private_key_hex"
+
+  eth_private_key: contracts_deployer_private_key_hex
+  contract_owner: contract_owner_address_hex
   gas_price: 1000000000 # TODO Add comment
 
 # funnels

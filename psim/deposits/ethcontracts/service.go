@@ -6,6 +6,7 @@ import (
 
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -14,7 +15,9 @@ import (
 )
 
 type ETHClient interface {
-	SendTransaction(ctx context.Context, tx *types.Transaction) error
+	bind.ContractBackend
+	//SendTransaction(ctx context.Context, tx *types.Transaction) error
+
 	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)
@@ -22,6 +25,7 @@ type ETHClient interface {
 
 type ETHWallet interface {
 	SignTX(address common.Address, tx *types.Transaction) (*types.Transaction, error)
+	Addresses(ctx context.Context) (result []common.Address)
 }
 
 type Service struct {
@@ -80,21 +84,27 @@ func (s *Service) deployContract(ctx context.Context) (*common.Address, error) {
 		"current_nonce": nonce,
 	}
 
-	// FIXME GasLimit to config
-	tx := types.NewContractCreation(nonce, big.NewInt(0), 407266, s.config.GasPrice, contractBytes)
-	tx, err = s.ethWallet.SignTX(s.ethAddress, tx)
+	contractAddr, tx, _, err := DeployContract(&bind.TransactOpts{
+		// TODO Move this potentially paniccing part into constructor.
+		From:  s.ethWallet.Addresses(ctx)[0],
+		Nonce: big.NewInt(int64(nonce)),
+		Signer: func(signer types.Signer, addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			return s.ethWallet.SignTX(addr, tx)
+		},
+		Value:    big.NewInt(0),
+		GasPrice: s.config.GasPrice,
+		// FIXME GasLimit to config
+		GasLimit: 500000,
+		Context:  ctx,
+	}, s.ethClient, s.config.ContractOwner)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to sign ContractCreation TX", fields)
-	}
-	fields["tx_hash"] = tx.Hash().String()
-
-	err = s.ethClient.SendTransaction(ctx, tx)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send Transaction", fields)
+		return nil, errors.Wrap(err, "Failed to build Contract with Owner from Config", fields)
 	}
 	if running.IsCancelled(ctx) {
 		return nil, nil
 	}
+	fields["contract_address"] = contractAddr.String()
+	fields["tx_hash"] = tx.Hash().String()
 
 	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to ETH network.
 	s.ensureMined(context.Background(), tx.Hash())
