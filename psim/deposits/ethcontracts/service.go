@@ -51,13 +51,16 @@ func NewService(
 }
 
 func (s *Service) Run(ctx context.Context) {
-	//contractAddr, err := s.deployContract(ctx)
-	//if err != nil {
-	//	s.log.WithError(err).Error("Failed to deploy Contract.")
-	//}
-	//if running.IsCancelled(ctx) {
-	//	return
-	//}
+	contractAddr, err := s.deployContract(ctx)
+	if err != nil {
+		s.log.WithError(err).Error("Failed to deploy Contract.")
+		return
+	}
+	if running.IsCancelled(ctx) {
+		return
+	}
+
+	s.log.WithField("contract_address", contractAddr.String()).Info("Contract was deployed successfully.")
 }
 
 // DeployContract deploys the contract from the contractBytes package-level var to ETH network
@@ -83,7 +86,7 @@ func (s *Service) deployContract(ctx context.Context) (*common.Address, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to sign ContractCreation TX", fields)
 	}
-	fields["tx_hash"] = tx.Hash()
+	fields["tx_hash"] = tx.Hash().String()
 
 	err = s.ethClient.SendTransaction(ctx, tx)
 	if err != nil {
@@ -93,10 +96,10 @@ func (s *Service) deployContract(ctx context.Context) (*common.Address, error) {
 		return nil, nil
 	}
 
-	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to Core.
+	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to ETH network.
 	s.ensureMined(context.Background(), tx.Hash())
 
-	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to Core.
+	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to ETH network.
 	receipt, err := s.ethClient.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get TransactionReceipt of the ContactCreation TX just been mined", fields)
@@ -107,7 +110,7 @@ func (s *Service) deployContract(ctx context.Context) (*common.Address, error) {
 
 // EnsureMined will only return if TX is mined or ctx is cancelled.
 func (s *Service) ensureMined(ctx context.Context, hash common.Hash) {
-	running.UntilSuccess(ctx, s.log.WithField("tx_hash", hash), "tx_mined_ensurer", func(ctx context.Context) (bool, error) {
+	running.UntilSuccess(ctx, s.log.WithField("tx_hash", hash.String()), "tx_mined_ensurer", func(ctx context.Context) (bool, error) {
 		tx, isPending, err := s.ethClient.TransactionByHash(ctx, hash)
 		if err != nil {
 			return false, errors.Wrap(err, "Failed to get TX by hash from ETHClient")
