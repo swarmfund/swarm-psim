@@ -61,7 +61,7 @@ services:
 #  - btc_deposit
 #  - btc_deposit_verify
 #  - eth_supervisor
-#   - eth_contracts
+#   - eth_contracts_deploy
 
 #  - btc_funnel
 #  - eth_funnel
@@ -196,7 +196,7 @@ eth_supervisor:
     exchange: G_SOME_VALID_PUBLIC_KEY
     signer: S_SOME_VALID_PRIVATE_KEY
 
-eth_contracts:
+eth_contracts_deploy:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
   eth_private_key: "contracts_owner_private_key_hex"

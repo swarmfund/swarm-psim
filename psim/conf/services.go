@@ -8,7 +8,7 @@ const (
 	ServiceETHSupervisor      = "eth_supervisor"
 	ServiceERC20Deposit       = "erc20_deposit"
 	ServiceERC20DepositVerify = "erc20_deposit_verify"
-	ServiceETHContracts       = "eth_contracts"
+	ServiceETHContracts       = "eth_contracts_deploy"
 
 	// funnels
 	ServiceETHFunnel = "eth_funnel"
