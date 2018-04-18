@@ -165,6 +165,7 @@ func (app *App) Run() {
 		}
 	}()
 
+	app.metrics.Lock()
 	go func() {
 		app.metrics.Run()
 	}()
@@ -203,6 +204,7 @@ func (app *App) Run() {
 			entry.Warn("died")
 		}()
 	}
+	app.metrics.Unlock()
 
 	wg.Wait()
 	time.Sleep(1)
