@@ -38,12 +38,10 @@ const (
 
 	// kyc
 	ServiceIdentityMind = "identity_mind"
+	ServiceInvestReady  = "invest_ready"
 
 	ServiceTemplateProvider = "template_provider"
 	ServiceWalletCleaner    = "wallet_cleaner"
-
-	ServiceIdentityMind = "identity_mind"
-	ServiceInvestReady  = "invest_ready"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.
