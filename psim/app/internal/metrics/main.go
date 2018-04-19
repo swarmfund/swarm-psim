@@ -8,12 +8,10 @@ import (
 
 	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/ape"
-	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app/internal/data"
 	"gitlab.com/swarmfund/psim/psim/app/internal/metrics/middlewares"
-	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
 func (m *Metrics) ServicesStatus(w http.ResponseWriter, r *http.Request) {
@@ -55,25 +53,13 @@ type Metrics struct {
 	trackingServices []data.Metered
 }
 
-func New(log *logan.Entry, configData map[string]interface{}) (*Metrics, error) {
-	config := Config{}
-
-	err := figure.
-		Out(&config).
-		From(configData).
-		Please()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceMetrics,
-		})
-	}
-
+func New(log *logan.Entry, config Config) *Metrics {
 	return &Metrics{
 		mutex:            &sync.Mutex{},
 		log:              log,
 		config:           config,
 		trackingServices: []data.Metered{},
-	}, nil
+	}
 }
 
 func (m *Metrics) Run() {
@@ -101,4 +87,33 @@ func (m *Metrics) SetDone(isDone bool) {
 
 func (m Metrics) Done() bool {
 	return m.done
+}
+
+//CheckServicesHealth sends request to metrics and check services status
+//it takes info about metrics from config file
+func CheckHealth(configData map[string]interface{}, entry *logan.Entry) error {
+	metricsInfo, err := NewConfig(configData)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get metrics config info")
+	}
+
+	url := fmt.Sprintf("http://%s:%d/services", metricsInfo.Host, metricsInfo.Port)
+	response, err := http.Get(url)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get response from metrics")
+	}
+
+	//check status code
+	switch response.StatusCode {
+	case http.StatusOK:
+		entry.WithFields(logan.F{"metrics": "StatusOK"}).Info("all services were successfully launched ")
+	case http.StatusPreconditionFailed:
+		entry.WithFields(logan.F{"metrics": "StatusPreconditionFailed"}).Error("services not initialized yet")
+	case http.StatusServiceUnavailable:
+		entry.WithFields(logan.F{"metrics": "StatusServiceUnavailable"}).Error("some of the services could not start")
+	default:
+		entry.WithFields(logan.F{"metrics": "unrecognized status code"}).Error(fmt.Sprintf("received code %d", response.StatusCode))
+	}
+
+	return nil
 }

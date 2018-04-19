@@ -59,6 +59,17 @@ var (
 			instance.Run()
 		},
 	}
+	//healthCmd use this command to check health of different services
+	healthCmd = &cobra.Command{
+		Use:   "check",
+		Short: "check health of services by metrics",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := app.CheckServices(configInstance.Get(conf.ServiceMetrics), entry); err != nil {
+				entry.WithError(err).Error("failed to check metrics services info")
+				return
+			}
+		},
+	}
 )
 
 func main() {
@@ -69,7 +80,7 @@ func main() {
 		}
 	})
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "config.yaml", "config file")
-	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(runCmd, healthCmd)
 	err := rootCmd.Execute()
 	if err != nil {
 		entry.WithError(err).Fatal("something bad happened")

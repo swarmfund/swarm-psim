@@ -87,7 +87,7 @@ type App struct {
 	config  conf.Config
 	ctx     context.Context
 	cancel  context.CancelFunc
-	metrics metrics.Metrics
+	metrics *metrics.Metrics
 }
 
 func New(config conf.Config) (*App, error) {
@@ -97,7 +97,7 @@ func New(config conf.Config) (*App, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	metrics, err := metrics.New(entry, config.GetRequired(conf.ServiceMetrics))
+	metricConfig, err := metrics.NewConfig(config.GetRequired(conf.ServiceMetrics))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create metrics")
 	}
@@ -107,7 +107,7 @@ func New(config conf.Config) (*App, error) {
 		log:     entry.WithField("service", "app"),
 		ctx:     ctx,
 		cancel:  cancel,
-		metrics: *metrics,
+		metrics: metrics.New(entry, *metricConfig),
 	}, nil
 }
 
@@ -233,4 +233,8 @@ func IsCanceled(ctx context.Context) bool {
 	default:
 		return false
 	}
+}
+
+func CheckServices(configData map[string]interface{}, entry *logan.Entry) error {
+	return metrics.CheckHealth(configData, entry)
 }
