@@ -267,6 +267,6 @@ var (
 		"Western Sahara":                                       "EH",
 		"Yemen":                                                "YE",
 		"Zambia":                                               "ZM",
-		"ZW":                                                   "Zimbabwe",
+		"Zimbabwe":                                             "ZW",
 	}
 )

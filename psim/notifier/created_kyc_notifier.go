@@ -1,13 +1,14 @@
 package notifier
 
 import (
-	"gitlab.com/swarmfund/horizon-connector/v2"
 	"context"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
-	"gitlab.com/swarmfund/go/xdr"
 	"strconv"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/swarmfund/horizon-connector/v2"
 )
 
 type CreatedKYCNotifier struct {
@@ -34,12 +35,16 @@ func (n *CreatedKYCNotifier) listenAndProcessCreatedKYCRequests(ctx context.Cont
 			if err != nil {
 				return errors.Wrap(err, "CreateKYCRequestOpListener sent error")
 			}
+			fields := logan.F{
+				"operation_id": createKYCRequestOp.ID,
+				"request_id":   createKYCRequestOp.RequestID,
+				"paging_token": createKYCRequestOp.PT,
+				"tx_id":        createKYCRequestOp.TransactionID,
+			}
 
 			cursor, err := strconv.ParseUint(createKYCRequestOp.PT, 10, 64)
 			if err != nil {
-				return errors.Wrap(err, "failed to parse paging token", logan.F{
-					"paging_token": createKYCRequestOp.PT,
-				})
+				return errors.Wrap(err, "failed to parse paging token", fields)
 			}
 
 			if !n.canNotifyAboutCreatedKYC(cursor) {
@@ -48,7 +53,7 @@ func (n *CreatedKYCNotifier) listenAndProcessCreatedKYCRequests(ctx context.Cont
 
 			err = n.processCreateKYCRequestOperation(ctx, *createKYCRequestOp)
 			if err != nil {
-				return errors.Wrap(err, "failed to process CreateKYCRequest operation")
+				return errors.Wrap(err, "Failed to process CreateKYCRequest operation", fields)
 			}
 		}
 	}
@@ -127,7 +132,7 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, c
 
 	blobKYCData, err := n.kycDataHelper.getBlobKYCData(createKYCRequestOperation.KYCData)
 	if err != nil {
-		return errors.Wrap(err, "failed to get blob KYC data")
+		return errors.Wrap(err, "Failed to get Blob KYCData")
 	}
 
 	emailAddress := user.Attributes.Email

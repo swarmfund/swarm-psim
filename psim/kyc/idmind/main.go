@@ -51,12 +51,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		SendPeriod:            config.AdminNotifyEmailsConfig.SendPeriod,
 	}, globalConfig.Notificator())
 
-	usaUsersEmail := emails.NewProcessor(log, emails.Config{
-		RequestType:           config.USAUsersEmailConfig.RequestType,
-		UniquenessTokenSuffix: "-usa-user-notification",
-		SendPeriod:            config.USAUsersEmailConfig.SendPeriod,
-	}, globalConfig.Notificator())
-
 	return NewService(
 		log,
 		config,
@@ -68,7 +62,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		newConnector(config.Connector),
 		builder,
 		adminNotifyEmails,
-		usaUsersEmail,
 	), nil
 }
 
