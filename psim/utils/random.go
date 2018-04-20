@@ -1,26 +1,14 @@
 package utils
 
 import (
-	"math/rand"
-	"time"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/tokend/keypair"
 )
 
-var (
-	letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-)
-
-func randomString(n int, source string) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = source[rand.Intn(len(source))]
+func GenerateToken() (string, error) {
+	kp, err := keypair.Random()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate token")
 	}
-	return string(b)
-}
-
-func GenerateToken() string {
-	return randomString(20, letters)
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
+	return kp.Address(), nil
 }

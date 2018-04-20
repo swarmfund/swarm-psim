@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/verifier"
 	"gitlab.com/tokend/keypair"
 )
@@ -28,9 +29,15 @@ func New(
 		pFinder,
 	)
 
+	discoveryID, err := utils.GenerateToken()
+	if err != nil {
+		log.WithError(err).Error("Failed to generate discovery ID")
+		return nil
+	}
+
 	return verifier.New(
 		serviceName,
-		"my_awesome_super_duper_random_id_price_setter",
+		discoveryID,
 		log,
 		v,
 		builder,
