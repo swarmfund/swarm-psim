@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	Name = "gdax_streamer"
+	Name = "gdax"
 )
 
 var assetPairs = map[string]struct{}{
