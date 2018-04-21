@@ -17,7 +17,8 @@ type PricesResponse interface {
 }
 
 type Connector struct {
-	Name      string
+	Name string
+	// TODO Consider using some new specific AssetPair type as a key.
 	Endpoints map[string]string
 }
 
@@ -35,39 +36,39 @@ func (c *Connector) GetPrices(baseAsset, quoteAsset string, pricesResponse Price
 		})
 	}
 
-	fieldz := logan.F{
+	fields := logan.F{
 		"endpoint": endpoint,
 	}
 
 	response, err := http.Get(endpoint)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to perform get request", fieldz)
+		return nil, errors.Wrap(err, "Failed to perform get request", fields)
 	}
+	fields["status_code"] = response.StatusCode
 
 	defer response.Body.Close()
 	if response.StatusCode != 200 {
-		return nil, errors.From(errors.New("Unexpected status code."), fieldz.Merge(logan.F{
-			"status_code": response.StatusCode,
-		}))
+		return nil, errors.From(errors.New("Unexpected status code."), fields)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to read data from response body")
+		return nil, errors.Wrap(err, "Failed to read data from response body", fields)
 	}
 
 	err = json.Unmarshal(body, pricesResponse)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal response body into pricesResponse", fieldz.Merge(logan.F{
-			"body": string(body),
+		return nil, errors.Wrap(err, "Failed to unmarshal response body into pricesResponse", fields.Merge(logan.F{
+			"raw_response_body": string(body),
 		}))
 	}
 
-	fieldz["prices_response"] = pricesResponse
+	fields["prices_response"] = pricesResponse
 
 	result, err := pricesResponse.ToPrices()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to retrieve Prices from the unmarshalled pricesResponse", fieldz)
+		return nil, errors.Wrap(err, "Failed to retrieve Prices from the unmarshalled pricesResponse", fields)
 	}
+
 	return result, nil
 }

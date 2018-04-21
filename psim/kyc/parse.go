@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ParsingData describes the structure of KYC blob retrieved form Horizon.
+// ParsingData describes the structure of KYC Blob retrieved form Horizon.
 type parsingData struct {
 	FirstName  string      `json:"first_name"`
 	LastName   string      `json:"last_name"`
@@ -54,5 +54,29 @@ func ParseKYCData(data string) (*Data, error) {
 				},
 			},
 		}, nil
+	}
+}
+
+// ParsingFirstNameData describes the structure of shortened(FirstName only) KYC Blob retrieved form Horizon.
+type parsingFirstNameData struct {
+	FirstName string `json:"first_name"`
+
+	Version string        `json:"version"`
+	V2      FirstNameData `json:"v2"`
+}
+
+func ParseKYCFirstName(data string) (string, error) {
+	var parsingData parsingFirstNameData
+	err := json.Unmarshal([]byte(data), &parsingData)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to unmarshal data bytes into Data structure")
+	}
+
+	switch parsingData.Version {
+	case "v2":
+		return parsingData.V2.FirstName, nil
+	default:
+		// v1
+		return parsingData.FirstName, nil
 	}
 }

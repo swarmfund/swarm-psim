@@ -6,8 +6,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
+	"gitlab.com/distributed_lab/running"
 )
 
 // Connector is an interface for retrieving asset prices from external services
@@ -21,7 +21,7 @@ type Connector interface {
 //
 // Streamer is a common Streamer of Prices for a PriceProvider.
 type streamer struct {
-	logger        *logan.Entry
+	log           *logan.Entry
 	baseAsset     string
 	quoteAsset    string
 	pricesChannel chan types.PricePoint
@@ -29,7 +29,8 @@ type streamer struct {
 	period        time.Duration
 }
 
-// StartNewPriceStreamer creates new Streamer and runs it safely and concurrently
+// StartNewPriceStreamer creates new Streamer and runs it safely and concurrently.
+// StartNewPriceStreamer is *not* a blocking function.
 func StartNewPriceStreamer(
 	ctx context.Context,
 	log *logan.Entry,
@@ -39,7 +40,11 @@ func StartNewPriceStreamer(
 	period time.Duration) <-chan types.PricePoint {
 
 	streamer := streamer{
-		logger:        log.WithField("price_streamer", exchange.GetName()),
+		log: log.WithFields(logan.F{
+			"price_streamer": exchange.GetName(),
+			"base_asset":     baseAsset,
+			"quote_asset":    quoteAsset,
+		}),
 		baseAsset:     baseAsset,
 		quoteAsset:    quoteAsset,
 		pricesChannel: make(chan types.PricePoint, 10),
@@ -47,18 +52,16 @@ func StartNewPriceStreamer(
 		period:        period,
 	}
 
-	streamer.logger.Debug("Starting new PriceStreamer.")
-	go app.RunOverIncrementalTimer(ctx, streamer.logger, exchange.GetName(), streamer.runOnce, period, time.Minute)
+	streamer.log.Debug("Starting new PriceStreamer.")
+	go running.WithBackOff(ctx, streamer.log, exchange.GetName(), streamer.runOnce, period, 10*time.Second, time.Hour)
 
 	return streamer.pricesChannel
 }
 
-func (p *streamer) runOnce(ctx context.Context) (err error) {
-	var prices []types.PricePoint
-
-	prices, err = p.exchange.GetPrices(p.baseAsset, p.quoteAsset)
+func (p *streamer) runOnce(ctx context.Context) error {
+	prices, err := p.exchange.GetPrices(p.baseAsset, p.quoteAsset)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Prices from Exchange Connector")
+		return errors.Wrap(err, "Failed to get Prices from ExchangeConnector")
 	}
 
 	for _, item := range prices {
