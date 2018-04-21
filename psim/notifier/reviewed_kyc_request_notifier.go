@@ -111,7 +111,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 	emailAddress := user.Attributes.Email
 	emailUniqueToken := n.buildApprovedKYCUniqueToken(emailAddress, kycRequest.AccountToUpdateKYC, requestID)
 
-	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycRequest.KYCData)
+	kycFirstName, err := n.kycDataHelper.getKYCFirstName(kycRequest.KYCData)
 	if err != nil {
 		return errors.Wrap(err, "failed to get blob KYC data")
 	}
@@ -121,7 +121,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 		FirstName string
 	}{
 		Link:      n.approvedRequestConfig.Emails.TemplateLinkURL,
-		FirstName: blobKYCData.FirstName,
+		FirstName: kycFirstName,
 	}
 
 	err = n.approvedKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
@@ -156,7 +156,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 		return nil
 	}
 
-	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycRequest.KYCData)
+	kycFirstName, err := n.kycDataHelper.getKYCFirstName(kycRequest.KYCData)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Blob KYCData")
 	}
@@ -170,7 +170,7 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 		RejectReason string
 	}{
 		Link:         n.rejectedRequestConfig.Emails.TemplateLinkURL,
-		FirstName:    blobKYCData.FirstName,
+		FirstName:    kycFirstName,
 		RejectReason: request.RejectReason,
 	}
 
@@ -212,7 +212,7 @@ func (n *ReviewedKYCRequestNotifier) tryNotifyAboutUSAKyc(ctx context.Context, r
 	emailAddr := user.Attributes.Email
 	emailUniqueToken := emailAddr + n.usaKYCConfig.Emails.RequestTokenSuffix
 
-	blobKYCData, err := n.kycDataHelper.getBlobKYCData(kycRequest.KYCData)
+	kycFirstName, err := n.kycDataHelper.getKYCFirstName(kycRequest.KYCData)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain Blob KYCData")
 	}
@@ -222,7 +222,7 @@ func (n *ReviewedKYCRequestNotifier) tryNotifyAboutUSAKyc(ctx context.Context, r
 		FirstName string
 	}{
 		Link:      n.approvedRequestConfig.Emails.TemplateLinkURL,
-		FirstName: blobKYCData.FirstName,
+		FirstName: kycFirstName,
 	}
 
 	err = n.usaKYCEmailSender.SendEmail(ctx, emailAddr, emailUniqueToken, templateData)
