@@ -119,6 +119,7 @@ func addSentryHook(v *viper.Viper, entry *logan.Entry) (*logan.Entry, error) {
 		logrus.PanicLevel,
 		logrus.FatalLevel,
 		logrus.ErrorLevel,
+		logrus.WarnLevel,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create Sentry hook")
