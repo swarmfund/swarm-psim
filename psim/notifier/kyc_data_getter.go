@@ -1,10 +1,10 @@
 package notifier
 
 import (
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 )
 
 type BlobsConnector interface {
@@ -15,7 +15,26 @@ type KYCDataGetter struct {
 	blobsConnector BlobsConnector
 }
 
-func (g *KYCDataGetter) getBlobKYCData(kycData map[string]interface{}) (*kyc.Data, error) {
+// GetKYCFirstName returns non-nil error, if Blob not found.
+func (g *KYCDataGetter) getKYCFirstName(kycData map[string]interface{}) (string, error) {
+	blob, err := g.obtainBlob(kycData)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to obtain Blob.Attributes.Value by the kycData map")
+	}
+	fields := logan.F{
+		"blob": blob,
+	}
+
+	firstName, err := kyc.ParseKYCFirstName(blob.Attributes.Value)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in Blob", fields)
+	}
+
+	return firstName, nil
+}
+
+// ObtainBlob only returns nil-Blob with a non-nil error.
+func (g *KYCDataGetter) obtainBlob(kycData map[string]interface{}) (*horizon.Blob, error) {
 	blobIDInterface, ok := kycData["blob_id"]
 	if !ok {
 		return nil, errors.New("'blob_id' key not found in KYCData map")
@@ -33,6 +52,9 @@ func (g *KYCDataGetter) getBlobKYCData(kycData map[string]interface{}) (*kyc.Dat
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Blob from Horizon", fields)
 	}
+	if blob == nil {
+		return nil, errors.From(errors.New("Nil Blob received from API"), fields)
+	}
 	fields["blob"] = blob
 
 	if blob.Type != KYCFormBlobType {
@@ -40,10 +62,5 @@ func (g *KYCDataGetter) getBlobKYCData(kycData map[string]interface{}) (*kyc.Dat
 			blob.Type, KYCFormBlobType), fields)
 	}
 
-	blobKYCData, err := kyc.ParseKYCData(blob.Attributes.Value)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse KYC data from Attributes.Value string in Blob", fields)
-	}
-
-	return blobKYCData, nil
+	return blob, nil
 }

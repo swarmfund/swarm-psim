@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
