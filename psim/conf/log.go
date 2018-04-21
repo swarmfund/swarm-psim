@@ -143,7 +143,7 @@ func addSentryHook(v *viper.Viper, entry *logan.Entry) (*logan.Entry, error) {
 
 	hook.StacktraceConfiguration.Enable = true
 	// TODO Consider using log level from config
-	hook.StacktraceConfiguration.Level = logrus.ErrorLevel
+	hook.StacktraceConfiguration.Level = logrus.WarnLevel
 	hook.StacktraceConfiguration.Context = NLinesAroundErrorPoint
 
 	hook.AddExtraFilter("status_code", func(v interface{}) interface{} {
