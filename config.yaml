@@ -1,8 +1,10 @@
 # common
 
 log:
-  level: debug
+  level: warn
   env: not-provided # set dev/stage/prod here
+  project: not-provided
+
   #slack_webhook: "https://hooks.slack.com/services/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"
   #slack_channel: "#reports"
   #slack_level: error
