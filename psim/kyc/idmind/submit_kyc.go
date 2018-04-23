@@ -37,7 +37,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return nil
 	}
 
-	blob, emailAddr, err := s.retrieveBlobAndEmail(request, accountID)
+	blob, err := s.retrieveBlob(request, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve Blob or email", fields)
 	}
@@ -58,7 +58,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	isUSA := kycData.IsUSA()
 	if kycRequest.AllTasks&kyc.TaskNonLatinDoc != 0 || isUSA {
 		// Mark as reviewed without sending to IDMind (non-Latin document or from USA - IDMind doesn't handle such guys)
-		err := s.approveWithoutSubmit(ctx, request, isUSA, kycData.FirstName, emailAddr)
+		err := s.approveWithoutSubmit(ctx, request, isUSA, kycData.FirstName)
 		if err != nil {
 			return errors.Wrap(err, "Failed to approve without sending to IDMind - nonLatin docs or USA")
 		}
@@ -66,7 +66,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return nil
 	}
 
-	err = s.processNewKYCApplication(ctx, *kycData, emailAddr, accountID, request)
+	err = s.processNewKYCApplication(ctx, *kycData, accountID, request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process new KYC Application", fields)
 	}
@@ -74,45 +74,39 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	return nil
 }
 
-// RetrieveKYCData retrieves BlobID from KYCRequest,
+// RetrieveBlob retrieves BlobID from KYCRequest,
 // obtains Blob by BlobID,
 // check Blob's type
-// and parses KYCData from the Blob.Attributes.Value
-func (s *Service) retrieveBlobAndEmail(request horizon.Request, accountID string) (blob *horizon.Blob, email string, err error) {
-	user, err := s.usersConnector.User(accountID)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "Failed to get User by AccountID from Horizon")
-	}
-	email = user.Attributes.Email
-
+// and returns Blob if everything's fine.
+func (s *Service) retrieveBlob(request horizon.Request, accountID string) (blob *horizon.Blob, err error) {
 	kycRequest := request.Details.KYC
 
 	blobIDInterface, ok := kycRequest.KYCData["blob_id"]
 	if !ok {
-		return nil, email, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
+		return nil, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
 	}
 
 	blobID, ok := blobIDInterface.(string)
 	if !ok {
 		// Normally should never happen
-		return nil, email, errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
+		return nil, errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
 	}
 
 	blob, err = s.blobsConnector.Blob(blobID)
 	if err != nil {
-		return nil, email, errors.Wrap(err, "Failed to get Blob from Horizon")
+		return nil, errors.Wrap(err, "Failed to get Blob from Horizon")
 	}
 	fields := logan.F{"blob": blob}
 
 	if blob.Type != KYCFormBlobType {
-		return nil, email, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
+		return nil, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
 			blob.Type, KYCFormBlobType), fields)
 	}
 
-	return blob, email, nil
+	return blob, nil
 }
 
-func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Request, isUSA bool, firstName, emailAddr string) error {
+func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Request, isUSA bool, firstName string) error {
 	err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve both Tasks")
@@ -132,7 +126,7 @@ func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Requ
 	return nil
 }
 
-func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, email, accID string, request horizon.Request) error {
+func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data, accID string, request horizon.Request) error {
 	idDoc := kycData.Documents.IDDocument
 
 	docType := getDocType(idDoc.Type)
@@ -146,6 +140,12 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 		"face_doc_file_len": len(faceFile),
 		"back_doc_file_len": len(backFile),
 	})
+
+	user, err := s.usersConnector.User(accID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get User by AccountID from Horizon", fields)
+	}
+	email := user.Attributes.Email
 
 	createAccountReq, validationErr := buildCreateAccountRequest(kycData, email, docType, faceFile, backFile)
 	if validationErr != nil {
