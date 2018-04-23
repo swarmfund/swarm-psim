@@ -30,6 +30,7 @@ type CreateAccountRequest struct {
 	City          string `json:"bc"`            // Max 30 chars
 	State         string `json:"bs"`            // Max 30 chars Use official postal state/region abbreviations whenever possible (e.g. CA for California)
 	DateOfBirth   string `json:"dob,omitempty"`
+	IPAddr        string `json:"ip,omitempty"`
 	//PhoneNumber   string `json:"bc,omitempty"`  // Max 60 chars
 
 	ScanData          string  `json:"scanData"`
@@ -80,7 +81,14 @@ func (r CreateAccountRequest) validate() error {
 }
 
 // fileBack can be nil
-func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, faceFile []byte, backFile []byte) (*CreateAccountRequest, error) {
+func buildCreateAccountRequest(
+	data kyc.Data,
+	emailAddr string,
+	ipAddr string,
+	docType DocType,
+	faceFile []byte,
+	backFile []byte) (*CreateAccountRequest, error) {
+
 	countryCode, err := convertToISO(data.Address.Country)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to convert Country '%s' to ISO", data.Address.Country))
@@ -123,10 +131,10 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 	}
 
 	r := CreateAccountRequest{
-		// Not sure email is a good data to put here
-		AccountName: email,
+		// Not sure emailAddr is a good data to put here
+		AccountName: emailAddr,
 
-		Email:         email,
+		Email:         emailAddr,
 		FirstName:     data.FirstName,
 		LastName:      data.LastName,
 		StreetAddress: fmt.Sprintf("%s %s", data.Address.Line1, data.Address.Line2),
@@ -135,6 +143,7 @@ func buildCreateAccountRequest(data kyc.Data, email string, docType DocType, fac
 		City:          data.Address.City,
 		State:         data.Address.State,
 		DateOfBirth:   dateOfBirthStr,
+		IPAddr:        ipAddr,
 
 		ScanData:          faceB64,
 		BacksideImageData: backB64,

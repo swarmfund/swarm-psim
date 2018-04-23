@@ -63,39 +63,50 @@ func (f *Figurator) Please() error {
 	if len(f.hooks) == 0 {
 		f.With(BaseHooks)
 	}
-	tpe := reflect.Indirect(reflect.ValueOf(f.target)).Type()
 	vle := reflect.Indirect(reflect.ValueOf(f.target))
+	tpe := vle.Type()
 	for fi := 0; fi < tpe.NumField(); fi++ {
 		fieldType := tpe.Field(fi)
 		fieldValue := vle.Field(fi)
 
-		tag, err := parseFieldTag(fieldType)
+		_, err := f.SetField(fieldValue, fieldType, keyTag)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse tag")
+			return err
 		}
-
-		if tag == nil {
-			continue
-		}
-
-		raw, hasRaw := f.values[tag.Key]
-
-		var isFieldSet bool
-		if hook, ok := f.hooks[fieldType.Type.String()]; ok && hasRaw {
-			value, err := hook(raw)
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to figure out %s", fieldType.Name))
-			}
-
-			fieldValue.Set(value)
-			isFieldSet = true
-		}
-
-		if !isFieldSet && tag.IsRequired {
-			return errors.Wrap(ErrRequiredValue, tag.Key)
-		}
-
 	}
 
 	return nil
+}
+
+func (f *Figurator) SetField(fieldValue reflect.Value, field reflect.StructField, keyTag string) (bool, error) {
+
+	tag, err := parseFieldTag(field, keyTag)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse tag")
+	}
+
+	if tag == nil {
+		return false, nil
+	}
+
+	raw, hasRaw := f.values[tag.Key]
+
+	isSet := false
+	if hook, ok := f.hooks[field.Type.String()]; ok && hasRaw {
+		value, err := hook(raw)
+		if err != nil {
+			return false, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", field))
+		}
+		fieldValue.Set(value)
+		isSet = true
+	}
+
+	if !isSet {
+		if tag.IsRequired {
+			return false, errors.Wrap(ErrRequiredValue, tag.Key)
+		}
+		return false, nil
+	}
+
+	return true, nil
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/xdrbuild"
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/xdrbuild"
+	horizon "gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 )
 

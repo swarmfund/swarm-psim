@@ -17,8 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"gitlab.com/swarmfund/go/doorman"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/template_provider/data"
 )
 

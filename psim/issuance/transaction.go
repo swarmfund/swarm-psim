@@ -1,7 +1,7 @@
 package issuance
 
 import (
-	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/keypair"
 )
 

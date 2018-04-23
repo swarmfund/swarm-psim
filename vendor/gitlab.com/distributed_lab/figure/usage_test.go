@@ -22,6 +22,7 @@ func TestSimpleUsage(t *testing.T) {
 		DurationPointerMissing *time.Duration `fig:"duration_pointer_missing"`
 		BigInt                 *big.Int       `fig:"big_int"`
 		BigIntStr              *big.Int       `fig:"big_int_str"`
+		Int32                  int32          `fig:"int_32"`
 		Int64                  int64          `fig:"int_64"`
 		Uint                   uint           `fig:"uint"`
 		Uint32                 uint32         `fig:"uint_32"`
@@ -40,6 +41,7 @@ func TestSimpleUsage(t *testing.T) {
 		"duration_pointer": "1h",
 		"big_int":          42,
 		"big_int_str":      "42",
+		"int_32":           16,
 		"int_64":           17,
 		"uint":             18,
 		"uint_32":          19,
@@ -60,6 +62,7 @@ func TestSimpleUsage(t *testing.T) {
 		DurationPointer: &duration,
 		BigInt:          big.NewInt(42),
 		BigIntStr:       big.NewInt(42),
+		Int32:           16,
 		Int64:           17,
 		Uint:            18,
 		Uint32:          19,

@@ -1065,6 +1065,33 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "allow disabling serf wan port",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ports": {
+					"serf_wan": -1
+				},
+				"advertise_addr_wan": "1.2.3.4"
+			}`},
+			hcl: []string{`
+				ports {
+					serf_wan = -1
+				}
+				advertise_addr_wan = "1.2.3.4"
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.SerfAdvertiseAddrWAN = nil
+				rt.SerfBindAddrWAN = nil
+				rt.TaggedAddresses = map[string]string{
+					"lan": "10.0.0.1",
+					"wan": "1.2.3.4",
+				}
+				rt.DataDir = dataDir
+				rt.SerfPortWAN = -1
+			},
+		},
+		{
 			desc: "serf bind address lan template",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "serf_lan": "{{ printf \"1.2.3.4\" }}" }`},
@@ -1115,7 +1142,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						"bootstrap_expect": 0,
 						"datacenter":"b",
 						"start_join": ["c", "d"],
-						"node_meta": {"c":"d"}
+						"node_meta": {"a":"c"}
 					}`,
 			},
 			hcl: []string{
@@ -1131,7 +1158,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap_expect = 0
 					datacenter = "b"
 					start_join = ["c", "d"]
-					node_meta = { "c" = "d" }
+					node_meta = { "a" = "c" }
 					`,
 			},
 			patch: func(rt *RuntimeConfig) {
@@ -1139,7 +1166,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.BootstrapExpect = 0
 				rt.Datacenter = "b"
 				rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
-				rt.NodeMeta = map[string]string{"c": "d"}
+				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.DataDir = dataDir
 			},
 		},
@@ -1181,7 +1208,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-datacenter=b`,
 				`-data-dir=` + dataDir,
 				`-join`, `c`, `-join=d`,
-				`-node-meta=c:d`,
+				`-node-meta=a:c`,
 				`-recursor`, `1.2.3.6`, `-recursor=5.6.7.10`,
 				`-serf-lan-bind=3.3.3.3`,
 				`-serf-wan-bind=4.4.4.4`,
@@ -1194,7 +1221,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 				rt.Datacenter = "b"
 				rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
-				rt.NodeMeta = map[string]string{"c": "d"}
+				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 				rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
 				rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
@@ -1579,6 +1606,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "dns_config.udp_answer_limit cannot be -1. Must be greater than or equal to zero",
 		},
 		{
+			desc: "dns_config.a_record_limit invalid",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "dns_config": { "a_record_limit": -1 } }`},
+			hcl:  []string{`dns_config = { a_record_limit = -1 }`},
+			err:  "dns_config.a_record_limit cannot be -1. Must be greater than or equal to zero",
+		},
+		{
 			desc: "performance.raft_multiplier < 0",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -1858,6 +1894,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.Checks = []*structs.CheckDefinition{
 					&structs.CheckDefinition{Name: "a", Script: "/bin/true"},
 					&structs.CheckDefinition{Name: "b", Script: "/bin/false"},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "grpc check",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			},
+			hcl: []string{
+				`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2250,9 +2304,11 @@ func TestFullConfig(t *testing.T) {
 			"disable_remote_exec": true,
 			"disable_update_check": true,
 			"discard_check_output": true,
+			"discovery_max_stale": "5s",
 			"domain": "7W1xXSqd",
 			"dns_config": {
 				"allow_stale": true,
+				"a_record_limit": 29907,
 				"disable_compression": true,
 				"enable_truncate": true,
 				"max_stale": "29685s",
@@ -2536,7 +2592,7 @@ func TestFullConfig(t *testing.T) {
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
 			},
-			"tls_cipher_suites": "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+			"tls_cipher_suites": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
 			"tls_min_version": "pAOWafkR",
 			"tls_prefer_server_cipher_suites": true,
 			"translate_wan_addrs": true,
@@ -2685,9 +2741,11 @@ func TestFullConfig(t *testing.T) {
 			disable_remote_exec = true
 			disable_update_check = true
 			discard_check_output = true
+			discovery_max_stale = "5s"
 			domain = "7W1xXSqd"
 			dns_config {
 				allow_stale = true
+				a_record_limit = 29907
 				disable_compression = true
 				enable_truncate = true
 				max_stale = "29685s"
@@ -2971,7 +3029,7 @@ func TestFullConfig(t *testing.T) {
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
 			}
-			tls_cipher_suites = "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+			tls_cipher_suites = "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
 			tls_min_version = "pAOWafkR"
 			tls_prefer_server_cipher_suites = true
 			translate_wan_addrs = true
@@ -3011,6 +3069,7 @@ func TestFullConfig(t *testing.T) {
 					"ae_interval": "10003s",
 					"check_deregister_interval_min": "27870s",
 					"check_reap_interval": "10662s",
+					"discovery_max_stale": "5s",
 					"segment_limit": 24705,
 					"segment_name_limit": 27046,
 					"sync_coordinate_interval_min": "27983s",
@@ -3065,6 +3124,7 @@ func TestFullConfig(t *testing.T) {
 					ae_interval = "10003s"
 					check_deregister_interval_min = "27870s"
 					check_reap_interval = "10662s"
+					discovery_max_stale = "5s"
 					segment_limit = 24705
 					segment_name_limit = 27046
 					sync_coordinate_interval_min = "27983s"
@@ -3248,6 +3308,7 @@ func TestFullConfig(t *testing.T) {
 		CheckUpdateInterval:       16507 * time.Second,
 		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:           29907,
 		DNSAllowStale:             true,
 		DNSDisableCompression:     true,
 		DNSDomain:                 "7W1xXSqd",
@@ -3270,6 +3331,7 @@ func TestFullConfig(t *testing.T) {
 		DisableRemoteExec:         true,
 		DisableUpdateCheck:        true,
 		DiscardCheckOutput:        true,
+		DiscoveryMaxStale:         5 * time.Second,
 		EnableACLReplication:      true,
 		EnableAgentTLSForChecks:   true,
 		EnableDebug:               true,
@@ -3528,7 +3590,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryStatsdAddr:                         "drce87cy",
 		TelemetryStatsiteAddr:                       "HpFwKB8R",
-		TLSCipherSuites:                             []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA},
+		TLSCipherSuites:                             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
 		TLSMinVersion:                               "pAOWafkR",
 		TLSPreferServerCipherSuites:                 true,
 		TaggedAddresses: map[string]string{
@@ -3656,7 +3718,7 @@ func nonZero(name string, uniq map[interface{}]string, v interface{}) error {
 
 	isUnique := func(v interface{}) error {
 		if other := uniq[v]; other != "" {
-			return fmt.Errorf("%q and %q both use vaule %q", name, other, v)
+			return fmt.Errorf("%q and %q both use value %q", name, other, v)
 		}
 		uniq[v] = name
 		return nil
@@ -3887,6 +3949,8 @@ func TestSanitize(t *testing.T) {
         {
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
+            "GRPC": "",
+            "GRPCUseTLS": false,
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -3922,6 +3986,7 @@ func TestSanitize(t *testing.T) {
     "ConsulSerfWANProbeTimeout": "0s",
     "ConsulSerfWANSuspicionMult": 0,
     "ConsulServerHealthInterval": "0s",
+    "DNSARecordLimit": 0,
     "DNSAddrs": [
         "tcp://1.2.3.4:5678",
         "udp://1.2.3.4:5678"
@@ -3948,6 +4013,7 @@ func TestSanitize(t *testing.T) {
     "DisableRemoteExec": false,
     "DisableUpdateCheck": false,
     "DiscardCheckOutput": false,
+    "DiscoveryMaxStale": "0s",
     "EnableACLReplication": false,
     "EnableAgentTLSForChecks": false,
     "EnableDebug": false,
@@ -4016,6 +4082,8 @@ func TestSanitize(t *testing.T) {
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
+                "GRPC": "",
+                "GRPCUseTLS": false,
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
@@ -4034,6 +4102,7 @@ func TestSanitize(t *testing.T) {
             "Checks": [],
             "EnableTagOverride": false,
             "ID": "",
+            "Meta": {},
             "Name": "foo",
             "Port": 0,
             "Tags": [],

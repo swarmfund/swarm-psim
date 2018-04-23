@@ -26,7 +26,7 @@
   branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
-  revision = "18a2f1dd52bb9abbc1e898439df06c74f28f63a4"
+  revision = "7744847ed4e70ed5e50090f9094ed621b4f305d6"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
@@ -61,8 +61,8 @@
     "service/s3/s3manager",
     "service/sts"
   ]
-  revision = "5a33d0a4f5d9c27e6cd10b4c156e85b46c4501d7"
-  version = "v1.13.26"
+  revision = "3e7014382cdc91695381614d0110a3cff997ba72"
+  version = "v1.13.34"
 
 [[projects]]
   branch = "master"
@@ -74,7 +74,7 @@
     "txscript",
     "wire"
   ]
-  revision = "2e60448ffcc6bf78332d1fe590260095f554dd78"
+  revision = "675abc5df3c5531bc741b56a765e35623459da6d"
 
 [[projects]]
   branch = "master"
@@ -96,8 +96,8 @@
 [[projects]]
   name = "github.com/certifi/gocertifi"
   packages = ["."]
-  revision = "a4ab0227d360091084658029ec8ae45f989fba3e"
-  version = "2017.11.05"
+  revision = "deb3ae2ef2610fde3330947281941c562861188b"
+  version = "2018.01.18"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -141,14 +141,14 @@
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
-  revision = "629574ca2a5df945712d3079857300b5e4da0236"
-  version = "v1.4.2"
+  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
+  version = "v1.4.7"
 
 [[projects]]
   branch = "master"
   name = "github.com/getsentry/raven-go"
   packages = ["."]
-  revision = "c9de0b92586aaba092c2a231cb7384354b178544"
+  revision = "d1470f50d3a3a38533355a9fab7393e25a3b4226"
 
 [[projects]]
   name = "github.com/go-chi/chi"
@@ -156,14 +156,14 @@
     ".",
     "middleware"
   ]
-  revision = "687d2792aedd8e8ac3bbd8592cf55b91d7ea8ce9"
-  version = "v3.3.1"
+  revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
+  version = "v3.3.2"
 
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "5e9692864e22d02ac79e2fa499cffb00520b4fea"
-  version = "v1.34.0"
+  revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
+  version = "v1.36.0"
 
 [[projects]]
   name = "github.com/go-ozzo/ozzo-validation"
@@ -187,7 +187,7 @@
   branch = "master"
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
-  revision = "296de816d4fe28b61803072c3f89360e9d1823ff"
+  revision = "1daac00a5961469351b87e7ac223239c37938d2a"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -198,14 +198,14 @@
 [[projects]]
   name = "github.com/hashicorp/consul"
   packages = ["api"]
-  revision = "9564c2978b59c060aed0657e662a4eb1c6f35356"
-  version = "v1.0.1"
+  revision = "fb848fc48818f58690db09d14640513aa6bf3c02"
+  version = "v1.0.7"
 
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/go-cleanhttp"
   packages = ["."]
-  revision = "3573b8b52aa7b37b9358d966a898feb387f62437"
+  revision = "d5fe4b57a186c716b0e00b8c301cbd9b4182694d"
 
 [[projects]]
   branch = "master"
@@ -220,6 +220,7 @@
     ".",
     "hcl/ast",
     "hcl/parser",
+    "hcl/printer",
     "hcl/scanner",
     "hcl/strconv",
     "hcl/token",
@@ -227,7 +228,7 @@
     "json/scanner",
     "json/token"
   ]
-  revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
+  revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
   name = "github.com/hashicorp/serf"
@@ -255,8 +256,8 @@
 [[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
-  revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
-  version = "v1.7.3"
+  revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
+  version = "v1.7.6"
 
 [[projects]]
   branch = "master"
@@ -268,7 +269,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
+  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
 
 [[projects]]
   branch = "master"
@@ -279,7 +280,7 @@
     "lrhook",
     "webhook"
   ]
-  revision = "2ca6009c6de1deb2a2f77a80ee09194b66c3473f"
+  revision = "6f89412cdb8cc2c5d6e58ff736b97d82a86d25d5"
 
 [[projects]]
   branch = "master"
@@ -296,8 +297,8 @@
 [[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
-  revision = "16398bac157da96aa88f98a2df640c7f32af1da2"
-  version = "v1.0.1"
+  revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -331,25 +332,25 @@
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
-  revision = "e181e095bae94582363434144c61a9653aff6e50"
+  revision = "d932a24a8ccb8fcadc993e5c6c58f93dac168294"
 
 [[projects]]
   branch = "master"
   name = "github.com/rjeczalik/notify"
   packages = ["."]
-  revision = "e1801ee34d54c4bf45126ef51fe9750b4e42bee8"
+  revision = "d152f3ce359a5464dc41e84a8919fc67e55bbbf0"
 
 [[projects]]
   name = "github.com/rs/cors"
   packages = ["."]
-  revision = "7af7a1e09ba336d2ea14b1ce73bf693c6837dbf6"
-  version = "v1.2"
+  revision = "feef513b9575b32f84bafa580aad89b011259019"
+  version = "v1.3.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
-  version = "v1.0.3"
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   name = "github.com/smartystreets/assertions"
@@ -358,8 +359,8 @@
     "internal/go-render/render",
     "internal/oglematchers"
   ]
-  revision = "0b37b35ec7434b77e77a4bb29b79677cced992ea"
-  version = "1.8.1"
+  revision = "7678a5452ebea5b7090a6b163f844c133f523da2"
+  version = "1.8.3"
 
 [[projects]]
   name = "github.com/smartystreets/goconvey"
@@ -377,38 +378,38 @@
     ".",
     "mem"
   ]
-  revision = "8d919cbe7e2627e417f3e45c3c0e489a5b7e2536"
-  version = "v1.0.0"
+  revision = "63644898a8da0bc22138abf860edaf5277b6102e"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/spf13/cast"
   packages = ["."]
-  revision = "acbeb36b902d72a7a4c18e8f3241075e7ab763e4"
-  version = "v1.1.0"
+  revision = "8965335b8c7107321228e3e3702cab9832751bac"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
-  version = "v0.0.1"
+  revision = "a1f051bc3eba734da4772d60e2d677f47cf93ef4"
+  version = "v0.0.2"
 
 [[projects]]
   branch = "master"
   name = "github.com/spf13/jwalterweatherman"
   packages = ["."]
-  revision = "12bd96e66386c1960ab0f74ced1362f66f552f7b"
+  revision = "7c0cea34c8ece3fbeb2b27ab9b59511d360fb394"
 
 [[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
-  version = "v1.0.0"
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
-  version = "v1.0.0"
+  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/stretchr/objx"
@@ -422,8 +423,8 @@
     "assert",
     "mock"
   ]
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   name = "github.com/stripe/stripe-go"
@@ -469,8 +470,8 @@
     "token",
     "transfer"
   ]
-  revision = "a705fb222df92bba0cbc4c190bcbebf7dfe0b0cc"
-  version = "v28.6.1"
+  revision = "c7c700f9a469299d3577b57bb9a970d005cfee6c"
+  version = "v28.12.0"
 
 [[projects]]
   branch = "master"
@@ -497,7 +498,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "43959d82aba203d057a8279d93a00716a1eca626"
+  revision = "f0d0fbcbe98b4b3a7c68ba02122770f3a820a30e"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -523,7 +524,7 @@
 
 [[projects]]
   branch = "master"
-  name = "gitlab.com/swarmfund/go"
+  name = "gitlab.com/tokend/go"
   packages = [
     "amount",
     "crc16",
@@ -539,33 +540,33 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "80fce354f44ab9c6d275075c4aa0519b0c12d6d1"
+  revision = "9ab0e0408616ee10e8a659bbe65b5ef8ac51765d"
 
 [[projects]]
   branch = "master"
-  name = "gitlab.com/swarmfund/horizon-connector"
+  name = "gitlab.com/tokend/horizon-connector"
   packages = [
-    "v2",
-    "v2/internal",
-    "v2/internal/account",
-    "v2/internal/asset",
-    "v2/internal/balance",
-    "v2/internal/blob",
-    "v2/internal/document",
-    "v2/internal/errors",
-    "v2/internal/listener",
-    "v2/internal/operation",
-    "v2/internal/resources",
-    "v2/internal/resources/operations",
-    "v2/internal/responses",
-    "v2/internal/sale",
-    "v2/internal/templates",
-    "v2/internal/transaction",
-    "v2/internal/user",
-    "v2/internal/wallets",
-    "v2/types"
+    ".",
+    "internal",
+    "internal/account",
+    "internal/asset",
+    "internal/balance",
+    "internal/blob",
+    "internal/document",
+    "internal/errors",
+    "internal/listener",
+    "internal/operation",
+    "internal/resources",
+    "internal/resources/operations",
+    "internal/responses",
+    "internal/sale",
+    "internal/templates",
+    "internal/transaction",
+    "internal/user",
+    "internal/wallets",
+    "types"
   ]
-  revision = "6e812c0df67caf7ccc1189876750bed73e87fa22"
+  revision = "2fa0e2903bb5474247a65fac3bf2ca95ddd417a7"
 
 [[projects]]
   branch = "master"
@@ -589,7 +590,7 @@
     "scrypt",
     "ssh/terminal"
   ]
-  revision = "b080dc9a8c480b08e698fb1219160d598526310f"
+  revision = "2b6c08872f4b66da917bb4ce98df4f0307330f78"
 
 [[projects]]
   branch = "master"
@@ -598,7 +599,7 @@
     "context",
     "websocket"
   ]
-  revision = "c7086645de248775cbf2373cf5ca4d2fa664b8c1"
+  revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
 
 [[projects]]
   branch = "master"
@@ -607,10 +608,9 @@
     "unix",
     "windows"
   ]
-  revision = "4ff8c001ce4cc464e644b922325097228fce14d8"
+  revision = "79b0c6888797020a994db17c8510466c72fe75d9"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/text"
   packages = [
     "internal/gen",
@@ -620,13 +620,14 @@
     "unicode/cldr",
     "unicode/norm"
   ]
-  revision = "88f656faf3f37f690df1a32515b479415e1a6769"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/time"
   packages = ["rate"]
-  revision = "6dc17368e09b0e8634d71cac8168d853e869a0c7"
+  revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
 
 [[projects]]
   name = "gopkg.in/fatih/set.v0"
@@ -647,14 +648,14 @@
   revision = "c1b8fa8bdccecb0b8db834ee0b92fdbcfa606dd6"
 
 [[projects]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b8904cbcdef384603e89bee3860cae9ca2ca053269bfdcd26884e1f4c4744cb2"
+  inputs-digest = "e032172bee444ee2e38cc4d672f9575ff5310183dcb08d223896d9946b50ecf4"
   solver-name = "gps-cdcl"
   solver-version = 1
