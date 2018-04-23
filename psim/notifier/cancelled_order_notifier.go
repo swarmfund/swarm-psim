@@ -1,8 +1,8 @@
 package notifier
 
 import (
-	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/go/xdr"
 	"context"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/logan/v3"

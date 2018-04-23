@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/xdrbuild"
+	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/verifier"
 	"gitlab.com/tokend/keypair"

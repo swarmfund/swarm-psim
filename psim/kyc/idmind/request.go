@@ -2,9 +2,9 @@ package idmind
 
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/horizon-connector/v2"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 const (

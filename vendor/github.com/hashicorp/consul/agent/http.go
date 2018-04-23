@@ -12,9 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -37,6 +39,46 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
+}
+
+// endpoint is a Consul-specific HTTP handler that takes the usual arguments in
+// but returns a response object and error, both of which are handled in a
+// common manner by Consul's HTTP server.
+type endpoint func(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+
+// unboundEndpoint is an endpoint method on a server.
+type unboundEndpoint func(s *HTTPServer, resp http.ResponseWriter, req *http.Request) (interface{}, error)
+
+// endpoints is a map from URL pattern to unbound endpoint.
+var endpoints map[string]unboundEndpoint
+
+// allowedMethods is a map from endpoint prefix to supported HTTP methods.
+// An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
+var allowedMethods map[string][]string
+
+// registerEndpoint registers a new endpoint, which should be done at package
+// init() time.
+func registerEndpoint(pattern string, methods []string, fn unboundEndpoint) {
+	if endpoints == nil {
+		endpoints = make(map[string]unboundEndpoint)
+	}
+	if endpoints[pattern] != nil || allowedMethods[pattern] != nil {
+		panic(fmt.Errorf("Pattern %q is already registered", pattern))
+	}
+
+	endpoints[pattern] = fn
+	allowedMethods[pattern] = methods
+}
+
+// wrappedMux hangs on to the underlying mux for unit tests.
+type wrappedMux struct {
+	mux     *http.ServeMux
+	handler http.Handler
+}
+
+// ServeHTTP implements the http.Handler interface.
+func (w *wrappedMux) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	w.handler.ServeHTTP(resp, req)
 }
 
 // handler is used to attach our handlers to the mux
@@ -71,100 +113,21 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
-		mux.HandleFunc(pattern, wrapper)
+
+		gzipWrapper, _ := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))
+		gzipHandler := gzipWrapper(http.HandlerFunc(wrapper))
+		mux.Handle(pattern, gzipHandler)
 	}
 
 	mux.HandleFunc("/", s.Index)
-
-	// API V1.
-	if s.agent.config.ACLDatacenter != "" {
-		handleFuncMetrics("/v1/acl/bootstrap", s.wrap(s.ACLBootstrap))
-		handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
-		handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
-		handleFuncMetrics("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
-		handleFuncMetrics("/v1/acl/info/", s.wrap(s.ACLGet))
-		handleFuncMetrics("/v1/acl/clone/", s.wrap(s.ACLClone))
-		handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
-		handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
-		handleFuncMetrics("/v1/agent/token/", s.wrap(s.AgentToken))
-	} else {
-		handleFuncMetrics("/v1/acl/bootstrap", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/create", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/update", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/destroy/", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/info/", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/clone/", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/list", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/acl/replication", s.wrap(ACLDisabled))
-		handleFuncMetrics("/v1/agent/token/", s.wrap(ACLDisabled))
+	for pattern, fn := range endpoints {
+		thisFn := fn
+		methods, _ := allowedMethods[pattern]
+		bound := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+			return thisFn(s, resp, req)
+		}
+		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
-	handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
-	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
-	handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
-	handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
-	handleFuncMetrics("/v1/agent/metrics", s.wrap(s.AgentMetrics))
-	handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
-	handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
-	handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
-	handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
-	handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
-	handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
-	handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
-	handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
-	handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
-	handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
-	handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
-	handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
-	handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
-	handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
-	handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
-	handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
-	handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
-	handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
-	handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
-	if !s.agent.config.DisableCoordinates {
-		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
-		handleFuncMetrics("/v1/coordinate/node/", s.wrap(s.CoordinateNode))
-		handleFuncMetrics("/v1/coordinate/update", s.wrap(s.CoordinateUpdate))
-	} else {
-		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
-		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
-		handleFuncMetrics("/v1/coordinate/node/", s.wrap(coordinateDisabled))
-		handleFuncMetrics("/v1/coordinate/update", s.wrap(coordinateDisabled))
-	}
-	handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
-	handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
-	handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
-	handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
-	handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
-	handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
-	handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-	handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-	handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
-	handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
-	handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
-	handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
-	handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
-	handleFuncMetrics("/v1/operator/autopilot/configuration", s.wrap(s.OperatorAutopilotConfiguration))
-	handleFuncMetrics("/v1/operator/autopilot/health", s.wrap(s.OperatorServerHealth))
-	handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
-	handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
-	handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
-	handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
-	handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
-	handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
-	handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
-	handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
-	handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
-	handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
-	handleFuncMetrics("/v1/snapshot", s.wrap(s.Snapshot))
-	handleFuncMetrics("/v1/txn", s.wrap(s.Txn))
-
-	// Debug endpoints.
 	if enableDebug {
 		handleFuncMetrics("/debug/pprof/", pprof.Index)
 		handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
@@ -178,7 +141,18 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	} else if s.agent.config.EnableUI {
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
-	return mux
+
+	// Wrap the whole mux with a handler that bans URLs with non-printable
+	// characters.
+	return &wrappedMux{
+		mux:     mux,
+		handler: cleanhttp.PrintablePathCheckHandler(mux, nil),
+	}
+}
+
+// nodeName returns the node name of the agent
+func (s *HTTPServer) nodeName() string {
+	return s.agent.config.NodeName
 }
 
 // aclEndpointRE is used to find old ACL endpoints that take tokens in the URL
@@ -205,7 +179,7 @@ var (
 )
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
+func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
@@ -242,6 +216,10 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return ok
 		}
 
+		addAllowHeader := func(methods []string) {
+			resp.Header().Add("Allow", strings.Join(methods, ","))
+		}
+
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
@@ -255,7 +233,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				// MUST include an Allow header containing the list of valid
 				// methods for the requested resource.
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-				resp.Header()["Allow"] = err.(MethodNotAllowedError).Allow
+				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
 			default:
@@ -264,12 +242,35 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 		}
 
-		// Invoke the handler
 		start := time.Now()
 		defer func() {
 			s.agent.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Since(start), req.RemoteAddr)
 		}()
-		obj, err := handler(resp, req)
+
+		var obj interface{}
+
+		// if this endpoint has declared methods, respond appropriately to OPTIONS requests. Otherwise let the endpoint handle that.
+		if req.Method == "OPTIONS" && len(methods) > 0 {
+			addAllowHeader(append([]string{"OPTIONS"}, methods...))
+			return
+		}
+
+		// if this endpoint has declared methods, check the request method. Otherwise let the endpoint handle that.
+		methodFound := len(methods) == 0
+		for _, method := range methods {
+			if method == req.Method {
+				methodFound = true
+				break
+			}
+		}
+
+		if !methodFound {
+			err = MethodNotAllowedError{req.Method, append([]string{"OPTIONS"}, methods...)}
+		} else {
+			// Invoke the handler
+			obj, err = handler(resp, req)
+		}
+
 		if err != nil {
 			handleErr(err)
 			return
@@ -370,6 +371,12 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 	resp.Header().Set("X-Consul-KnownLeader", s)
 }
 
+func setConsistency(resp http.ResponseWriter, consistency string) {
+	if consistency != "" {
+		resp.Header().Set("X-Consul-Effective-Consistency", consistency)
+	}
+}
+
 // setLastContact is used to set the last contact header
 func setLastContact(resp http.ResponseWriter, last time.Duration) {
 	if last < 0 {
@@ -384,6 +391,7 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setIndex(resp, m.Index)
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
+	setConsistency(resp, m.ConsistencyLevel)
 }
 
 // setHeaders is used to set canonical response header fields
@@ -420,13 +428,42 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
+	defaults := true
 	if _, ok := query["stale"]; ok {
 		b.AllowStale = true
+		defaults = false
 	}
 	if _, ok := query["consistent"]; ok {
 		b.RequireConsistent = true
+		defaults = false
+	}
+	if _, ok := query["leader"]; ok {
+		defaults = false
+	}
+	if maxStale := query.Get("max_stale"); maxStale != "" {
+		dur, err := time.ParseDuration(maxStale)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
+			return true
+		}
+		b.MaxStaleDuration = dur
+		if dur.Nanoseconds() > 0 {
+			b.AllowStale = true
+			defaults = false
+		}
+	}
+	// No specific Consistency has been specified by caller
+	if defaults {
+		path := req.URL.Path
+		if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
+			if s.agent.config.DiscoveryMaxStale.Nanoseconds() > 0 {
+				b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
+				b.AllowStale = true
+			}
+		}
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -461,11 +498,35 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	*token = s.agent.tokens.UserToken()
 }
 
+func sourceAddrFromRequest(req *http.Request) string {
+	xff := req.Header.Get("X-Forwarded-For")
+	forwardHosts := strings.Split(xff, ",")
+	if len(forwardHosts) > 0 {
+		forwardIp := net.ParseIP(strings.TrimSpace(forwardHosts[0]))
+		if forwardIp != nil {
+			return forwardIp.String()
+		}
+	}
+
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return ""
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return ip.String()
+	} else {
+		return ""
+	}
+}
+
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
 // DC in the request, if given, or else the agent's DC.
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
+	source.Ip = sourceAddrFromRequest(req)
 	if node := req.URL.Query().Get("near"); node != "" {
 		if node == "_agent" {
 			source.Node = s.agent.config.NodeName
@@ -494,7 +555,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
-	if parseConsistency(resp, req, b) {
+	if s.parseConsistency(resp, req, b) {
 		return true
 	}
 	return parseWait(resp, req, b)

@@ -37,7 +37,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
 	} else {
 		conf.NodeName = s.config.NodeName
-		conf.Tags["wan_join_port"] = fmt.Sprintf("%d", wanPort)
+		if wanPort > 0 {
+			conf.Tags["wan_join_port"] = fmt.Sprintf("%d", wanPort)
+		}
 	}
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
@@ -304,7 +306,7 @@ func (s *Server) maybeBootstrap() {
 	// Attempt a live bootstrap!
 	var configuration raft.Configuration
 	var addrs []string
-	minRaftVersion, err := ServerMinRaftProtocol(members)
+	minRaftVersion, err := s.autopilot.MinRaftProtocol()
 	if err != nil {
 		s.logger.Printf("[ERR] consul: Failed to read server raft versions: %v", err)
 	}

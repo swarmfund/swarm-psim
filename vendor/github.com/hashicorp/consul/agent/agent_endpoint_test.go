@@ -1228,7 +1228,7 @@ func TestAgent_RegisterService(t *testing.T) {
 		t.Fatalf("bad: %v", obj)
 	}
 
-	// Ensure the servie
+	// Ensure the service
 	if _, ok := a.State.Services()["test"]; !ok {
 		t.Fatalf("missing test service")
 	}
@@ -1771,6 +1771,10 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 
 func TestAgent_Token(t *testing.T) {
 	t.Parallel()
+
+	// The behavior of this handler when ACLs are disabled is vetted over
+	// in TestACL_Disabled_Response since there's already good infra set
+	// up over there to test this, and it calls the common function.
 	a := NewTestAgent(t.Name(), TestACLConfig()+`
 		acl_token = ""
 		acl_agent_token = ""

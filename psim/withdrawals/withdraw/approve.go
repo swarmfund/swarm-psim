@@ -7,8 +7,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 // ProcessValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.

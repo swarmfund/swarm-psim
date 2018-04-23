@@ -3,7 +3,7 @@ package mrefairdrop
 import (
 	"testing"
 
-	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/tokend/go/amount"
 )
 
 func Test_countIssuanceAmount(t *testing.T) {
