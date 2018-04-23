@@ -8,6 +8,7 @@ type User struct {
 
 type UserAttributes struct {
 	Email           string `json:"email"`
+	LastIPAddr      string `json:"last_ip_address"`
 	State           string `json:"state"`
 	KYCSequence     int    `json:"kyc_sequence"`
 	RejectReason    string `json:"reject_reason"`
@@ -21,6 +22,7 @@ func (u User) GetLoganFields() map[string]interface{} {
 		"type":             u.Type,
 		"id":               u.ID,
 		"email":            u.Attributes.Email,
+		"last_ip_addr":     u.Attributes.LastIPAddr,
 		"state":            u.Attributes.State,
 		"kyc_sequence":     u.Attributes.KYCSequence,
 		"reject_reason":    u.Attributes.RejectReason,

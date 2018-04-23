@@ -10,9 +10,9 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 // ProcessNotSubmitted approves Users from USA or with non-Latin document,
@@ -145,9 +145,8 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	if err != nil {
 		return errors.Wrap(err, "Failed to get User by AccountID from Horizon", fields)
 	}
-	email := user.Attributes.Email
 
-	createAccountReq, validationErr := buildCreateAccountRequest(kycData, email, docType, faceFile, backFile)
+	createAccountReq, validationErr := buildCreateAccountRequest(kycData, user.Attributes.Email, user.Attributes.LastIPAddr, docType, faceFile, backFile)
 	if validationErr != nil {
 		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), validationErr)
 		if err != nil {
@@ -165,7 +164,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData kyc.Data
 	}
 	fields["application_response"] = applicationResponse
 
-	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request, email)
+	err = s.processNewApplicationResponse(ctx, *applicationResponse, kycData, request, user.Attributes.Email)
 	if err != nil {
 		return errors.Wrap(err, "Failed to process response of new KYC Application", fields)
 	}
@@ -221,6 +220,7 @@ func fixDocURL(url string) string {
 	return strings.Replace(url, `\u0026`, `&`, -1)
 }
 
+// ProcessNewApplicationResponse takes email just to log it with some info logs.
 func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData kyc.Data, request horizon.Request, email string) error {
 	logger := s.log.WithFields(logan.F{
 		"request": request,
