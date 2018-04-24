@@ -9,12 +9,16 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// coordinateDisabled handles all the endpoints when coordinates are not enabled,
-// returning an error message.
-func coordinateDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// checkCoordinateDisabled will return a standard response if coordinates are
+// disabled. This returns true if they are disabled and we should not continue.
+func (s *HTTPServer) checkCoordinateDisabled(resp http.ResponseWriter, req *http.Request) bool {
+	if !s.agent.config.DisableCoordinates {
+		return false
+	}
+
 	resp.WriteHeader(http.StatusUnauthorized)
 	fmt.Fprint(resp, "Coordinate support disabled")
-	return nil, nil
+	return true
 }
 
 // sorter wraps a coordinate list and implements the sort.Interface to sort by
@@ -41,8 +45,8 @@ func (s *sorter) Less(i, j int) bool {
 // CoordinateDatacenters returns the WAN nodes in each datacenter, along with
 // raw network coordinates.
 func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	if s.checkCoordinateDisabled(resp, req) {
+		return nil, nil
 	}
 
 	var out []structs.DatacenterMap
@@ -70,8 +74,8 @@ func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.R
 // CoordinateNodes returns the LAN nodes in the given datacenter, along with
 // raw network coordinates.
 func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	if s.checkCoordinateDisabled(resp, req) {
+		return nil, nil
 	}
 
 	args := structs.DCSpecificRequest{}
@@ -92,8 +96,8 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 // CoordinateNode returns the LAN node in the given datacenter, along with
 // raw network coordinates.
 func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	if s.checkCoordinateDisabled(resp, req) {
+		return nil, nil
 	}
 
 	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
@@ -141,8 +145,8 @@ func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordi
 
 // CoordinateUpdate inserts or updates the LAN coordinate of a node.
 func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "PUT" {
-		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	if s.checkCoordinateDisabled(resp, req) {
+		return nil, nil
 	}
 
 	args := structs.CoordinateUpdateRequest{}
@@ -152,6 +156,7 @@ func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
 
 	var reply struct{}
 	if err := s.agent.RPC("Coordinate.Update", &args, &reply); err != nil {

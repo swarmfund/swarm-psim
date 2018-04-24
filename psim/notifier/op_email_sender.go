@@ -1,14 +1,15 @@
 package notifier
 
 import (
-	"gitlab.com/distributed_lab/notificator-server/client"
-	"net/http"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"time"
 	"bytes"
-	"html/template"
-	"gitlab.com/distributed_lab/logan/v3"
 	"context"
+	"html/template"
+	"net/http"
+	"time"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/distributed_lab/running"
 )
 
@@ -33,7 +34,7 @@ type OpEmailSender struct {
 func NewOpEmailSender(
 	subject, templateName string,
 	requestType int,
-	logger *logan.Entry,
+	log *logan.Entry,
 	notificatorConnector NotificatorConnector,
 	templatesConnector TemplatesConnector,
 ) (*OpEmailSender, error) {
@@ -42,7 +43,7 @@ func NewOpEmailSender(
 	opEmailSender.subject = subject
 	opEmailSender.templateName = templateName
 	opEmailSender.requestType = requestType
-	opEmailSender.logger = logger
+	opEmailSender.logger = log
 
 	bb, err := templatesConnector.Get(templateName)
 	if err != nil {
@@ -76,15 +77,16 @@ func (ns *OpEmailSender) SendEmail(ctx context.Context, emailAddress, emailUniqu
 		Message:     msg,
 	}
 
-	running.UntilSuccess(ctx, ns.logger, "email_sender", func(ctx context.Context) (bool, error) {
-		resp, err := ns.notificatorConnector.Send(ns.requestType, emailUniqueToken, payload)
+	running.UntilSuccess(ctx, ns.logger.WithField("email_addr", emailAddress), "email_sender", func(ctx context.Context) (bool, error) {
+		logger := ns.logger.WithField("email_addr", emailAddress)
 
+		resp, err := ns.notificatorConnector.Send(ns.requestType, emailUniqueToken, payload)
 		if err != nil {
-			return false, errors.Wrap(err, "failed to send email via Notificator")
+			return false, errors.Wrap(err, "Failed to send email via Notificator")
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests {
-			ns.logger.Info("Email has already been sent, skipping")
+			logger.Info("Email has already been sent, skipping.")
 			return true, nil
 		}
 
@@ -94,10 +96,10 @@ func (ns *OpEmailSender) SendEmail(ctx context.Context, emailAddress, emailUniqu
 			})
 		}
 
-		ns.logger.Info("Notificator accepted email successfully")
+		logger.Info("Notificator accepted email successfully")
 
 		return true, nil
-	}, time.Second, 5*time.Second)
+	}, time.Second, 10*time.Minute)
 
 	return nil
 }

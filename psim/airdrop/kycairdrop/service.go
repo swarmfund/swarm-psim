@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	horizon "gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/lchanges"

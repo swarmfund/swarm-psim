@@ -7,9 +7,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/go/xdrbuild"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -66,7 +67,6 @@ type Service struct {
 	identityMind       IdentityMind
 	xdrbuilder         *xdrbuild.Builder
 	adminNotifyEmails  EmailsProcessor
-	usaUsersEmail      EmailsProcessor
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
 }
@@ -83,7 +83,6 @@ func NewService(
 	identityMind IdentityMind,
 	builder *xdrbuild.Builder,
 	adminNotifyEmails EmailsProcessor,
-	usaUsersEmail EmailsProcessor,
 ) *Service {
 
 	return &Service{
@@ -98,7 +97,6 @@ func NewService(
 		identityMind:       identityMind,
 		xdrbuilder:         builder,
 		adminNotifyEmails:  adminNotifyEmails,
-		usaUsersEmail:      usaUsersEmail,
 	}
 }
 
@@ -107,10 +105,9 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
 	go s.adminNotifyEmails.Run(ctx)
-	go s.usaUsersEmail.Run(ctx)
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
-	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
+	running.WithBackOff(ctx, s.log, "kyc_request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
 }
 
 // TODO timeToSleep to config
@@ -163,9 +160,9 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// I found this log useless
 	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
-	kyc := request.Details.KYC
+	kycReq := request.Details.KYC
 
-	if kyc.PendingTasks&TaskSubmitIDMind != 0 {
+	if kycReq.PendingTasks&kyc.TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
 		err := s.processNotSubmitted(ctx, request)
 		if err != nil {
@@ -176,7 +173,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	// Already submitted
-	if kyc.PendingTasks&TaskCheckIDMind != 0 {
+	if kycReq.PendingTasks&kyc.TaskCheckIDMind != 0 {
 		err := s.processNotChecked(ctx, request)
 		if err != nil {
 			return errors.Wrap(err, "Failed to check KYC state in IDMind")

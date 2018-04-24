@@ -1,14 +1,14 @@
 package notifier
 
 import (
+	"sync"
+	"time"
+
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/horizon-connector/v2"
-	"golang.org/x/net/context"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"time"
-	"sync"
-	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/horizon-connector"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -43,7 +43,7 @@ type EmailSender interface {
 }
 
 type KYCDataHelper interface {
-	getBlobKYCData(kycData map[string]interface{}) (*kyc.Data, error)
+	getKYCFirstName(kycData map[string]interface{}) (string, error)
 }
 
 type Service struct {
@@ -58,7 +58,7 @@ type Service struct {
 // New is a constructor of a service
 func New(
 	config Config,
-	logger *logan.Entry,
+	log *logan.Entry,
 	notificatorConnector NotificatorConnector,
 	requestConnector ReviewableRequestConnector,
 	saleConnector SaleConnector,
@@ -75,7 +75,7 @@ func New(
 		config.OrderCancelled.Emails.Subject,
 		config.OrderCancelled.Emails.TemplateName,
 		config.OrderCancelled.Emails.RequestType,
-		logger,
+		log.WithField("emails_type", "cancelled_order"),
 		notificatorConnector,
 		templatesConnector,
 	)
@@ -87,7 +87,7 @@ func New(
 		config.KYCCreated.Emails.Subject,
 		config.KYCCreated.Emails.TemplateName,
 		config.KYCCreated.Emails.RequestType,
-		logger,
+		log.WithField("emails_type", "created_kyc"),
 		notificatorConnector,
 		templatesConnector,
 	)
@@ -99,7 +99,7 @@ func New(
 		config.KYCApproved.Emails.Subject,
 		config.KYCApproved.Emails.TemplateName,
 		config.KYCApproved.Emails.RequestType,
-		logger,
+		log.WithField("emails_type", "approved_kyc"),
 		notificatorConnector,
 		templatesConnector,
 	)
@@ -111,7 +111,7 @@ func New(
 		config.KYCRejected.Emails.Subject,
 		config.KYCRejected.Emails.TemplateName,
 		config.KYCRejected.Emails.RequestType,
-		logger,
+		log.WithField("emails_type", "rejected_kyc"),
 		notificatorConnector,
 		templatesConnector,
 	)
@@ -119,9 +119,21 @@ func New(
 		return nil, errors.Wrap(err, "failed to create rejectedKYCEmailSender")
 	}
 
+	usaKYCEmailSender, err := NewOpEmailSender(
+		config.USAKyc.Emails.Subject,
+		config.USAKyc.Emails.TemplateName,
+		config.USAKyc.Emails.RequestType,
+		log.WithField("emails_type", "usa_kyc"),
+		notificatorConnector,
+		templatesConnector,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create usaKYCEmailSender")
+	}
+
 	return &Service{
 		config: config,
-		logger: logger,
+		logger: log,
 
 		cancelledOrderNotifier: CancelledOrderNotifier{
 			emailSender:             cancelledOrderEmailSender,
@@ -144,7 +156,9 @@ func New(
 		reviewedKYCRequestNotifier: ReviewedKYCRequestNotifier{
 			approvedKYCEmailSender:   approvedKYCEmailSender,
 			rejectedKYCEmailSender:   rejectedKYCEmailSender,
+			usaKYCEmailSender:        usaKYCEmailSender,
 			approvedRequestConfig:    config.KYCApproved,
+			usaKYCConfig:             config.USAKyc,
 			rejectedRequestConfig:    config.KYCRejected,
 			requestConnector:         requestConnector,
 			userConnector:            userConnector,

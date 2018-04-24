@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
+	"net/url"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
-//todo add url.Url and base pointer types
+//todo add base pointer types
 var (
 	// BaseHooks set of default hooks for common types
 	BaseHooks = Hooks{
@@ -150,6 +152,20 @@ var (
 					return reflect.Value{}, errors.New("failed to parse")
 				}
 				return reflect.ValueOf(&puint), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
+		"*url.URL": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				u, err := url.Parse(v)
+				if err != nil {
+					return reflect.Value{}, errors.Wrap(err, "failed to parse url")
+				}
+				return reflect.ValueOf(u), nil
+			case nil:
+				return reflect.ValueOf(nil), nil
 			default:
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}

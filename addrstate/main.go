@@ -6,8 +6,8 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/xdr"
-	horizon "gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/xdr"
+	horizon "gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 

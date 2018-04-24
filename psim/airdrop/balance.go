@@ -2,7 +2,7 @@ package airdrop
 
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 var (

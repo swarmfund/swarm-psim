@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 )

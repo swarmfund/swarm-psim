@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 )
 

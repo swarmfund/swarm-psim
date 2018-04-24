@@ -20,7 +20,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
 	"golang.org/x/net/http2"
@@ -166,11 +165,11 @@ func TestHTTPServer_H2(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		fmt.Fprint(resp, req.Proto)
 	}
-	mux, ok := a.srv.Handler.(*http.ServeMux)
+	w, ok := a.srv.Handler.(*wrappedMux)
 	if !ok {
 		t.Fatalf("handler is not expected type")
 	}
-	mux.HandleFunc("/echo", handler)
+	w.mux.HandleFunc("/echo", handler)
 
 	// Call it and make sure we see HTTP/2.
 	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
@@ -299,7 +298,7 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
 		resp := httptest.NewRecorder()
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusForbidden; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
@@ -309,10 +308,22 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
 		resp := httptest.NewRecorder()
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusOK; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
+	}
+}
+
+func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	resp := httptest.NewRecorder()
+	a.srv.Handler.ServeHTTP(resp, req)
+	if got, want := resp.Code, http.StatusBadRequest; got != want {
+		t.Fatalf("bad response code got %d want %d", got, want)
 	}
 }
 
@@ -329,7 +340,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
 		if translate != "" {
@@ -350,7 +361,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
 		if translate != "true" {
@@ -377,7 +388,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	origin := resp.Header().Get("Access-Control-Allow-Origin")
 	if origin != "*" {
@@ -387,115 +398,6 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	xss := resp.Header().Get("X-XSS-Protection")
 	if xss != "1; mode=block" {
 		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "1; mode=block", xss)
-	}
-}
-
-func TestHTTPAPI_MethodNotAllowed(t *testing.T) {
-	tests := []struct {
-		methods, uri string
-	}{
-		{"PUT", "/v1/acl/bootstrap"},
-		{"PUT", "/v1/acl/create"},
-		{"PUT", "/v1/acl/update"},
-		{"PUT", "/v1/acl/destroy/"},
-		{"GET", "/v1/acl/info/"},
-		{"PUT", "/v1/acl/clone/"},
-		{"GET", "/v1/acl/list"},
-		{"GET", "/v1/acl/replication"},
-		{"PUT", "/v1/agent/token/"},
-		{"GET", "/v1/agent/self"},
-		{"GET", "/v1/agent/members"},
-		{"PUT", "/v1/agent/check/deregister/"},
-		{"PUT", "/v1/agent/check/fail/"},
-		{"PUT", "/v1/agent/check/pass/"},
-		{"PUT", "/v1/agent/check/register"},
-		{"PUT", "/v1/agent/check/update/"},
-		{"PUT", "/v1/agent/check/warn/"},
-		{"GET", "/v1/agent/checks"},
-		{"PUT", "/v1/agent/force-leave/"},
-		{"PUT", "/v1/agent/join/"},
-		{"PUT", "/v1/agent/leave"},
-		{"PUT", "/v1/agent/maintenance"},
-		{"GET", "/v1/agent/metrics"},
-		// {"GET", "/v1/agent/monitor"}, // requires LogWriter. Hangs if LogWriter is provided
-		{"PUT", "/v1/agent/reload"},
-		{"PUT", "/v1/agent/service/deregister/"},
-		{"PUT", "/v1/agent/service/maintenance/"},
-		{"PUT", "/v1/agent/service/register"},
-		{"GET", "/v1/agent/services"},
-		{"GET", "/v1/catalog/datacenters"},
-		{"PUT", "/v1/catalog/deregister"},
-		{"GET", "/v1/catalog/node/"},
-		{"GET", "/v1/catalog/nodes"},
-		{"PUT", "/v1/catalog/register"},
-		{"GET", "/v1/catalog/service/"},
-		{"GET", "/v1/catalog/services"},
-		{"GET", "/v1/coordinate/datacenters"},
-		{"GET", "/v1/coordinate/nodes"},
-		{"GET", "/v1/coordinate/node/"},
-		{"PUT", "/v1/event/fire/"},
-		{"GET", "/v1/event/list"},
-		{"GET", "/v1/health/checks/"},
-		{"GET", "/v1/health/node/"},
-		{"GET", "/v1/health/service/"},
-		{"GET", "/v1/health/state/"},
-		{"GET", "/v1/internal/ui/node/"},
-		{"GET", "/v1/internal/ui/nodes"},
-		{"GET", "/v1/internal/ui/services"},
-		{"GET PUT DELETE", "/v1/kv/"},
-		{"GET PUT", "/v1/operator/autopilot/configuration"},
-		{"GET", "/v1/operator/autopilot/health"},
-		{"GET POST PUT DELETE", "/v1/operator/keyring"},
-		{"GET", "/v1/operator/raft/configuration"},
-		{"DELETE", "/v1/operator/raft/peer"},
-		{"GET POST", "/v1/query"},
-		{"GET PUT DELETE", "/v1/query/"},
-		{"GET", "/v1/query/xxx/execute"},
-		{"GET", "/v1/query/xxx/explain"},
-		{"PUT", "/v1/session/create"},
-		{"PUT", "/v1/session/destroy/"},
-		{"GET", "/v1/session/info/"},
-		{"GET", "/v1/session/list"},
-		{"GET", "/v1/session/node/"},
-		{"PUT", "/v1/session/renew/"},
-		{"GET PUT", "/v1/snapshot"},
-		{"GET", "/v1/status/leader"},
-		// {"GET", "/v1/status/peers"},// hangs
-		{"PUT", "/v1/txn"},
-
-		// enterprise only
-		// {"GET POST", "/v1/operator/area"},
-		// {"GET PUT DELETE", "/v1/operator/area/"},
-		// {"GET", "/v1/operator/area/xxx/members"},
-	}
-
-	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
-	defer a.Shutdown()
-
-	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD"}
-	client := http.Client{}
-
-	for _, tt := range tests {
-		for _, m := range all {
-
-			t.Run(m+" "+tt.uri, func(t *testing.T) {
-				uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), tt.uri)
-				req, _ := http.NewRequest(m, uri, nil)
-				resp, err := client.Do(req)
-				if err != nil {
-					t.Fatal("client.Do failed: ", err)
-				}
-
-				allowed := strings.Contains(tt.methods, m)
-				if allowed && resp.StatusCode == http.StatusMethodNotAllowed {
-					t.Fatalf("method allowed: got status code %d want any other code", resp.StatusCode)
-				}
-				if !allowed && resp.StatusCode != http.StatusMethodNotAllowed {
-					t.Fatalf("method not allowed: got status code %d want %d", resp.StatusCode, http.StatusMethodNotAllowed)
-				}
-			})
-		}
 	}
 }
 
@@ -511,7 +413,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/kv/key", nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	contentType := resp.Header().Get("Content-Type")
 
@@ -565,7 +467,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 		t.Run(url, func(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", url, nil)
-			a.srv.wrap(handler)(resp, req)
+			a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 			if got := buf.String(); !strings.Contains(got, want) {
 				t.Fatalf("got %s want %s", got, want)
@@ -597,7 +499,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 	urlStr := "/v1/kv/key?" + pretty
 	req, _ := http.NewRequest("GET", urlStr, nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
 	expected = append(expected, "\n"...)
@@ -705,7 +607,9 @@ func TestParseConsistency(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
-	if d := parseConsistency(resp, req, &b); d {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
 
@@ -718,7 +622,7 @@ func TestParseConsistency(t *testing.T) {
 
 	b = structs.QueryOptions{}
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?consistent", nil)
-	if d := parseConsistency(resp, req, &b); d {
+	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
 
@@ -730,13 +634,70 @@ func TestParseConsistency(t *testing.T) {
 	}
 }
 
+// ensureConsistency check if consistency modes are correctly applied
+// if maxStale < 0 => stale, without MaxStaleDuration
+// if maxStale == 0 => no stale
+// if maxStale > 0 => stale + check duration
+func ensureConsistency(t *testing.T, a *TestAgent, path string, maxStale time.Duration, requireConsistent bool) {
+	t.Helper()
+	req, _ := http.NewRequest("GET", path, nil)
+	var b structs.QueryOptions
+	resp := httptest.NewRecorder()
+	if d := a.srv.parseConsistency(resp, req, &b); d {
+		t.Fatalf("unexpected done")
+	}
+	allowStale := maxStale.Nanoseconds() != 0
+	if b.AllowStale != allowStale {
+		t.Fatalf("Bad Allow Stale")
+	}
+	if maxStale > 0 && b.MaxStaleDuration != maxStale {
+		t.Fatalf("Bad MaxStaleDuration: %d VS expected %d", b.MaxStaleDuration, maxStale)
+	}
+	if b.RequireConsistent != requireConsistent {
+		t.Fatal("Bad Consistent")
+	}
+}
+
+func TestParseConsistencyAndMaxStale(t *testing.T) {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Default => Consistent
+	a.config.DiscoveryMaxStale = time.Duration(0)
+	ensureConsistency(t, a, "/v1/catalog/nodes", 0, false)
+	// Stale, without MaxStale
+	ensureConsistency(t, a, "/v1/catalog/nodes?stale", -1, false)
+	// Override explicitly
+	ensureConsistency(t, a, "/v1/catalog/nodes?max_stale=3s", 3*time.Second, false)
+	ensureConsistency(t, a, "/v1/catalog/nodes?stale&max_stale=3s", 3*time.Second, false)
+
+	// stale by defaul on discovery
+	a.config.DiscoveryMaxStale = time.Duration(7 * time.Second)
+	ensureConsistency(t, a, "/v1/catalog/nodes", a.config.DiscoveryMaxStale, false)
+	// Not in KV
+	ensureConsistency(t, a, "/v1/kv/my/path", 0, false)
+
+	// DiscoveryConsistencyLevel should apply
+	ensureConsistency(t, a, "/v1/health/service/one", a.config.DiscoveryMaxStale, false)
+	ensureConsistency(t, a, "/v1/catalog/service/one", a.config.DiscoveryMaxStale, false)
+	ensureConsistency(t, a, "/v1/catalog/services", a.config.DiscoveryMaxStale, false)
+
+	// Query path should be taken into account
+	ensureConsistency(t, a, "/v1/catalog/services?consistent", 0, true)
+	// Since stale is added, no MaxStale should be applied
+	ensureConsistency(t, a, "/v1/catalog/services?stale", -1, false)
+	ensureConsistency(t, a, "/v1/catalog/services?leader", 0, false)
+}
+
 func TestParseConsistency_Invalid(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
-	if d := parseConsistency(resp, req, &b); !d {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	if d := a.srv.parseConsistency(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
 

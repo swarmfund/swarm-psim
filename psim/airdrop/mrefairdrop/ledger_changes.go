@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 )
@@ -36,6 +36,7 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 	}
 }
 
+// TODO Stop returning bool, check for time above; pass LedgerChange without time.
 // ProcessChange only returns false if reached SnapshotTime.
 func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLedgerChange) bool {
 	if timedLedger.Time.Sub(s.config.SnapshotTime) > 0 {
@@ -93,7 +94,7 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 				}
 
 				if accEntry.Referrer != nil {
-					// Delete Referral as his AccountType in NotVerified.
+					// Delete Referral as his AccountType is NotVerified.
 					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
 					if ok {
 						referrerBonus.deleteReferral(accEntry.AccountId.Address())

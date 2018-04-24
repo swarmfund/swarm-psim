@@ -1,7 +1,10 @@
 # common
 
 log:
-  level: debug
+  level: warn
+  env: not-provided # set dev/stage/prod here
+  project: not-provided
+
   #slack_webhook: "https://hooks.slack.com/services/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"
   #slack_channel: "#reports"
   #slack_level: error
@@ -180,10 +183,6 @@ eth_withdraw:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
-forfeit_listener:
-  pprof: true
-  signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
-  exchange: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
 
 price_setter:
   base_asset: "ETH"
@@ -281,6 +280,16 @@ notifier:
 
       template_link_url: https://invest.swarm.fund
 
+  usa_kyc:
+    cursor: 1
+
+    emails:
+      subject: "Accreditation status verification"
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: -usa-user-notification # Email with same token will be sent only once
+      template_name: us_residents
+      template_link_url: https://invest.swarm.fund
+
   kyc_rejected:
     cursor: 1
 
@@ -351,7 +360,7 @@ airdrop_kyc:
 
 airdrop_march_referrals:
   issuance_asset: SWM
-  snapshot_time: "2018-04-15T14:00:00" # +14 - the latest existing GMT
+  snapshot_time: "2018-04-22T11:30:00"
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
@@ -405,12 +414,6 @@ identity_mind:
     request_type: 7 # 7 means that email with unique token will be sent only once in 24h
     message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."
     send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
-  usa_email:
-    subject: "Accreditation status verification"
-    request_type: 10 # 10 means that email will be sent only once per each unique token
-    message: us_residents.html
-    send_period: 30m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
-  template_link_url: https://invest.swarm.fund
   emails_to_notify: [
 "john.doe@example.com",
 "jane.doe@example.com"]
