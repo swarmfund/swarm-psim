@@ -57,8 +57,8 @@ func (s *Streamer) Run(ctx context.Context) {
 		close(s.timedChangesStream)
 	}()
 
-	// TODO Consider counting TXs per day and logging this number with each TX day log.
 	var lastLoggedTXYearDay int
+	var txsPerDay uint64
 	for {
 		select {
 		case <-ctx.Done():
@@ -85,10 +85,17 @@ func (s *Streamer) Run(ctx context.Context) {
 				continue
 			}
 
+			txsPerDay += 1
+
 			if txEvent.Meta.LatestLedger.ClosedAt.YearDay() != lastLoggedTXYearDay {
 				// New day TX
-				s.log.WithField("tx_time", txEvent.Meta.LatestLedger.ClosedAt).Info("Received next day TX.")
+				s.log.WithFields(logan.F{
+					"tx_time":              txEvent.Meta.LatestLedger.ClosedAt,
+					"txs_per_previous_day": txsPerDay,
+				}).Info("Received next day TX.")
+
 				lastLoggedTXYearDay = txEvent.Meta.LatestLedger.ClosedAt.YearDay()
+				txsPerDay = 0
 			}
 
 			s.streamChanges(ctx, *txEvent.Transaction)
