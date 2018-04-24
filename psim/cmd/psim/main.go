@@ -64,7 +64,7 @@ var (
 		Use:   "check",
 		Short: "check health of services by metrics",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := app.CheckServices(configInstance.Get(conf.ServiceMetrics), entry); err != nil {
+			if err := app.CheckServices(configInstance.Get(conf.ServiceMetricsProvider), entry); err != nil {
 				entry.WithError(err).Error("failed to check metrics services info")
 				return
 			}

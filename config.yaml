@@ -429,6 +429,6 @@ template_provider:
 wallet_cleaner:
   expire_duration: 128h
 
-metrics:
+metrics_provider:
   host: localhost
   port: 1234

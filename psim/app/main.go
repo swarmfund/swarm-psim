@@ -11,8 +11,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app/internal/data"
 	"gitlab.com/swarmfund/psim/psim/app/internal/metrics"
+	"gitlab.com/swarmfund/psim/psim/app/internal/metrics/data"
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
@@ -24,6 +24,7 @@ const (
 	CtxLog                 = "log"
 	ctxLog                 = CtxLog
 	ctxConfig              = CtxConfig
+	ctxMetrics             = "metrics"
 	forceKillPeriodSeconds = 30
 )
 
@@ -57,6 +58,14 @@ func Log(ctx context.Context) *logan.Entry {
 	return v.(*logan.Entry)
 }
 
+func Metric(ctx context.Context) *data.Metrics {
+	v := ctx.Value(ctxMetrics)
+	if v == nil {
+		panic("metrics context value expected")
+	}
+	return v.(*data.Metrics)
+}
+
 func RegisterService(name string, setup ServiceSetUp) {
 	servicesMu.Lock()
 	defer servicesMu.Unlock()
@@ -83,11 +92,11 @@ func Register(name string, service DeprecatedService) {
 }
 
 type App struct {
-	log     *logan.Entry
-	config  conf.Config
-	ctx     context.Context
-	cancel  context.CancelFunc
-	metrics *metrics.Metrics
+	log             *logan.Entry
+	config          conf.Config
+	ctx             context.Context
+	cancel          context.CancelFunc
+	metricsProvider *metrics.MetricsProvider
 }
 
 func New(config conf.Config) (*App, error) {
@@ -97,17 +106,17 @@ func New(config conf.Config) (*App, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	metricConfig, err := metrics.NewConfig(config.GetRequired(conf.ServiceMetrics))
+	metricConfig, err := metrics.NewConfig(config.GetRequired(conf.ServiceMetricsProvider))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create metrics")
 	}
 
 	return &App{
-		config:  config,
-		log:     entry.WithField("service", "app"),
-		ctx:     ctx,
-		cancel:  cancel,
-		metrics: metrics.New(entry, *metricConfig),
+		config:          config,
+		log:             entry.WithField("service", "app"),
+		ctx:             ctx,
+		cancel:          cancel,
+		metricsProvider: metrics.New(entry, *metricConfig),
 	}, nil
 }
 
@@ -172,7 +181,7 @@ func (app *App) Run() {
 				app.log.WithStack(errors.WithStack(err)).WithError(err).Error("metrics panicked")
 			}
 		}()
-		app.metrics.Run()
+		app.metricsProvider.Run()
 	}()
 
 	for name, setup := range registerServiceSetUp {
@@ -183,6 +192,8 @@ func (app *App) Run() {
 		wg.Add(1)
 		ohaigo := setup
 		entry := app.log.WithField("service", name)
+
+		serviceName := name
 		go func() {
 			defer func() {
 				if rec := recover(); rec != nil {
@@ -192,24 +203,28 @@ func (app *App) Run() {
 				wg.Done()
 			}()
 
-			ctx := context.WithValue(ctx, ctxLog, entry)
-			service, err := ohaigo(ctx)
+			metric := app.metricsProvider.AddService(serviceName)
+
+			ctxLog := context.WithValue(ctx, ctxLog, entry)
+			ctxMetric := context.WithValue(ctxLog, ctxMetrics, metric)
+
+			metric.Unhealthy(errors.New("service not initialize yet"))
+			service, err := ohaigo(ctxMetric)
 			if err != nil {
+				metric.Unhealthy(err)
 				// TODO Consider panicking here instead of Error log and return.
 				entry.WithError(err).Error("App failed to set up service.")
 				return
 			}
 
-			if metricsService, impl := service.(data.Metered); impl {
-				app.metrics.AddService(metricsService)
-			}
+			metric.Healthy()
 
 			// TODO Pass another ctx here - just for cancelling.
-			service.Run(ctx)
+			service.Run(ctxMetric)
 			entry.Warn("died")
 		}()
 	}
-	app.metrics.SetDone(true)
+	app.metricsProvider.SetDone(true)
 
 	wg.Wait()
 	time.Sleep(1)

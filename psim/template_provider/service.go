@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gitlab.com/swarmfund/go/doorman"
 	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/template_provider/data"
 )
 
@@ -29,7 +30,6 @@ type Service struct {
 	log        *logan.Entry
 	horizon    *horizon.Connector
 	info       *horizon.Info
-	isHealthy  bool
 }
 
 func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
@@ -68,7 +68,7 @@ func New(sess *session.Session, log *logan.Entry, api Config, info *horizon.Info
 }
 
 func (s *Service) Run(ctx context.Context) {
-
+	metric := app.Metric(ctx)
 	r := Router(
 		s.log,
 		s.uploader,
@@ -81,18 +81,10 @@ func (s *Service) Run(ctx context.Context) {
 		),
 	)
 
-	s.isHealthy = true
-	defer func() {
-		s.isHealthy = false
-	}()
-
 	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
 	if err := http.ListenAndServe(addr, r); err != nil {
+		metric.Unhealthy(err)
 		s.log.WithError(err).Error("failed to listen and serve")
 		return
 	}
-}
-
-func (s Service) HealthCheck() bool {
-	return s.isHealthy
 }

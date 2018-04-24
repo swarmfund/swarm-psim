@@ -21,7 +21,7 @@ func NewConfig(configData map[string]interface{}) (*Config, error) {
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceMetrics,
+			"service": conf.ServiceMetricsProvider,
 		})
 	}
 
