@@ -6,8 +6,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
+	"gitlab.com/tokend/go/amount"
 )
 
 //go:generate mockery -case underscore -testonly -inpkg -name PriceProvider
@@ -156,19 +156,27 @@ func median(points []providerPricePoint) providerPricePoint {
 // Returns nil if cluster contains at least minProvidersToAgree PricePoints, which agree with candidate.
 func (f *priceFinder) verifyCandidate(candidatePrice int64, cluster []providerPricePoint) (verifyErr error) {
 	if len(cluster) < f.minProvidersToAgree {
+		clusterProviders := make([]string, 0)
+		for _, provider := range cluster {
+			clusterProviders = append(clusterProviders, provider.ProviderID)
+		}
+
 		return errors.From(errors.New("Cluster too small, don't even trying to evaluate distances."), logan.F{
 			"min_providers_to_agree": f.minProvidersToAgree,
 			"cluster_size":           len(cluster),
+			"cluster_providers":      clusterProviders,
 		})
 	}
 
 	providersAgreed := 0
+	disagreedProviders := make([]string, 0)
 	for _, providerPricePoint := range cluster {
 		if f.meetsPriceDeltaReq(candidatePrice, providerPricePoint.PricePoint.Price) {
 			// Provider agreed with the candidate - diff between the providerPricePoint and the candidate isn't too big.
 			f.log.WithField("provider_price_point", providerPricePoint).Debug("Provider agreed.")
 			providersAgreed++
 		} else {
+			disagreedProviders = append(disagreedProviders, providerPricePoint.ProviderID)
 			f.log.WithField("provider_price_point", providerPricePoint).Debug("Provider disagreed.")
 		}
 	}
@@ -177,6 +185,7 @@ func (f *priceFinder) verifyCandidate(candidatePrice int64, cluster []providerPr
 		return errors.From(errors.New("Too few Providers agreed."), logan.F{
 			"providers_agreed":       providersAgreed,
 			"min_providers_to_agree": f.minProvidersToAgree,
+			"disagreed_providers":    disagreedProviders,
 		})
 	}
 
