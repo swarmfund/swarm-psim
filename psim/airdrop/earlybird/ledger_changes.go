@@ -5,7 +5,7 @@ import (
 
 	"context"
 
-	"gitlab.com/swarmfund/go/xdr"
+	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/app"
 )
 

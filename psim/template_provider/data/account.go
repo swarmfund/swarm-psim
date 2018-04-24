@@ -1,8 +1,8 @@
 package data
 
 import (
-	"gitlab.com/swarmfund/go/resources"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/resources"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type AccountQ struct {

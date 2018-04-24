@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
-	"gitlab.com/swarmfund/go/signcontrol"
+	"gitlab.com/tokend/go/signcontrol"
 )
 
 func RenderDoormanErr(w http.ResponseWriter, err error) {

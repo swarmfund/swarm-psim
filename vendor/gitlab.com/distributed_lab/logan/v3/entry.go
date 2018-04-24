@@ -31,7 +31,13 @@ func (e *Entry) WithError(err error) *Entry {
 }
 
 func (e *Entry) WithField(key string, value interface{}) *Entry {
-	return e.WithFields(F{key: value})
+	f := F{key: value}
+
+	if err, ok := value.(error); ok {
+		f = fields.Merge(f, errors.GetFields(err))
+	}
+
+	return e.WithFields(f)
 }
 
 func (e *Entry) WithFields(f F) *Entry {

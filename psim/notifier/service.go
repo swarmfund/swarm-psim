@@ -7,7 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/horizon-connector"
 	"golang.org/x/net/context"
 )
 

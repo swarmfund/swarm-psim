@@ -1,14 +1,51 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/serf/coordinate"
 )
+
+func TestCoordinate_Disabled_Response(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		disable_coordinates = true
+`)
+	defer a.Shutdown()
+
+	tests := []func(resp http.ResponseWriter, req *http.Request) (interface{}, error){
+		a.srv.CoordinateDatacenters,
+		a.srv.CoordinateNodes,
+		a.srv.CoordinateNode,
+		a.srv.CoordinateUpdate,
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			req, _ := http.NewRequest("PUT", "/should/not/care", nil)
+			resp := httptest.NewRecorder()
+			obj, err := tt(resp, req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if obj != nil {
+				t.Fatalf("bad: %#v", obj)
+			}
+			if got, want := resp.Code, http.StatusUnauthorized; got != want {
+				t.Fatalf("got %d want %d", got, want)
+			}
+			if !strings.Contains(resp.Body.String(), "Coordinate support disabled") {
+				t.Fatalf("bad: %#v", resp)
+			}
+		})
+	}
+}
 
 func TestCoordinate_Datacenters(t *testing.T) {
 	t.Parallel()
@@ -101,7 +138,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		t.Fatalf("bad: %v", coordinates)
 	}
 
-	// Filter on a nonexistant node segment
+	// Filter on a nonexistent node segment
 	req, _ = http.NewRequest("GET", "/v1/coordinate/nodes?segment=nope", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CoordinateNodes(resp, req)
@@ -208,7 +245,7 @@ func TestCoordinate_Node(t *testing.T) {
 		t.Fatalf("bad: %v", coordinates)
 	}
 
-	// Filter on a nonexistant node segment
+	// Filter on a nonexistent node segment
 	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=nope", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CoordinateNode(resp, req)
@@ -288,4 +325,32 @@ func TestCoordinate_Update(t *testing.T) {
 		coordinates[0].Node != "foo" {
 		t.Fatalf("bad: %v", coordinates)
 	}
+}
+
+func TestCoordinate_Update_ACLDeny(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
+
+	coord := coordinate.NewCoordinate(coordinate.DefaultConfig())
+	coord.Height = -5.0
+	body := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Coord:      coord,
+	}
+
+	t.Run("no token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/coordinate/update", jsonReader(body))
+		if _, err := a.srv.CoordinateUpdate(nil, req); !acl.IsErrPermissionDenied(err) {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
+	t.Run("valid token", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/coordinate/update?token=root", jsonReader(body))
+		if _, err := a.srv.CoordinateUpdate(nil, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 }

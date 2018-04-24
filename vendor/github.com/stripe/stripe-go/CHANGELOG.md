@@ -1,5 +1,26 @@
 # Changelog
 
+## 28.12.0 - 2018-02-09
+* [#517](https://github.com/stripe/stripe-go/pull/517) Add `BillingCycleAnchor` to `Sub` and `BillingCycleAnchorUnchanged` to `SubParams`
+
+## 28.11.0 - 2018-01-29
+* [#516](https://github.com/stripe/stripe-go/pull/516) Add `AmountZero` to `PlanParams` to it's possible to send zero values when creating or updating a plan
+
+## 28.10.1 - 2018-01-18
+* [#512](https://github.com/stripe/stripe-go/pull/512) Encode empty values found in maps (like `Meta`)
+
+## 28.10.0 - 2018-01-09
+* [#509](https://github.com/stripe/stripe-go/pull/509) Plumb through additional possible errors when unmarshaling polymorphic types (please test your integrations while upgrading)
+
+## 28.9.0 - 2018-01-08
+* [#506](https://github.com/stripe/stripe-go/pull/506) Add support for recursing into slices in `event.GetObjValue`
+
+## 28.8.0 - 2017-12-12
+* [#500](https://github.com/stripe/stripe-go/pull/500) Support sharing for bank accounts and cards (adds `ID` field to bank account and charge parameters)
+
+## 28.7.0 - 2017-12-05
+* [#494](https://github.com/stripe/stripe-go/pull/494) Add `Automatic` to `Payout` struct
+
 ## 28.6.1 - 2017-11-02
 * [#492](https://github.com/stripe/stripe-go/pull/492) Correct name of user agent header used to send Go version to Stripe's API
 

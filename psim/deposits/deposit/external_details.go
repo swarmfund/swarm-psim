@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"gitlab.com/tokend/horizon-connector/types"
 )
 
 // ExternalDetails is a blob to be put into Issuance Operation ExternalDetails as JSON string.
