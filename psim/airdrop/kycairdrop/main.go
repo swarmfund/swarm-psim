@@ -68,7 +68,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		ledgerChangesStreamer,
 		horizonConnector.Accounts(),
 		horizonConnector.Users(),
-		horizonConnector.Blobs(),
+		airdrop.NewUSAChecker(horizonConnector.Blobs()),
 		horizonConnector.Accounts(),
 		emailProcessor,
 	), nil

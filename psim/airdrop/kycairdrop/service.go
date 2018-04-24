@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	horizon "gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/lchanges"
+	horizon "gitlab.com/tokend/horizon-connector"
 )
 
 type IssuanceSubmitter interface {
@@ -32,8 +32,8 @@ type ReferencesProvider interface {
 	References(accountID string) ([]horizon.Reference, error)
 }
 
-type BlobsConnector interface {
-	Blob(blobID string) (*horizon.Blob, error)
+type USAChecker interface {
+	CheckIsUSA(acc horizon.Account) (bool, error)
 }
 
 type EmailProcessor interface {
@@ -49,7 +49,7 @@ type Service struct {
 	ledgerStreamer     LedgerStreamer
 	accountsConnector  AccountsConnector
 	usersConnector     UsersConnector
-	blobsConnector     BlobsConnector
+	usaChecker         USAChecker
 	referencesProvider ReferencesProvider
 
 	emailProcessor EmailProcessor
@@ -66,7 +66,7 @@ func NewService(
 	ledgerStreamer LedgerStreamer,
 	accountsConnector AccountsConnector,
 	usersConnector UsersConnector,
-	blobsConnector BlobsConnector,
+	usaChecker USAChecker,
 	referencesProvider ReferencesProvider,
 	emailProcessor EmailProcessor,
 ) *Service {
@@ -80,7 +80,7 @@ func NewService(
 		ledgerStreamer:     ledgerStreamer,
 		accountsConnector:  accountsConnector,
 		usersConnector:     usersConnector,
-		blobsConnector:     blobsConnector,
+		usaChecker:         usaChecker,
 		referencesProvider: referencesProvider,
 
 		emailProcessor: emailProcessor,

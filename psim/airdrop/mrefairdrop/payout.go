@@ -87,6 +87,8 @@ func (s *Service) filterReferrers() {
 			delete(s.snapshot, accAddress)
 			continue
 		}
+
+		// TODO USA
 	}
 }
 

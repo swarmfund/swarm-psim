@@ -10,15 +10,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 const (
-	KYCFormBlobType         = "kyc_form"
 	AccountTypeGeneral uint = 2
 )
 
@@ -75,7 +72,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return nil
 	}
 
-	isUSA, err := s.checkIsUSA(acc)
+	isUSA, err := s.usaChecker.CheckIsUSA(*acc)
 	if err != nil {
 		return errors.Wrap(err, "Failed to check whether User is from USA")
 	}
@@ -120,34 +117,6 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
 
 	return nil
-}
-
-func (s *Service) checkIsUSA(acc *horizon.Account) (bool, error) {
-	if acc.KYC.Data == nil {
-		return false, errors.New("KYCData is nil - could not find KYCBlobIDa.")
-	}
-	fields := logan.F{
-		"blob_id": acc.KYC.Data.BlobID,
-	}
-
-	blob, err := s.blobsConnector.Blob(acc.KYC.Data.BlobID)
-	if err != nil {
-		return false, errors.Wrap(err, "Failed to get Blob by BlobID", fields)
-	}
-	fields["blob"] = blob
-
-	if blob.Type != KYCFormBlobType {
-		return false, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
-			blob.Type, KYCFormBlobType), fields)
-	}
-
-	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
-	if err != nil {
-		return false, errors.Wrap(err, "Failed tot parse KYC data from Attributes.Value of the Blob", fields)
-	}
-	fields["kyc_data"] = kycData
-
-	return kycData.IsUSA(), nil
 }
 
 func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, bool, error) {
