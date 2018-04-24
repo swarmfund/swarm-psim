@@ -16,6 +16,7 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 	// TODO Listen to Streamer stop
 	go s.ledgerStreamer.Run(ctx)
 
+	var snapshotPassAnnounced bool
 	for {
 		select {
 		case <-ctx.Done():
@@ -25,15 +26,29 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 				return
 			}
 
-			if timedLedger.Time.Sub(s.config.SnapshotTime) > 0 {
-				// Reached Snapshot time - Snapshot is fully ready all the following Changes, included this one are not interesting.
+			if timedLedger.Time.Sub(s.config.ApproveWaitFinishTime) > 0 {
+				// Reached ApproveWaitFinishTime time - Snapshot is fully ready all the following Changes, included this one are not interesting.
 				s.log.WithFields(logan.F{
-					"snapshot_time":        s.config.SnapshotTime,
-					"accounts_in_snapshot": len(s.snapshot),
-				}).Info("Reached the SnapshotTime in the stream of LedgerEntryChanges.")
+					"approve_wait_finish_time": s.config.ApproveWaitFinishTime,
+					"accounts_in_snapshot":     len(s.snapshot),
+				}).Info("Reached the ApproveWaitFinishTime in the stream of LedgerEntryChanges.")
 				return
 			}
 
+			if timedLedger.Time.Sub(s.config.SnapshotTime) > 0 {
+				if !snapshotPassAnnounced {
+					s.log.WithFields(logan.F{
+						"snapshot_time":        s.config.SnapshotTime,
+						"accounts_in_snapshot": len(s.snapshot),
+					}).Info("Reached the SnapshotTime in the stream of LedgerEntryChanges.")
+					snapshotPassAnnounced = true
+				}
+
+				s.processAfterSnapshotChange(ctx, timedLedger.Change)
+				continue
+			}
+
+			// Before the Snapshot
 			s.processChange(ctx, timedLedger.Change)
 		}
 	}
@@ -84,11 +99,12 @@ func (s *Service) processChange(ctx context.Context, change xdr.LedgerEntryChang
 				// Account could become not approved.
 				bonus, ok := s.snapshot[accEntry.AccountId.Address()]
 				if ok {
+					// Such a Referrer exists
 					bonus.IsVerified = false
 				}
 
 				if accEntry.Referrer != nil {
-					// Delete Referral as his AccountType is NotVerified.
+					// Delete Referral as his AccountType is NotVerified now.
 					referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
 					if ok {
 						referrerBonus.deleteReferral(accEntry.AccountId.Address())
@@ -122,6 +138,38 @@ func (s *Service) processChange(ctx context.Context, change xdr.LedgerEntryChang
 		// Not an Updated or Created type - not interested.
 		return
 	}
+}
+
+func (s *Service) processAfterSnapshotChange(ctx context.Context, change xdr.LedgerEntryChange) {
+	if change.Type != xdr.LedgerEntryChangeTypeUpdated {
+		return
+	}
+	entryData := change.Updated.Data
+
+	if entryData.Type != xdr.LedgerEntryTypeAccount {
+		return
+	}
+	accEntry := entryData.Account
+
+	switch accEntry.AccountType {
+	case xdr.AccountTypeGeneral, xdr.AccountTypeSyndicate:
+		// Account is probably becoming approved.
+		bonus, ok := s.snapshot[accEntry.AccountId.Address()]
+		if ok {
+			// Such a Referrer exists.
+			bonus.IsVerified = true
+		}
+
+		if accEntry.Referrer != nil {
+			// Add Referral as he became approved..
+			referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
+			if ok {
+				referrerBonus.addReferral(accEntry.AccountId.Address())
+			}
+		}
+	}
+
+	return
 }
 
 func (s *Service) setBonusBalance(entry xdr.BalanceEntry) {
