@@ -74,7 +74,7 @@
 
 [[constraint]]
   name = "gitlab.com/distributed_lab/logan"
-  version = "3.4.1"
+  version = "3"
 
 [[constraint]]
   name = "gitlab.com/distributed_lab/figure"
@@ -86,14 +86,14 @@
 
 [[constraint]]
   branch = "master"
-  name = "gitlab.com/swarmfund/horizon-connector"
+  name = "gitlab.com/tokend/horizon-connector"
 
 [[constraint]]
   branch = "master"
   name = "github.com/evalphobia/logrus_sentry"
 
 [[override]]
-  name = "gitlab.com/swarmfund/go"
+  name = "gitlab.com/tokend/go"
   branch = "master"
 
 [[constraint]]
@@ -103,3 +103,7 @@
 [[constraint]]
   name = "gitlab.com/distributed_lab/running"
   version = "0.2.0"
+
+[[constraint]]
+  name = "github.com/ethereum/go-ethereum"
+  version = "=1.7.3"

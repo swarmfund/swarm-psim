@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/go/amount"
-	"gitlab.com/swarmfund/go/hash"
+	"gitlab.com/tokend/go/amount"
+	"gitlab.com/tokend/go/hash"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 )
 

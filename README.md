@@ -12,7 +12,7 @@ usually only 1 service is run per PSIM start.
 Config of each Service is normally parsed inside the setUp function of the Service,
 which is normally in the main.go file in a service's package.
 
-[figure](https://gitlab.com/distributed_lab/figure) if used to parse services' configs from *.yaml files into go structures.
+[figure](https://gitlab.com/distributed_lab/figure) if used to parse services' configs from files (e.g. \*.yaml) into go structures.
 
 ## Contribution
 
@@ -29,7 +29,7 @@ adding [Fields](https://gitlab.com/distributed_lab/logan/v3/fields.go) if needed
 - Only the values, which are not accessible from the upper functions along the stack,
 should be attached in function to the returned error as fields.
 
-- Field names should be named using snake_case.
+- Field names should be named using snake\_case.
 
 - For the complex types (structs) being put into fields
 [GetLoganFields()](https://gitlab.com/distributed_lab/logan/v3/fields/main.go) interface method should be implemented.
@@ -47,7 +47,17 @@ should be attached in function to the returned error as fields.
 You normally will parse the content of this section from config into the Config go struct in your service
 inside the setUp function during the `init()`.
 
-- Be careful with parsing config structures with embedded complex structures -
+- Be careful parsing config structures with embedded complex structures -
 [figure](https://gitlab.com/distributed_lab/figure) needs adding hook for this.
 
-##### Make sure no sensitive of specific real data is mentioned in the [config.yaml](./config.yaml) (such as keys, secrets, real urls, etc)
+##### Make sure no sensitive or specific real data is mentioned in the [config.yaml](./config.yaml) (such as keys, secrets, real urls, etc)
+
+### General requirements
+
+- Make Run() methods blocking, so that possible to handle on the caller side when some runnable entity finishes.
+
+- All functions which are bloking or can work a long while - should normally receive context(as the first parameter)
+and listen to ctx.Done() so that to stop executing when latter is closed.
+
+- If some entity uses channels to provide data for reading - it must return a channel for reading, but not take a channel for writing.
+

@@ -40,7 +40,8 @@ import (
 //
 // The config sources are merged sequentially and later values
 // overwrite previously set values. Slice values are merged by
-// concatenating the two slices.
+// concatenating the two slices. Map values are merged by over-
+// laying the later maps on top of earlier ones.
 //
 // Then call Validate() to perform the semantic validation to ensure
 // that the configuration is ready to be used.
@@ -124,7 +125,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultEnterpriseSource(), DefaultVersionSource())
 	if b.boolVal(b.Flags.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
@@ -164,12 +165,25 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 
 	var sources []Source
 	for _, fi := range fis {
+		fp := filepath.Join(path, fi.Name())
+		// check for a symlink and resolve the path
+		if fi.Mode()&os.ModeSymlink > 0 {
+			var err error
+			fp, err = filepath.EvalSymlinks(fp)
+			if err != nil {
+				return nil, err
+			}
+			fi, err = os.Stat(fp)
+			if err != nil {
+				return nil, err
+			}
+		}
 		// do not recurse into sub dirs
 		if fi.IsDir() {
 			continue
 		}
 
-		src, err := b.ReadFile(filepath.Join(path, fi.Name()))
+		src, err := b.ReadFile(fp)
 		if err != nil {
 			return nil, err
 		}
@@ -386,7 +400,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			return RuntimeConfig{}, fmt.Errorf("No %s address found", addrtyp)
 		}
 		if len(advertiseAddrs) > 1 {
-			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one", addrtyp)
+			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one with 'bind' and/or 'advertise'.", addrtyp)
 		}
 		advertiseAddr = advertiseAddrs[0]
 	}
@@ -394,14 +408,23 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// derive other bind addresses from the bindAddr
 	rpcBindAddr := b.makeTCPAddr(bindAddr, nil, serverPort)
 	serfBindAddrLAN := b.makeTCPAddr(b.expandFirstIP("serf_lan", c.SerfBindAddrLAN), bindAddr, serfPortLAN)
-	serfBindAddrWAN := b.makeTCPAddr(b.expandFirstIP("serf_wan", c.SerfBindAddrWAN), bindAddr, serfPortWAN)
+
+	// Only initialize serf WAN bind address when its enabled
+	var serfBindAddrWAN *net.TCPAddr
+	if serfPortWAN >= 0 {
+		serfBindAddrWAN = b.makeTCPAddr(b.expandFirstIP("serf_wan", c.SerfBindAddrWAN), bindAddr, serfPortWAN)
+	}
 
 	// derive other advertise addresses from the advertise address
 	advertiseAddrLAN := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
 	advertiseAddrWAN := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
 	rpcAdvertiseAddr := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serverPort}
 	serfAdvertiseAddrLAN := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serfPortLAN}
-	serfAdvertiseAddrWAN := &net.TCPAddr{IP: advertiseAddrWAN.IP, Port: serfPortWAN}
+	// Only initialize serf WAN advertise address when its enabled
+	var serfAdvertiseAddrWAN *net.TCPAddr
+	if serfPortWAN >= 0 {
+		serfAdvertiseAddrWAN = &net.TCPAddr{IP: advertiseAddrWAN.IP, Port: serfPortWAN}
+	}
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
@@ -565,6 +588,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		// DNS
 		DNSAddrs:              dnsAddrs,
 		DNSAllowStale:         b.boolVal(c.DNS.AllowStale),
+		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
@@ -631,6 +655,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DisableRemoteExec:           b.boolVal(c.DisableRemoteExec),
 		DisableUpdateCheck:          b.boolVal(c.DisableUpdateCheck),
 		DiscardCheckOutput:          b.boolVal(c.DiscardCheckOutput),
+		DiscoveryMaxStale:           b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:     b.boolVal(c.EnableAgentTLSForChecks),
 		EnableDebug:                 b.boolVal(c.EnableDebug),
 		EnableScriptChecks:          b.boolVal(c.EnableScriptChecks),
@@ -793,6 +818,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.DNSUDPAnswerLimit < 0 {
 		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be greater than or equal to zero", rt.DNSUDPAnswerLimit)
 	}
+	if rt.DNSARecordLimit < 0 {
+		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)
+	}
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
 	}
@@ -848,8 +876,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if err := addrUnique(inuse, "Serf Advertise LAN", rt.SerfAdvertiseAddrLAN); err != nil {
 		return err
 	}
-	if err := addrUnique(inuse, "Serf Advertise WAN", rt.SerfAdvertiseAddrWAN); err != nil {
-		return err
+	// Validate serf WAN advertise address only when its set
+	if rt.SerfAdvertiseAddrWAN != nil {
+		if err := addrUnique(inuse, "Serf Advertise WAN", rt.SerfAdvertiseAddrWAN); err != nil {
+			return err
+		}
 	}
 	if b.err != nil {
 		return b.err
@@ -944,6 +975,8 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Interval:          b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID: b.stringVal(v.DockerContainerID),
 		Shell:             b.stringVal(v.Shell),
+		GRPC:              b.stringVal(v.GRPC),
+		GRPCUseTLS:        b.boolVal(v.GRPCUseTLS),
 		TLSSkipVerify:     b.boolVal(v.TLSSkipVerify),
 		Timeout:           b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:               b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
@@ -1140,7 +1173,7 @@ func (b *Builder) expandFirstAddr(name string, s *string) net.Addr {
 	return addrs[0]
 }
 
-// expandFirstIP exapnds the go-sockaddr template in s and returns the
+// expandFirstIP expands the go-sockaddr template in s and returns the
 // first address if it is not a unix socket address. If the template
 // expands to multiple addresses an error is set and nil is returned.
 func (b *Builder) expandFirstIP(name string, s *string) *net.IPAddr {

@@ -7,8 +7,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdr"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type CreatedKYCNotifier struct {
@@ -130,7 +130,7 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, c
 		return nil
 	}
 
-	blobKYCData, err := n.kycDataHelper.getBlobKYCData(createKYCRequestOperation.KYCData)
+	kycFirstName, err := n.kycDataHelper.getKYCFirstName(createKYCRequestOperation.KYCData)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Blob KYCData")
 	}
@@ -143,7 +143,7 @@ func (n *CreatedKYCNotifier) notifyAboutCreatedKYCRequest(ctx context.Context, c
 		FirstName string
 	}{
 		Link:      n.eventConfig.Emails.TemplateLinkURL,
-		FirstName: blobKYCData.FirstName,
+		FirstName: kycFirstName,
 	}
 
 	err = n.emailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)

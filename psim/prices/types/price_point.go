@@ -2,7 +2,7 @@ package types
 
 import (
 	"time"
-	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/tokend/go/amount"
 )
 
 // PricePoint stores info on Price value and time it was

@@ -46,3 +46,13 @@ func (d Data) GetLoganFields() map[string]interface{} {
 		"date_of_birth": d.DateOfBirth,
 	}
 }
+
+type FirstNameData struct {
+	FirstName   string    `json:"first_name"`
+}
+
+func (d FirstNameData) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"first_name": d.FirstName,
+	}
+}
