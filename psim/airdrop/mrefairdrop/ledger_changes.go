@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/tokend/go/xdr"
 )
 
 // ProcessChangesUpToSnapshotTime is a blocking method, returns if ctx canceled or all the Changes are processed.
@@ -24,28 +23,21 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 				return
 			}
 
-			if !s.processChange(ctx, timedLedger) {
-				// Reached SnapshotTime - don't need to continue, whole job is done for this runner.
+			if timedLedger.Time.Sub(s.config.SnapshotTime) > 0 {
+				// Reached Snapshot time - Snapshot is fully ready all the following Changes, included this one are not interesting.
 				s.log.WithFields(logan.F{
 					"snapshot_time":        s.config.SnapshotTime,
 					"accounts_in_snapshot": len(s.snapshot),
 				}).Info("Reached the SnapshotTime in the stream of LedgerEntryChanges.")
 				return
 			}
+
+			s.processChange(ctx, timedLedger.Change)
 		}
 	}
 }
 
-// TODO Stop returning bool, check for time above; pass LedgerChange without time.
-// ProcessChange only returns false if reached SnapshotTime.
-func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLedgerChange) bool {
-	if timedLedger.Time.Sub(s.config.SnapshotTime) > 0 {
-		// Reached Snapshot time - Snapshot is fully ready all the following Changes, included this one are not interesting.
-		return false
-	}
-
-	change := timedLedger.Change
-
+func (s *Service) processChange(ctx context.Context, change xdr.LedgerEntryChange) {
 	switch change.Type {
 	case xdr.LedgerEntryChangeTypeCreated:
 		entryData := change.Created.Data
@@ -69,14 +61,14 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 			}
 
 			s.snapshot[accEntry.AccountId.Address()] = &bonus
-			return true
+			return
 		case xdr.LedgerEntryTypeBalance:
 			// Balance created
 			balEntry := entryData.Balance
 			s.setBonusBalance(*balEntry)
-			return true
+			return
 		default:
-			return true
+			return
 		}
 	case xdr.LedgerEntryChangeTypeUpdated:
 		entryData := change.Updated.Data
@@ -116,17 +108,17 @@ func (s *Service) processChange(ctx context.Context, timedLedger airdrop.TimedLe
 				}
 			}
 
-			return true
+			return
 		case xdr.LedgerEntryTypeBalance:
 			balEntry := entryData.Balance
 			s.setBonusBalance(*balEntry)
-			return true
+			return
 		default:
-			return true
+			return
 		}
 	default:
 		// Not an Updated or Created type - not interested.
-		return true
+		return
 	}
 }
 
