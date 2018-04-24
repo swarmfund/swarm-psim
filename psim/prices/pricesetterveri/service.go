@@ -29,15 +29,9 @@ func New(
 		pFinder,
 	)
 
-	discoveryID, err := utils.GenerateToken()
-	if err != nil {
-		log.WithError(err).Error("Failed to generate discovery ID")
-		return nil
-	}
-
 	return verifier.New(
 		serviceName,
-		discoveryID,
+		utils.GenerateToken(),
 		log,
 		v,
 		builder,

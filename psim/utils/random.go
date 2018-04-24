@@ -5,10 +5,10 @@ import (
 	"gitlab.com/tokend/keypair"
 )
 
-func GenerateToken() (string, error) {
+func GenerateToken() string {
 	kp, err := keypair.Random()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to generate token")
+		panic(errors.Wrap(err, "failed to generate token"))
 	}
-	return kp.Address(), nil
+	return kp.Address()
 }

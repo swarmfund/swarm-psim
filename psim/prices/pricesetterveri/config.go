@@ -12,13 +12,13 @@ type Config struct {
 	Host string `fig:"host"`
 	Port int    `fig:"port"`
 
-	BaseAsset            string                     `fig:"base_asset" mapstructure:"base_asset"`
-	QuoteAsset           string                     `fig:"quote_asset" mapstructure:"quote_asset"`
-	Providers            []providers.ProviderConfig `fig:"providers" mapstructure:"providers"`
-	ProvidersToAgree     int                        `fig:"providers_to_agree" mapstructure:"providers_to_agree"`
-	MaxPriceDeltaPercent string                     `fig:"max_price_delta_percent" mapstructure:"max_price_delta_percent"`
+	BaseAsset            string                     `fig:"base_asset,required"`
+	QuoteAsset           string                     `fig:"quote_asset,required"`
+	Providers            []providers.ProviderConfig `fig:"providers,required"`
+	ProvidersToAgree     int                        `fig:"providers_to_agree,required"`
+	MaxPriceDeltaPercent string                     `fig:"max_price_delta_percent,required"`
 
-	Signer              keypair.Full `fig:"signer" mapstructure:"signer"`
+	Signer              keypair.Full `fig:"signer,required"`
 	VerifierServiceName string       `fig:"verifier_service_name,required"`
 }
 
