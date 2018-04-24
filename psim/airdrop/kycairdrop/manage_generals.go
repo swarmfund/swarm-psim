@@ -13,10 +13,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
-)
-
-const (
-	AccountTypeGeneral uint = 2
+	"gitlab.com/tokend/go/xdr"
 )
 
 func (s *Service) consumeGeneralAccounts(ctx context.Context) {
@@ -67,7 +64,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return errors.Wrap(err, "Failed to get Account by AccountAddress")
 	}
 
-	if acc.AccountTypeI != AccountTypeGeneral {
+	if acc.AccountTypeI != int32(xdr.AccountTypeGeneral) {
 		s.log.WithField("account_id", accAddress).Warn("Found Account, which used to be General, but not General anymore, skipping.")
 		return nil
 	}

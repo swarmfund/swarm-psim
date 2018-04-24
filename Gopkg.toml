@@ -85,7 +85,7 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
+  version = "2"
   name = "gitlab.com/tokend/horizon-connector"
 
 [[constraint]]
