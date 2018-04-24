@@ -82,7 +82,7 @@ services:
 
 #  - template_provider
 #  - wallet_cleaner
-#  - metrics
+#  - metrics_provider
 
 # BTC
 btc_deposit:
