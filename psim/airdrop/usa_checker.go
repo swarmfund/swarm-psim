@@ -25,7 +25,6 @@ func NewUSAChecker(blobsConnector BlobsConnector) *USAChecker {
 	}
 }
 
-// TODO Comment
 // CheckIsUSA takes BlobID from Account.KYC.Data,
 // retrieves Blob from Horizon by BlobID (using BlobsConnector),
 // parses KYCData from the retrieved Blob

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	horizon "gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	horizon "gitlab.com/tokend/horizon-connector"
 )
 
 type IssuanceSubmitter interface {
@@ -25,6 +25,14 @@ type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
+type accountsConnector interface {
+	ByAddress(address string) (*horizon.Account, error)
+}
+
+type usaChecker interface {
+	CheckIsUSA(acc horizon.Account) (bool, error)
+}
+
 type EmailProcessor interface {
 	Run(context.Context)
 	AddEmailAddress(ctx context.Context, emailAddress string)
@@ -34,15 +42,16 @@ type Service struct {
 	log    *logan.Entry
 	config Config
 
-	issuanceSubmitter IssuanceSubmitter
-	ledgerStreamer    LedgerStreamer
-	balanceIDProvider BalanceIDProvider
-	usersConnector    UsersConnector
-	emailProcessor    EmailProcessor
+	issuanceSubmitter  IssuanceSubmitter
+	ledgerStreamer     LedgerStreamer
+	balanceIDProvider  BalanceIDProvider
+	usersConnector     UsersConnector
+	accountsConnector  accountsConnector
+	usaChecker         usaChecker
+	emailProcessor     EmailProcessor
 
 	blackList map[string]struct{}
-	// AccountID to Bonus map
-	snapshot map[string]*bonusParams
+	snapshot map[string]*bonusParams // AccountID to Bonus map
 }
 
 func NewService(
@@ -52,6 +61,8 @@ func NewService(
 	ledgerStreamer LedgerStreamer,
 	balanceIDProvider BalanceIDProvider,
 	usersConnector UsersConnector,
+	accountsConnector  accountsConnector,
+	usaChecker usaChecker,
 	emailProcessor EmailProcessor,
 ) *Service {
 
@@ -59,11 +70,13 @@ func NewService(
 		log:    log,
 		config: config,
 
-		issuanceSubmitter: issuanceSubmitter,
-		ledgerStreamer:    ledgerStreamer,
-		balanceIDProvider: balanceIDProvider,
-		usersConnector:    usersConnector,
-		emailProcessor:    emailProcessor,
+		issuanceSubmitter:  issuanceSubmitter,
+		ledgerStreamer:     ledgerStreamer,
+		balanceIDProvider:  balanceIDProvider,
+		usersConnector:     usersConnector,
+		accountsConnector: accountsConnector,
+		usaChecker: usaChecker,
+		emailProcessor:     emailProcessor,
 
 		blackList: make(map[string]struct{}),
 		snapshot:  make(map[string]*bonusParams),
