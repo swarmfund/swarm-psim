@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/go/doorman"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type ctxKey int

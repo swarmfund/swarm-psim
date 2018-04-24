@@ -5,8 +5,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/go/xdrbuild"
-	"gitlab.com/swarmfund/horizon-connector/v2"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/tokend/keypair"
 )

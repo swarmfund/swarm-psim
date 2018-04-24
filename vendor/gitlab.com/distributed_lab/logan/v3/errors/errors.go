@@ -200,14 +200,14 @@ type withFields struct {
 	eFields
 }
 
-func (w *withFields) Error() string {
+func (w withFields) Error() string {
 	return w.error.Error()
 }
 
-func (w *withFields) GetFields() eFields {
+func (w withFields) GetFields() eFields {
 	return w.eFields
 }
 
-func (w *withFields) Cause() error {
+func (w withFields) Cause() error {
 	return w.error
 }

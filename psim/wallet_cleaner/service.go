@@ -6,8 +6,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2"
-	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/horizon-connector/types"
 )
 
 type Service struct {

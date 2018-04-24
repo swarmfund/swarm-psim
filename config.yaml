@@ -360,7 +360,7 @@ airdrop_kyc:
 
 airdrop_march_referrals:
   issuance_asset: SWM
-  snapshot_time: "2018-04-15T14:00:00" # +14 - the latest existing GMT
+  snapshot_time: "2018-04-22T11:30:00"
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY

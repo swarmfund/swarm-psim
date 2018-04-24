@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
+	"net/url"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
+//todo add base pointer types
 var (
 	// BaseHooks set of default hooks for common types
 	BaseHooks = Hooks{
@@ -32,6 +35,13 @@ var (
 			result, err := cast.ToIntE(value)
 			if err != nil {
 				return reflect.Value{}, errors.Wrap(err, "failed to parse int")
+			}
+			return reflect.ValueOf(result), nil
+		},
+		"int32": func(value interface{}) (reflect.Value, error) {
+			result, err := cast.ToInt32E(value)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed to parse int32")
 			}
 			return reflect.ValueOf(result), nil
 		},
@@ -134,5 +144,49 @@ var (
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}
 		},
+		"*uint64": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				puint, err := cast.ToUint64E(v)
+				if err != nil {
+					return reflect.Value{}, errors.New("failed to parse")
+				}
+				return reflect.ValueOf(&puint), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
+		"*url.URL": func(value interface{}) (reflect.Value, error) {
+			switch v := value.(type) {
+			case string:
+				u, err := url.Parse(v)
+				if err != nil {
+					return reflect.Value{}, errors.Wrap(err, "failed to parse url")
+				}
+				return reflect.ValueOf(u), nil
+			case nil:
+				return reflect.ValueOf(nil), nil
+			default:
+				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
+			}
+		},
 	}
 )
+
+// Merge does not modify any Hooks, only produces new Hooks.
+// If duplicated keys - the value from the last Hooks with such key will be taken.
+func Merge(manyHooks ...Hooks) Hooks {
+	if len(manyHooks) == 1 {
+		return manyHooks[0]
+	}
+
+	merged := Hooks{}
+
+	for _, hooks := range manyHooks {
+		for key, hook := range hooks {
+			merged[key] = hook
+		}
+	}
+
+	return merged
+}

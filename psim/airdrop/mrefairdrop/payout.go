@@ -9,13 +9,13 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/go/amount"
+	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 )
 
 func (s *Service) payOutSnapshot(ctx context.Context) {
-	s.filterReferrals()
+	s.filterBlacklistedReferrals()
 	s.filterReferrers()
 
 	s.log.WithFields(logan.F{
@@ -29,7 +29,7 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 			continue
 		}
 
-		running.UntilSuccess(ctx, s.log, "general_account_processor", func(ctx context.Context) (bool, error) {
+		running.UntilSuccess(ctx, s.log, "referrer_issuance_processor", func(ctx context.Context) (bool, error) {
 			emailAddress, err := s.getUserEmail(accAddress)
 			if err != nil {
 				return false, errors.Wrap(err, "Failed to get User's emailAddress")
@@ -71,8 +71,6 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 
 func (s *Service) filterReferrers() {
 	for accAddress, bonus := range s.snapshot {
-		_, inBlackList := s.blackList[accAddress]
-
 		if !bonus.IsVerified {
 			delete(s.snapshot, accAddress)
 			continue
@@ -84,22 +82,23 @@ func (s *Service) filterReferrers() {
 			continue
 		}
 
-		if inBlackList {
-			s.log.WithField("account_address", accAddress).Info("Filtering out Account, because it's in BlackList")
+		if _, isInBlackList := s.blackList[accAddress]; isInBlackList {
+			s.log.WithField("account_address", accAddress).Info("Filtering out Referrer Account, because it's in BlackList.")
 			delete(s.snapshot, accAddress)
 			continue
 		}
 	}
 }
 
-func (s *Service) filterReferrals() {
+func (s *Service) filterBlacklistedReferrals() {
 	for referrer, bonus := range s.snapshot {
 		for referral, _ := range bonus.Referrals {
 			if _, inBlackList := s.blackList[referral]; inBlackList {
 				s.log.WithFields(logan.F{
 					"referrer_address": referrer,
 					"referral_address": referral,
-				}).Info("Filtering out referral, because it's in BlackList")
+				}).Info("Filtering out Referral, because it's in BlackList")
+
 				delete(bonus.Referrals, referral)
 			}
 		}

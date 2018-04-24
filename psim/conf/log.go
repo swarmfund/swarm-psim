@@ -119,6 +119,7 @@ func addSentryHook(v *viper.Viper, entry *logan.Entry) (*logan.Entry, error) {
 		logrus.PanicLevel,
 		logrus.FatalLevel,
 		logrus.ErrorLevel,
+		logrus.WarnLevel,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create Sentry hook")
@@ -173,5 +174,46 @@ func (h *sentryWrapperHook) Fire(entry *logrus.Entry) error {
 		entry.Data["raw_error"] = err
 	}
 
+	entry = h.putServiceToTags(entry)
+
 	return h.SentryHook.Fire(entry)
+}
+
+// TODO Make a common helper for field reputting.
+func (h *sentryWrapperHook) putServiceToTags(entry *logrus.Entry) *logrus.Entry {
+	serviceField, ok := entry.Data["service"]
+	if !ok {
+		// No 'service' field
+		return entry
+	}
+
+	serviceName, ok := serviceField.(string)
+	if !ok {
+		// Service field is not a string
+		return entry
+	}
+
+	serviceTag := raven.Tag{
+		Key:   "service",
+		Value: serviceName,
+	}
+
+	tagsField, ok := entry.Data["tags"]
+	if ok {
+		// Try to put service into tags.
+		tags, ok := tagsField.(raven.Tags)
+		if !ok {
+			// Tags field is not a raven.Tags instance. That's quite strange though.
+			return entry
+		}
+
+		entry.Data["tags"] = append(tags, serviceTag)
+	} else {
+		// No tags field.
+		entry = entry.WithField("tags", raven.Tags{
+			serviceTag,
+		})
+	}
+
+	return entry
 }

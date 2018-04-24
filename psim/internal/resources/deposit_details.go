@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/horizon-connector/v2/types"
+	"gitlab.com/tokend/horizon-connector/types"
 )
 
 // DEPRECATED Use deposit.ExternalDetails instead
