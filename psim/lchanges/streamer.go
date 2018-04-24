@@ -11,7 +11,8 @@ import (
 )
 
 type TXStreamer interface {
-	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
+	//StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
+	StreamTXs(ctx context.Context, stopOnEmptyPage bool) <-chan horizon.TXPacket
 }
 
 type TimedLedgerChange struct {
@@ -20,16 +21,18 @@ type TimedLedgerChange struct {
 }
 
 type Streamer struct {
-	log        *logan.Entry
-	txStreamer TXStreamer
+	log             *logan.Entry
+	txStreamer      TXStreamer
+	stopOnEmptyPage bool
 
 	timedChangesStream chan TimedLedgerChange
 }
 
-func NewStreamer(log *logan.Entry, txStreamer TXStreamer) *Streamer {
+func NewStreamer(log *logan.Entry, txStreamer TXStreamer, stopOnEmptyPage bool) *Streamer {
 	return &Streamer{
-		log:        log.WithField("helper-runner", "ledger_changes_streamer"),
-		txStreamer: txStreamer,
+		log:             log.WithField("helper-runner", "ledger_changes_streamer"),
+		txStreamer:      txStreamer,
+		stopOnEmptyPage: stopOnEmptyPage,
 
 		timedChangesStream: make(chan TimedLedgerChange),
 	}
@@ -41,10 +44,18 @@ func (s Streamer) GetStream() <-chan TimedLedgerChange {
 	return s.timedChangesStream
 }
 
-// Run is a blocking method, Run returns only if ctx cancelled.
+// Run is a blocking method, Run returns only if:
+// - ctx cancelled;
+// - txStream was closed (if stopOnEmptyPage is true)
+//
+// Run is not supposed to be called more than once - it closes LC stream in defer.
 func (s *Streamer) Run(ctx context.Context) {
-	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
 	s.log.Info("Started listening Transactions stream.")
+	txStream := s.txStreamer.StreamTXs(ctx, s.stopOnEmptyPage)
+
+	defer func() {
+		close(s.timedChangesStream)
+	}()
 
 	// TODO Consider counting TXs per day and logging this number with each TX day log.
 	var lastLoggedTXYearDay int
@@ -52,10 +63,22 @@ func (s *Streamer) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case txEvent := <-txStream:
+		case txPacket, ok := <-txStream:
 			if app.IsCanceled(ctx) {
-				s.log.Info("Received cancel - closing.")
+				s.log.Info("Received cancel - stopping.")
 				return
+			}
+
+			if !ok {
+				// No more Transactions in the system
+				s.log.Info("TX channel was closed - no more Transactions - stopping.")
+				return
+			}
+
+			txEvent, err := txPacket.Unwrap()
+			if err != nil {
+				s.log.WithError(err).Error("TXStreamer sent error into its error channel.")
+				continue
 			}
 
 			if txEvent.Transaction == nil {
@@ -69,9 +92,6 @@ func (s *Streamer) Run(ctx context.Context) {
 			}
 
 			s.streamChanges(ctx, *txEvent.Transaction)
-			continue
-		case txStreamerErr := <-txStreamerErrs:
-			s.log.WithError(txStreamerErr).Error("TXStreamer sent error into its error channel.")
 			continue
 		}
 	}

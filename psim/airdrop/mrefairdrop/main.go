@@ -6,12 +6,12 @@ import (
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -51,7 +51,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		horizonConnector.Submitter())
 
-	ledgerStreamer := lchanges.NewStreamer(log, horizonConnector.Listener())
+	// TODO pass true
+	ledgerStreamer := lchanges.NewStreamer(log, horizonConnector.Listener(), false)
 
 	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
 

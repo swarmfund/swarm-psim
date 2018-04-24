@@ -59,7 +59,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
 
-	ledgerChangesStreamer := lchanges.NewStreamer(log, horizonConnector.Listener())
+	ledgerChangesStreamer := lchanges.NewStreamer(log, horizonConnector.Listener(), false)
 
 	return NewService(
 		log,

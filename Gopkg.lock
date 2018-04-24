@@ -565,8 +565,8 @@
     "internal/wallets",
     "types"
   ]
-  revision = "f902327004544dc16c77dbe756c6cf52629093c5"
-  version = "v2"
+  revision = "cef5b14ceb0a00cabe04e96ccd85c07de0685a90"
+  version = "v2.1"
 
 [[projects]]
   branch = "master"
