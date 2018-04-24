@@ -224,6 +224,7 @@ price_setter_verify:
   max_price_delta_percent: "10"
 
   signer: S
+  verifier_service_name: SOME_VERIFIER_SERVICE_NAME
 
 taxman:
   source: GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4
