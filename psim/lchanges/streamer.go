@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 type TXStreamer interface {
@@ -35,6 +35,8 @@ func NewStreamer(log *logan.Entry, txStreamer TXStreamer) *Streamer {
 	}
 }
 
+// GetStream returns stream of TimedLedgerChange where all the data is streamed.
+// Consumers of Streamer should naturally listen to this channel as channels with work.
 func (s Streamer) GetStream() <-chan TimedLedgerChange {
 	return s.timedChangesStream
 }

@@ -12,7 +12,9 @@ import (
 // Don't run this method in goroutine, as it won't notify anywhere when finished - will just return.
 func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 	s.log.WithField("snapshot_time", s.config.SnapshotTime).Info("Started listening TimedLedgers stream.")
-	ledgerStream := s.ledgerStreamer.Run(ctx)
+	ledgerStream := s.ledgerStreamer.GetStream()
+	// TODO Listen to Streamer stop
+	go s.ledgerStreamer.Run(ctx)
 
 	for {
 		select {

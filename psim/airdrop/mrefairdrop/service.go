@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
-	horizon "gitlab.com/tokend/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type IssuanceSubmitter interface {
@@ -14,7 +14,8 @@ type IssuanceSubmitter interface {
 }
 
 type LedgerStreamer interface {
-	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
+	GetStream() <-chan lchanges.TimedLedgerChange
+	Run(ctx context.Context)
 }
 
 type BalanceIDProvider interface {
@@ -42,16 +43,16 @@ type Service struct {
 	log    *logan.Entry
 	config Config
 
-	issuanceSubmitter  IssuanceSubmitter
-	ledgerStreamer     LedgerStreamer
-	balanceIDProvider  BalanceIDProvider
-	usersConnector     UsersConnector
-	accountsConnector  accountsConnector
-	usaChecker         usaChecker
-	emailProcessor     EmailProcessor
+	issuanceSubmitter IssuanceSubmitter
+	ledgerStreamer    LedgerStreamer
+	balanceIDProvider BalanceIDProvider
+	usersConnector    UsersConnector
+	accountsConnector accountsConnector
+	usaChecker        usaChecker
+	emailProcessor    EmailProcessor
 
 	blackList map[string]struct{}
-	snapshot map[string]*bonusParams // AccountID to Bonus map
+	snapshot  map[string]*bonusParams // AccountID to Bonus map
 }
 
 func NewService(
@@ -61,7 +62,7 @@ func NewService(
 	ledgerStreamer LedgerStreamer,
 	balanceIDProvider BalanceIDProvider,
 	usersConnector UsersConnector,
-	accountsConnector  accountsConnector,
+	accountsConnector accountsConnector,
 	usaChecker usaChecker,
 	emailProcessor EmailProcessor,
 ) *Service {
@@ -70,13 +71,13 @@ func NewService(
 		log:    log,
 		config: config,
 
-		issuanceSubmitter:  issuanceSubmitter,
-		ledgerStreamer:     ledgerStreamer,
-		balanceIDProvider:  balanceIDProvider,
-		usersConnector:     usersConnector,
+		issuanceSubmitter: issuanceSubmitter,
+		ledgerStreamer:    ledgerStreamer,
+		balanceIDProvider: balanceIDProvider,
+		usersConnector:    usersConnector,
 		accountsConnector: accountsConnector,
-		usaChecker: usaChecker,
-		emailProcessor:     emailProcessor,
+		usaChecker:        usaChecker,
+		emailProcessor:    emailProcessor,
 
 		blackList: make(map[string]struct{}),
 		snapshot:  make(map[string]*bonusParams),

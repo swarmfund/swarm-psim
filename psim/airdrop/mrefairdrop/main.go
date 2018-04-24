@@ -11,6 +11,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/lchanges"
 )
 
 func init() {
@@ -50,7 +51,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		horizonConnector.Submitter())
 
-	ledgerStreamer := airdrop.NewLedgerChangesStreamer(log, horizonConnector.Listener())
+	ledgerStreamer := lchanges.NewStreamer(log, horizonConnector.Listener())
 
 	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
 
