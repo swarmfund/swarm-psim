@@ -5,7 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/distributed_lab/figure"
 )
 
 func (c *ViperConfig) Ethereum() *ethclient.Client {

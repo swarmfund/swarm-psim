@@ -4,12 +4,11 @@ import (
 	discovery "gitlab.com/distributed_lab/discovery-go"
 )
 
-var (
-	discoveryClient *discovery.Client
-)
-
 func (c *ViperConfig) Discovery() *discovery.Client {
-	if discoveryClient == nil {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.discoveryClient == nil {
 		var err error
 		config := &discovery.ClientConfig{}
 		v := c.viper.Sub("discovery")
@@ -18,10 +17,10 @@ func (c *ViperConfig) Discovery() *discovery.Client {
 			config.Host = v.GetString("host")
 			config.Port = v.GetInt("port")
 		}
-		discoveryClient, err = discovery.NewClient(config)
+		c.discoveryClient, err = discovery.NewClient(config)
 		if err != nil {
 			panic(err)
 		}
 	}
-	return discoveryClient
+	return c.discoveryClient
 }

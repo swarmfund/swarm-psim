@@ -11,9 +11,9 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
-	horizon "gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/notifications"
+	horizon "gitlab.com/tokend/horizon-connector"
 )
 
 // TODO: viper's Get* methods won't throw error if value is invalid
@@ -44,8 +44,14 @@ type ViperConfig struct {
 
 	// internal singletons
 	*sync.Mutex
-	horizon *horizon.Connector
-	session *session.Session
+	horizon            *horizon.Connector
+	session            *session.Session
+	btcClient          *bitcoin.Client
+	discoveryClient    *discovery.Client
+	defaultLog         *logan.Entry
+	notificationSender *notifications.SlackSender
+	notificatorClient  *notificator.Connector
+	stripeClient       *client.API
 }
 
 func NewViperConfig(fn string) *ViperConfig {
