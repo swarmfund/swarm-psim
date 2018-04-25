@@ -158,6 +158,7 @@ func (s *Service) processAfterSnapshotChange(ctx context.Context, change xdr.Led
 		if ok {
 			// Such a Referrer exists.
 			bonus.IsVerified = true
+			s.log.WithField("account_addr", accEntry.AccountId.Address()).Debug("Referrer became approved after Snapshot.")
 		}
 
 		if accEntry.Referrer != nil {
@@ -165,6 +166,7 @@ func (s *Service) processAfterSnapshotChange(ctx context.Context, change xdr.Led
 			referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
 			if ok {
 				referrerBonus.addReferral(accEntry.AccountId.Address())
+				s.log.WithField("account_addr", accEntry.AccountId.Address()).Debug("Referral became approved after Snapshot.")
 			}
 		}
 	}
