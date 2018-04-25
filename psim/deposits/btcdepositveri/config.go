@@ -16,7 +16,7 @@ type Config struct {
 	FixedDepositFee    uint64 `fig:"fixed_deposit_fee,required"`
 	LastBlocksNotWatch uint64 `fig:"last_blocks_not_watch,required"`
 
-	Signer keypair.Full `fig:"signer,required" mapstructure:"signer"`
+	Signer keypair.Full `fig:"signer,required"`
 }
 
 func NewConfig(configData map[string]interface{}) (*Config, error) {

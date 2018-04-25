@@ -23,6 +23,9 @@ const (
 )
 
 func (c *ViperConfig) Log() (*logan.Entry, error) {
+	c.Lock()
+	defer c.Unlock()
+
 	if c.defaultLog != nil {
 		return c.defaultLog, nil
 	}

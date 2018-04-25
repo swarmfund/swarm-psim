@@ -21,7 +21,7 @@ type Config struct {
 	MinWithdrawAmount int64 `fig:"min_withdraw_amount,required"`
 
 	SourceKP keypair.Address `fig:"source,required"`
-	SignerKP keypair.Full    `fig:"signer,required" mapstructure:"signer"`
+	SignerKP keypair.Full    `fig:"signer,required"`
 }
 
 func NewConfig(configData map[string]interface{}) (*Config, error) {
