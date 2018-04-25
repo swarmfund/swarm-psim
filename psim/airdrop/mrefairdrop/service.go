@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	horizon "gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type IssuanceSubmitter interface {
@@ -14,7 +14,8 @@ type IssuanceSubmitter interface {
 }
 
 type LedgerStreamer interface {
-	Run(ctx context.Context) <-chan airdrop.TimedLedgerChange
+	GetStream() <-chan lchanges.TimedLedgerChange
+	Run(ctx context.Context)
 }
 
 type BalanceIDProvider interface {
@@ -23,6 +24,14 @@ type BalanceIDProvider interface {
 
 type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
+}
+
+type accountsConnector interface {
+	ByAddress(address string) (*horizon.Account, error)
+}
+
+type usaChecker interface {
+	CheckIsUSA(acc horizon.Account) (bool, error)
 }
 
 type EmailProcessor interface {
@@ -38,11 +47,12 @@ type Service struct {
 	ledgerStreamer    LedgerStreamer
 	balanceIDProvider BalanceIDProvider
 	usersConnector    UsersConnector
+	accountsConnector accountsConnector
+	usaChecker        usaChecker
 	emailProcessor    EmailProcessor
 
 	blackList map[string]struct{}
-	// AccountID to Bonus map
-	snapshot map[string]*bonusParams
+	snapshot  map[string]*bonusParams // AccountID to Bonus map
 }
 
 func NewService(
@@ -52,6 +62,8 @@ func NewService(
 	ledgerStreamer LedgerStreamer,
 	balanceIDProvider BalanceIDProvider,
 	usersConnector UsersConnector,
+	accountsConnector accountsConnector,
+	usaChecker usaChecker,
 	emailProcessor EmailProcessor,
 ) *Service {
 
@@ -63,6 +75,8 @@ func NewService(
 		ledgerStreamer:    ledgerStreamer,
 		balanceIDProvider: balanceIDProvider,
 		usersConnector:    usersConnector,
+		accountsConnector: accountsConnector,
+		usaChecker:        usaChecker,
 		emailProcessor:    emailProcessor,
 
 		blackList: make(map[string]struct{}),

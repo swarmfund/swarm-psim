@@ -224,6 +224,7 @@ price_setter_verify:
   max_price_delta_percent: "10"
 
   signer: S
+  verifier_service_name: SOME_VERIFIER_SERVICE_NAME
 
 taxman:
   source: GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4
@@ -361,6 +362,7 @@ airdrop_kyc:
 airdrop_march_referrals:
   issuance_asset: SWM
   snapshot_time: "2018-04-22T11:30:00"
+  approve_wait_finish_time: "2018-04-25T11:30:00"
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY

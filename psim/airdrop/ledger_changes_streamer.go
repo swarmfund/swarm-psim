@@ -19,7 +19,8 @@ type TimedLedgerChange struct {
 	Time   time.Time
 }
 
-// DEPRECATED Use lchanges.Streamer instead
+// DEPRECATED
+// Use lchanges.Streamer instead
 type LedgerChangesStreamer struct {
 	log        *logan.Entry
 	txStreamer TXStreamer
@@ -27,7 +28,8 @@ type LedgerChangesStreamer struct {
 	timedChangesStream chan TimedLedgerChange
 }
 
-// DEPRECATED Use lchanges.NewStreamer instead
+// DEPRECATED
+// Use lchanges.NewStreamer instead
 func NewLedgerChangesStreamer(log *logan.Entry, txStreamer TXStreamer) *LedgerChangesStreamer {
 	return &LedgerChangesStreamer{
 		log:        log.WithField("helper-runner", "ledger_changes_streamer"),
@@ -37,13 +39,13 @@ func NewLedgerChangesStreamer(log *logan.Entry, txStreamer TXStreamer) *LedgerCh
 	}
 }
 
-// DEPRECATED Use lchanges.Streamer instead
+// DEPRECATED
+// Use lchanges.Streamer instead
 func (s *LedgerChangesStreamer) Run(ctx context.Context) <-chan TimedLedgerChange {
 	s.log.Info("Started listening Transactions stream.")
 	txStream, txStreamerErrs := s.txStreamer.StreamTransactions(ctx)
 
 	var isFirstTX = true
-	// TODO Consider counting TXs per day and logging this number with each TX day log.
 	var lastLoggedTXYearDay int
 	go app.RunOverIncrementalTimer(ctx, s.log, "ledger_changes_processor", func(ctx context.Context) error {
 		select {

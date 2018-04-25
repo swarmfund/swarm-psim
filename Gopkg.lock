@@ -543,7 +543,6 @@
   revision = "9ab0e0408616ee10e8a659bbe65b5ef8ac51765d"
 
 [[projects]]
-  branch = "master"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -566,7 +565,8 @@
     "internal/wallets",
     "types"
   ]
-  revision = "2fa0e2903bb5474247a65fac3bf2ca95ddd417a7"
+  revision = "cef5b14ceb0a00cabe04e96ccd85c07de0685a90"
+  version = "v2.1"
 
 [[projects]]
   branch = "master"
@@ -656,6 +656,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9da60a18e8e33ddeae71a8e985cab30560f62253c0ca6b083e4d03b9283517b3"
+  inputs-digest = "fa5b07a2aa33f1006f763c2660d0488d623892ced7cb8e029256a72c600f086b"
   solver-name = "gps-cdcl"
   solver-version = 1
