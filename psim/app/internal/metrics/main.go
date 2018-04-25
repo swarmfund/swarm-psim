@@ -17,20 +17,22 @@ import (
 )
 
 func (m *MetricsProvider) ServicesStatus(w http.ResponseWriter, r *http.Request) {
-	if !m.Done() {
+	if !m.IsDone() {
 		w.WriteHeader(http.StatusPreconditionFailed)
 		return
 	}
 
-	result := make(map[string]map[string]map[string]interface{})
+	result := map[string]map[string]map[string]interface{}{}
 
+	statusCode := http.StatusOK
 	for name, val := range m.metrics {
-		register := val.GetRegister()
-		register.RunHealthchecks()
-
-		result[name] = register.GetAll()
+		if !val.State() {
+			statusCode = http.StatusServiceUnavailable
+		}
+		result[name] = val.GetRegister().GetAll()
 	}
 
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(result)
 }
 
@@ -60,7 +62,7 @@ func New(log *logan.Entry, config Config) *MetricsProvider {
 		mutex:   &sync.Mutex{},
 		log:     log,
 		config:  config,
-		metrics: make(map[string]*data.Metrics),
+		metrics: map[string]*data.Metrics{},
 	}
 }
 
@@ -82,11 +84,11 @@ func (m *MetricsProvider) AddService(name string) *data.Metrics {
 	return m.metrics[name]
 }
 
-func (m *MetricsProvider) SetDone(isDone bool) {
-	m.done = isDone
+func (m *MetricsProvider) Done() {
+	m.done = true
 }
 
-func (m MetricsProvider) Done() bool {
+func (m MetricsProvider) IsDone() bool {
 	return m.done
 }
 

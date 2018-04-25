@@ -16,16 +16,13 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
+type ctxKey string
+
 const (
-	// TODO Custom types
-	// DEPRECATED use Config getter instead
-	CtxConfig = "config"
-	// DEPRECATED use Log getter instead
-	CtxLog                 = "log"
-	ctxLog                 = CtxLog
-	ctxConfig              = CtxConfig
-	ctxMetrics             = "metrics"
-	forceKillPeriodSeconds = 30
+	ctxLog                 ctxKey = "log"
+	ctxConfig              ctxKey = "config"
+	ctxMetrics             ctxKey = "metrics"
+	forceKillPeriodSeconds        = 30
 )
 
 // DEPRECATED
@@ -205,11 +202,11 @@ func (app *App) Run() {
 
 			metric := app.metricsProvider.AddService(serviceName)
 
-			ctxLog := context.WithValue(ctx, ctxLog, entry)
-			ctxMetric := context.WithValue(ctxLog, ctxMetrics, metric)
+			ctx := context.WithValue(ctx, ctxLog, entry)
+			ctx = context.WithValue(ctx, ctxMetrics, metric)
 
 			metric.Unhealthy(errors.New("service not initialize yet"))
-			service, err := ohaigo(ctxMetric)
+			service, err := ohaigo(ctx)
 			if err != nil {
 				metric.Unhealthy(err)
 				// TODO Consider panicking here instead of Error log and return.
@@ -220,11 +217,11 @@ func (app *App) Run() {
 			metric.Healthy()
 
 			// TODO Pass another ctx here - just for cancelling.
-			service.Run(ctxMetric)
+			service.Run(ctx)
 			entry.Warn("died")
 		}()
 	}
-	app.metricsProvider.SetDone(true)
+	app.metricsProvider.Done()
 
 	wg.Wait()
 	time.Sleep(1)

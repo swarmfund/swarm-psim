@@ -31,6 +31,10 @@ func (m *Metrics) Unhealthy(err error) {
 	m.healthCheck.Unhealthy(err)
 }
 
+func (m *Metrics) State() bool {
+	return m.healthCheck.Error() == nil
+}
+
 func (m Metrics) GetRegister() metrics.Registry {
 	return m.register
 }

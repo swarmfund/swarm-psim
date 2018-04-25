@@ -2,9 +2,7 @@ package metrics
 
 import (
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/conf"
 )
 
 type Config struct {
@@ -20,9 +18,7 @@ func NewConfig(configData map[string]interface{}) (*Config, error) {
 		From(configData).
 		Please()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceMetricsProvider,
-		})
+		return nil, errors.Wrap(err, "Failed to figure out")
 	}
 
 	return config, nil
