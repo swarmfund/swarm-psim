@@ -8,8 +8,10 @@ import (
 
 // don't blame me, just make sure all exported types are really exported
 
-type TransactionEvent = resources.TransactionEvent
 type Transaction = resources.Transaction
+type TransactionEvent = resources.TransactionEvent
+type TXPacket = listener.TXPacket
+
 type Request = resources.Request
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
 type Info = resources.Info

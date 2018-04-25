@@ -9,14 +9,15 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/tokend/go/amount"
+	"gitlab.com/tokend/go/xdr"
 )
 
 func (s *Service) payOutSnapshot(ctx context.Context) {
 	s.filterBlacklistedReferrals()
-	s.filterReferrers()
+	s.filterReferrers(ctx)
 
 	s.log.WithFields(logan.F{
 		"accounts_in_snapshot": len(s.snapshot),
@@ -69,7 +70,7 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 	}
 }
 
-func (s *Service) filterReferrers() {
+func (s *Service) filterReferrers(ctx context.Context) {
 	for accAddress, bonus := range s.snapshot {
 		if !bonus.IsVerified {
 			delete(s.snapshot, accAddress)
@@ -84,6 +85,43 @@ func (s *Service) filterReferrers() {
 
 		if _, isInBlackList := s.blackList[accAddress]; isInBlackList {
 			s.log.WithField("account_address", accAddress).Info("Filtering out Referrer Account, because it's in BlackList.")
+			delete(s.snapshot, accAddress)
+			continue
+		}
+
+		var canIssue bool
+		running.UntilSuccess(ctx, s.log, "", func(ctx context.Context) (bool, error) {
+			fields := logan.F{
+				"account_address": accAddress,
+				"referrer":        bonus,
+			}
+
+			acc, err := s.accountsConnector.ByAddress(accAddress)
+			if err != nil {
+				return false, errors.Wrap(err, "Failed to obtain Account ByAddress from Horizon", fields)
+			}
+
+			if acc.AccountTypeI != int32(xdr.AccountTypeGeneral) {
+				canIssue = false
+				s.log.WithFields(fields).Warn("Account was General at 1st snapshot time, but is not General now - dropping this Referrer.")
+				return true, nil
+			}
+
+			isUSA, err := s.usaChecker.CheckIsUSA(*acc)
+			if err != nil {
+				return false, errors.Wrap(err, "Failed to check whether User is from USA", fields)
+			}
+			if isUSA {
+				canIssue = false
+				s.log.WithFields(fields).Warn("User is from USA - dropping this Referrer.")
+				return true, nil
+			}
+
+			canIssue = true
+			return true, nil
+		}, 10*time.Second, 10*time.Minute)
+
+		if !canIssue {
 			delete(s.snapshot, accAddress)
 			continue
 		}
