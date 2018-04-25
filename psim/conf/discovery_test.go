@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"sync"
+
 	"github.com/spf13/viper"
 	"gitlab.com/distributed_lab/discovery-go"
 )
@@ -27,9 +29,6 @@ func TestViperConfig_Discovery(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				discoveryClient = nil
-			}()
 
 			r := bytes.NewReader([]byte(tc.raw))
 			v := viper.New()
@@ -41,6 +40,7 @@ func TestViperConfig_Discovery(t *testing.T) {
 			}
 			config := ViperConfig{
 				viper: v,
+				Mutex: &sync.Mutex{},
 			}
 
 			discovery := config.Discovery()

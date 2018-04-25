@@ -9,10 +9,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
-var (
-	notificatorClient *notificator.Connector
-)
-
 type NotificatorConfig struct {
 	URL    *url.URL `fig:"url,required"`
 	Secret string   `fig:"secret,required"`
@@ -20,8 +16,11 @@ type NotificatorConfig struct {
 }
 
 func (c *ViperConfig) Notificator() *notificator.Connector {
-	if notificatorClient != nil {
-		return notificatorClient
+	c.Lock()
+	defer c.Unlock()
+
+	if c.notificatorClient != nil {
+		return c.notificatorClient
 	}
 	conf := NotificatorConfig{}
 
@@ -40,7 +39,7 @@ func (c *ViperConfig) Notificator() *notificator.Connector {
 		Public: conf.Public,
 	}, *conf.URL)
 
-	notificatorClient = client
+	c.notificatorClient = client
 
-	return notificatorClient
+	return c.notificatorClient
 }

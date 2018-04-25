@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"sync"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,6 +24,7 @@ func ConfigHelper(t *testing.T, raw string) ViperConfig {
 
 	return ViperConfig{
 		viper: v,
+		Mutex: &sync.Mutex{},
 	}
 }
 
@@ -43,15 +46,15 @@ bitcoin:
 		})
 
 	})
-}
 
-func TestViperConfig_BitcoinFailed(t *testing.T) {
-	btcConfigRaw := `
+	t.Run("Failed to set bitcoin config", func(t *testing.T) {
+		btcConfigRaw := `
 bitcoin:
   invalid: 123`
-	config := ConfigHelper(t, btcConfigRaw)
-	assert.Panics(t, func() {
-		btc := config.Bitcoin()
-		assert.Nil(t, btc)
+		config := ConfigHelper(t, btcConfigRaw)
+		assert.Panics(t, func() {
+			btc := config.Bitcoin()
+			assert.Nil(t, btc)
+		})
 	})
 }

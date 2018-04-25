@@ -22,13 +22,9 @@ const (
 	defaultLogLevel = "warn"
 )
 
-var (
-	defaultLog *logan.Entry
-)
-
 func (c *ViperConfig) Log() (*logan.Entry, error) {
-	if defaultLog != nil {
-		return defaultLog, nil
+	if c.defaultLog != nil {
+		return c.defaultLog, nil
 	}
 
 	// TODO Consider creating LogConfig struct and adding parsing of the 'log' config block into this struct using viper.Unmarshal()
@@ -71,8 +67,8 @@ func (c *ViperConfig) Log() (*logan.Entry, error) {
 		}
 	}
 
-	defaultLog = entry
-	return defaultLog, nil
+	c.defaultLog = entry
+	return c.defaultLog, nil
 }
 
 func addSlackHook(v *viper.Viper, entry *logan.Entry) (*logan.Entry, error) {

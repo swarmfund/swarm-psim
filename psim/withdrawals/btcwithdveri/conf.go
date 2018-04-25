@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	Host string `fig:"host,required"`
-	Port int    `fig:"port,required"`
+	Host string `fig:"host"`
+	Port int    `fig:"port"`
 	// TODO Pprof field?
 
 	PrivateKey string `fig:"btc_private_key,required"`

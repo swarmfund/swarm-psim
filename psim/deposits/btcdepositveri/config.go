@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	Host string `fig:"host,required"`
-	Port int    `fig:"port,required"`
+	Host string `fig:"host"`
+	Port int    `fig:"port"`
 
 	DepositAsset       string `fig:"deposit_asset,required"`
 	MinDepositAmount   uint64 `fig:"min_deposit_amount,required"`
