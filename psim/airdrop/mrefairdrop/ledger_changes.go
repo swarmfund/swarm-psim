@@ -155,18 +155,22 @@ func (s *Service) processAfterSnapshotChange(ctx context.Context, change xdr.Led
 	case xdr.AccountTypeGeneral, xdr.AccountTypeSyndicate:
 		// Account is probably becoming approved.
 		bonus, ok := s.snapshot[accEntry.AccountId.Address()]
-		if ok {
-			// Such a Referrer exists.
+		if ok && !bonus.IsVerified {
+			// Such a Referrer exists and is not verified now.
 			bonus.IsVerified = true
 			s.log.WithField("account_addr", accEntry.AccountId.Address()).Debug("Referrer became approved after Snapshot.")
 		}
 
 		if accEntry.Referrer != nil {
-			// Add Referral as he became approved..
+			// Add Referral as he became approved.
 			referrerBonus, ok := s.snapshot[accEntry.Referrer.Address()]
 			if ok {
-				referrerBonus.addReferral(accEntry.AccountId.Address())
-				s.log.WithField("account_addr", accEntry.AccountId.Address()).Debug("Referral became approved after Snapshot.")
+				_, ok := referrerBonus.Referrals[accEntry.AccountId.Address()]
+				if !ok {
+					// Such a Referral is not approved for now (it's missing in the Referrer's Referrals list).
+					referrerBonus.addReferral(accEntry.AccountId.Address())
+					s.log.WithField("account_addr", accEntry.AccountId.Address()).Debug("Referral became approved after Snapshot.")
+				}
 			}
 		}
 	}
