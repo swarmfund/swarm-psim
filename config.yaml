@@ -79,6 +79,7 @@ services:
 #  - airdrop_march_20_20
 
 #  - identity_mind
+#  - invest_ready
 
 #  - template_provider
 #  - wallet_cleaner
@@ -431,3 +432,17 @@ template_provider:
 
 wallet_cleaner:
   expire_duration: 128h
+
+invest_ready:
+  connector:
+    url: https://api.sandbox.investready.com
+    client_id: ourClientIDInInvestReady
+    client_secret: ourClientSecretInInvestReady
+
+  redirects:
+    host: localhost
+    port: 8007
+    timeout: 30s
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY

@@ -15,6 +15,10 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
+const (
+	KYCFormBlobType = "kyc_form"
+)
+
 // ProcessNotSubmitted approves Users from USA or with non-Latin document,
 // submits all others KYCs to IDMind.
 func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Request) error {
