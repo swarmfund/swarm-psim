@@ -4,6 +4,7 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/horizon-connector/internal/listener"
 	"gitlab.com/tokend/horizon-connector/internal/resources/operations"
+	"gitlab.com/tokend/horizon-connector/internal/operation"
 )
 
 // don't blame me, just make sure all exported types are really exported
@@ -34,3 +35,4 @@ type CreateKYCRequestOp = operations.CreateKYCRequest
 type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
 type ReviewRequestOp = operations.ReviewRequest
 type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
+type ReviewableRequestType = operation.ReviewableRequestType
