@@ -6,7 +6,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
 )
@@ -18,8 +17,9 @@ type RequestListener interface {
 	StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time.Time, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+type RequestPerformer interface {
+	Approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails map[string]string) error
+	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason string) error
 }
 
 type BlobsConnector interface {
@@ -31,7 +31,13 @@ type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
+type KYCRequestsConnector interface {
+	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]horizon.Request, error)
+}
+
 type InvestReady interface {
+	ObtainUserToken(oauthCode string) (userAccessToken string, err error)
+	UserHash(userAccessToken string) (userHash string, err error)
 	// TODO
 }
 
@@ -42,16 +48,15 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
-	requestListener    RequestListener
-	txSubmitter        TXSubmitter
-	blobsConnector     BlobsConnector
-	usersConnector     UsersConnector
+	requestListener  RequestListener
+	requestPerformer RequestPerformer
+	blobsConnector   BlobsConnector
+	usersConnector   UsersConnector
 
 	investReady InvestReady
-	xdrbuilder  *xdrbuild.Builder
 
 	redirectsListener *RedirectsListener
-	kycRequests <-chan horizon.ReviewableRequestEvent
+	kycRequests       <-chan horizon.ReviewableRequestEvent
 }
 
 // NewService is constructor for Service.
@@ -59,11 +64,11 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	requestListener RequestListener,
-	txSubmitter TXSubmitter,
+	kycRequestsConnector KYCRequestsConnector,
+	requestPerformer RequestPerformer,
 	blobProvider BlobsConnector,
 	userProvider UsersConnector,
 	investReady InvestReady,
-	builder *xdrbuild.Builder,
 ) *Service {
 
 	logger := log.WithField("service", conf.ServiceIdentityMind)
@@ -71,14 +76,13 @@ func NewService(
 		log:    logger,
 		config: config,
 
-		requestListener: requestListener,
-		txSubmitter:     txSubmitter,
-		blobsConnector:  blobProvider,
-		usersConnector:  userProvider,
-		investReady:     investReady,
-		xdrbuilder:      builder,
+		requestListener:  requestListener,
+		requestPerformer: requestPerformer,
+		blobsConnector:   blobProvider,
+		usersConnector:   userProvider,
+		investReady:      investReady,
 
-		redirectsListener: NewRedirectsListener(logger, config.RedirectsConfig, investReady),
+		redirectsListener: NewRedirectsListener(logger, config.RedirectsConfig, kycRequestsConnector, investReady, requestPerformer),
 	}
 }
 

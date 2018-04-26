@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 func init() {
@@ -45,10 +46,10 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		log,
 		config,
 		horizonConnector.Listener(),
-		horizonConnector.Submitter(),
+		horizonConnector.Operations(),
+		kyc.NewRequestPerformer(builder, config.Source, config.Signer, horizonConnector.Submitter()),
 		horizonConnector.Blobs(),
 		horizonConnector.Users(),
-		NewConnector(config.Connector),
-		builder,
+		NewConnector(log.WithField("service", conf.ServiceIdentityMind), config.Connector),
 	), nil
 }

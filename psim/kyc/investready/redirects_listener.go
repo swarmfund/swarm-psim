@@ -14,11 +14,24 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
+)
+
+const (
+	UserHashExtDetailsKey = "invest_ready_user_hash"
 )
 
 type redirectedRequest struct {
 	AccountID string `json:"account_id"`
 	OauthCode string `json:"oauth_code"`
+}
+
+func (r redirectedRequest) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"account_id": r.AccountID,
+	}
 }
 
 func (r redirectedRequest) Validate() (validationErr string) {
@@ -33,18 +46,29 @@ func (r redirectedRequest) Validate() (validationErr string) {
 }
 
 type RedirectsListener struct {
-	log         *logan.Entry
-	config      RedirectsConfig
-	investReady InvestReady
+	log    *logan.Entry
+	config RedirectsConfig
+
+	kycRequestsConnector KYCRequestsConnector
+	requestPerformer     RequestPerformer
+	investReady          InvestReady
 
 	server *http.Server
 }
 
-func NewRedirectsListener(log *logan.Entry, config RedirectsConfig, investReady InvestReady) *RedirectsListener {
+func NewRedirectsListener(
+	log *logan.Entry,
+	config RedirectsConfig,
+	kycRequestsConnector KYCRequestsConnector,
+	investReady InvestReady,
+	performer RequestPerformer) *RedirectsListener {
+
 	return &RedirectsListener{
-		log:         log.WithField("worker", "redirects_listener"),
-		config:      config,
-		investReady: investReady,
+		log:                  log.WithField("worker", "redirects_listener"),
+		config:               config,
+		kycRequestsConnector: kycRequestsConnector,
+		requestPerformer:     performer,
+		investReady:          investReady,
 	}
 }
 
@@ -74,7 +98,7 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 	l.log.Info("Server stopped cleanly.")
 }
 
-// TODO
+// TODO Tru to refactor me into several methods
 func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		l.log.WithField("request_method", r.Method).Warn("Received request with wrong method.")
@@ -94,26 +118,82 @@ func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusBadRequest, "Cannot read request body.")
 		return
 	}
-	logger := l.log.WithField("raw_request", string(bb))
 
 	var request redirectedRequest
 	err = json.Unmarshal(bb, &request)
 	if err != nil {
-		logger.WithError(err).Warn("Failed to unmarshal request bytes into struct.")
+		l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to unmarshal request bytes into struct.")
 		writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
 		return
 	}
+	logger := l.log.WithField("request", request)
 
 	if validationErr := request.Validate(); validationErr != "" {
-		logger.WithField("validation_err", validationErr).Warn("Received invalid request.")
+		l.log.WithField("validation_err", validationErr).Warn("Received invalid request.")
 		writeError(w, http.StatusBadRequest, validationErr)
 		return
 	}
 
-	// TODO
+	forbiddenErr, err := l.obtainAndSaveUserHash(r.Context(), request.AccountID, request.OauthCode)
+	if err != nil {
+		logger.WithError(err).Error("Failed to obtain and save UserHash.")
+		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
+		return
+	}
+	if forbiddenErr != nil {
+		logger.WithField("forbidden_reason", forbiddenErr).Warn("User is forbidden to add InvestReady UserHash to the KYCRequest.")
+		writeError(w, http.StatusForbidden, "You are not allowed to add InvestReady User to the your KYCRequest.")
+		return
+	}
 
 	w.Header()["Content-Type"] = append(w.Header()["Content-Type"], "application/json")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, accID, oauthCode string) (forbiddenReason error, err error) {
+	kycRequests, err := l.kycRequestsConnector.Requests(fmt.Sprintf("account_to_update_kyc=%s", accID),
+		"", horizon.ReviewableRequestType("update_kyc"))
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get KYCRequests of the Account from Horizon")
+	}
+	if len(kycRequests) == 0 {
+		return errors.New("No KYCRequests were found for the Account."), nil
+	}
+	kycRequest := kycRequests[0]
+	fields := logan.F{
+		"kyc_request": kycRequest,
+	}
+
+	if kycRequest.State != kyc.RequestStatePending {
+		return errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State), nil
+	}
+	if kycRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeUpdateKyc) {
+		return nil, errors.From(errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State), fields)
+	}
+	if kycRequest.Details.KYC.PendingTasks&kyc.TaskUSA == 0 {
+		// No job for InvestReady service
+		return errors.New("This User's KYCRequest does not have the Task to verify AccreditedInvestor."), nil
+	}
+
+	userToken, err := l.investReady.ObtainUserToken(oauthCode)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to obtain User's AccessToken in InvestReady", fields)
+	}
+
+	userHash, err := l.investReady.UserHash(userToken)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to ger UserHash in InvestReady", fields)
+	}
+	fields["user_hash"] = userHash
+
+	err = l.requestPerformer.Approve(ctx, kycRequest.ID, kycRequest.Hash, kyc.TaskCheckInvestReady, kyc.TaskUSA, map[string]string{
+		UserHashExtDetailsKey: userHash,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to approve KYCRequest", fields)
+	}
+
+	return nil, nil
 }
 
 func writeError(w http.ResponseWriter, statusCode int, errorMessage string) error {
