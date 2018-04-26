@@ -14,6 +14,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/emails"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 func init() {
@@ -55,12 +56,11 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		log,
 		config,
 		horizonConnector.Listener(),
-		horizonConnector.Submitter(),
+		kyc.NewRequestPerformer(builder, config.Source, config.Signer, horizonConnector.Submitter()),
 		horizonConnector.Blobs(),
 		horizonConnector.Users(),
 		horizonConnector.Documents(),
 		newConnector(config.Connector),
-		builder,
 		adminNotifyEmails,
 	), nil
 }

@@ -9,7 +9,6 @@ import (
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
 )
@@ -21,8 +20,9 @@ type RequestListener interface {
 	StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time.Time, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+type RequestPerformer interface {
+	Approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails map[string]string) error
+	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason string) error
 }
 
 type BlobsConnector interface {
@@ -56,12 +56,11 @@ type Service struct {
 	source keypair.Address
 
 	requestListener    RequestListener
-	txSubmitter        TXSubmitter
+	requestPerformer   RequestPerformer
 	blobsConnector     BlobsConnector
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
 	identityMind       IdentityMind
-	xdrbuilder         *xdrbuild.Builder
 	adminNotifyEmails  EmailsProcessor
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
@@ -72,12 +71,11 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	requestListener RequestListener,
-	txSubmitter TXSubmitter,
+	requestPerformer RequestPerformer,
 	blobProvider BlobsConnector,
 	userProvider UsersConnector,
 	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
-	builder *xdrbuild.Builder,
 	adminNotifyEmails EmailsProcessor,
 ) *Service {
 
@@ -86,12 +84,11 @@ func NewService(
 		config: config,
 
 		requestListener:    requestListener,
-		txSubmitter:        txSubmitter,
+		requestPerformer:   requestPerformer,
 		blobsConnector:     blobProvider,
 		usersConnector:     userProvider,
 		documentsConnector: documentProvider,
 		identityMind:       identityMind,
-		xdrbuilder:         builder,
 		adminNotifyEmails:  adminNotifyEmails,
 	}
 }

@@ -5,10 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
@@ -65,41 +62,10 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		extDetails["blob_id"] = blobID
 	}
 
-	extDetailsBB, err := json.Marshal(extDetails)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to marshal externalDetails", logan.F{"ext_details": extDetails})
-	}
-
-	err = s.signAndSubmitReject(ctx, requestID, requestHash, tasksToAdd, string(extDetailsBB), rejectReason)
+	err = s.requestPerformer.Reject(ctx, requestID, requestHash, tasksToAdd, extDetails, rejectReason)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to sign or submit RejectRequest TX")
 	}
 
 	return blobID, nil
-}
-
-func (s *Service) signAndSubmitReject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails, rejectReason string) (err error) {
-	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.Source).Op(xdrbuild.ReviewRequestOp{
-		ID:     requestID,
-		Hash:   requestHash,
-		Action: xdr.ReviewRequestOpActionReject,
-		Details: xdrbuild.UpdateKYCDetails{
-			TasksToAdd:      tasksToAdd,
-			TasksToRemove:   0,
-			ExternalDetails: extDetails,
-		},
-		Reason: rejectReason,
-	}).Sign(s.config.Signer).Marshal()
-	if err != nil {
-		return errors.Wrap(err, "Failed to marshal signed Envelope")
-	}
-
-	submitResult := s.txSubmitter.Submit(ctx, signedEnvelope)
-	if submitResult.Err != nil {
-		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{
-			"submit_result": submitResult,
-		})
-	}
-
-	return nil
 }
