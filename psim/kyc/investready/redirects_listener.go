@@ -142,7 +142,7 @@ func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Requ
 	}
 	if forbiddenErr != nil {
 		logger.WithField("forbidden_reason", forbiddenErr).Warn("User is forbidden to add InvestReady UserHash to the KYCRequest.")
-		writeError(w, http.StatusForbidden, "You are not allowed to add InvestReady User to the your KYCRequest.")
+		writeError(w, http.StatusForbidden, forbiddenErr.Error())
 		return
 	}
 
@@ -173,6 +173,10 @@ func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, accID, oa
 	if kycRequest.Details.KYC.PendingTasks&kyc.TaskUSA == 0 {
 		// No job for InvestReady service
 		return errors.New("This User's KYCRequest does not have the Task to verify AccreditedInvestor."), nil
+	}
+	if kycRequest.Details.KYC.PendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) != 0 {
+		// Some previous jobs are not finished
+		return errors.New("This User's KYCRequest has some other Tasks to be done first."), nil
 	}
 
 	userToken, err := l.investReady.ObtainUserToken(oauthCode)

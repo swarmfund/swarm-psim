@@ -71,7 +71,7 @@ func NewService(
 	investReady InvestReady,
 ) *Service {
 
-	logger := log.WithField("service", conf.ServiceIdentityMind)
+	logger := log.WithField("service", conf.ServiceInvestReady)
 	return &Service{
 		log:    logger,
 		config: config,
