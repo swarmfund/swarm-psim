@@ -41,7 +41,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return nil
 	}
 
-	blob, err := s.retrieveBlob(request, accountID)
+	blob, err := s.retrieveBlob(*request.Details.KYC, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve Blob or email", fields)
 	}
@@ -82,9 +82,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 // obtains Blob by BlobID,
 // check Blob's type
 // and returns Blob if everything's fine.
-func (s *Service) retrieveBlob(request horizon.Request, accountID string) (blob *horizon.Blob, err error) {
-	kycRequest := request.Details.KYC
-
+func (s *Service) retrieveBlob(kycRequest horizon.KYCRequest, accountID string) (blob *horizon.Blob, err error) {
 	blobIDInterface, ok := kycRequest.KYCData["blob_id"]
 	if !ok {
 		return nil, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
