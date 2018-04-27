@@ -10,6 +10,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"context"
+	"gitlab.com/distributed_lab/running"
 )
 
 const (
@@ -136,11 +138,16 @@ func (c *Connector) UserHash(userAccessToken string) (userHash string, err error
 	return response.Data.Person.Hash, nil
 }
 
-func (c *Connector) ListAllSyncedUsers() ([]User, error) {
+// ListAllSyncedUsers returns nil,nil if ctx cancelled.
+func (c *Connector) ListAllSyncedUsers(ctx context.Context) ([]User, error) {
 	var page = 0
 	allUsers := make([]User, 0)
 
 	for {
+		if running.IsCancelled(ctx) {
+			return nil, nil
+		}
+
 		usersPage, err := c.getSyncedUsersPageWithTokenRefresh(page)
 		if err != nil {
 			return allUsers, errors.Wrap(err, "Failed to get Users page", logan.F{

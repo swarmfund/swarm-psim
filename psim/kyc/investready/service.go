@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
@@ -42,7 +40,7 @@ type KYCRequestsConnector interface {
 type InvestReady interface {
 	ObtainUserToken(oauthCode string) (userAccessToken string, err error)
 	UserHash(userAccessToken string) (userHash string, err error)
-	// TODO
+	ListAllSyncedUsers(ctx context.Context) ([]User, error)
 }
 
 // TODO Comment
@@ -61,6 +59,7 @@ type Service struct {
 
 	redirectsListener *RedirectsListener
 	kycRequests       <-chan horizon.ReviewableRequestEvent
+	Users             []User
 }
 
 // TODO add docs.md
@@ -104,67 +103,12 @@ func (s *Service) Run(ctx context.Context) {
 		wg.Done()
 	}()
 
-	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
-	running.WithBackOff(ctx, s.log, "kyc_request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 5*time.Minute)
+	wg.Add(1)
+	go func() {
+		s.processRequestsInfinitely(ctx)
+		wg.Done()
+	}()
 
 	wg.Wait()
 	s.log.Info("All runners stooped - stopping cleanly.")
-}
-
-// TODO Consider moving Requests restream logic to some common helper.
-// TODO timeToSleep to config
-func (s *Service) listenAndProcessRequest(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return nil
-	case reqEvent, ok := <-s.kycRequests:
-		if !ok {
-			// No more KYC requests, start from the very beginning.
-			// TODO timeToSleep to config
-			timeToSleep := 30 * time.Second
-			s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
-
-			c := time.After(timeToSleep)
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-c:
-				s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
-				return nil
-			}
-		}
-
-		request, err := reqEvent.Unwrap()
-		if err != nil {
-			return errors.Wrap(err, "RequestListener sent error")
-		}
-
-		err = s.processRequest(ctx, *request)
-		if err != nil {
-			return errors.Wrap(err, "Failed to process KYC Request", logan.F{
-				"request": request,
-			})
-		}
-
-		return nil
-	}
-}
-
-func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	proveErr := proveInterestingRequest(request)
-	if proveErr != nil {
-		// No need to process the Request for now.
-
-		// I found this log useless
-		//s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
-		return nil
-	}
-
-	// I found this log useless
-	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
-	//kycReq := request.Details.KYC
-
-	// TODO
-
-	return nil
 }
