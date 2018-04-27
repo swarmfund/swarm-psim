@@ -37,8 +37,7 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return nil
 	}
 
-	//blob, err := s.retrieveBlob(*request.Details.KYC, accountID)
-	blob, err := s.blobDataRetriever.RetrieveKYCBlob(*request.Details.KYC, accountID)
+	blob, err := s.blobDataRetriever.RetrieveKYCBlob(*request.Details.KYC)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve Blob or email", fields)
 	}

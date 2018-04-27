@@ -4,9 +4,12 @@ import (
 	"context"
 	"time"
 
+	"fmt"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/horizon-connector"
 )
 
@@ -46,7 +49,7 @@ func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 	if running.IsCancelled(ctx) {
 		return nil
 	}
-	s.Users = users
+	s.users = users
 
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
@@ -110,7 +113,109 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// I found this log useless
 	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
-	//kycReq := request.Details.KYC
+
+	userHash := getInvestReadyUserHash(*request.Details.KYC)
+	if userHash == "" {
+		// TODO Consider rejecting the request at this point, as we won't be able to Check State any further too.
+		// The situation should normally never happen - this service must not be
+		// asked to do the Check until the UserHash is put into KYCRequest.
+		return errors.New("No user_hash in the whole ExternalDetails history, cannot check AccreditedInvestor status without UserHash.")
+	}
+	fields := logan.F{
+		"user_hash": userHash,
+	}
+
+	user := s.findUser(userHash)
+	if user == nil {
+		return errors.From(errors.New("User with the UserHash from KYCRequest was not found in InvestReady."), fields.Merge(logan.F{
+			"known_users": len(s.users),
+		}))
+	}
+	fields["user"] = user
+
+	kycReq := request.Details.KYC
+	kycData, err := s.blobDataRetriever.ParseBlobData(*kycReq)
+	if err != nil {
+		return errors.Wrap(err, "Failed to retrieve KYC Blob or parse KYCData")
+	}
+
+	err = s.processInvestReadyUser(ctx, request, *user, *kycData)
+	if err != nil {
+		return errors.Wrap(err, "Failed to process InvestReady User", fields)
+	}
 
 	return nil
+}
+
+func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Request, user User, kycData kyc.Data) error {
+	checkErr := s.checkUserData(user, kycData)
+	if checkErr != "" {
+		s.log.WithField("check_err", checkErr).Warn("Meet User with mismatched personal info - rejecting KYCRequest.")
+		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, kyc.TaskSuperAdmin, nil, checkErr)
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest (because of personal info mismatch)", logan.F{
+				"check_err": checkErr,
+			})
+		}
+
+		return nil
+	}
+
+	if user.Status.Accredited == 0 {
+		// Not Accredited yet - pending.
+		return nil
+	}
+
+	// FIXME I'm absolutely *not* sure 1 is proper value!!!
+	if user.Status.Accredited == 1 {
+		// Having an AccreditedInvestor here?
+		err := s.requestPerformer.Approve(ctx, request.ID, request.Hash, 0, kyc.TaskCheckInvestReady, nil)
+		if err != nil {
+			return errors.Wrap(err, "Failed to approve KYCRequest")
+		}
+
+		return nil
+	}
+
+	// FIXME I'm absolutely *not* sure -1 is proper value and I'm not sure whether rejected state exists in InvestReady at all!!!
+	if user.Status.Accredited == -1 {
+		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, "Invest Ready rejected.")
+		if err != nil {
+			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady rejected)")
+		}
+
+		return nil
+	}
+
+	// TODO Make sure there's no other valid value of Accredited field
+	return errors.Errorf("Unexpected Accredited value of the InvestReady User (%d).", user.Status.Accredited)
+}
+
+func (s *Service) findUser(userHash string) *User {
+	for _, user := range s.users {
+		if user.Hash == userHash {
+			return &user
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) checkUserData(user User, kycData kyc.Data) (checkErr string) {
+	if user.FirstName != kycData.FirstName {
+		return fmt.Sprintf("Expected first name in InvestReady to be (%s), but got (%s)", kycData.FirstName, user.FirstName)
+	}
+
+	if user.LastName != kycData.LastName {
+		return fmt.Sprintf("Expected last name in InvestReady to be (%s), but got (%s)", kycData.LastName, user.LastName)
+	}
+
+	dob := time.Unix(user.DateOfBirth, 0)
+	if dob != kycData.DateOfBirth {
+		return fmt.Sprintf("Expected dat of birth in InvestReady to be (%s), but got (%s)",
+			kycData.DateOfBirth.String(), dob.String())
+	}
+
+	// TODO Email?
+	return ""
 }

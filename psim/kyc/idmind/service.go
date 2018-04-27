@@ -30,7 +30,7 @@ type BlobSubmitter interface {
 }
 
 type BlobDataRetriever interface {
-	RetrieveKYCBlob(kycRequest horizon.KYCRequest, accountID string) (*horizon.Blob, error)
+	RetrieveKYCBlob(kycRequest horizon.KYCRequest) (*horizon.Blob, error)
 }
 
 type DocumentsConnector interface {

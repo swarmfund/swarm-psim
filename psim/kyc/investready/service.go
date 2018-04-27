@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -27,6 +28,10 @@ type RequestPerformer interface {
 type BlobsConnector interface {
 	Blob(blobID string) (*horizon.Blob, error)
 	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
+}
+
+type BlobDataRetriever interface {
+	ParseBlobData(kycRequest horizon.KYCRequest) (*kyc.Data, error)
 }
 
 type UsersConnector interface {
@@ -53,13 +58,14 @@ type Service struct {
 	requestListener  RequestListener
 	requestPerformer RequestPerformer
 	blobsConnector   BlobsConnector
+	blobDataRetriever BlobDataRetriever
 	usersConnector   UsersConnector
 
 	investReady InvestReady
 
 	redirectsListener *RedirectsListener
 	kycRequests       <-chan horizon.ReviewableRequestEvent
-	Users             []User
+	users             []User
 }
 
 // TODO add docs.md
@@ -72,6 +78,7 @@ func NewService(
 	kycRequestsConnector KYCRequestsConnector,
 	requestPerformer RequestPerformer,
 	blobProvider BlobsConnector,
+	blobDataRetriever BlobDataRetriever,
 	userProvider UsersConnector,
 	investReady InvestReady,
 ) *Service {
@@ -84,6 +91,7 @@ func NewService(
 		requestListener:  requestListener,
 		requestPerformer: requestPerformer,
 		blobsConnector:   blobProvider,
+		blobDataRetriever: blobDataRetriever,
 		usersConnector:   userProvider,
 		investReady:      investReady,
 

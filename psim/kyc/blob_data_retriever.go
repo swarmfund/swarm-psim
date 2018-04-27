@@ -20,12 +20,14 @@ type BlobDataRetriever struct {
 }
 
 func NewBlobDataRetriever(connector BlobsConnector) *BlobDataRetriever {
-	return &BlobDataRetriever{}
+	return &BlobDataRetriever{
+		blobsConnector: connector,
+	}
 }
 
 // ParseBlobData retrieves KYC Blob and parses KYCData from Blob.Attributes.Value.
-func (p *BlobDataRetriever) ParseBlobData(kycRequest horizon.KYCRequest, accountID string) (*Data, error) {
-	blob, err := p.RetrieveKYCBlob(kycRequest, accountID)
+func (p *BlobDataRetriever) ParseBlobData(kycRequest horizon.KYCRequest) (*Data, error) {
+	blob, err := p.RetrieveKYCBlob(kycRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to retrieve KYC Blob")
 	}
@@ -42,7 +44,7 @@ func (p *BlobDataRetriever) ParseBlobData(kycRequest horizon.KYCRequest, account
 // obtains Blob by BlobID,
 // check Blob's type
 // and returns Blob if everything's fine.
-func (p *BlobDataRetriever) RetrieveKYCBlob(kycRequest horizon.KYCRequest, accountID string) (*horizon.Blob, error) {
+func (p *BlobDataRetriever) RetrieveKYCBlob(kycRequest horizon.KYCRequest) (*horizon.Blob, error) {
 	blobIDInterface, ok := kycRequest.KYCData["blob_id"]
 	if !ok {
 		return nil, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")

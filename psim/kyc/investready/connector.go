@@ -198,7 +198,7 @@ func (c *Connector) getSyncedUsersPage(page int) ([]User, error) {
 		return nil, errors.Wrap(err, "Failed to marshal request")
 	}
 
-	resp, err := c.client.Post(fmt.Sprintf("%s/api/me.json", c.config.URL), "application/json", bytes.NewReader(reqBB))
+	resp, err := c.client.Post(fmt.Sprintf("%s/api/wl/user/list.json", c.config.URL), "application/json", bytes.NewReader(reqBB))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to send http POST")
 	}

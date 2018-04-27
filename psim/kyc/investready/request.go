@@ -42,3 +42,25 @@ func proveInterestingMask(pendingTasks uint32) error {
 
 	return nil
 }
+
+func getInvestReadyUserHash(kycReq horizon.KYCRequest) string {
+	var userHash string
+	for _, extDetails := range kycReq.ExternalDetails {
+		value, ok := extDetails[UserHashExtDetailsKey]
+		if !ok {
+			// No 'tx_id' key in these externalDetails.
+			continue
+		}
+
+		userHash, ok = value.(string)
+		if !ok {
+			// UserHash field in ExternalDetails is not a string.
+
+			// Must never happen, but just in case.
+			// Maybe we need to log this shit here, if it happens..
+			continue
+		}
+	}
+
+	return userHash
+}
