@@ -50,7 +50,21 @@ func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
-	running.UntilSuccess(ctx, s.log, "kyc_request_processor", s.listenAndProcessRequest, 5*time.Second, 5*time.Minute)
+	for {
+		if running.IsCancelled(ctx) {
+			return nil
+		}
+
+		noMoreRequests, err := s.listenAndProcessRequest(ctx)
+		if err != nil {
+			s.log.WithError(err).Error("Failed to process single Request.")
+			continue
+		}
+
+		if noMoreRequests {
+			break
+		}
+	}
 	return nil
 }
 
