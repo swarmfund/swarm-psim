@@ -59,6 +59,8 @@ type Service struct {
 	kycRequests       <-chan horizon.ReviewableRequestEvent
 }
 
+// TODO add docs.md
+
 // NewService is constructor for Service.
 func NewService(
 	log *logan.Entry,

@@ -98,7 +98,6 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 	l.log.Info("Server stopped cleanly.")
 }
 
-// TODO Tru to refactor me into several methods
 func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		l.log.WithField("request_method", r.Method).Warn("Received request with wrong method.")
@@ -126,6 +125,11 @@ func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
 		return
 	}
+
+	l.processRequest(r.Context(), w, request)
+}
+
+func (l *RedirectsListener) processRequest(ctx context.Context, w http.ResponseWriter, request redirectedRequest) {
 	logger := l.log.WithField("request", request)
 
 	if validationErr := request.Validate(); validationErr != "" {
@@ -134,7 +138,7 @@ func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	forbiddenErr, err := l.obtainAndSaveUserHash(r.Context(), request.AccountID, request.OauthCode)
+	forbiddenErr, err := l.obtainAndSaveUserHash(ctx, request.AccountID, request.OauthCode)
 	if err != nil {
 		logger.WithError(err).Error("Failed to obtain and save UserHash.")
 		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
@@ -197,6 +201,7 @@ func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, accID, oa
 		return nil, errors.Wrap(err, "Failed to approve KYCRequest", fields)
 	}
 
+	l.log.WithFields(fields).WithField("account_id", accID).Info("Saved UserHash into Core successfully.")
 	return nil, nil
 }
 
