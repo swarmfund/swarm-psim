@@ -15,10 +15,6 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
-const (
-	KYCFormBlobType = "kyc_form"
-)
-
 // ProcessNotSubmitted approves Users from USA or with non-Latin document,
 // submits all others KYCs to IDMind.
 func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Request) error {
@@ -41,12 +37,14 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 		return nil
 	}
 
-	blob, err := s.retrieveBlob(*request.Details.KYC, accountID)
+	//blob, err := s.retrieveBlob(*request.Details.KYC, accountID)
+	blob, err := s.blobDataRetriever.RetrieveKYCBlob(*request.Details.KYC, accountID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve Blob or email", fields)
 	}
 	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
+		// TODO consider logging the initial err here.
 		// Blob data is unparsable - rejecting.
 		_, err = s.reject(ctx, request.ID, request.Hash, nil, "Something went wrong, please try again", 0, map[string]string{
 			"additional_info": "Tried to parse KYC data from Blob.Attributes.Values, but failed.",
@@ -76,36 +74,6 @@ func (s *Service) processNotSubmitted(ctx context.Context, request horizon.Reque
 	}
 
 	return nil
-}
-
-// RetrieveBlob retrieves BlobID from KYCRequest,
-// obtains Blob by BlobID,
-// check Blob's type
-// and returns Blob if everything's fine.
-func (s *Service) retrieveBlob(kycRequest horizon.KYCRequest, accountID string) (blob *horizon.Blob, err error) {
-	blobIDInterface, ok := kycRequest.KYCData["blob_id"]
-	if !ok {
-		return nil, errors.New("Cannot found 'blob_id' key in the KYCData map in the KYCRequest.")
-	}
-
-	blobID, ok := blobIDInterface.(string)
-	if !ok {
-		// Normally should never happen
-		return nil, errors.New("BlobID from KYCData map of the KYCRequest is not a string.")
-	}
-
-	blob, err = s.blobsConnector.Blob(blobID)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Blob from Horizon")
-	}
-	fields := logan.F{"blob": blob}
-
-	if blob.Type != KYCFormBlobType {
-		return nil, errors.From(errors.Errorf("The Blob provided in KYC Request is of type (%s), but expected (%s).",
-			blob.Type, KYCFormBlobType), fields)
-	}
-
-	return blob, nil
 }
 
 func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Request, isUSA bool, firstName string) error {

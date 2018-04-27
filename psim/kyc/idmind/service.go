@@ -25,9 +25,12 @@ type RequestPerformer interface {
 	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason string) error
 }
 
-type BlobsConnector interface {
-	Blob(blobID string) (*horizon.Blob, error)
+type BlobSubmitter interface {
 	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
+}
+
+type BlobDataRetriever interface {
+	RetrieveKYCBlob(kycRequest horizon.KYCRequest, accountID string) (*horizon.Blob, error)
 }
 
 type DocumentsConnector interface {
@@ -57,7 +60,8 @@ type Service struct {
 
 	requestListener    RequestListener
 	requestPerformer   RequestPerformer
-	blobsConnector     BlobsConnector
+	blobsConnector     BlobSubmitter
+	blobDataRetriever  BlobDataRetriever
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
 	identityMind       IdentityMind
@@ -72,7 +76,8 @@ func NewService(
 	config Config,
 	requestListener RequestListener,
 	requestPerformer RequestPerformer,
-	blobProvider BlobsConnector,
+	blobProvider BlobSubmitter,
+	blobDataRetriever BlobDataRetriever,
 	userProvider UsersConnector,
 	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
@@ -86,6 +91,7 @@ func NewService(
 		requestListener:    requestListener,
 		requestPerformer:   requestPerformer,
 		blobsConnector:     blobProvider,
+		blobDataRetriever:  blobDataRetriever,
 		usersConnector:     userProvider,
 		documentsConnector: documentProvider,
 		identityMind:       identityMind,

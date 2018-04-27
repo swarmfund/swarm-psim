@@ -56,7 +56,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 			"request_hash": requestHash,
 		})
 		if err != nil {
-			return "", errors.Wrap(err, "Failed to submit Blob via BlobsConnector")
+			return "", errors.Wrap(err, "Failed to submit Blob via BlobSubmitter")
 		}
 
 		extDetails["blob_id"] = blobID
