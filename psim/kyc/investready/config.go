@@ -29,13 +29,16 @@ type ConnectorConfig struct {
 	URL          string        `fig:"url,required"`
 	ClientID     string        `fig:"client_id,required"`
 	ClientSecret string        `fig:"client_secret,required"`
+	RedirectURI  string        `fig:"redirect_uri"`
 	Timeout      time.Duration `fig:"timeout"`
 }
 
 func (c ConnectorConfig) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"url":     c.URL,
-		"timeout": c.Timeout,
+		"url":          c.URL,
+		"client_id":    c.ClientID,
+		"redirect_uri": c.RedirectURI,
+		"timeout":      c.Timeout,
 	}
 }
 

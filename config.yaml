@@ -438,6 +438,7 @@ invest_ready:
     url: https://api.sandbox.investready.com
     client_id: ourClientIDInInvestReady
     client_secret: ourClientSecretInInvestReady
+    riderect_uri: https://invest.swarm.fund # The RedirectURI set in the InvestReady cabinet
 
   redirects:
     host: localhost

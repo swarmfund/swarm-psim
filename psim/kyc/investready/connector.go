@@ -21,7 +21,7 @@ var (
 )
 
 type Connector struct {
-	log *logan.Entry
+	log    *logan.Entry
 	config ConnectorConfig
 
 	client      *http.Client
@@ -30,7 +30,7 @@ type Connector struct {
 
 func NewConnector(log *logan.Entry, config ConnectorConfig) *Connector {
 	return &Connector{
-		log: log,
+		log:    log,
 		config: config,
 
 		client: &http.Client{
@@ -51,9 +51,8 @@ func (c *Connector) ObtainUserToken(oauthCode string) (userAccessToken string, e
 		GrantType:    "authorization_code",
 		ClientID:     c.config.ClientID,
 		ClientSecret: c.config.ClientSecret,
-		// TODO
-		RedirectURI: "https://invest.swarm.fund",
-		Code:        oauthCode,
+		RedirectURI:  c.config.RedirectURI,
+		Code:         oauthCode,
 	}
 
 	reqBB, err := json.Marshal(req)
@@ -248,8 +247,7 @@ func (c *Connector) getClientToken() (clientAccessToken string, err error) {
 		GrantType:    "client_credentials",
 		ClientID:     c.config.ClientID,
 		ClientSecret: c.config.ClientSecret,
-		// TODO
-		RedirectURI: "https://invest.swarm.fund",
+		RedirectURI:  c.config.RedirectURI,
 	}
 
 	reqBB, err := json.Marshal(req)
