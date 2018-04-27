@@ -14,14 +14,16 @@ import (
 // ProcessRequestsInfinitely is blocking method, returns only if ctx is cancelled.
 func (s *Service) processRequestsInfinitely(ctx context.Context) {
 	for {
-		err := s.processAllRequestsOnce(ctx)
-		if err != nil {
-			s.log.WithError(err).Error("Failed to perform KYCRequests processing iteration. Waining for the next iteration in a regular mode.")
-		}
-
 		// TODO timeToSleep to config
 		timeToSleep := 30 * time.Second
-		s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
+
+		err := s.processAllRequestsOnce(ctx)
+		if err != nil {
+			// TODO Add timeToSleep to logs
+			s.log.WithError(err).Error("Failed to perform KYCRequests processing iteration. Waiting for the next iteration in a regular mode.")
+		} else {
+			s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
+		}
 
 		c := time.After(timeToSleep)
 		select {

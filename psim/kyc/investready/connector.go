@@ -8,9 +8,10 @@ import (
 
 	"io/ioutil"
 
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"context"
 	"gitlab.com/distributed_lab/running"
 )
 
@@ -167,7 +168,7 @@ func (c *Connector) ListAllSyncedUsers(ctx context.Context) ([]User, error) {
 
 func (c *Connector) getSyncedUsersPageWithTokenRefresh(page int) ([]User, error) {
 	users, err := c.getSyncedUsersPage(page)
-	if err == errUnauthorised {
+	if errors.Cause(err) == errUnauthorised {
 		c.log.WithError(err).Info("Got Unauthorised status code - refreshing Client AccessToken.")
 
 		err = c.refreshClientToken()
@@ -183,11 +184,13 @@ func (c *Connector) getSyncedUsersPageWithTokenRefresh(page int) ([]User, error)
 
 func (c *Connector) getSyncedUsersPage(page int) ([]User, error) {
 	req := struct {
-		Page  int `json:"page"`
-		Count int `json:"count"`
+		Page        int    `json:"page"`
+		Count       int    `json:"count"`
+		AccessToken string `json:"access_token"`
 	}{
-		Page:  page,
-		Count: pageSize,
+		Page:        page,
+		Count:       pageSize,
+		AccessToken: c.accessToken,
 	}
 
 	reqBB, err := json.Marshal(req)
@@ -210,6 +213,7 @@ func (c *Connector) getSyncedUsersPage(page int) ([]User, error) {
 	fields["raw_response"] = string(respBB)
 
 	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, errors.From(errUnauthorised, fields)
 	}
 
 	if resp.StatusCode != http.StatusOK {
