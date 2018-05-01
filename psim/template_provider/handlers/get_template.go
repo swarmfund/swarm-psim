@@ -37,15 +37,17 @@ func GetTemplate(w http.ResponseWriter, r *http.Request) {
 			Key:    &key,
 		})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
+		cause := errors.Cause(err)
+		if aerr, ok := cause.(awserr.Error); ok {
 			switch aerr.Code() {
 			case s3.ErrCodeNoSuchBucket:
 				Log(r).WithFields(logan.F{"bucket": bucket}).WithError(err).Error("No such bucket")
 				ape.RenderErr(w, problems.InternalError())
+				return
 			case s3.ErrCodeNoSuchKey:
 				ape.RenderErr(w, problems.NotFound())
+				return
 			}
-			return
 		}
 		Log(r).WithFields(logan.F{"bucket": bucket, "key": key}).WithError(err).Error("Failed to download")
 		ape.RenderErr(w, problems.InternalError())
