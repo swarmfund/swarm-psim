@@ -3,25 +3,24 @@ package eth
 import (
 	"context"
 
-	"github.com/pkg/errors"
-	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
-	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/eth/internal"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
 	app.RegisterService(conf.ServiceETHWithdraw, func(ctx context.Context) (app.Service, error) {
-		var config WithdrawConfig
-		err := figure.
-			Out(&config).
-			With(figure.BaseHooks, utils.ETHHooks).
-			From(app.Config(ctx).Get(conf.ServiceETHWithdraw)).
-			Please()
+		config, err := NewWithdrawConfig(app.Config(ctx).GetRequired(conf.ServiceETHWithdraw))
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to create config", logan.F{
+				"service": conf.ServiceETHWithdraw,
+			})
+		}
 
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
@@ -49,7 +48,7 @@ func init() {
 
 		return withdraw.New(
 			conf.ServiceETHWithdraw,
-			conf.ServiceETHWithdrawVerify,
+			config.VerifierServiceName,
 			config.Signer,
 			app.Log(ctx),
 			horizon.Listener(),
