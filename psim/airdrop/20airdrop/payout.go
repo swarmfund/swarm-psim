@@ -60,7 +60,7 @@ func (s *Service) payOutSnapshot(ctx context.Context) {
 				logger.Info("Reference duplication - already processed Deposit, skipping.")
 			}
 
-			s.emailProcessor.AddEmailAddress(ctx, *emailAddress)
+			//s.emailProcessor.AddEmailAddress(ctx, *emailAddress)
 
 			return true, nil
 		}, 5*time.Second, 5*time.Minute)

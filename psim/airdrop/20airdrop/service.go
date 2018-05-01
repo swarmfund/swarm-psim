@@ -80,7 +80,7 @@ func (s *Service) Run(ctx context.Context) {
 
 	s.processChangesUpToSnapshotTime(ctx)
 
-	go s.emailProcessor.Run(ctx)
+	//go s.emailProcessor.Run(ctx)
 
 	s.payOutSnapshot(ctx)
 

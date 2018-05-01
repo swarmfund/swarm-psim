@@ -49,7 +49,7 @@ func NewClient(client *http.Client, base *url.URL) *Client {
 }
 
 func (c *Client) Do(request *http.Request) ([]byte, error) {
-	<-c.throttle
+	//<-c.throttle
 
 	// ensure content-type just in case
 	request.Header.Set("content-type", "application/json")
