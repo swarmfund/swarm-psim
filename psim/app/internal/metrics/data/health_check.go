@@ -5,7 +5,7 @@ type HealthCheck struct {
 }
 
 func NewHealthCheck() *HealthCheck {
-	return &HealthCheck{nil}
+	return &HealthCheck{}
 }
 
 //no-op

@@ -54,7 +54,7 @@ type MetricsProvider struct {
 	mutex   *sync.Mutex
 	log     *logan.Entry
 	config  Config
-	metrics map[string]*data.Metrics
+	metrics map[string]data.Metrics
 }
 
 func New(log *logan.Entry, config Config) *MetricsProvider {
@@ -62,7 +62,7 @@ func New(log *logan.Entry, config Config) *MetricsProvider {
 		mutex:   &sync.Mutex{},
 		log:     log,
 		config:  config,
-		metrics: map[string]*data.Metrics{},
+		metrics: map[string]data.Metrics{},
 	}
 }
 
@@ -71,12 +71,12 @@ func (m *MetricsProvider) Run() {
 
 	addr := fmt.Sprintf("%s:%d", m.config.Host, m.config.Port)
 	if err := http.ListenAndServe(addr, r); err != nil {
-		m.log.WithError(err).Error("Failed start app")
+		m.log.WithError(err).Error("listener died")
 		return
 	}
 }
 
-func (m *MetricsProvider) AddService(name string) *data.Metrics {
+func (m *MetricsProvider) AddService(name string) data.Metrics {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

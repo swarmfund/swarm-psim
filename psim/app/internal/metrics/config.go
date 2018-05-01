@@ -6,12 +6,14 @@ import (
 )
 
 type Config struct {
-	Host string `fig:"host,required"`
+	Host string `fig:"host"`
 	Port int    `fig:"port,required"`
 }
 
 func NewConfig(configData map[string]interface{}) (*Config, error) {
-	config := &Config{}
+	config := &Config{
+		Host: "localhost",
+	}
 
 	err := figure.
 		Out(config).

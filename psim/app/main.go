@@ -192,18 +192,23 @@ func (app *App) Run() {
 
 		serviceName := name
 		go func() {
+			var metric data.Metrics
 			defer func() {
 				if rec := recover(); rec != nil {
 					err := errors.FromPanic(rec)
 					entry.WithStack(errors.WithStack(err)).WithError(err).Error("service panicked")
+
+					if &metric != nil {
+						metric.Unhealthy(err)
+					}
 				}
 				wg.Done()
 			}()
 
-			metric := app.metricsProvider.AddService(serviceName)
+			metric = app.metricsProvider.AddService(serviceName)
 
 			ctx := context.WithValue(ctx, ctxLog, entry)
-			ctx = context.WithValue(ctx, ctxMetrics, metric)
+			ctx = context.WithValue(ctx, ctxMetrics, &metric)
 
 			metric.Unhealthy(errors.New("service not initialize yet"))
 			service, err := ohaigo(ctx)

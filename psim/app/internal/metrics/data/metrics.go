@@ -7,13 +7,13 @@ type Metrics struct {
 	healthCheck metrics.Healthcheck
 }
 
-func NewMetric() *Metrics {
+func NewMetric() Metrics {
 	register := metrics.NewRegistry()
 	healthCheck := NewHealthCheck()
 
 	register.GetOrRegister("health", healthCheck)
 
-	return &Metrics{
+	return Metrics{
 		register:    register,
 		healthCheck: healthCheck,
 	}
