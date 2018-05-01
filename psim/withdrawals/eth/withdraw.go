@@ -50,7 +50,7 @@ func init() {
 			conf.ServiceETHWithdraw,
 			config.VerifierServiceName,
 			config.Signer,
-			app.Log(ctx),
+			app.Log(ctx).WithField("service_name", config.VerifierServiceName),
 			horizon.Listener(),
 			horizon,
 			builder,

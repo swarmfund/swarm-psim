@@ -19,11 +19,11 @@ func TestNewWithdrawConfig(t *testing.T) {
 			"key":                   "53414c4644494f3447454f54494b4e4743344d4b553345565954354d58444535564343525951373653455a5a4d4e464a584935454b33484f",
 			"gas_price":             1000000000,
 			"signer":                "SCBDFODTCFIXMC4J634W7UT4NXFN5KNUJGWY3UJ5GISZE4XUGXG4JG6X",
-			"token":                 "0xAeEc6f5aCA72F3A005af1B3420ab8c8c7009BaC8",
+			"token":                 "0xda1eef4ba525f30c01244e1749886190db18ece4",
 			"verifier_service_name": "eth_withdraw_verify",
 		}
 
-		token := common.Address([20]byte{174, 236, 111, 90, 202, 114, 243, 160, 5, 175, 27, 52, 32, 171, 140, 140, 112, 9, 186, 200})
+		token := common.HexToAddress("0xda1eef4ba525f30c01244e1749886190db18ece4")
 
 		expected := WithdrawConfig{
 			Signer:              keypair.MustParseSeed("SCBDFODTCFIXMC4J634W7UT4NXFN5KNUJGWY3UJ5GISZE4XUGXG4JG6X"),
