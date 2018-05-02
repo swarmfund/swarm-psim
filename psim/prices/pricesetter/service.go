@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
 	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/go/xdr"
@@ -55,7 +55,8 @@ func newService(
 
 	return &service{
 		config: config,
-		log:    log.WithField("service", "price_setter"),
+		log: log.WithField("service", "price_setter").WithField("base_asset", config.BaseAsset).
+			WithField("quote_asset", config.QuoteAsset),
 
 		connector:   connector,
 		priceFinder: finder,
@@ -68,26 +69,22 @@ func newService(
 func (s *service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
-	// TODO use running
-	app.RunOverIncrementalTimer(ctx, s.log, "price_setter", s.findAndProcessPricePoint, 10*time.Second, 5*time.Second)
+	running.WithBackOff(ctx, s.log, "price_setter", s.findAndProcessPricePoint, 10*time.Second, 5*time.Second, 5*time.Minute)
 }
 
 func (s *service) findAndProcessPricePoint(ctx context.Context) error {
-	pointToSubmit, err := s.priceFinder.TryFind()
-	if err != nil {
-		return errors.Wrap(err, "Failed to find PricePoint to submit")
-	}
-
-	if pointToSubmit == nil {
-		s.log.Warn("Has not found PricePoint to submit.")
+	pointToSubmit, findErr := s.priceFinder.TryFind()
+	if findErr != nil {
+		s.log.WithError(findErr).Warn("Has not found PricePoint to submit.")
 		return nil
 	}
 
 	fields := logan.F{
 		"price_point": pointToSubmit,
 	}
-	s.log.WithFields(fields).Info("Found Point meeting restrictions.")
+	s.log.WithFields(fields).Info("Found PricePoint meeting restrictions.")
 
+	// TODO Move following to separate method
 	envelope, err := s.txBuilder.Transaction(s.config.Source).Op(xdrbuild.SetAssetPrice{
 		BaseAsset:  s.config.BaseAsset,
 		QuoteAsset: s.config.QuoteAsset,
