@@ -9,12 +9,12 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
 	"gitlab.com/swarmfund/psim/psim/verification"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 var (
@@ -66,8 +66,9 @@ func newService(
 
 // Run is a blocking method, it returns only when ctx closes.
 func (s *service) Run(ctx context.Context) {
-	s.log.Info("Starting.")
+	s.log.WithField("", s.config).Info("Starting.")
 
+	// TODO use running
 	app.RunOverIncrementalTimer(ctx, s.log, "price_setter", s.findAndProcessPricePoint, 10*time.Second, 5*time.Second)
 }
 
