@@ -6,17 +6,17 @@ import (
 )
 
 type Config struct {
-	BaseAsset  string `mapstructure:"base_asset"`
-	QuoteAsset string `mapstructure:"quote_asset"`
+	BaseAsset  string `mapstructure:"base_asset,required"`
+	QuoteAsset string `mapstructure:"quote_asset,required"`
 
-	Providers []providers.ProviderConfig `mapstructure:"providers"`
+	Providers []providers.ProviderConfig `mapstructure:"providers,required"`
 
-	ProvidersToAgree     int    `mapstructure:"providers_to_agree"`
-	MaxPriceDeltaPercent string `mapstructure:"max_price_delta_percent"`
-	VerifierServiceName  string `fig:"verifier_service_name"`
+	ProvidersToAgree     int    `mapstructure:"providers_to_agree,required"`
+	MaxPriceDeltaPercent string `mapstructure:"max_price_delta_percent,required"`
+	VerifierServiceName  string `fig:"verifier_service_name,required"`
 
-	Source keypair.Address `fig:"source"`
-	Signer keypair.Full    `fig:"signer" mapstructure:"signer"`
+	Source keypair.Address `fig:"source,required"`
+	Signer keypair.Full    `fig:"signer" mapstructure:"signer,required"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
