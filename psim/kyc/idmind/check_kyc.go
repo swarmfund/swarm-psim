@@ -28,7 +28,7 @@ func (s *Service) processNotChecked(ctx context.Context, request horizon.Request
 	checkResp, err := s.identityMind.CheckState(txID)
 	if err != nil {
 		if err == ErrAppNotFound {
-			err = s.approve(ctx, request.ID, request.Hash, kyc.TaskSuperAdmin, kyc.TaskCheckIDMind, map[string]string{
+			err = s.requestPerformer.Approve(ctx, request.ID, request.Hash, kyc.TaskSuperAdmin, kyc.TaskCheckIDMind, map[string]string{
 				"id_mind_check_result": fmt.Sprintf("Applications with the TxID (%s) was not found in IDMind.", txID),
 			})
 			if err != nil {

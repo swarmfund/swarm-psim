@@ -7,15 +7,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
-)
-
-const (
-	KYCFormBlobType = "kyc_form"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -25,13 +20,17 @@ type RequestListener interface {
 	StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time.Time, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+type RequestPerformer interface {
+	Approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails map[string]string) error
+	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason string) error
 }
 
-type BlobsConnector interface {
-	Blob(blobID string) (*horizon.Blob, error)
+type BlobSubmitter interface {
 	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
+}
+
+type BlobDataRetriever interface {
+	RetrieveKYCBlob(kycRequest horizon.KYCRequest) (*horizon.Blob, error)
 }
 
 type DocumentsConnector interface {
@@ -60,12 +59,12 @@ type Service struct {
 	source keypair.Address
 
 	requestListener    RequestListener
-	txSubmitter        TXSubmitter
-	blobsConnector     BlobsConnector
+	requestPerformer   RequestPerformer
+	blobsConnector     BlobSubmitter
+	blobDataRetriever  BlobDataRetriever
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
 	identityMind       IdentityMind
-	xdrbuilder         *xdrbuild.Builder
 	adminNotifyEmails  EmailsProcessor
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
@@ -76,12 +75,12 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	requestListener RequestListener,
-	txSubmitter TXSubmitter,
-	blobProvider BlobsConnector,
+	requestPerformer RequestPerformer,
+	blobProvider BlobSubmitter,
+	blobDataRetriever BlobDataRetriever,
 	userProvider UsersConnector,
 	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
-	builder *xdrbuild.Builder,
 	adminNotifyEmails EmailsProcessor,
 ) *Service {
 
@@ -90,12 +89,12 @@ func NewService(
 		config: config,
 
 		requestListener:    requestListener,
-		txSubmitter:        txSubmitter,
+		requestPerformer:   requestPerformer,
 		blobsConnector:     blobProvider,
+		blobDataRetriever:  blobDataRetriever,
 		usersConnector:     userProvider,
 		documentsConnector: documentProvider,
 		identityMind:       identityMind,
-		xdrbuilder:         builder,
 		adminNotifyEmails:  adminNotifyEmails,
 	}
 }

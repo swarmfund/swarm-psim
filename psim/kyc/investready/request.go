@@ -1,14 +1,10 @@
-package idmind
+package investready
 
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-)
-
-const (
-	TxIDExtDetailsKey = "tx_id"
 )
 
 // ProveInterestingRequest returns non-nil error if the provided Request
@@ -35,14 +31,36 @@ func proveInterestingRequest(request horizon.Request) error {
 }
 
 func proveInterestingMask(pendingTasks uint32) error {
-	if pendingTasks&(kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate) != 0 {
-		// Some manual check hasn't completed - too early to process this request.
-		return errors.New("Either FaceValidation or DocsExpirationDate hasn't been checked yet - too early to process this Request.")
+	if pendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) != 0 {
+		// Some checks hasn't been completed yet - too early to process this request.
+		return errors.New("Some previous Tasks hasn't been approved yet - too early to process this Request.")
 	}
 
-	if pendingTasks&(kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) == 0 {
-		return errors.New("No pending tasks for me - ignoring this Request.")
+	if pendingTasks&kyc.TaskCheckInvestReady == 0 {
+		return errors.New("CheckInvestReady task is not set in pending tasks - ignoring this Request.")
 	}
 
 	return nil
+}
+
+func getInvestReadyUserHash(kycReq horizon.KYCRequest) string {
+	var userHash string
+	for _, extDetails := range kycReq.ExternalDetails {
+		value, ok := extDetails[UserHashExtDetailsKey]
+		if !ok {
+			// No 'tx_id' key in these externalDetails.
+			continue
+		}
+
+		userHash, ok = value.(string)
+		if !ok {
+			// UserHash field in ExternalDetails is not a string.
+
+			// Must never happen, but just in case.
+			// Maybe we need to log this shit here, if it happens..
+			continue
+		}
+	}
+
+	return userHash
 }
