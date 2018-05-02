@@ -51,7 +51,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 			return "", errors.Wrap(err, "Failed to marshal provided IDMind response into bytes")
 		}
 
-		blobID, err = s.blobsConnector.SubmitBlob(ctx, "kyc_form", string(idMindRespBB), map[string]string{
+		blobID, err = s.blobSubmitter.SubmitBlob(ctx, "kyc_form", string(idMindRespBB), map[string]string{
 			"request_id":   strconv.Itoa(int(requestID)),
 			"request_hash": requestHash,
 		})

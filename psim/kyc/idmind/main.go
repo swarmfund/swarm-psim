@@ -60,6 +60,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Blobs(),
 		kyc.NewBlobDataRetriever(horizonConnector.Blobs()),
 		horizonConnector.Users(),
+		horizonConnector.Accounts(),
 		horizonConnector.Documents(),
 		newConnector(config.Connector),
 		adminNotifyEmails,

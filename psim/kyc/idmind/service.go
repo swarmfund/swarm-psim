@@ -41,6 +41,10 @@ type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
 }
 
+type AccountsConnector interface {
+	ByAddress(address string) (*horizon.Account, error)
+}
+
 type IdentityMind interface {
 	Submit(req CreateAccountRequest) (*ApplicationResponse, error)
 	CheckState(txID string) (*CheckApplicationResponse, error)
@@ -60,10 +64,11 @@ type Service struct {
 
 	requestListener    RequestListener
 	requestPerformer   RequestPerformer
-	blobsConnector     BlobSubmitter
+	blobSubmitter      BlobSubmitter
 	blobDataRetriever  BlobDataRetriever
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
+	accountsConnector  AccountsConnector
 	identityMind       IdentityMind
 	adminNotifyEmails  EmailsProcessor
 
@@ -76,9 +81,10 @@ func NewService(
 	config Config,
 	requestListener RequestListener,
 	requestPerformer RequestPerformer,
-	blobProvider BlobSubmitter,
+	blobSubmitter BlobSubmitter,
 	blobDataRetriever BlobDataRetriever,
-	userProvider UsersConnector,
+	usersConnector UsersConnector,
+	accountsConnector AccountsConnector,
 	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
 	adminNotifyEmails EmailsProcessor,
@@ -90,9 +96,10 @@ func NewService(
 
 		requestListener:    requestListener,
 		requestPerformer:   requestPerformer,
-		blobsConnector:     blobProvider,
+		blobSubmitter:      blobSubmitter,
 		blobDataRetriever:  blobDataRetriever,
-		usersConnector:     userProvider,
+		usersConnector:     usersConnector,
+		accountsConnector:  accountsConnector,
 		documentsConnector: documentProvider,
 		identityMind:       identityMind,
 		adminNotifyEmails:  adminNotifyEmails,
@@ -160,6 +167,15 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	// I found this log useless
 	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
 	kycReq := request.Details.KYC
+
+	acc, err := s.accountsConnector.ByAddress(kycReq.AccountToUpdateKYC)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get Account by AccountID from Horizon", logan.F{"account_id": kycReq.AccountToUpdateKYC})
+	}
+	if acc.IsBlocked {
+		s.log.WithField("account_id", acc.AccountID).Debug("Found KYCRequest of a blocked Account, ignoring it.")
+		return nil
+	}
 
 	if kycReq.PendingTasks&kyc.TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet
