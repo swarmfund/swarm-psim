@@ -95,6 +95,7 @@ func (f *priceFinder) TryFind() (*types.PricePoint, error) {
 		verifyErr := f.verifyCandidate(candidate.Price, cluster)
 		if verifyErr != nil {
 			f.log.WithFields(fields).WithError(verifyErr).Debug("Candidate is not approved over Cluster.")
+			continue
 		}
 
 		return &candidate.PricePoint, nil
