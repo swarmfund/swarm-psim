@@ -1,16 +1,24 @@
 package providers
 
 import (
-	"time"
 	"reflect"
+	"time"
+
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type ProviderConfig struct {
-	Name   string        `mapstructure:"name"`
-	Period time.Duration `mapstructure:"period"`
+	Name   string        `mapstructure:"name,required"`
+	Period time.Duration `mapstructure:"period,required"`
+}
+
+func (c ProviderConfig) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"name":   c.Name,
+		"period": c.Period.String(),
+	}
 }
 
 var FigureHooks = figure.Hooks{

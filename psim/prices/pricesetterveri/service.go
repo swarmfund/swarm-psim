@@ -22,12 +22,7 @@ func New(
 	listener net.Listener,
 	discoveryClient *discovery.Client) app.Service {
 
-	v := newVerifier(
-		serviceName,
-		log,
-		config,
-		pFinder,
-	)
+	v := NewVerifier(serviceName, log, config, pFinder)
 
 	return verifier.New(
 		serviceName,
