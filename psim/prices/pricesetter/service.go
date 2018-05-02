@@ -65,7 +65,7 @@ func newService(
 func (s *service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
-	running.WithBackOff(ctx, s.log, "price_setter", s.findAndProcessPricePoint, 10*time.Second, 5*time.Second, 5*time.Minute)
+	running.WithBackOff(ctx, s.log, "price_setter", s.findAndProcessPricePoint, s.config.SubmitPeriod, 5*time.Second, 5*time.Minute)
 }
 
 func (s *service) findAndProcessPricePoint(ctx context.Context) error {

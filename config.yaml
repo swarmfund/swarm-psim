@@ -189,6 +189,7 @@ price_setter:
   base_asset: "ETH"
   quote_asset: "USD"
 
+  submit_period: 15s
   providers:
     - name: "bitfinex"
       period: 15s
