@@ -4,7 +4,7 @@ type User struct {
 	FirstName   string     `json:"first_name"`
 	LastName    string     `json:"last_name"`
 	Email       string     `json:"email"`
-	DateOfBirth int64     `json:"dob"`
+	DateOfBirth int64      `json:"dob"`
 	Hash        string     `json:"hash"`
 	Status      UserStatus `json:"status"`
 }
@@ -21,8 +21,8 @@ func (u User) GetLoganFields() map[string]interface{} {
 }
 
 type UserStatus struct {
-	Message    string `json:"message"`
-	Accredited int    `json:"accredited"`
+	Message    StatusMessage `json:"message"`
+	Accredited int           `json:"accredited"`
 	// The response struct also contains fields:
 	// - via
 	// - certificate_url
@@ -36,3 +36,11 @@ func (u UserStatus) GetLoganFields() map[string]interface{} {
 		"accredited": u.Accredited,
 	}
 }
+
+type StatusMessage string
+
+const (
+	AccreditedStatusMessage StatusMessage = "Accredited"
+	PendingStatusMessage    StatusMessage = "Pending"
+	DeniedStatusMessage     StatusMessage = "Denied"
+)

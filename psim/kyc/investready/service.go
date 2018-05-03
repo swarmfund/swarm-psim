@@ -118,5 +118,5 @@ func (s *Service) Run(ctx context.Context) {
 	}()
 
 	wg.Wait()
-	s.log.Info("All runners stooped - stopping cleanly.")
+	s.log.Info("All runners stopped - stopping cleanly.")
 }

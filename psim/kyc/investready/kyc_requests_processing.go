@@ -161,27 +161,25 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 		return nil
 	}
 
-	if user.Status.Accredited == 0 {
+	if user.Status.Message == PendingStatusMessage {
 		// Not Accredited yet - pending.
 		return nil
 	}
 
-	// FIXME I'm absolutely *not* sure 1 is proper value!!!
-	if user.Status.Accredited == 1 {
+	if user.Status.Message == AccreditedStatusMessage {
 		// Having an AccreditedInvestor here?
 		err := s.requestPerformer.Approve(ctx, request.ID, request.Hash, 0, kyc.TaskCheckInvestReady, nil)
 		if err != nil {
-			return errors.Wrap(err, "Failed to approve KYCRequest")
+			return errors.Wrap(err, "Failed to approve KYCRequest (InvestReady approved)")
 		}
 
 		return nil
 	}
 
-	// FIXME I'm absolutely *not* sure -1 is proper value and I'm not sure whether rejected state exists in InvestReady at all!!!
-	if user.Status.Accredited == -1 {
-		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, "Invest Ready rejected.")
+	if user.Status.Message == DeniedStatusMessage {
+		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, "Invest Ready denied.")
 		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady rejected)")
+			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady denied)")
 		}
 
 		return nil
@@ -210,10 +208,11 @@ func (s *Service) checkUserData(user User, kycData kyc.Data) (checkErr string) {
 		return fmt.Sprintf("Expected last name in InvestReady to be (%s), but got (%s)", kycData.LastName, user.LastName)
 	}
 
-	dob := time.Unix(user.DateOfBirth, 0)
-	if dob != kycData.DateOfBirth {
-		return fmt.Sprintf("Expected dat of birth in InvestReady to be (%s), but got (%s)",
-			kycData.DateOfBirth.String(), dob.String())
+	userDob := time.Unix(user.DateOfBirth, 0).UTC()
+	kycDataDob := kycData.DateOfBirth.UTC()
+	if userDob != kycDataDob {
+		return fmt.Sprintf("Expected date of birth in InvestReady to be (%s), but got (%s)",
+			kycDataDob.String(), userDob.String())
 	}
 
 	// TODO Email?
