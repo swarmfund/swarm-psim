@@ -31,7 +31,7 @@ func proveInterestingRequest(request horizon.Request) error {
 }
 
 func proveInterestingMask(pendingTasks uint32) error {
-	if pendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) != 0 {
+	if pendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind|kyc.TaskUSA) != 0 {
 		// Some checks hasn't been completed yet - too early to process this request.
 		return errors.New("Some previous Tasks hasn't been approved yet - too early to process this Request.")
 	}
