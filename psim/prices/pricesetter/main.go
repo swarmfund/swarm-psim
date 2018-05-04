@@ -6,13 +6,13 @@ import (
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/prices/finder"
 	"gitlab.com/swarmfund/psim/psim/prices/providers"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/amount"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -33,6 +33,11 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
 			"service": conf.ServicePriceSetter,
 		})
+	}
+
+	validationErr := config.Validate()
+	if validationErr != nil {
+		return nil, errors.Wrap(validationErr, "Config is invalid")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)

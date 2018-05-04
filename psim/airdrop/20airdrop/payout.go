@@ -93,8 +93,8 @@ func (s *Service) filterAccounts() {
 func countIssuanceAmount(balance uint64) uint64 {
 	result := balance * 20 / 100
 
-	if result > 20000*amount.One {
-		result = 20000 * amount.One
+	if result > 4000*amount.One {
+		result = 4000 * amount.One
 	}
 
 	return result

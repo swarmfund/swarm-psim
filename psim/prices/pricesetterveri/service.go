@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/verifier"
 	"gitlab.com/tokend/keypair"
 )
@@ -21,16 +22,11 @@ func New(
 	listener net.Listener,
 	discoveryClient *discovery.Client) app.Service {
 
-	v := newVerifier(
-		serviceName,
-		log,
-		config,
-		pFinder,
-	)
+	v := NewVerifier(serviceName, log, config, pFinder)
 
 	return verifier.New(
 		serviceName,
-		"my_awesome_super_duper_random_id_price_setter",
+		utils.GenerateToken(),
 		log,
 		v,
 		builder,

@@ -79,6 +79,7 @@ services:
 #  - airdrop_march_20_20
 
 #  - identity_mind
+#  - invest_ready
 
 #  - template_provider
 #  - wallet_cleaner
@@ -188,6 +189,7 @@ price_setter:
   base_asset: "ETH"
   quote_asset: "USD"
 
+  submit_period: 15s
   providers:
     - name: "bitfinex"
       period: 15s
@@ -224,6 +226,7 @@ price_setter_verify:
   max_price_delta_percent: "10"
 
   signer: S
+  verifier_service_name: SOME_VERIFIER_SERVICE_NAME
 
 taxman:
   source: GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4
@@ -361,6 +364,7 @@ airdrop_kyc:
 airdrop_march_referrals:
   issuance_asset: SWM
   snapshot_time: "2018-04-22T11:30:00"
+  approve_wait_finish_time: "2018-04-25T11:30:00"
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
@@ -429,3 +433,18 @@ template_provider:
 
 wallet_cleaner:
   expire_duration: 128h
+
+invest_ready:
+  connector:
+    url: https://api.sandbox.investready.com
+    client_id: ourClientIDInInvestReady
+    client_secret: ourClientSecretInInvestReady
+    riderect_uri: https://invest.swarm.fund # The RedirectURI set in the InvestReady cabinet
+
+  redirects:
+    host: localhost
+    port: 8007
+    timeout: 30s
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
