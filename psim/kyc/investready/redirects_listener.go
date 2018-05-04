@@ -23,28 +23,6 @@ const (
 	UserHashExtDetailsKey = "invest_ready_user_hash"
 )
 
-type redirectedRequest struct {
-	AccountID string `json:"account_id"`
-	OauthCode string `json:"oauth_code"`
-}
-
-func (r redirectedRequest) GetLoganFields() map[string]interface{} {
-	return map[string]interface{}{
-		"account_id": r.AccountID,
-	}
-}
-
-func (r redirectedRequest) Validate() (validationErr string) {
-	if r.AccountID == "" {
-		return "account_id cannot be empty."
-	}
-	if r.OauthCode == "" {
-		return "oauth_code cannot be empty."
-	}
-
-	return ""
-}
-
 type RedirectsListener struct {
 	log    *logan.Entry
 	config RedirectsConfig
@@ -77,9 +55,13 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 	l.log.WithField("config", l.config).Info("Starting listening to redirects.")
 
 	go running.UntilSuccess(ctx, l.log, "redirects_listening_server", func(ctx context.Context) (bool, error) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", l.redirectsHandler)
+		mux.HandleFunc("/user_hash", l.userHashHandler)
+
 		l.server = &http.Server{
 			Addr:         fmt.Sprintf("%s:%d", l.config.Host, l.config.Port),
-			Handler:      http.HandlerFunc(l.redirectsHandler),
+			Handler:      mux,
 			WriteTimeout: l.config.Timeout,
 		}
 
@@ -99,48 +81,34 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 }
 
 func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		l.log.WithField("request_method", r.Method).Warn("Received request with wrong method.")
-		writeError(w, http.StatusMethodNotAllowed, "Only method POST is allowed.")
-		return
-	}
-
-	if r.Body == nil {
-		l.log.Warn("Received request with empty body.")
-		writeError(w, http.StatusBadRequest, "Empty request body.")
-		return
-	}
-
-	bb, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		l.log.WithError(err).Warn("Failed to read bytes from request body Reader.")
-		writeError(w, http.StatusBadRequest, "Cannot read request body.")
+	bb, errResponseWritten := l.validateHTTPRequest(w, r, http.MethodPost)
+	if errResponseWritten {
 		return
 	}
 
 	var request redirectedRequest
-	err = json.Unmarshal(bb, &request)
+	err := json.Unmarshal(bb, &request)
 	if err != nil {
 		l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to unmarshal request bytes into struct.")
 		writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
 		return
 	}
 
-	l.processRequest(r.Context(), w, request)
+	l.processRedirectRequest(r.Context(), w, request)
 }
 
-func (l *RedirectsListener) processRequest(ctx context.Context, w http.ResponseWriter, request redirectedRequest) {
+func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.ResponseWriter, request redirectedRequest) {
 	logger := l.log.WithField("request", request)
 
 	if validationErr := request.Validate(); validationErr != "" {
-		l.log.WithField("validation_err", validationErr).Warn("Received invalid request.")
+		logger.WithField("validation_err", validationErr).Warn("Received invalid request.")
 		writeError(w, http.StatusBadRequest, validationErr)
 		return
 	}
 
-	forbiddenErr, err := l.obtainAndSaveUserHash(ctx, request.AccountID, request.OauthCode)
+	kycRequest, forbiddenErr, err := l.getKYCRequest(ctx, request.AccountID)
 	if err != nil {
-		logger.WithError(err).Error("Failed to obtain and save UserHash.")
+		logger.WithError(err).Error("Failed to get KYCRequest by AccountID.")
 		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
 		return
 	}
@@ -150,59 +118,109 @@ func (l *RedirectsListener) processRequest(ctx context.Context, w http.ResponseW
 		return
 	}
 
+	err = l.obtainAndSaveUserHash(ctx, *kycRequest, request.AccountID, request.OauthCode)
+	if err != nil {
+		logger.WithError(err).Error("Failed to obtain and save UserHash.")
+		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
+		return
+	}
+
 	w.Header()["Content-Type"] = append(w.Header()["Content-Type"], "application/json")
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, accID, oauthCode string) (forbiddenReason error, err error) {
+func (l *RedirectsListener) getKYCRequest(ctx context.Context, accID string) (kycRequest *horizon.Request, forbiddenReason error, err error) {
 	kycRequests, err := l.kycRequestsConnector.Requests(fmt.Sprintf("account_to_update_kyc=%s", accID),
 		"", horizon.ReviewableRequestType("update_kyc"))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get KYCRequests of the Account from Horizon")
+		return nil, nil, errors.Wrap(err, "Failed to get KYCRequests of the Account from Horizon")
 	}
 	if len(kycRequests) == 0 {
-		return errors.New("No KYCRequests were found for the Account."), nil
+		return nil, errors.New("No KYCRequests were found for the Account."), nil
 	}
-	kycRequest := kycRequests[0]
+	r := kycRequests[0]
+	kycRequest = &r
 	fields := logan.F{
 		"kyc_request": kycRequest,
 	}
 
 	if kycRequest.State != kyc.RequestStatePending {
-		return errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State), nil
+		return nil, errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State), nil
 	}
 	if kycRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeUpdateKyc) {
-		return nil, errors.From(errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State), fields)
+		return nil, nil, errors.From(errors.Errorf("Expected Request type to be KYC(%d), but got (%d).",
+			xdr.ReviewableRequestTypeUpdateKyc, kycRequest.Details.RequestType), fields)
 	}
 	if kycRequest.Details.KYC.PendingTasks&kyc.TaskUSA == 0 {
 		// No job for InvestReady service
-		return errors.New("This User's KYCRequest does not have the Task to verify AccreditedInvestor."), nil
+		return nil, errors.New("This User's KYCRequest does not have the Task to verify AccreditedInvestor."), nil
 	}
 	if kycRequest.Details.KYC.PendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) != 0 {
 		// Some previous jobs are not finished
-		return errors.New("This User's KYCRequest has some other Tasks to be done first."), nil
+		return nil, errors.New("This User's KYCRequest has some other Tasks to be done first."), nil
 	}
 
+	return kycRequest, nil, nil
+}
+
+func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, kycRequest horizon.Request, accID, oauthCode string) error {
 	userToken, err := l.investReady.ObtainUserToken(oauthCode)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to obtain User's AccessToken in InvestReady", fields)
+		return errors.Wrap(err, "Failed to obtain User's AccessToken in InvestReady")
 	}
 
 	userHash, err := l.investReady.UserHash(userToken)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to ger UserHash in InvestReady", fields)
+		return errors.Wrap(err, "Failed to ger UserHash in InvestReady")
 	}
-	fields["user_hash"] = userHash
+	fields := logan.F{
+		"user_hash": userHash,
+	}
 
-	err = l.requestPerformer.Approve(ctx, kycRequest.ID, kycRequest.Hash, kyc.TaskCheckInvestReady, kyc.TaskUSA, map[string]string{
+	err = l.saveUserHash(ctx, kycRequest, accID, userHash)
+	if err != nil {
+		return errors.Wrap(err, "Failed to approve KYCRequest (with saving UserHash)", fields)
+	}
+
+	return nil
+}
+
+func (l *RedirectsListener) saveUserHash(ctx context.Context, kycRequest horizon.Request, accID, userHash string) error {
+	err := l.requestPerformer.Approve(ctx, kycRequest.ID, kycRequest.Hash, kyc.TaskCheckInvestReady, kyc.TaskUSA, map[string]string{
 		UserHashExtDetailsKey: userHash,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to approve KYCRequest", fields)
+		return errors.Wrap(err, "Failed to approve KYCRequest")
 	}
 
-	l.log.WithFields(fields).WithField("account_id", accID).Info("Saved UserHash into Core successfully.")
-	return nil, nil
+	l.log.WithFields(logan.F{
+		"account_id": accID,
+		"user_hash":  userHash,
+	}).Info("Saved UserHash into Core successfully.")
+	return nil
+}
+
+func (l *RedirectsListener) validateHTTPRequest(w http.ResponseWriter, r *http.Request, requestMethod string) (respBody []byte, errResponseWritten bool) {
+	if r.Method != requestMethod {
+		l.log.WithField("request_method", r.Method).Warn("Received request with wrong method.")
+		writeError(w, http.StatusMethodNotAllowed, fmt.Sprintf("Only method %s is allowed.", requestMethod))
+		return nil, true
+	}
+
+	if r.Body == nil {
+		l.log.Warn("Received request with empty body.")
+		writeError(w, http.StatusBadRequest, "Empty request body.")
+		return nil, true
+	}
+
+	bb, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		l.log.WithError(err).Warn("Failed to read bytes from request body Reader.")
+		writeError(w, http.StatusBadRequest, "Cannot read request body.")
+		return nil, true
+	}
+
+	return bb, false
 }
 
 func writeError(w http.ResponseWriter, statusCode int, errorMessage string) error {
