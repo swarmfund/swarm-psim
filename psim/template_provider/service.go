@@ -19,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/template_provider/data"
 )
 
 type Service struct {
@@ -31,8 +30,14 @@ type Service struct {
 	info       *horizon.Info
 }
 
-func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
-	bucket string, info *horizon.Info, doorman doorman.Doorman) chi.Router {
+func Router(
+	log *logan.Entry,
+	uploader *s3.S3,
+	downloader *s3manager.Downloader,
+	bucket string,
+	info *horizon.Info,
+	doorman doorman.Doorman) chi.Router {
+
 	r := chi.NewRouter()
 
 	r.Use(
@@ -74,10 +79,7 @@ func (s *Service) Run(ctx context.Context) {
 		s.downloader,
 		s.API.Bucket,
 		s.info,
-		doorman.New(
-			s.API.SkipSignatureCheck,
-			data.NewAccountQ(s.horizon),
-		),
+		doorman.New(s.API.SkipSignatureCheck, s.horizon.Accounts()),
 	)
 
 	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
