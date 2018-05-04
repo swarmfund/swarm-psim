@@ -7,12 +7,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/addrstate"
-	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit/internal"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
-	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
@@ -23,14 +21,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx)
 
-	var config Config
-	err := figure.
-		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceBTCDeposit)).
-		With(figure.BaseHooks, utils.CommonHooks).
-		Please()
+	config, err := NewConfig(globalConfig.GetRequired(conf.ServiceBTCDeposit))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
+		return nil, errors.Wrap(err, "Failed to create config", logan.F{
 			"service": conf.ServiceBTCDeposit,
 		})
 	}

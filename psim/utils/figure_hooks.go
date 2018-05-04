@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/tokend/keypair"
 )
 

@@ -8,4 +8,5 @@ const (
 	TaskCheckIDMind        uint32 = 16
 	TaskUSA                uint32 = 32
 	TaskNonLatinDoc        uint32 = 64
+	TaskCheckInvestReady   uint32 = 128
 )

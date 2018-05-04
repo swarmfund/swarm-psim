@@ -39,7 +39,8 @@ func (p *Provider) GetName() string {
 	return p.name
 }
 
-// GetPoints - returns points available
+// GetPoints - returns all available PricePoints.
+// All PricePoints are available until deleted via RemoveOldPoints() method.
 func (p *Provider) GetPoints() []types.PricePoint {
 	p.pointsLock.Lock()
 	defer p.pointsLock.Unlock()

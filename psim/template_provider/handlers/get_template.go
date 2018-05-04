@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/ape"
@@ -36,8 +37,20 @@ func GetTemplate(w http.ResponseWriter, r *http.Request) {
 			Key:    &key,
 		})
 	if err != nil {
+		cause := errors.Cause(err)
+		if aerr, ok := cause.(awserr.Error); ok {
+			switch aerr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				Log(r).WithFields(logan.F{"bucket": bucket}).WithError(err).Error("No such bucket")
+				ape.RenderErr(w, problems.InternalError())
+				return
+			case s3.ErrCodeNoSuchKey:
+				ape.RenderErr(w, problems.NotFound())
+				return
+			}
+		}
 		Log(r).WithFields(logan.F{"bucket": bucket, "key": key}).WithError(err).Error("Failed to download")
-		ape.RenderErr(w, problems.InternalError()) //todo assert errors
+		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
