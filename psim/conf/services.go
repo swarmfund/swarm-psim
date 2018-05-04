@@ -35,6 +35,7 @@ const (
 
 	ServiceIdentityMind = "identity_mind"
 	ServiceInvestReady  = "invest_ready"
+	ServiceMixpanel     = "mixpanel"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

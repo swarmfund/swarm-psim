@@ -83,6 +83,7 @@ services:
 
 #  - template_provider
 #  - wallet_cleaner
+#  - mixpanel
 
 # BTC
 btc_deposit:
@@ -448,3 +449,5 @@ invest_ready:
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
+mixpanel:
+  token: "SOME_VALID_TOKEN"
