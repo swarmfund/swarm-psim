@@ -148,9 +148,16 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 }
 
 func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Request, user User, kycData kyc.Data) error {
+	logger := s.log.WithFields(logan.F{
+		"request":  request,
+		"user":     user,
+		"kyc_data": kycData,
+	})
+
 	checkErr := s.checkUserData(user, kycData)
 	if checkErr != "" {
-		s.log.WithField("check_err", checkErr).Warn("Meet User with mismatched personal info - rejecting KYCRequest.")
+		logger.WithField("check_err", checkErr).Warn("Meet User with mismatched personal info - rejecting KYCRequest.")
+
 		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, kyc.TaskSuperAdmin, nil, checkErr)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest (because of personal info mismatch)", logan.F{
@@ -167,12 +174,12 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 	}
 
 	if user.Status.Message == AccreditedStatusMessage {
-		// Having an AccreditedInvestor here?
 		err := s.requestPerformer.Approve(ctx, request.ID, request.Hash, 0, kyc.TaskCheckInvestReady, nil)
 		if err != nil {
 			return errors.Wrap(err, "Failed to approve KYCRequest (InvestReady approved)")
 		}
 
+		logger.Info("Approved KYCRequest of approved AccreditedInvestor.")
 		return nil
 	}
 
@@ -182,11 +189,12 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady denied)")
 		}
 
+		logger.Info("Rejected KYCRequest (InvestReady denied).")
 		return nil
 	}
 
 	// TODO Make sure there's no other valid value of Accredited field
-	return errors.Errorf("Unexpected Accredited value of the InvestReady User (%d).", user.Status.Accredited)
+	return errors.Errorf("Unexpected Status of the InvestReady User (%s).", user.Status.Message)
 }
 
 func (s *Service) findUser(userHash string) *User {
