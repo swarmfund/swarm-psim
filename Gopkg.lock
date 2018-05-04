@@ -106,6 +106,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dukex/mixpanel"
+  packages = ["."]
+  revision = "88b7bfd34643dce0c28a6b797652d6b5026091af"
+
+[[projects]]
   name = "github.com/ethereum/go-ethereum"
   packages = [
     ".",
@@ -656,6 +662,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fa5b07a2aa33f1006f763c2660d0488d623892ced7cb8e029256a72c600f086b"
+  inputs-digest = "c496f8c45fbae84f681c8bc1647f35f9ccb77d67bba9444ab97be9f3aec3354c"
   solver-name = "gps-cdcl"
   solver-version = 1
