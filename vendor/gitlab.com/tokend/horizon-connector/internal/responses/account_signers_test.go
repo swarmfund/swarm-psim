@@ -126,8 +126,8 @@ func TestAccountSignersUnmarshal(t *testing.T) {
 	assert.Len(t, got.Signers, 1)
 	signer := got.Signers[0]
 	assert.EqualValues(t, 1, signer.Weight)
-	assert.EqualValues(t, 16777215, signer.Type)
-	assert.EqualValues(t, "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636", signer.PublicKey)
+	assert.EqualValues(t, 16777215, signer.SignerType)
+	assert.EqualValues(t, "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636", signer.AccountID)
 	assert.EqualValues(t, 1, signer.Identity)
 	assert.EqualValues(t, "foobar", signer.Name)
 }

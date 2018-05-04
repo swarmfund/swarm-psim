@@ -19,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/template_provider/data"
 )
 
 type Service struct {
@@ -74,10 +73,7 @@ func (s *Service) Run(ctx context.Context) {
 		s.downloader,
 		s.API.Bucket,
 		s.info,
-		doorman.New(
-			s.API.SkipSignatureCheck,
-			data.NewAccountQ(s.horizon),
-		),
+		doorman.New(s.API.SkipSignatureCheck, s.horizon.Accounts()),
 	)
 
 	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
