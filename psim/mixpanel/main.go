@@ -19,7 +19,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	config, err := NewConfig(globalConfig.GetRequired(conf.ServiceMixpanel))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create config", logan.F{
-			"service": conf.ServiceBTCDepositVerify,
+			"service": conf.ServiceMixpanel,
 		})
 	}
 
