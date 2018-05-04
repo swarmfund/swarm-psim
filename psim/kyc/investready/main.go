@@ -8,9 +8,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -52,5 +53,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		kyc.NewBlobDataRetriever(horizonConnector.Blobs()),
 		horizonConnector.Users(),
 		NewConnector(log.WithField("service", conf.ServiceInvestReady), config.Connector),
+		doorman.New(!config.RedirectsConfig.CheckSignature, horizonConnector.Accounts()),
 	), nil
 }

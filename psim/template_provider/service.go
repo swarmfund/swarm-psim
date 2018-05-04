@@ -30,8 +30,14 @@ type Service struct {
 	info       *horizon.Info
 }
 
-func Router(log *logan.Entry, uploader *s3.S3, downloader *s3manager.Downloader,
-	bucket string, info *horizon.Info, doorman doorman.Doorman) chi.Router {
+func Router(
+	log *logan.Entry,
+	uploader *s3.S3,
+	downloader *s3manager.Downloader,
+	bucket string,
+	info *horizon.Info,
+	doorman doorman.Doorman) chi.Router {
+
 	r := chi.NewRouter()
 
 	r.Use(
