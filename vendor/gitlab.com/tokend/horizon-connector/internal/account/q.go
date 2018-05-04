@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector/internal"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
+	goresources "gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/horizon-connector/internal/responses"
 )
 
@@ -35,12 +36,12 @@ func (q *Q) IsSigner(master string, signer string, signerType ...xdr.SignerType)
 	isAllowedSigner := false
 	var notEnoughTypes []xdr.SignerType
 	for _, s := range signers {
-		if signer == s.PublicKey {
+		if signer == s.AccountID {
 			isAllowedSigner = true
 		}
 
 		for _, t := range signerType {
-			if s.Type&int32(t) == 0 {
+			if s.SignerType&int(t) == 0 {
 				notEnoughTypes = append(notEnoughTypes, t)
 			}
 		}
@@ -57,7 +58,7 @@ func (q *Q) IsSigner(master string, signer string, signerType ...xdr.SignerType)
 	return nil
 }
 
-func (q *Q) Signers(address string) ([]resources.Signer, error) {
+func (q *Q) Signers(address string) ([]goresources.Signer, error) {
 	endpoint := fmt.Sprintf("/accounts/%s/signers", address)
 	response, err := q.client.Get(endpoint)
 	if err != nil {
@@ -67,10 +68,12 @@ func (q *Q) Signers(address string) ([]resources.Signer, error) {
 	if response == nil {
 		return nil, nil
 	}
+
 	var result responses.AccountSigners
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
+
 	return result.Signers, nil
 }
 

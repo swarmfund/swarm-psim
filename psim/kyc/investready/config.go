@@ -29,7 +29,7 @@ type ConnectorConfig struct {
 	URL          string        `fig:"url,required"`
 	ClientID     string        `fig:"client_id,required"`
 	ClientSecret string        `fig:"client_secret,required"`
-	RedirectURI  string        `fig:"redirect_uri"`
+	RedirectURI  string        `fig:"redirect_uri,required"`
 	Timeout      time.Duration `fig:"timeout"`
 }
 
@@ -43,16 +43,18 @@ func (c ConnectorConfig) GetLoganFields() map[string]interface{} {
 }
 
 type RedirectsConfig struct {
-	Host    string        `fig:"host,required"`
-	Port    int           `fig:"port,required"`
-	Timeout time.Duration `fig:"timeout"`
+	Host           string        `fig:"host,required"`
+	Port           int           `fig:"port,required"`
+	Timeout        time.Duration `fig:"timeout"`
+	CheckSignature bool          `fig:"check_signature,required"`
 }
 
 func (c RedirectsConfig) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"host":    c.Host,
-		"port":    c.Port,
-		"timeout": c.Timeout,
+		"host":            c.Host,
+		"port":            c.Port,
+		"timeout":         c.Timeout,
+		"check_signature": c.CheckSignature,
 	}
 }
 
