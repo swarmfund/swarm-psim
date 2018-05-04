@@ -2,6 +2,7 @@ package horizon
 
 import (
 	"gitlab.com/tokend/horizon-connector/internal/resources"
+	goresources "gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/horizon-connector/internal/listener"
 	"gitlab.com/tokend/horizon-connector/internal/resources/operations"
 	"gitlab.com/tokend/horizon-connector/internal/operation"
@@ -19,7 +20,7 @@ type KYCRequest = resources.RequestKYCDetails
 
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
 type Info = resources.Info
-type Signer = resources.Signer
+type Signer = goresources.Signer
 type Asset = resources.Asset
 type Amount = resources.Amount
 type Sale = resources.Sale
