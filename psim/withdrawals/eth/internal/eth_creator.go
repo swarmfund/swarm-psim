@@ -29,14 +29,13 @@ func NewETHCreator(gasPrice *big.Int, eth *ethclient.Client, address common.Addr
 	}
 }
 
-// TODO Pass ctx
-func (h *ETHCreator) CreateTX(address string, amount int64) (string, error) {
+func (h *ETHCreator) CreateTX(ctx context.Context, address string, amount int64) (string, error) {
 	txGas := uint64(21000)
 	txFee := new(big.Int).Mul(big.NewInt(int64(txGas)), h.gasPrice)
 	withdrawAmount := fromGwei(big.NewInt(amount))
 	destination := common.HexToAddress(address)
 
-	nonce, err := h.ethClient.PendingNonceAt(context.TODO(), h.address)
+	nonce, err := h.ethClient.PendingNonceAt(ctx, h.address)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get nonce")
 	}

@@ -24,10 +24,10 @@ func NewERC20Creator(eth *ethclient.Client, token *Token, address common.Address
 	}
 }
 
-func (h *ERC20Creator) CreateTX(desthex string, amount int64) (string, error) {
-	destination := common.HexToAddress(desthex)
+func (h *ERC20Creator) CreateTX(ctx context.Context, address string, amount int64) (string, error) {
+	destination := common.HexToAddress(address)
 
-	nonce, err := h.eth.PendingNonceAt(context.TODO(), h.address)
+	nonce, err := h.eth.PendingNonceAt(ctx, h.address)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get nonce")
 	}

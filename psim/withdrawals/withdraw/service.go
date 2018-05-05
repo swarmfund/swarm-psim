@@ -94,9 +94,9 @@ type OffchainHelper interface {
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
 	// This offchain TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
-	CreateTX(withdrawAddr string, withdrawAmount int64) (tx string, err error)
+	CreateTX(ctx context.Context, withdrawAddr string, withdrawAmount int64) (tx string, err error)
 	// SendTX must spread the offchain TX into Offchain network and return hash of already transmitted TX.
-	SendTX(tx string) (txHash string, err error)
+	SendTX(ctx context.Context, tx string) (txHash string, err error)
 }
 
 // Service is abstract withdraw service, which approves or rejects WithdrawRequest,
@@ -108,12 +108,12 @@ type Service struct {
 	signerKP            keypair.Full
 	log                 *logan.Entry
 	requestListener     RequestListener
-	requestsConnector RequestsConnector
-	txSubmitter TXSubmitter
+	requestsConnector   RequestsConnector
+	txSubmitter         TXSubmitter
 
-	xdrbuilder          *xdrbuild.Builder
-	discovery           *discovery.Client
-	offchainHelper      OffchainHelper
+	xdrbuilder     *xdrbuild.Builder
+	discovery      *discovery.Client
+	offchainHelper OffchainHelper
 
 	requests              chan horizon.Request
 	requestListenerErrors <-chan error
@@ -138,8 +138,8 @@ func New(
 		signerKP:            signerKP,
 		log:                 log.WithField("service", serviceName),
 		requestListener:     requestListener,
-		requestsConnector: requestsConnector,
-		txSubmitter: txSubmitter,
+		requestsConnector:   requestsConnector,
+		txSubmitter:         txSubmitter,
 		xdrbuilder:          builder,
 		discovery:           discoveryClient,
 		offchainHelper:      helper,

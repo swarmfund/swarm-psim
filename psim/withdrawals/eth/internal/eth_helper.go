@@ -21,7 +21,7 @@ import (
 )
 
 type TxCreator interface {
-	CreateTX(address string, amount int64) (string, error)
+	CreateTX(ctx context.Context, address string, amount int64) (string, error)
 }
 
 type ETHHelper struct {
@@ -64,13 +64,13 @@ func (h *ETHHelper) ValidateAddress(addr string) error {
 	return nil
 }
 
-func (h *ETHHelper) SendTX(txhex string) (hash string, err error) {
-	tx, err := h.marshaller.Unmarshal(txhex)
+func (h *ETHHelper) SendTX(ctx context.Context, txHex string) (hash string, err error) {
+	tx, err := h.marshaller.Unmarshal(txHex)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal tx")
 	}
 
-	if err = h.eth.SendTransaction(context.TODO(), tx); err != nil {
+	if err = h.eth.SendTransaction(ctx, tx); err != nil {
 		if !strings.Contains(err.Error(), "known transaction") {
 			return "", errors.Wrap(err, "failed to submit tx")
 		}
