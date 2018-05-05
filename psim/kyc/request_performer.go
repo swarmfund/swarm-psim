@@ -1,14 +1,19 @@
 package kyc
 
 import (
-	"gitlab.com/tokend/go/xdrbuild"
-	"encoding/json"
-	"gitlab.com/tokend/go/xdr"
 	"context"
-	"gitlab.com/distributed_lab/logan/v3/errors"
+	"encoding/json"
+
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/keypair"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/keypair"
+)
+
+const (
+	RejectorExtDetailsKey string = "rejector"
 )
 
 type TXSubmitter interface {
@@ -16,9 +21,9 @@ type TXSubmitter interface {
 }
 
 type RequestPerformer struct {
-	builder *xdrbuild.Builder
-	source keypair.Address
-	signer keypair.Full
+	builder     *xdrbuild.Builder
+	source      keypair.Address
+	signer      keypair.Full
 	txSubmitter TXSubmitter
 }
 
@@ -28,10 +33,10 @@ func NewRequestPerformer(
 	signer keypair.Full,
 	txSubmitter TXSubmitter) *RequestPerformer {
 
-	return &RequestPerformer {
-		builder: builder,
-		source: source,
-		signer:signer,
+	return &RequestPerformer{
+		builder:     builder,
+		source:      source,
+		signer:      signer,
 		txSubmitter: txSubmitter,
 	}
 }
@@ -77,10 +82,18 @@ func (p *RequestPerformer) Approve(
 	return nil
 }
 
-func (p *RequestPerformer) Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason string) error {
+func (p *RequestPerformer) Reject(
+	ctx context.Context,
+	requestID uint64,
+	requestHash string,
+	tasksToAdd uint32,
+	extDetails map[string]string,
+	rejectReason, rejector string) error {
+
 	if extDetails == nil {
 		extDetails = make(map[string]string)
 	}
+	extDetails[RejectorExtDetailsKey] = rejector
 
 	extDetailsBB, err := json.Marshal(extDetails)
 	if err != nil {
