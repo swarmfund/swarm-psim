@@ -236,7 +236,7 @@ func (l *RedirectsListener) validateHTTPRequest(w http.ResponseWriter, r *http.R
 		if err != nil {
 			l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to preliminary unmarshal request bytes into struct(with only AccountID).")
 			writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
-			return
+			return nil, true
 		}
 
 		err := l.doorman.Check(r, doorman.SignatureOf(request.AccountID))
