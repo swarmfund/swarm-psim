@@ -23,6 +23,7 @@ import (
 	// funnels
 	_ "gitlab.com/swarmfund/psim/psim/funnels/btcfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/funnels/ethfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/funnels/contractfunnel"
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"

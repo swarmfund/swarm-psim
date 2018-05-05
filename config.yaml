@@ -65,6 +65,7 @@ services:
 
 #  - btc_funnel
 #  - eth_funnel
+#  - eth_contract_funnel
 
 #  - btc_withdraw
 #  - btc_withdraw_verify
@@ -229,6 +230,17 @@ eth_funnel:
   threshold: 1
   gas_price: 1000000000
   keys_to_derive: 10
+
+eth_contract_funnel:
+  eth_private_key: contract_owner_private_key_hex
+  contracts_addresses: [
+    "0xcontract_to_funnel_tokend_from_1",
+    "0xcontract_to_funnel_tokend_from_2"
+  ]
+  tokens_receiver_address: eth_address_to_funnel_all_tokens_to
+  token_to_funnel_contract_address: address_of_the_erc_20_token's_contract_of_the_token_to_funnel
+  funnel_period: 1m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  only_view_balances: false # if set to true - will only once prepare and log map of Contracts balances, without any funnelling
 
 #withdrawals
 btc_withdraw:

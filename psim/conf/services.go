@@ -11,8 +11,9 @@ const (
 	ServiceETHContracts       = "eth_contracts_deploy"
 
 	// funnels
-	ServiceETHFunnel = "eth_funnel"
-	ServiceBTCFunnel = "btc_funnel"
+	ServiceETHFunnel         = "eth_funnel"
+	ServiceBTCFunnel         = "btc_funnel"
+	ServiceETHContractFunnel = "eth_contract_funnel"
 
 	// withdrawals
 	ServiceBTCWithdraw       = "btc_withdraw"
