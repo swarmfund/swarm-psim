@@ -61,7 +61,7 @@ services:
 #  - btc_deposit
 #  - btc_deposit_verify
 #  - eth_supervisor
-#   - eth_contracts_deploy
+#  - eth_contracts_deploy
 
 #  - btc_funnel
 #  - eth_funnel
@@ -276,6 +276,7 @@ eth_withdraw:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
+# prices
 price_setter:
   base_asset: "ETH"
   quote_asset: "USD"
@@ -411,6 +412,16 @@ airdrop_march_20_20:
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
 
+
+template_provider:
+  host: localhost
+  port: 2323
+  bucket: "template"
+  skip_signature_check: true
+
+wallet_cleaner:
+  expire_duration: 128h
+
 # kyc
 identity_mind:
   connector:
@@ -432,16 +443,6 @@ identity_mind:
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-
-
-template_provider:
-  host: localhost
-  port: 2323
-  bucket: "template"
-  skip_signature_check: true
-
-wallet_cleaner:
-  expire_duration: 128h
 
 invest_ready:
   connector:

@@ -21,7 +21,7 @@ import (
 )
 
 type TxCreator interface {
-	CreateTX(tx string, amount int64) (string, error)
+	CreateTX(address string, amount int64) (string, error)
 }
 
 type ETHHelper struct {

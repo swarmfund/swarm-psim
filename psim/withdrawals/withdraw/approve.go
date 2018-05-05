@@ -36,7 +36,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		}
 	}
 
-	newRequest, err := ObtainRequest(s.horizon.Client(), request.ID)
+	newRequest, err := s.requestsConnector.GetRequestByID(request.ID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain Request from Horizon")
 	}
@@ -46,7 +46,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 			Debugf("WithdrawRequest still hasn't changed type to Withdraw(%d). Sleeping for 3 seconds.", xdr.ReviewableRequestTypeWithdraw)
 		// TODO Incremental
 		time.Sleep(3 * time.Second)
-		newRequest, err = ObtainRequest(s.horizon.Client(), request.ID)
+		newRequest, err = s.requestsConnector.GetRequestByID(request.ID)
 		if err != nil {
 			return errors.Wrap(err, "Failed to obtain Request from Horizon")
 		}

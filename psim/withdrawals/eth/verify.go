@@ -62,7 +62,7 @@ func init() {
 			app.Log(ctx),
 			config.Source,
 			config.Signer,
-			horizon,
+			horizon.Operations(),
 			builder,
 			listener,
 			app.Config(ctx).Discovery(),
