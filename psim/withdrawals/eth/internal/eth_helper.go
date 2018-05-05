@@ -16,7 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 )
 
@@ -77,30 +77,33 @@ func (h *ETHHelper) SendTX(ctx context.Context, txHex string) (hash string, err 
 	}
 
 	// wait while transaction is mined to avoid nonce mismatch issues
-	h.ensureMined(context.TODO(), tx.Hash())
+	h.ensureMined(ctx, tx.Hash())
 
 	return tx.Hash().Hex(), nil
 }
 
 // TODO move this to eth client abstraction
 func (h *ETHHelper) ensureMined(ctx context.Context, hash common.Hash) {
-	app.RunUntilSuccess(ctx, h.log, "ensure-mined", func(i context.Context) error {
+	running.UntilSuccess(ctx, h.log, "ensure-mined", func(i context.Context) (bool, error) {
 		tx, pending, err := h.eth.TransactionByHash(ctx, hash)
 		if err != nil {
-			return errors.Wrap(err, "failed to get tx")
+			return false, errors.Wrap(err, "Failed to get TX.")
 		}
+
 		if pending {
-			return errors.New("not yet mined")
+			return false, nil
 		}
+
 		if tx == nil {
-			return errors.New("transaction not found")
+			return false, errors.New("Transaction not found.")
 		}
-		return nil
-	}, 10*time.Second)
+
+		return true, nil
+	}, 10*time.Second, 10*time.Second)
 }
 
-func (h *ETHHelper) SignTX(txhex string) (string, error) {
-	rlpbytes, err := hex.DecodeString(txhex)
+func (h *ETHHelper) SignTX(txHex string) (string, error) {
+	rlpbytes, err := hex.DecodeString(txHex)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode tx hex")
 	}
