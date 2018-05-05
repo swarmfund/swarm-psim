@@ -13,6 +13,11 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
+const (
+	RejectorName       = "invest_ready"
+	DeniedRejectReason = "Invest Ready denied."
+)
+
 // TODO timeToSleep to config
 // ProcessRequestsInfinitely is blocking method, returns only if ctx is cancelled.
 func (s *Service) processRequestsInfinitely(ctx context.Context) {
@@ -158,7 +163,7 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 	if checkErr != "" {
 		logger.WithField("check_err", checkErr).Warn("Meet User with mismatched personal info - rejecting KYCRequest.")
 
-		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, kyc.TaskSuperAdmin, nil, checkErr)
+		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, kyc.TaskSuperAdmin, nil, checkErr, RejectorName)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest (because of personal info mismatch)", logan.F{
 				"check_err": checkErr,
@@ -184,7 +189,7 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 	}
 
 	if user.Status.Message == DeniedStatusMessage {
-		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, "Invest Ready denied.")
+		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, DeniedRejectReason, RejectorName)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady denied)")
 		}

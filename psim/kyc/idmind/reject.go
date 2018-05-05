@@ -9,6 +9,10 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
+const (
+	RejectorName = "id_mind"
+)
+
 func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, requestHash string, isUSA bool, validationErr error) error {
 	var tasksToAdd uint32
 	if isUSA {
@@ -62,7 +66,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		extDetails["blob_id"] = blobID
 	}
 
-	err = s.requestPerformer.Reject(ctx, requestID, requestHash, tasksToAdd, extDetails, rejectReason)
+	err = s.requestPerformer.Reject(ctx, requestID, requestHash, tasksToAdd, extDetails, rejectReason, RejectorName)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to sign or submit RejectRequest TX")
 	}
