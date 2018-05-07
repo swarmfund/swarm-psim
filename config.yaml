@@ -61,9 +61,11 @@ services:
 #  - btc_deposit
 #  - btc_deposit_verify
 #  - eth_supervisor
+#  - eth_contracts_deploy
 
 #  - btc_funnel
 #  - eth_funnel
+#  - eth_contract_funnel
 
 #  - btc_withdraw
 #  - btc_withdraw_verify
@@ -84,161 +86,11 @@ services:
 #  - template_provider
 #  - wallet_cleaner
 
-# BTC
-btc_deposit:
-  last_processed_block: 1260685
-  # Should actually by 5 (6+ confirmations for transactions)
-  last_blocks_not_watch: 0
-  min_deposit_amount: 500000 # satoshis (0.005 BTC)
-  deposit_asset: BTC
-  fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
-
-  source: G_SOME_VALID_PUBLIC_KEY
-  signer: S_SOME_VALID_PRIVATE_KEY
-
-  # TODO Remove after moving logic of the second signature to the verifier.
-  additional_signer: S_SOME_VALID_PRIVATE_KEY
-
-btc_deposit_verify:
-  host: localhost
-  port: 8102
-
-  # Should actually by 5 (6+ confirmations for transactions)
-  last_blocks_not_watch: 0
-  min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
-  deposit_asset: BTC
-  fixed_deposit_fee: 100000 # 0.001 BTC (integer in satoshis)
-
-  signer: S_SOME_VALID_PRIVATE_KEY
-
-btc_funnel:
-  extended_private_key: xprv...
-  keys_to_derive: 10000 # number of key to derive from extended private key
-
-  hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb # hot wallet
-  cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF is testnet faucet
-
-  last_processed_block: 1260685
-  min_funnel_amount: 0 # (float in BTC)
-  max_hot_stock: 50 # (float in BTC)
-  dust_output_limit: 0.005 # (float in BTC)
-  max_fee_per_kb: 0.00024 # 24000 satoshi (float in BTC)
-  blocks_to_be_included: 4 # from 2 to 25
-
-  min_balance_alarm_threshold: 100 # (float in BTC)
-  min_balance_alarm_period: 1h
-
-btc_withdraw:
-  btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
-
-  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
-  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
-  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
-
-  min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
-
-  signer: S_SOME_VALID_PRIVATE_KEY
-
-btc_withdraw_verify:
-  host: localhost
-  port: 8101
-
-  btc_private_key: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
-
-  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
-  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
-  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
-
-  min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
-
-  source: G_SOME_VALID_PUBLIC_KEY
-  signer: S_SOME_VALID_PRIVATE_KEY
-
-
-# ETH
-
-eth_supervisor:
-  confirmations: 2
-  cursor: 2405320
-  base_asset: ETH
-  deposit_asset: SUN
-  fixed_deposit_fee: 1000000000000000 # 0.001 ETH
-
-  supervisor:
-    leadership_key: eth_supervisor
-    exchange: G_SOME_VALID_PUBLIC_KEY
-    signer: S_SOME_VALID_PRIVATE_KEY
-
-eth_funnel:
-  seed: "some_valid_eth_seed"
-  destination: "address_of_eth_hot_wallet"
-  confirmations: 1
-  threshold: 1
-  gas_price: 1000000000
-  keys_to_derive: 10
-
-eth_withdraw:
-  key: "hot_wallet_private_key"
-  asset: "ETH"
-  gas_price: 1000000000
-  source: G_SOME_VALID_PUBLIC_KEY
-  signer: S_SOME_VALID_PRIVATE_KEY
-
-
-price_setter:
-  base_asset: "ETH"
-  quote_asset: "USD"
-
-  submit_period: 15s
-  providers:
-    - name: "bitfinex"
-      period: 15s
-    - name: "coinmarketcap"
-      period: 15s
-    - name: "bitstamp"
-      period: 15s
-    - name: gdax
-      period: 1s # does not apply any changes as we are using sockets
-  providers_to_agree: 3
-  max_price_delta_percent: "10"
-  verifier_service_name: price_setter_verify
-
-  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
-  signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
-
-price_setter_verify:
-  host: localhost
-  port: 8501
-
-  base_asset: "ETH"
-  quote_asset: "USD"
-
-  providers:
-    - name: "bitfinex"
-      period: 15s
-    - name: "coinmarketcap"
-      period: 15s
-    - name: "bitstamp"
-      period: 15s
-    - name: gdax
-      period: 1s # does not apply any changes as we are using sockets
-  providers_to_agree: 3
-  max_price_delta_percent: "10"
-
-  signer: S
-  verifier_service_name: SOME_VERIFIER_SERVICE_NAME
-
-taxman:
-  source: GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4
-  signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
-  # omit these default for production config
-  port: 40539
-  disable_verify: true
-
-charger:
-  host: localhost
-  port: 7331
-  pprof: true
+bearer:
+  source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
+  signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
+  abnormal_period: 1m
+  sleep_period: 5m
 
 notifier:
   source: G_SOME_VALID_PUBLIC_KEY
@@ -283,16 +135,6 @@ notifier:
 
       template_link_url: https://invest.swarm.fund
 
-  usa_kyc:
-    cursor: 1
-
-    emails:
-      subject: "Accreditation status verification"
-      request_type: 10 # 10 means that email will be sent only once per each unique token
-      request_token_suffix: -usa-user-notification # Email with same token will be sent only once
-      template_name: us_residents
-      template_link_url: https://invest.swarm.fund
-
   kyc_rejected:
     cursor: 1
 
@@ -306,13 +148,179 @@ notifier:
 
       template_link_url: https://invest.swarm.fund
 
+charger:
+  host: localhost
+  port: 7331
+  pprof: true
 
-bearer:
-  source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
-  signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
-  abnormal_period: 1m
-  sleep_period: 5m
+forfeit_listener:
+  pprof: true
+  signer: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
+  exchange: SBEVH5NEMWSBUCEUUOOIUPVOAI3NMX2TV6X5IDL7TTKKMAEXESX5UVKK
 
+# deposits
+btc_deposit:
+  last_processed_block: 1260685
+  # Should actually by 5 (6+ confirmations for transactions)
+  last_blocks_not_watch: 0
+  min_deposit_amount: 500000 # satoshis (0.005 BTC)
+  deposit_asset: BTC
+  fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  # TODO Remove after moving logic of the second signature to the verifier.
+  additional_signer: S_SOME_VALID_PRIVATE_KEY
+
+btc_deposit_verify:
+  host: localhost
+  port: 8102
+
+  # Should actually by 5 (6+ confirmations for transactions)
+  last_blocks_not_watch: 0
+  min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
+  deposit_asset: BTC
+  fixed_deposit_fee: 100000 # 0.001 BTC (integer in satoshis)
+
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+eth_supervisor:
+  confirmations: 2
+  cursor: 2405320
+  base_asset: ETH
+  deposit_asset: SUN
+  fixed_deposit_fee: 1000000000000000 # 0.001 ETH
+
+  supervisor:
+    leadership_key: eth_supervisor
+    exchange: G_SOME_VALID_PUBLIC_KEY
+    signer: S_SOME_VALID_PRIVATE_KEY
+
+eth_contracts_deploy:
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  eth_private_key: contracts_deployer_private_key_hex
+  contract_owner: contract_owner_address_hex
+  gas_price: 1000000000 # TODO Add comment
+
+# funnels
+btc_funnel:
+  extended_private_key: xprv...
+  keys_to_derive: 10000 # number of key to derive from extended private key
+
+  hot_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb # hot wallet
+  cold_address: 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF # 2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF is testnet faucet
+
+  last_processed_block: 1260685
+  min_funnel_amount: 0 # (float in BTC)
+  max_hot_stock: 50 # (float in BTC)
+  dust_output_limit: 0.005 # (float in BTC)
+  max_fee_per_kb: 0.00024 # 24000 satoshi (float in BTC)
+  blocks_to_be_included: 4 # from 2 to 25
+
+  min_balance_alarm_threshold: 100 # (float in BTC)
+  min_balance_alarm_period: 1h
+
+eth_funnel:
+  seed: "some_valid_eth_seed"
+  destination: "address_of_eth_hot_wallet"
+  confirmations: 1
+  threshold: 1
+  gas_price: 1000000000
+  keys_to_derive: 10
+
+eth_contract_funnel:
+  eth_private_key: contract_owner_private_key_hex
+  contracts_addresses: [
+    "0xcontract_to_funnel_tokend_from_1",
+    "0xcontract_to_funnel_tokend_from_2"
+  ]
+  tokens_receiver_address: eth_address_to_funnel_all_tokens_to
+  token_to_funnel_contract_address: address_of_the_erc_20_token's_contract_of_the_token_to_funnel
+  funnel_period: 1m # is being parsed to time.Duration (see time.ParseDuration() for possible time.Duration value formats)
+  only_view_balances: false # if set to true - will only once prepare and log map of Contracts balances, without any funnelling
+
+#withdrawals
+btc_withdraw:
+  btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
+
+  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
+  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
+  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
+  min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
+
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+btc_withdraw_verify:
+  host: localhost
+  port: 8101
+
+  btc_private_key: cVYHKmhJPJQY8tqW3adCFmePZBd4cdPRanh6yuUEzhzTnvPTsu8t
+
+  hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
+  hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
+  hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
+  min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
+
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+eth_withdraw:
+  key: "hot_wallet_private_key"
+  asset: "ETH"
+  gas_price: 1000000000
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+# prices
+price_setter:
+  base_asset: "ETH"
+  quote_asset: "USD"
+
+  submit_period: 15s
+  providers:
+    - name: "bitfinex"
+      period: 15s
+    - name: "coinmarketcap"
+      period: 15s
+    - name: "bitstamp"
+      period: 15s
+    - name: gdax
+      period: 1s # does not apply any changes as we are using sockets
+  providers_to_agree: 3
+  max_price_delta_percent: "10"
+  verifier_service_name: price_setter_verify
+
+  source: GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636
+  signer: SCIMXOIWIB32R7JI6ISNYSCO2BFST5E6P3TLBM4TTLHH57IK6SJPGZT2
+
+price_setter_verify:
+  host: localhost
+  port: 8501
+
+  base_asset: "ETH"
+  quote_asset: "USD"
+
+  providers:
+    - name: "bitfinex"
+      period: 15s
+    - name: "coinmarketcap"
+      period: 15s
+    - name: "bitstamp"
+      period: 15s
+    - name: gdax
+      period: 1s # does not apply any changes as we are using sockets
+  providers_to_agree: 3
+  max_price_delta_percent: "10"
+
+  signer: S
+  verifier_service_name: SOME_VERIFIER_SERVICE_NAME
+
+# airdrops
 airdrop_earlybird:
   issuance:
     asset: SWM
@@ -404,6 +412,17 @@ airdrop_march_20_20:
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
 
+
+template_provider:
+  host: localhost
+  port: 2323
+  bucket: "template"
+  skip_signature_check: true
+
+wallet_cleaner:
+  expire_duration: 128h
+
+# kyc
 identity_mind:
   connector:
     url: https://sandbox.identitymind.com/im
@@ -424,15 +443,6 @@ identity_mind:
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-
-template_provider:
-  host: localhost
-  port: 2323
-  bucket: "template"
-  skip_signature_check: true
-
-wallet_cleaner:
-  expire_duration: 128h
 
 invest_ready:
   connector:

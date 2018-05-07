@@ -6,8 +6,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
+	"gitlab.com/tokend/go/amount"
 )
 
 type Helper struct {
@@ -59,7 +59,8 @@ type ConfigHelper struct {
 
 func NewConfigHelper(asset string, threshold int64) *ConfigHelper {
 	return &ConfigHelper{
-		asset, threshold,
+		asset:     asset,
+		threshold: threshold,
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 
 type ETHCreator struct {
 	gasPrice   *big.Int
-	eth        *ethclient.Client
+	ethClient  *ethclient.Client
 	address    common.Address
 	wallet     *eth.Wallet
 	marshaller TxMarshaller
@@ -29,13 +29,13 @@ func NewETHCreator(gasPrice *big.Int, eth *ethclient.Client, address common.Addr
 	}
 }
 
-func (h *ETHCreator) CreateTX(desthex string, amount int64) (string, error) {
-	txGas := big.NewInt(21000)
-	txFee := new(big.Int).Mul(txGas, h.gasPrice)
+func (h *ETHCreator) CreateTX(ctx context.Context, address string, amount int64) (string, error) {
+	txGas := uint64(21000)
+	txFee := new(big.Int).Mul(big.NewInt(int64(txGas)), h.gasPrice)
 	withdrawAmount := fromGwei(big.NewInt(amount))
-	destination := common.HexToAddress(desthex)
+	destination := common.HexToAddress(address)
 
-	nonce, err := h.eth.PendingNonceAt(context.TODO(), h.address)
+	nonce, err := h.ethClient.PendingNonceAt(ctx, h.address)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get nonce")
 	}

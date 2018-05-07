@@ -10,10 +10,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -25,6 +25,17 @@ var (
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
 	WithdrawalRequests(result chan<- horizon.Request) <-chan error
+}
+
+// RequestsConnector is the interface implemented in HorizonConnector,
+// it allows to obtain Request by ID and is used for fetching Withdraw Request
+// after preliminary approve (TwoStep Request).
+type RequestsConnector interface {
+	GetRequestByID(requestID uint64) (*horizon.Request, error)
+}
+
+type TXSubmitter interface {
+	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
 // CommonOffchainHelper is the interface for specific Offchain(BTC or ETH)
@@ -83,9 +94,9 @@ type OffchainHelper interface {
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
 	// This offchain TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
-	CreateTX(withdrawAddr string, withdrawAmount int64) (tx string, err error)
+	CreateTX(ctx context.Context, withdrawAddr string, withdrawAmount int64) (tx string, err error)
 	// SendTX must spread the offchain TX into Offchain network and return hash of already transmitted TX.
-	SendTX(tx string) (txHash string, err error)
+	SendTX(ctx context.Context, tx string) (txHash string, err error)
 }
 
 // Service is abstract withdraw service, which approves or rejects WithdrawRequest,
@@ -97,10 +108,12 @@ type Service struct {
 	signerKP            keypair.Full
 	log                 *logan.Entry
 	requestListener     RequestListener
-	horizon             *horizon.Connector
-	xdrbuilder          *xdrbuild.Builder
-	discovery           *discovery.Client
-	offchainHelper      OffchainHelper
+	requestsConnector   RequestsConnector
+	txSubmitter         TXSubmitter
+
+	xdrbuilder     *xdrbuild.Builder
+	discovery      *discovery.Client
+	offchainHelper OffchainHelper
 
 	requests              chan horizon.Request
 	requestListenerErrors <-chan error
@@ -113,7 +126,8 @@ func New(
 	signerKP keypair.Full,
 	log *logan.Entry,
 	requestListener RequestListener,
-	horizonConnector *horizon.Connector,
+	requestsConnector RequestsConnector,
+	txSubmitter TXSubmitter,
 	builder *xdrbuild.Builder,
 	discoveryClient *discovery.Client,
 	helper OffchainHelper,
@@ -124,7 +138,8 @@ func New(
 		signerKP:            signerKP,
 		log:                 log.WithField("service", serviceName),
 		requestListener:     requestListener,
-		horizon:             horizonConnector,
+		requestsConnector:   requestsConnector,
+		txSubmitter:         txSubmitter,
 		xdrbuilder:          builder,
 		discovery:           discoveryClient,
 		offchainHelper:      helper,
@@ -230,7 +245,7 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
 	}
 
-	submitResult := s.horizon.Submitter().Submit(ctx, envelopeBase64)
+	submitResult := s.txSubmitter.Submit(ctx, envelopeBase64)
 	if submitResult.Err != nil {
 		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
 	}

@@ -111,6 +111,7 @@
     ".",
     "accounts",
     "accounts/abi",
+    "accounts/abi/bind",
     "accounts/keystore",
     "common",
     "common/hexutil",
@@ -122,15 +123,17 @@
     "crypto/secp256k1",
     "crypto/sha3",
     "ethclient",
+    "ethdb",
     "event",
     "log",
+    "metrics",
     "params",
     "rlp",
     "rpc",
     "trie"
   ]
-  revision = "4bb3c89d44e372e6a9ab85a8be0c9345265c763a"
-  version = "v1.7.3"
+  revision = "2423ae01e0d2f853512eb2b46954b5ad0754a897"
+  version = "v1.8.4"
 
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
@@ -176,6 +179,12 @@
   packages = ["."]
   revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
   version = "v1.7.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
   name = "github.com/google/jsonapi"
@@ -475,6 +484,25 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/syndtr/goleveldb"
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util"
+  ]
+  revision = "714f901b98fdb3aa954b4193d8cbd64a28d80cad"
+
+[[projects]]
+  branch = "master"
   name = "github.com/tyler-smith/go-bip32"
   packages = ["."]
   revision = "2c9cfd17756470a0b7c3e4b7954bae7d11035504"
@@ -628,6 +656,16 @@
   name = "golang.org/x/time"
   packages = ["rate"]
   revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "imports",
+    "internal/fastwalk"
+  ]
+  revision = "94b14834a20132093826ea5e2da5502a13908ad3"
 
 [[projects]]
   name = "gopkg.in/fatih/set.v0"
