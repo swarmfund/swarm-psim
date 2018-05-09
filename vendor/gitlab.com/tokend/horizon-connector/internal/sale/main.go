@@ -19,7 +19,7 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
-func (q *Q) Sales() ([]resources.Sale, error) {
+func (q *Q) CoreSales() ([]resources.CoreSale, error) {
 	endpoint := fmt.Sprintf("/core_sales")
 	response, err := q.client.Get(endpoint)
 	if err != nil {
@@ -30,7 +30,7 @@ func (q *Q) Sales() ([]resources.Sale, error) {
 		return nil, nil
 	}
 
-	var result []resources.Sale
+	var result []resources.CoreSale
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}

@@ -24,6 +24,7 @@ type Signer = goresources.Signer
 type Asset = resources.Asset
 type Amount = resources.Amount
 type Sale = resources.Sale
+type CoreSale = resources.CoreSale
 type SaleDetails = resources.SaleDetails
 type User = resources.User
 type UserAttributes = resources.UserAttributes
