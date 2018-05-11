@@ -1,4 +1,4 @@
-package horizon
+package horizon_test
 
 import (
 	"context"
