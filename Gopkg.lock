@@ -557,12 +557,13 @@
     "network",
     "resources",
     "signcontrol",
+    "signcontrol/internal/httpsignatures",
     "strkey",
     "xdr",
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "adca39b43a927afbdba80edded6b80cd5c0cb6f3"
+  revision = "e1d43f45dee4b917c3484b92ea6da6a594c1b6c3"
 
 [[projects]]
   name = "gitlab.com/tokend/horizon-connector"
@@ -587,8 +588,8 @@
     "internal/wallets",
     "types"
   ]
-  revision = "c98dc5c7cb0724ea1b7ac4e5c195404b4608e8a4"
-  version = "v3.2"
+  revision = "9d7b16a304c213b6c65d22fe6dfb1232af8f8ee1"
+  version = "v3.3"
 
 [[projects]]
   branch = "master"

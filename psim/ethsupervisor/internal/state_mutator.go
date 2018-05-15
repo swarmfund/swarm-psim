@@ -1,8 +1,12 @@
 package internal
 
 import (
-	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/swarmfund/psim/addrstate"
+	"gitlab.com/tokend/go/xdr"
+)
+
+const (
+	ExternalSystemTypeEthereum = 2
 )
 
 func StateMutator(baseAsset, depositAsset string) func(change xdr.LedgerEntryChange) addrstate.StateUpdate {
@@ -39,7 +43,7 @@ func StateMutator(baseAsset, depositAsset string) func(change xdr.LedgerEntryCha
 			case xdr.LedgerEntryTypeExternalSystemAccountId:
 				data := change.Created.Data.ExternalSystemAccountId
 				switch data.ExternalSystemType {
-				case xdr.ExternalSystemTypeEthereum:
+				case ExternalSystemTypeEthereum:
 					update.Address = &addrstate.StateAddressUpdate{
 						Offchain: string(data.Data),
 						Tokend:   data.AccountId.Address(),
