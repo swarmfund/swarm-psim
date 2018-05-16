@@ -38,14 +38,14 @@ func (q *Q) StreamWithdrawalRequests(ctx context.Context) (<-chan ReviewableRequ
 
 // StreamWithdrawalRequestsOfAsset streams all Withdraw and TwoStepWithdraw ReviewableRequests
 // with filter by provided destAssetCode
-func (q *Q) StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder, endlessly bool) (<-chan ReviewableRequestEvent) {
+func (q *Q) StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder bool) (<-chan ReviewableRequestEvent) {
 	getParams := fmt.Sprintf("dest_asset_code=%s", destAssetCode)
 
 	if reverseOrder {
 		getParams += "&order=desc"
 	}
 
-	return q.getAndStreamReviewableRequests(ctx, getParams, "", operation.WithdrawalsReviewableRequestType, !endlessly)
+	return q.getAndStreamReviewableRequests(ctx, getParams, "", operation.WithdrawalsReviewableRequestType, false)
 }
 
 func (q *Q) getAndStreamReviewableRequests(ctx context.Context, getParams, cursor string, reqType operation.ReviewableRequestType, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {

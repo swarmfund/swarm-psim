@@ -593,7 +593,8 @@
     "internal/wallets",
     "types"
   ]
-  revision = "1fac308bf3228825330248f7ee4023f236e2a16c"
+  revision = "2b1bcd2227fab5c4c0071709640e3d240eb79606"
+  version = "v3.4"
 
 [[projects]]
   branch = "master"
