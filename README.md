@@ -31,6 +31,9 @@ should be attached in function to the returned error as fields.
 
 - Field names should be named using snake\_case.
 
+- `logan.New()` must be called only once over application, and then the `*logan.Entry`
+must be passed to all child functions and services.
+
 - For the complex types (structs) being put into fields
 [GetLoganFields()](https://gitlab.com/distributed_lab/logan/v3/fields/main.go) interface method should be implemented.
 
