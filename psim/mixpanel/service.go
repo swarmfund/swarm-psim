@@ -11,12 +11,14 @@ import (
 
 type Service struct {
 	connector *Connector
+	config    *Config
 	log       *logan.Entry
 }
 
-func New(connector *Connector, log *logan.Entry) *Service {
+func New(connector *Connector, log *logan.Entry, config *Config) *Service {
 	return &Service{
 		connector: connector,
+		config:    config,
 		log:       log,
 	}
 }
@@ -25,7 +27,7 @@ func (s *Service) Run(ctx context.Context) {
 	// only events occurred after cursor will be submitted
 	cursor := time.Now()
 	mixpanel := s.connector
-	horizon := app.Config(ctx).Horizon()
+	horizon := app.Config(ctx).Horizon().WithSigner(s.config.Signer)
 	log := s.log.WithField("service", "mixpanel")
 
 	tx := <-horizon.Listener().StreamTXs(ctx, false)

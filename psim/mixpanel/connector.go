@@ -19,7 +19,7 @@ type Connector struct {
 
 func NewConnector(token string) *Connector {
 	return &Connector{
-		mixpanel.New(token, ""),
+		mixpanel: mixpanel.New(token, ""),
 	}
 }
 

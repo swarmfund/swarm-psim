@@ -23,5 +23,5 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	return New(NewConnector(config.Token), app.Log(ctx)), nil
+	return New(NewConnector(config.Token), app.Log(ctx), config), nil
 }
