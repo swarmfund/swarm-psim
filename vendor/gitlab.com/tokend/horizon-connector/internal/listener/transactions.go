@@ -125,8 +125,12 @@ func (q *Q) StreamTXs(ctx context.Context, stopOnEmptyPage bool) (<-chan TXPacke
 // Cursor is PagingToken, use empty string to stream all Transactions from the very beginning.
 //
 // StreamTXsFromCursor starts goroutine inside and returns immediately.
+//
 // Errors happening during TX streaming will be sent via returned channel in a TXPacket.
 // If TXPacket contains non-nil error, the TransactionEvent is nil.
+//
+// Returned TransactionEvent can have nil Transaction with non-empty Meta,
+// such a TransactionEvent is sent at the end of every page of Transactions retrieved from Horizon.
 func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyPage bool) (<-chan TXPacket) {
 	txStream := make(chan TXPacket)
 

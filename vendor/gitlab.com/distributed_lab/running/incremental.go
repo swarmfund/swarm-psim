@@ -99,7 +99,7 @@ func UntilSuccess(
 	minRetryPeriod,
 	maxRetryPeriod time.Duration) {
 
-	success, err := runner(ctx)
+	success, err := runSafelyWithSuccess(ctx, runner)
 	if success && err == nil {
 		// Brief success!
 		return

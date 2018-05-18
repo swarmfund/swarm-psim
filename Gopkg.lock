@@ -264,7 +264,10 @@
 
 [[projects]]
   name = "github.com/magiconair/properties"
-  packages = ["."]
+  packages = [
+    ".",
+    "assert"
+  ]
   revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
   version = "v1.7.6"
 
@@ -539,10 +542,10 @@
   revision = "75511e83f31d094326de3601201e8a42f490cc4b"
 
 [[projects]]
+  branch = "master"
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
-  revision = "667d287dd5911ac80c6822dc816a7c56bc2d6462"
-  version = "v0.2"
+  revision = "f7d8d80cf167b6ea6896feb087f5e3e448a10233"
 
 [[projects]]
   branch = "master"
@@ -563,7 +566,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "e1d43f45dee4b917c3484b92ea6da6a594c1b6c3"
+  revision = "3c89b8556d91033edbecc446803a1f5c8431f795"
 
 [[projects]]
   branch = "master"
@@ -583,13 +586,14 @@
     "internal/resources/operations",
     "internal/responses",
     "internal/sale",
+    "internal/system",
     "internal/templates",
     "internal/transaction",
     "internal/user",
     "internal/wallets",
     "types"
   ]
-  revision = "ef0818f47171d32f937ec9392aecc792d80a1110"
+  revision = "1fac308bf3228825330248f7ee4023f236e2a16c"
 
 [[projects]]
   branch = "master"
@@ -601,6 +605,12 @@
     "internal/strkey"
   ]
   revision = "c148f15306edac6a1ad994d8b218e8ae61a0b2c1"
+
+[[projects]]
+  branch = "master"
+  name = "gitlab.com/tokend/regources"
+  packages = ["."]
+  revision = "ecbffe29f291da2f85844e0faa7c65922cd86abf"
 
 [[projects]]
   branch = "master"
@@ -689,6 +699,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0a078671191834395f390c4e2425a1d2713a62880790f9d3a348757b05122fb3"
+  inputs-digest = "b3a8e18b881ccc65808a61146addf19f7671913d85577ff87901d96ef83d5c0b"
   solver-name = "gps-cdcl"
   solver-version = 1
