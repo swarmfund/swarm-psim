@@ -557,14 +557,16 @@
     "network",
     "resources",
     "signcontrol",
+    "signcontrol/internal/httpsignatures",
     "strkey",
     "xdr",
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "adca39b43a927afbdba80edded6b80cd5c0cb6f3"
+  revision = "e1d43f45dee4b917c3484b92ea6da6a594c1b6c3"
 
 [[projects]]
+  branch = "master"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -587,8 +589,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "c98dc5c7cb0724ea1b7ac4e5c195404b4608e8a4"
-  version = "v3.2"
+  revision = "4655ee8716174ea3b1b7221ffc897f57eee41dca"
 
 [[projects]]
   branch = "master"
@@ -688,6 +689,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5652a2579eec716c3d981c75714cf41a7e8808fbd42bba52285546ca911b910d"
+  inputs-digest = "0a078671191834395f390c4e2425a1d2713a62880790f9d3a348757b05122fb3"
   solver-name = "gps-cdcl"
   solver-version = 1

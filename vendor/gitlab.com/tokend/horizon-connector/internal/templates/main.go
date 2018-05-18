@@ -32,13 +32,13 @@ func (q *Q) Get(id string) ([]byte, error) {
 	return response, nil
 }
 
-func (q *Q) Put(id string, body io.Reader) ([]byte, error) {
+func (q *Q) Put(id string, body io.Reader) error {
 	endpoint := fmt.Sprintf("/templates/%s", id)
 
 	_, err := q.client.Put(endpoint, body)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send request")
+		return errors.Wrap(err, "Failed to send request")
 	}
 
-	return nil, nil
+	return nil
 }
