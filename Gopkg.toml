@@ -84,6 +84,10 @@
   name = "gitlab.com/distributed_lab/sse-go"
   version = "1.0.0"
 
+[[override]]
+  branch = "master"
+  name = "gitlab.com/tokend/go"
+
 [[constraint]]
   branch = "master"
   name = "gitlab.com/tokend/horizon-connector"
@@ -92,9 +96,6 @@
   branch = "master"
   name = "github.com/evalphobia/logrus_sentry"
 
-[[override]]
-  name = "gitlab.com/tokend/go"
-  branch = "master"
 
 [[constraint]]
   branch = "master"
@@ -102,7 +103,7 @@
 
 [[constraint]]
   name = "gitlab.com/distributed_lab/running"
-  version = "0.2.0"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/ethereum/go-ethereum"

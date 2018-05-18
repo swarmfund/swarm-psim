@@ -6,132 +6,164 @@ import (
 
 	"time"
 
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 )
 
-type ETHClient interface {
-	bind.ContractBackend
-	//SendTransaction(ctx context.Context, tx *types.Transaction) error
-
-	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
-	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
-	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)
+type ETHKeypair interface {
+	Address() common.Address
+	SignTX(*types.Transaction) (*types.Transaction, error)
 }
 
-type ETHWallet interface {
-	SignTX(address common.Address, tx *types.Transaction) (*types.Transaction, error)
-	Addresses(ctx context.Context) (result []common.Address)
-}
+type EntityCountGetter func(systemType string) (uint64, error)
 
 type Service struct {
-	log    *logan.Entry
-	config Config
-
-	ethAddress common.Address
-	ethClient  ETHClient
-	ethWallet  ETHWallet
+	log         *logan.Entry
+	config      *Config
+	eth         *ethclient.Client
+	builder     *xdrbuild.Builder
+	horizon     *horizon.Connector
+	keypair     ETHKeypair
+	entityCount EntityCountGetter
+	deployerID  uint64
 }
 
 func NewService(
 	log *logan.Entry,
-	config Config,
-	ethAddress common.Address,
-	ethClient ETHClient,
-	ethWallet ETHWallet) *Service {
+	config *Config,
+	builder *xdrbuild.Builder,
+	horizon *horizon.Connector,
+	keypair ETHKeypair,
+	deployerID uint64,
+	entityCount EntityCountGetter,
+	eth *ethclient.Client,
+) *Service {
 
 	return &Service{
-		log:    log,
-		config: config,
-
-		ethAddress: ethAddress,
-		ethClient:  ethClient,
-		ethWallet:  ethWallet,
+		log:         log,
+		config:      config,
+		builder:     builder,
+		keypair:     keypair,
+		deployerID:  deployerID,
+		entityCount: entityCount,
+		horizon:     horizon,
+		eth:         eth,
 	}
 }
 
 func (s *Service) Run(ctx context.Context) {
-	contractAddr, err := s.deployContract(ctx)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to deploy Contract.")
-		return
-	}
-	if running.IsCancelled(ctx) {
-		return
+	ctx, cancel := context.WithCancel(ctx)
+	do := func(ctx context.Context) (err error) {
+		defer func() {
+			if rvr := recover(); rvr != nil {
+				// we are spending actual ether here,
+				// so in case of emergency abandon the operations completely
+				cancel()
+				err = errors.Wrap(errors.FromPanic(rvr), "service panicked")
+			}
+		}()
+		for _, systemType := range s.config.ExternalTypes {
+			current, err := s.entityCount(systemType)
+			if err != nil {
+				return errors.Wrap(err, "failed to get current entity count")
+			}
+
+			for current <= s.config.TargetCount {
+				fmt.Println(current, s.config.TargetCount)
+				if running.IsCancelled(ctx) {
+					return nil
+				}
+				fields := logan.F{}
+				contract, err := s.deployContract()
+				if err != nil {
+					return errors.Wrap(err, "failed to deploy contract")
+				}
+				fields["contract"] = contract.Hex()
+				s.log.WithFields(fields).Info("contract deployed")
+				// critical section. contract has been deployed, we need to create entity at any cost
+				running.UntilSuccess(context.Background(), s.log, "create-pool-entity", func(i context.Context) (bool, error) {
+					if err := s.createPoolEntities(contract.Hex()); err != nil {
+						return false, err
+					}
+					return true, nil
+				}, 1*time.Second, 1*time.Minute)
+
+				s.log.WithFields(fields).Info("entities created")
+
+				current += 1
+			}
+		}
+		s.log.Info("all good")
+		return nil
 	}
 
-	s.log.WithField("contract_address", contractAddr.String()).Info("Contract was deployed successfully.")
+	running.WithBackOff(ctx, s.log, "deploy-iteration", do, 10*time.Second, 10*time.Second, 1*time.Hour)
+
+	s.log.WithField("state", "deadlock").Error("abnormal execution")
+
+	// FIXME will not let normal termination go
+	<-make(chan struct{})
 }
 
-// DeployContract deploys the contract from the contractBytes package-level var to ETH network
-// and waits for the Contract to be deployed (TX which deploys the Contract to be mined).
-// If returned error is nil - always returns non-nil Address.
-//
-// nil, nil will be returned if ctx is cancelled.
-func (s *Service) deployContract(ctx context.Context) (*common.Address, error) {
-	nonce, err := s.ethClient.NonceAt(ctx, s.ethAddress, nil)
+func (s *Service) createPoolEntities(data string) error {
+	tx := s.builder.Transaction(s.config.Source)
+	for _, systemType := range s.config.ExternalTypes {
+		tx = tx.Op(xdrbuild.CreateExternalPoolEntry(cast.ToInt32(systemType), data, s.deployerID))
+	}
+	tx = tx.Sign(s.config.Signer)
+	envelope, err := tx.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Nonce for the Address")
-	}
-	if running.IsCancelled(ctx) {
-		return nil, nil
-	}
-	fields := logan.F{
-		"current_nonce": nonce,
+		return errors.Wrap(err, "failed to marshal tx")
 	}
 
-	contractAddr, tx, _, err := DeployContract(&bind.TransactOpts{
-		// TODO Move this potentially paniccing part into constructor.
-		From:  s.ethWallet.Addresses(ctx)[0],
-		Nonce: big.NewInt(int64(nonce)),
+	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
+	if result.Err != nil {
+		return errors.Wrap(result.Err, "failed to submit tx", logan.F{
+			"tx_result": result.GetLoganFields(),
+		})
+	}
+	return nil
+}
+
+func (s *Service) deployContract() (*common.Address, error) {
+	_, tx, _, err := DeployContract(&bind.TransactOpts{
+		From:  s.keypair.Address(),
+		Nonce: nil,
 		Signer: func(signer types.Signer, addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
-			return s.ethWallet.SignTX(addr, tx)
+			return s.keypair.SignTX(tx)
 		},
 		Value:    big.NewInt(0),
-		GasPrice: s.config.GasPrice,
-		// FIXME GasLimit to config
-		GasLimit: 500000,
-		Context:  ctx,
-	}, s.ethClient, s.config.ContractOwner)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build Contract with Owner from Config", fields)
-	}
-	if running.IsCancelled(ctx) {
-		return nil, nil
-	}
-	fields["contract_address"] = contractAddr.String()
-	fields["tx_hash"] = tx.Hash().String()
+		GasPrice: eth.FromGwei(s.config.GasPrice),
+		GasLimit: eth.FromGwei(s.config.GasLimit).Uint64(),
+		Context:  context.TODO(),
+	}, s.eth, s.config.ContractOwner)
 
-	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to ETH network.
-	s.ensureMined(context.Background(), tx.Hash())
-
-	// context.Background() is used intentionally - we don't stop on ctx cancel until submit the newly created Contract to ETH network.
-	receipt, err := s.ethClient.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get TransactionReceipt of the ContactCreation TX just been mined", fields)
+		return nil, errors.Wrap(err, "failed to submit contract tx")
 	}
+
+	eth.EnsureHashMined(context.Background(), s.log.WithField("tx_hash", tx.Hash().Hex()), s.eth, tx.Hash())
+
+	receipt, err := s.eth.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get tx receipt", logan.F{
+			"tx_hash": tx.Hash().String(),
+		})
+	}
+
+	// TODO check transaction state/status to see if contract actually was deployed
+	// TODO panic if we are not sure if contract is valid
 
 	return &receipt.ContractAddress, nil
-}
-
-// EnsureMined will only return if TX is mined or ctx is cancelled.
-func (s *Service) ensureMined(ctx context.Context, hash common.Hash) {
-	running.UntilSuccess(ctx, s.log.WithField("tx_hash", hash.String()), "tx_mined_ensurer", func(ctx context.Context) (bool, error) {
-		tx, isPending, err := s.ethClient.TransactionByHash(ctx, hash)
-		if err != nil {
-			return false, errors.Wrap(err, "Failed to get TX by hash from ETHClient")
-		}
-		if tx == nil {
-			return false, errors.New("TX was not found by hash over ETHClient")
-		}
-		if isPending {
-			return false, nil
-		}
-
-		return true, nil
-	}, 5*time.Second, time.Minute)
 }

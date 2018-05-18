@@ -198,12 +198,15 @@ eth_supervisor:
     signer: S_SOME_VALID_PRIVATE_KEY
 
 eth_contracts_deploy:
-  source: G_SOME_VALID_PUBLIC_KEY
-  signer: S_SOME_VALID_PRIVATE_KEY
-
-  eth_private_key: contracts_deployer_private_key_hex
-  contract_owner: contract_owner_address_hex
+  source: GA5NJM36NXW5UUNTBG47NUGJZ5V7UQJKAEAQH3IHSOXAGGEXSNWLSJAH
+  signer: SBQ3YVRINQOJDT6FQD3EFMZ5THZFWVSQ37RZYTFZBF3TEE5GPBS6NNXD
+  eth_private_key: "1E2E09CC58A8CA23217C8559AA4BA58CD34379EB9F1716DB422DC0BA6E701F18"
+  contract_owner: "0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF" # 0002
   gas_price: 1000000000 # TODO Add comment
+  external_types:
+    - 9
+    - 10
+  target_count: 10
 
 # funnels
 btc_funnel:
