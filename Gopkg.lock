@@ -532,8 +532,8 @@
     "v3/errors",
     "v3/fields"
   ]
-  revision = "f4e85a29dac688ce751d0202d6244c229f07dc53"
-  version = "v3.5.1"
+  revision = "618e702b8aaf18b947a442d952adac04de41fe90"
+  version = "v3.6"
 
 [[projects]]
   branch = "master"
