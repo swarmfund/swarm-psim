@@ -127,7 +127,7 @@ func (v *Verifier) getOffchainAddress(accountAddress, assetName string) (string,
 	}
 
 	for _, extSysAccount := range account.ExternalSystemAccounts {
-		if extSysAccount.Type.AssetCode == assetName {
+		if extSysAccount.AssetCode == assetName {
 			return extSysAccount.Address, nil
 		}
 	}

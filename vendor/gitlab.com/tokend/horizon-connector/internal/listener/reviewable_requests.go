@@ -53,7 +53,7 @@ func (q *Q) getAndStreamReviewableRequests(ctx context.Context, getParams, curso
 		return q.opQ.Requests(getParams, cursor, reqType)
 	}
 
-	return streamReviewableRequests(ctx, reqGetter, cursor, false)
+	return streamReviewableRequests(ctx, reqGetter, cursor, stopOnEmptyPage)
 }
 
 func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]resources.Request, error), cursor string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
