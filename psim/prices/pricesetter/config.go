@@ -10,14 +10,14 @@ import (
 )
 
 type Config struct {
-	BaseAsset  string `mapstructure:"base_asset,required"`
-	QuoteAsset string `mapstructure:"quote_asset,required"`
+	BaseAsset  string `fig:"base_asset,required" mapstructure:"base_asset,required"`
+	QuoteAsset string `fig:"quote_asset,required" mapstructure:"quote_asset,required"`
 
-	Providers []providers.ProviderConfig `mapstructure:"providers,required"`
+	Providers []providers.ProviderConfig `fig:"providers,required" mapstructure:"providers,required"`
 
 	SubmitPeriod         time.Duration `fig:"submit_period,required"`
-	ProvidersToAgree     int           `mapstructure:"providers_to_agree,required"`
-	MaxPriceDeltaPercent string        `mapstructure:"max_price_delta_percent,required"`
+	ProvidersToAgree     int           `fig:"providers_to_agree,required" mapstructure:"providers_to_agree,required"`
+	MaxPriceDeltaPercent string        `fig:"max_price_delta_percent,required" mapstructure:"max_price_delta_percent,required"`
 	VerifierServiceName  string        `fig:"verifier_service_name,required"`
 
 	Source keypair.Address `fig:"source,required"`

@@ -17,7 +17,7 @@ func (s *Service) listenLedgerChanges(ctx context.Context) {
 	lStreamerWG := sync.WaitGroup{}
 	go func() {
 		lStreamerWG.Add(1)
-		s.ledgerStreamer.Run(ctx)
+		s.ledgerStreamer.Run(ctx, "")
 		lStreamerWG.Done()
 	}()
 	s.log.Info("Started listening TimedLedgers stream.")

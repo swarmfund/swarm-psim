@@ -5,6 +5,10 @@ import (
 	"gitlab.com/swarmfund/psim/addrstate"
 )
 
+const (
+	ExternalSystemTypeEthereum = 2
+)
+
 func StateMutator(baseAsset, depositAsset string) func(change xdr.LedgerEntryChange) addrstate.StateUpdate {
 
 	assetPairUpdate := func(entry *xdr.AssetPairEntry) *int64 {
@@ -39,7 +43,7 @@ func StateMutator(baseAsset, depositAsset string) func(change xdr.LedgerEntryCha
 			case xdr.LedgerEntryTypeExternalSystemAccountId:
 				data := change.Created.Data.ExternalSystemAccountId
 				switch data.ExternalSystemType {
-				case xdr.ExternalSystemTypeEthereum:
+				case ExternalSystemTypeEthereum:
 					update.Address = &addrstate.StateAddressUpdate{
 						Offchain: string(data.Data),
 						Tokend:   data.AccountId.Address(),

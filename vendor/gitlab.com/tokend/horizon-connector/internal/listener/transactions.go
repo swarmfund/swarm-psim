@@ -8,7 +8,7 @@ import (
 )
 
 // DEPRECATED
-// Use StreamTransactions instead
+// Use StreamTXs instead
 func (q *Q) Transactions(result chan<- resources.TransactionEvent) <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -110,11 +110,24 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 	return txStream, errChan
 }
 
-// StreamTXs obtains Transactions from Horizon in pages (using txQ)
-// And streams TXPackets(Transaction + error) into returned channel.
+// StreamTXs streams all Transactions from Horizon from the very beginning of TX history
+// into returned channel (TransactionEvent + error).
 //
-// StreamTXs starts goroutine inside and returns immediately.
+// See StreamTXsFromCursor method for more details.
 func (q *Q) StreamTXs(ctx context.Context, stopOnEmptyPage bool) (<-chan TXPacket) {
+	return q.StreamTXsFromCursor(ctx, "", stopOnEmptyPage)
+}
+
+// StreamTXsFromCursor obtains Transactions from Horizon in pages (using txQ),
+// starting from the provided cursor.
+// And streams TXPackets(TransactionEvent + error) into returned channel.
+//
+// Cursor is PagingToken, use empty string to stream all Transactions from the very beginning.
+//
+// StreamTXsFromCursor starts goroutine inside and returns immediately.
+// Errors happening during TX streaming will be sent via returned channel in a TXPacket.
+// If TXPacket contains non-nil error, the TransactionEvent is nil.
+func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyPage bool) (<-chan TXPacket) {
 	txStream := make(chan TXPacket)
 
 	go func() {
@@ -122,7 +135,6 @@ func (q *Q) StreamTXs(ctx context.Context, stopOnEmptyPage bool) (<-chan TXPacke
 			close(txStream)
 		}()
 
-		cursor := ""
 		for {
 			select {
 			case <-ctx.Done():

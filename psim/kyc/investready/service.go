@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/go/doorman"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -22,7 +23,7 @@ type RequestListener interface {
 
 type RequestPerformer interface {
 	Approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails map[string]string) error
-	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason string) error
+	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason, rejector string) error
 }
 
 type BlobsConnector interface {
@@ -36,10 +37,6 @@ type BlobDataRetriever interface {
 
 type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
-}
-
-type KYCRequestsConnector interface {
-	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]horizon.Request, error)
 }
 
 type InvestReady interface {
@@ -81,6 +78,7 @@ func NewService(
 	blobDataRetriever BlobDataRetriever,
 	userProvider UsersConnector,
 	investReady InvestReady,
+	doorman doorman.Doorman,
 ) *Service {
 
 	logger := log.WithField("service", conf.ServiceInvestReady)
@@ -95,7 +93,7 @@ func NewService(
 		usersConnector:   userProvider,
 		investReady:      investReady,
 
-		redirectsListener: NewRedirectsListener(logger, config.RedirectsConfig, kycRequestsConnector, investReady, requestPerformer),
+		redirectsListener: NewRedirectsListener(logger, config.RedirectsConfig, kycRequestsConnector, investReady, doorman, requestPerformer),
 	}
 }
 

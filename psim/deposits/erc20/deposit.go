@@ -5,18 +5,20 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
 	app.RegisterService(conf.ServiceERC20Deposit, func(ctx context.Context) (app.Service, error) {
-		config := DepositConfig{}
+		config := DepositConfig{
+			Confirmations: 12,
+		}
 
 		err := figure.
 			Out(&config).

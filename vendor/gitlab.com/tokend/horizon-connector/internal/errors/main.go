@@ -6,7 +6,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DEPRECATED
+// Anyway, nobody checks the Path anywhere
 type Path string
+// DEPRECATED
+// Anyway, nobody checks the Kind anywhere
 type Kind int32
 type Status int
 type Response []byte
@@ -27,7 +31,11 @@ var (
 type Error struct {
 	msg    string
 	cause  error
+	// DEPRECATED
+	// Anyway, nobody checks the path anywhere
 	path   Path
+	// DEPRECATED
+	// Anyway, nobody checks the kind anywhere
 	kind   Kind
 	status Status
 	body   Response
@@ -37,6 +45,7 @@ func (e Error) Error() string {
 	if e.cause == nil {
 		return e.msg
 	}
+
 	return fmt.Sprintf("%s: %s", e.msg, e.cause.Error())
 }
 
@@ -44,6 +53,7 @@ func E(msg string, args ...interface{}) error {
 	e := Error{
 		msg: msg,
 	}
+
 	for _, arg := range args {
 		switch arg := arg.(type) {
 		case Path:
@@ -59,5 +69,6 @@ func E(msg string, args ...interface{}) error {
 		}
 
 	}
+
 	return e
 }

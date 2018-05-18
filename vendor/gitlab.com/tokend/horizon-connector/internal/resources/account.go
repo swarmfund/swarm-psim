@@ -11,11 +11,14 @@ type Account struct {
 
 type ExternalSystemAccount struct {
 	Type struct {
-		Name  string `json:"name"`
-		Value int    `json:"value"`
+		// Name human readable asset name
+		Name string `json:"name"`
+		// Value external system type
+		Value int `json:"value"`
 	} `json:"type"`
-
-	Address string `json:"data"`
+	// AssetCode TokenD asset code
+	AssetCode string `json:"asset_code"`
+	Address   string `json:"data"`
 }
 
 type AccountKYC struct {

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
@@ -23,6 +24,10 @@ const (
 	UserHashExtDetailsKey = "invest_ready_user_hash"
 )
 
+type KYCRequestsConnector interface {
+	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]horizon.Request, error)
+}
+
 type RedirectsListener struct {
 	log    *logan.Entry
 	config RedirectsConfig
@@ -30,6 +35,7 @@ type RedirectsListener struct {
 	kycRequestsConnector KYCRequestsConnector
 	requestPerformer     RequestPerformer
 	investReady          InvestReady
+	doorman              doorman.Doorman
 
 	server *http.Server
 }
@@ -39,6 +45,7 @@ func NewRedirectsListener(
 	config RedirectsConfig,
 	kycRequestsConnector KYCRequestsConnector,
 	investReady InvestReady,
+	doorman doorman.Doorman,
 	performer RequestPerformer) *RedirectsListener {
 
 	return &RedirectsListener{
@@ -46,6 +53,7 @@ func NewRedirectsListener(
 		config:               config,
 		kycRequestsConnector: kycRequestsConnector,
 		requestPerformer:     performer,
+		doorman:              doorman,
 		investReady:          investReady,
 	}
 }
@@ -54,11 +62,11 @@ func NewRedirectsListener(
 func (l *RedirectsListener) Run(ctx context.Context) {
 	l.log.WithField("config", l.config).Info("Starting listening to redirects.")
 
-	go running.UntilSuccess(ctx, l.log, "redirects_listening_server", func(ctx context.Context) (bool, error) {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", l.redirectsHandler)
-		mux.HandleFunc("/user_hash", l.userHashHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", l.redirectsHandler)
+	mux.HandleFunc("/user_hash", l.userHashHandler)
 
+	go running.UntilSuccess(ctx, l.log, "redirects_listening_server", func(ctx context.Context) (bool, error) {
 		l.server = &http.Server{
 			Addr:         fmt.Sprintf("%s:%d", l.config.Host, l.config.Port),
 			Handler:      mux,
@@ -218,6 +226,25 @@ func (l *RedirectsListener) validateHTTPRequest(w http.ResponseWriter, r *http.R
 		l.log.WithError(err).Warn("Failed to read bytes from request body Reader.")
 		writeError(w, http.StatusBadRequest, "Cannot read request body.")
 		return nil, true
+	}
+
+	if l.config.CheckSignature {
+		var request struct {
+			AccountID string `json:"account_id"`
+		}
+		err = json.Unmarshal(bb, &request)
+		if err != nil {
+			l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to preliminary unmarshal request bytes into struct(with only AccountID).")
+			writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
+			return nil, true
+		}
+
+		err := l.doorman.Check(r, doorman.SignatureOf(request.AccountID))
+		if err != nil {
+			l.log.WithError(err).Warn("Request signature is invalid.")
+			writeError(w, http.StatusUnauthorized, err.Error())
+			return nil, true
+		}
 	}
 
 	return bb, false

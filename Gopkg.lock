@@ -339,12 +339,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/rcrowley/go-metrics"
-  packages = ["."]
-  revision = "d932a24a8ccb8fcadc993e5c6c58f93dac168294"
-
-[[projects]]
-  branch = "master"
   name = "github.com/rjeczalik/notify"
   packages = ["."]
   revision = "d152f3ce359a5464dc41e84a8919fc67e55bbbf0"
@@ -563,14 +557,16 @@
     "network",
     "resources",
     "signcontrol",
+    "signcontrol/internal/httpsignatures",
     "strkey",
     "xdr",
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "9ab0e0408616ee10e8a659bbe65b5ef8ac51765d"
+  revision = "e1d43f45dee4b917c3484b92ea6da6a594c1b6c3"
 
 [[projects]]
+  branch = "master"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -593,8 +589,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "52b9ad2e1933e3de8db9008e34bf704b70f343d0"
-  version = "v2.1.2"
+  revision = "ef0818f47171d32f937ec9392aecc792d80a1110"
 
 [[projects]]
   branch = "master"
@@ -694,6 +689,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fa5b07a2aa33f1006f763c2660d0488d623892ced7cb8e029256a72c600f086b"
+  inputs-digest = "0a078671191834395f390c4e2425a1d2713a62880790f9d3a348757b05122fb3"
   solver-name = "gps-cdcl"
   solver-version = 1
