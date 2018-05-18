@@ -5,14 +5,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/psim/figure"
+	"gitlab.com/distributed_lab/figure"
 )
 
 func (c *ViperConfig) Ethereum() *ethclient.Client {
 	config := struct {
-		Proto string
-		Host  string
-		Port  int
+		Proto string `fig:"proto"`
+		Host  string `fig:"host"`
+		Port  int    `fig:"port"`
 	}{
 		Proto: "http",
 		Host:  "localhost",

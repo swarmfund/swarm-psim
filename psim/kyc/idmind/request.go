@@ -8,17 +8,15 @@ import (
 )
 
 const (
-	RequestStatePending int32 = 1
-
 	TxIDExtDetailsKey = "tx_id"
 )
 
 // ProveInterestingRequest returns non-nil error if the provided Request
 // doesn't need to be considered by this Service.
 func proveInterestingRequest(request horizon.Request) error {
-	if request.State != RequestStatePending {
+	if request.State != kyc.RequestStatePending {
 		// State is not pending
-		return errors.Errorf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
+		return errors.Errorf("Invalid Request State (%d) expected Pending(%d).", request.State, kyc.RequestStatePending)
 	}
 
 	details := request.Details

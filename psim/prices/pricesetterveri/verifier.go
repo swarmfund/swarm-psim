@@ -7,8 +7,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/app"
 )
 
 var (
@@ -27,7 +27,7 @@ type Verifier struct {
 	priceFinder priceFinder
 }
 
-func newVerifier(
+func NewVerifier(
 	serviceName string,
 	log *logan.Entry,
 	config Config,
@@ -41,11 +41,11 @@ func newVerifier(
 }
 
 func (v *Verifier) Run(ctx context.Context) {
-	app.RunOverIncrementalTimer(ctx, v.log, "price_points_cleaner", v.cleanPricePoints, pointsCleaningPeriod, 30*time.Second)
+	running.WithBackOff(ctx, v.log, "price_points_cleaner", v.cleanPricePoints, pointsCleaningPeriod, 0, 0)
 }
 
 // CleanPricePoints always returns nil. Returning error - is just to fit the
-// signature of a function needed for RunOverIncrementalTimer.
+// signature of a function needed for running.WithBackOff().
 func (v *Verifier) cleanPricePoints(ctx context.Context) error {
 	v.priceFinder.RemoveOldPoints(time.Now().Add(-pointsCleaningPeriod))
 	return nil

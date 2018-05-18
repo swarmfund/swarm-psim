@@ -3,25 +3,24 @@ package conf
 import (
 	"net/url"
 
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
-	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
-var (
-	notificatorClient *notificator.Connector
-)
-
 type NotificatorConfig struct {
-	URL    *url.URL
-	Secret string
-	Public string
+	URL    *url.URL `fig:"url,required"`
+	Secret string   `fig:"secret"`
+	Public string   `fig:"public"`
 }
 
 func (c *ViperConfig) Notificator() *notificator.Connector {
-	if notificatorClient != nil {
-		return notificatorClient
+	c.Lock()
+	defer c.Unlock()
+
+	if c.notificatorClient != nil {
+		return c.notificatorClient
 	}
 	conf := NotificatorConfig{}
 
@@ -40,7 +39,7 @@ func (c *ViperConfig) Notificator() *notificator.Connector {
 		Public: conf.Public,
 	}, *conf.URL)
 
-	notificatorClient = client
+	c.notificatorClient = client
 
-	return notificatorClient
+	return c.notificatorClient
 }

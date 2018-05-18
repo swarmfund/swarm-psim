@@ -5,9 +5,8 @@ import (
 
 	"reflect"
 
-	dlfigure "gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/figure"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/keypair"
 )
@@ -45,7 +44,7 @@ var ConfigFigureHooks = figure.Merge(figure.BaseHooks, utils.CommonHooks,
 		},
 	})
 
-var DLFigureHooks = dlfigure.Hooks{
+var DLFigureHooks = figure.Hooks{
 	"supervisor.Config": func(raw interface{}) (reflect.Value, error) {
 		result := Config{}
 		err := figure.Out(&result).

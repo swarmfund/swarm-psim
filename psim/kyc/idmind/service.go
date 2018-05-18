@@ -7,15 +7,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
-)
-
-const (
-	KYCFormBlobType = "kyc_form"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -25,13 +20,17 @@ type RequestListener interface {
 	StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time.Time, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
-type TXSubmitter interface {
-	Submit(ctx context.Context, envelope string) horizon.SubmitResult
+type RequestPerformer interface {
+	Approve(ctx context.Context, requestID uint64, requestHash string, tasksToAdd, tasksToRemove uint32, extDetails map[string]string) error
+	Reject(ctx context.Context, requestID uint64, requestHash string, tasksToAdd uint32, extDetails map[string]string, rejectReason, rejector string) error
 }
 
-type BlobsConnector interface {
-	Blob(blobID string) (*horizon.Blob, error)
+type BlobSubmitter interface {
 	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
+}
+
+type BlobDataRetriever interface {
+	RetrieveKYCBlob(kycRequest horizon.KYCRequest) (*horizon.Blob, error)
 }
 
 type DocumentsConnector interface {
@@ -40,6 +39,10 @@ type DocumentsConnector interface {
 
 type UsersConnector interface {
 	User(accountID string) (*horizon.User, error)
+}
+
+type AccountsConnector interface {
+	ByAddress(address string) (*horizon.Account, error)
 }
 
 type IdentityMind interface {
@@ -60,12 +63,13 @@ type Service struct {
 	source keypair.Address
 
 	requestListener    RequestListener
-	txSubmitter        TXSubmitter
-	blobsConnector     BlobsConnector
+	requestPerformer   RequestPerformer
+	blobSubmitter      BlobSubmitter
+	blobDataRetriever  BlobDataRetriever
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
+	accountsConnector  AccountsConnector
 	identityMind       IdentityMind
-	xdrbuilder         *xdrbuild.Builder
 	adminNotifyEmails  EmailsProcessor
 
 	kycRequests <-chan horizon.ReviewableRequestEvent
@@ -76,12 +80,13 @@ func NewService(
 	log *logan.Entry,
 	config Config,
 	requestListener RequestListener,
-	txSubmitter TXSubmitter,
-	blobProvider BlobsConnector,
-	userProvider UsersConnector,
+	requestPerformer RequestPerformer,
+	blobSubmitter BlobSubmitter,
+	blobDataRetriever BlobDataRetriever,
+	usersConnector UsersConnector,
+	accountsConnector AccountsConnector,
 	documentProvider DocumentsConnector,
 	identityMind IdentityMind,
-	builder *xdrbuild.Builder,
 	adminNotifyEmails EmailsProcessor,
 ) *Service {
 
@@ -90,12 +95,13 @@ func NewService(
 		config: config,
 
 		requestListener:    requestListener,
-		txSubmitter:        txSubmitter,
-		blobsConnector:     blobProvider,
-		usersConnector:     userProvider,
+		requestPerformer:   requestPerformer,
+		blobSubmitter:      blobSubmitter,
+		blobDataRetriever:  blobDataRetriever,
+		usersConnector:     usersConnector,
+		accountsConnector:  accountsConnector,
 		documentsConnector: documentProvider,
 		identityMind:       identityMind,
-		xdrbuilder:         builder,
 		adminNotifyEmails:  adminNotifyEmails,
 	}
 }
@@ -161,6 +167,15 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	// I found this log useless
 	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
 	kycReq := request.Details.KYC
+
+	acc, err := s.accountsConnector.ByAddress(kycReq.AccountToUpdateKYC)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get Account by AccountID from Horizon", logan.F{"account_id": kycReq.AccountToUpdateKYC})
+	}
+	if acc.IsBlocked {
+		s.log.WithField("account_id", acc.AccountID).Debug("Found KYCRequest of a blocked Account, ignoring it.")
+		return nil
+	}
 
 	if kycReq.PendingTasks&kyc.TaskSubmitIDMind != 0 {
 		// Haven't submitted IDMind yet

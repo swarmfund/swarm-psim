@@ -6,15 +6,16 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/prices/types"
+	"gitlab.com/tokend/go/amount"
 )
 
 //go:generate mockery -case underscore -testonly -inpkg -name PriceProvider
 type PriceProvider interface {
 	// GetName - returns name of the Provider
 	GetName() string
-	// GetPoints - returns Points available
+	// GetPoints - returns all available PricePoints.
+	// All PricePoints are available until deleted via RemoveOldPoints() method.
 	GetPoints() []types.PricePoint
 	// RemoveOldPoints - removes points which were created before minAllowedTime
 	RemoveOldPoints(minAllowedTime time.Time)
@@ -29,7 +30,7 @@ type priceClusterizer interface {
 
 type priceClusterizerProvider func(points []providerPricePoint) priceClusterizer
 
-type priceFinder struct {
+type PriceFinder struct {
 	log            *logan.Entry
 	priceProviders []PriceProvider
 	priceClusterizerProvider
@@ -43,7 +44,7 @@ func NewPriceFinder(
 	log *logan.Entry,
 	priceProviders []PriceProvider,
 	maxPercentPriceDelta int64,
-	minNumberOfProvidersToAgree int) (*priceFinder, error) {
+	minNumberOfProvidersToAgree int) (*PriceFinder, error) {
 
 	if !isPercentValid(maxPercentPriceDelta) {
 		return nil, errors.New("maxPercentPriceDelta must be in range [0, 100*ONE]")
@@ -57,8 +58,8 @@ func NewPriceFinder(
 		return nil, errors.New("Unexpected number of PriceProviders.")
 	}
 
-	result := &priceFinder{
-		log:            log.WithField("service", "price_finder"),
+	result := &PriceFinder{
+		log:            log.WithField("helper", "price_finder"),
 		priceProviders: priceProviders,
 		priceClusterizerProvider: func(points []providerPricePoint) priceClusterizer {
 			return newPriceClusterizer(points)
@@ -76,10 +77,15 @@ func isPercentValid(percent int64) bool {
 
 // TryFind - tries to find most recent PricePoint which priceDelta is <= maxPercentPriceDelta
 // for percent of providers >= minPercentOfNodeToParticipate
-func (f *priceFinder) TryFind() (*types.PricePoint, error) {
+//
+// TryFind always returns non-nil PricePoint if findErr is nil
+func (f *PriceFinder) TryFind() (result *types.PricePoint, findErr error) {
 	f.log.Debug("Tyring to find a PricePoint.")
 
 	allPoints := f.getAllProvidersPoints()
+	if len(allPoints) == 0 {
+		return nil, errors.New("No PricePoints from all Providers.")
+	}
 
 	sort.Sort(sortablePricePointsByTime(allPoints))
 	clusterizer := f.priceClusterizerProvider(allPoints)
@@ -95,17 +101,20 @@ func (f *priceFinder) TryFind() (*types.PricePoint, error) {
 		verifyErr := f.verifyCandidate(candidate.Price, cluster)
 		if verifyErr != nil {
 			f.log.WithFields(fields).WithError(verifyErr).Debug("Candidate is not approved over Cluster.")
+			continue
 		}
 
 		return &candidate.PricePoint, nil
 	}
 
-	return nil, nil
+	return nil, errors.From(errors.New("No PricePoint matching requirements was found."), logan.F{
+		"all_points": len(allPoints),
+	})
 }
 
 // VerifyPrice returns true if median of the Cluster built over all existing Points
 // meets delta requirements with the provided point.
-func (f *priceFinder) VerifyPrice(price int64) error {
+func (f *PriceFinder) VerifyPrice(price int64) error {
 	allPoints := f.getAllProvidersPoints()
 	clusterizer := f.priceClusterizerProvider(allPoints)
 
@@ -122,13 +131,13 @@ func (f *priceFinder) VerifyPrice(price int64) error {
 }
 
 // RemoveOldPoints - removes points which were created before minAllowedTime
-func (f *priceFinder) RemoveOldPoints(minAllowedTime time.Time) {
+func (f *PriceFinder) RemoveOldPoints(minAllowedTime time.Time) {
 	for i := range f.priceProviders {
 		f.priceProviders[i].RemoveOldPoints(minAllowedTime)
 	}
 }
 
-func (f *priceFinder) getAllProvidersPoints() []providerPricePoint {
+func (f *PriceFinder) getAllProvidersPoints() []providerPricePoint {
 	var result []providerPricePoint
 
 	for _, priceProvider := range f.priceProviders {
@@ -154,21 +163,29 @@ func median(points []providerPricePoint) providerPricePoint {
 
 // VerifyCandidate shows whether provided candidatePrice meets requirements over provided cluster.
 // Returns nil if cluster contains at least minProvidersToAgree PricePoints, which agree with candidate.
-func (f *priceFinder) verifyCandidate(candidatePrice int64, cluster []providerPricePoint) (verifyErr error) {
+func (f *PriceFinder) verifyCandidate(candidatePrice int64, cluster []providerPricePoint) (verifyErr error) {
 	if len(cluster) < f.minProvidersToAgree {
+		clusterProviders := make([]string, 0)
+		for _, provider := range cluster {
+			clusterProviders = append(clusterProviders, provider.ProviderID)
+		}
+
 		return errors.From(errors.New("Cluster too small, don't even trying to evaluate distances."), logan.F{
 			"min_providers_to_agree": f.minProvidersToAgree,
 			"cluster_size":           len(cluster),
+			"cluster_providers":      clusterProviders,
 		})
 	}
 
 	providersAgreed := 0
+	disagreedProviders := make([]string, 0)
 	for _, providerPricePoint := range cluster {
 		if f.meetsPriceDeltaReq(candidatePrice, providerPricePoint.PricePoint.Price) {
 			// Provider agreed with the candidate - diff between the providerPricePoint and the candidate isn't too big.
 			f.log.WithField("provider_price_point", providerPricePoint).Debug("Provider agreed.")
 			providersAgreed++
 		} else {
+			disagreedProviders = append(disagreedProviders, providerPricePoint.ProviderID)
 			f.log.WithField("provider_price_point", providerPricePoint).Debug("Provider disagreed.")
 		}
 	}
@@ -177,13 +194,14 @@ func (f *priceFinder) verifyCandidate(candidatePrice int64, cluster []providerPr
 		return errors.From(errors.New("Too few Providers agreed."), logan.F{
 			"providers_agreed":       providersAgreed,
 			"min_providers_to_agree": f.minProvidersToAgree,
+			"disagreed_providers":    disagreedProviders,
 		})
 	}
 
 	return nil
 }
 
-func (f *priceFinder) meetsPriceDeltaReq(price1, price2 int64) bool {
+func (f *PriceFinder) meetsPriceDeltaReq(price1, price2 int64) bool {
 	percentInDelta, isOverflow := types.GetPercentDeltaToMinPrice(price1, price2)
 	if isOverflow {
 		f.log.WithFields(logan.F{

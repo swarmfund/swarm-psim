@@ -81,12 +81,13 @@
     "keypair",
     "network",
     "signcontrol",
+    "signcontrol/internal/httpsignatures",
     "strkey",
     "xdr",
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "d11813ed0ba1aeae3d39f63b761fbf1b43d85478"
+  revision = "bc0dd83fb8cb09756bfa31ce9434345a4fa77758"
 
 [[projects]]
   branch = "master"

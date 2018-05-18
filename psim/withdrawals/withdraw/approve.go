@@ -25,7 +25,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// TwoStepWithdrawal needs PreliminaryApprove first.
-		unsignedOffchainTXHex, err := s.offchainHelper.CreateTX(withdrawAddress, withdrawAmount)
+		unsignedOffchainTXHex, err := s.offchainHelper.CreateTX(ctx, withdrawAddress, withdrawAmount)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Offchain TX")
 		}
@@ -36,7 +36,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		}
 	}
 
-	newRequest, err := ObtainRequest(s.horizon.Client(), request.ID)
+	newRequest, err := s.requestsConnector.GetRequestByID(request.ID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain Request from Horizon")
 	}
@@ -46,7 +46,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 			Debugf("WithdrawRequest still hasn't changed type to Withdraw(%d). Sleeping for 3 seconds.", xdr.ReviewableRequestTypeWithdraw)
 		// TODO Incremental
 		time.Sleep(3 * time.Second)
-		newRequest, err = ObtainRequest(s.horizon.Client(), request.ID)
+		newRequest, err = s.requestsConnector.GetRequestByID(request.ID)
 		if err != nil {
 			return errors.Wrap(err, "Failed to obtain Request from Horizon")
 		}
@@ -103,7 +103,7 @@ func (s *Service) processApprove(ctx context.Context, request horizon.Request, p
 		return errors.Wrap(err, "Envelope returned by Verify is invalid")
 	}
 
-	offchainTXHash, err := s.offchainHelper.SendTX(fullySignedOffchainTX)
+	offchainTXHash, err := s.offchainHelper.SendTX(ctx, fullySignedOffchainTX)
 	if err != nil {
 		return errors.Wrap(err, "Failed to send fully signed Offchain TX into Offchain network", logan.F{
 			"partly_signed_offchain_tx_hex": partlySignedOffchainTX,

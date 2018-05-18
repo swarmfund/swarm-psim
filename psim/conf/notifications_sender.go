@@ -2,17 +2,16 @@ package conf
 
 import (
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/swarmfund/psim/psim/notifications"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-)
-
-var (
-	notificationSender *notifications.SlackSender
+	"gitlab.com/swarmfund/psim/psim/notifications"
 )
 
 func (c *ViperConfig) NotificationSender() *notifications.SlackSender {
-	if notificationSender != nil {
-		return notificationSender
+	c.Lock()
+	defer c.Unlock()
+
+	if c.notificationSender != nil {
+		return c.notificationSender
 	}
 	conf := notifications.SlackConfig{}
 
@@ -28,7 +27,7 @@ func (c *ViperConfig) NotificationSender() *notifications.SlackSender {
 
 	sender := notifications.NewSlackSender(conf)
 
-	notificationSender = sender
+	c.notificationSender = sender
 
-	return sender
+	return c.notificationSender
 }

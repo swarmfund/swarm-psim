@@ -3,6 +3,8 @@ package ethfunnel
 import (
 	"context"
 
+	"math/big"
+
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
@@ -14,7 +16,7 @@ import (
 func init() {
 	app.RegisterService(conf.ServiceETHFunnel, func(ctx context.Context) (app.Service, error) {
 		config := Config{
-			AccountsToDerive: 10000,
+			Confirmations: big.NewInt(12),
 		}
 		err := figure.
 			Out(&config).

@@ -85,7 +85,7 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
+  version = "3"
   name = "gitlab.com/tokend/horizon-connector"
 
 [[constraint]]
@@ -106,4 +106,4 @@
 
 [[constraint]]
   name = "github.com/ethereum/go-ethereum"
-  version = "=1.7.3"
+  version = "1.8.4"
