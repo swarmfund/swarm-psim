@@ -43,6 +43,7 @@ const (
 
 	ServiceTemplateProvider = "template_provider"
 	ServiceWalletCleaner    = "wallet_cleaner"
+	ServiceMetricsProvider  = "metrics_provider"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

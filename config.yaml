@@ -51,6 +51,10 @@ s3:
   disable_ssl: true
   s3_force_path_style: true
 
+metrics_provider:
+  host: localhost
+  port: 1234
+
 # services
 
 services:
@@ -85,7 +89,6 @@ services:
 
 #  - template_provider
 #  - wallet_cleaner
-
 bearer:
   source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
   signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
