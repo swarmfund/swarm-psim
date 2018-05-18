@@ -593,8 +593,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "472820818317c0a6998196f455408e886314def9"
-  version = "v3.5"
+  revision = "d54437020e9e8851845f84a6ffaaf27cf3d519e5"
 
 [[projects]]
   branch = "master"
@@ -700,6 +699,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b3a8e18b881ccc65808a61146addf19f7671913d85577ff87901d96ef83d5c0b"
+  inputs-digest = "0a078671191834395f390c4e2425a1d2713a62880790f9d3a348757b05122fb3"
   solver-name = "gps-cdcl"
   solver-version = 1
