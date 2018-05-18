@@ -38,11 +38,11 @@ func (q *Q) WithdrawalRequests(cursor string) ([]resources.Request, error) {
 
 // Requests obtains batch of Requests of the provided type from the provided cursor
 // It differs from the AllRequests method, as the latter uses `/requests` path to obtain Requests.
-func (q *Q) Requests(filters, cursor string, reqType ReviewableRequestType) ([]resources.Request, error) {
+func (q *Q) Requests(getParams, cursor string, reqType ReviewableRequestType) ([]resources.Request, error) {
 	url := fmt.Sprintf("/request/%s?limit=200", string(reqType))
 
-	if filters != "" {
-		url = fmt.Sprintf("%s&%s", url, filters)
+	if getParams != "" {
+		url = fmt.Sprintf("%s&%s", url, getParams)
 	}
 
 	url = fmt.Sprintf("%s&cursor=%s", url, cursor)
