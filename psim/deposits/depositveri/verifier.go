@@ -3,13 +3,14 @@ package depositveri
 import (
 	"encoding/json"
 
+	"context"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
-	"context"
 )
 
 var errNoExtAccount = errors.New("External system Account was not found.")
@@ -42,7 +43,7 @@ func newVerifier(
 
 // This method is to implement Verifier interface from package verifier.
 func (v *Verifier) Run(ctx context.Context) {
-	<- ctx.Done()
+	<-ctx.Done()
 }
 
 func (v *Verifier) GetOperationType() xdr.OperationType {
@@ -126,7 +127,7 @@ func (v *Verifier) getOffchainAddress(accountAddress, assetName string) (string,
 	}
 
 	for _, extSysAccount := range account.ExternalSystemAccounts {
-		if extSysAccount.Type.Name == assetName {
+		if extSysAccount.Type.AssetCode == assetName {
 			return extSysAccount.Address, nil
 		}
 	}
