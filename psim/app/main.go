@@ -210,7 +210,6 @@ func (app *App) Run() {
 			ctx := context.WithValue(ctx, ctxLog, entry)
 			ctx = context.WithValue(ctx, ctxMetrics, &metric)
 
-			metric.Unhealthy(errors.New("service not initialize yet"))
 			service, err := ohaigo(ctx)
 			if err != nil {
 				metric.Unhealthy(err)

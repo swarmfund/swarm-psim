@@ -1,6 +1,9 @@
 package data
 
-import "github.com/rcrowley/go-metrics"
+import (
+	"github.com/rcrowley/go-metrics"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+)
 
 type Metrics struct {
 	register    metrics.Registry
@@ -8,15 +11,16 @@ type Metrics struct {
 }
 
 func NewMetric() Metrics {
-	register := metrics.NewRegistry()
-	healthCheck := NewHealthCheck()
-
-	register.GetOrRegister("health", healthCheck)
-
-	return Metrics{
-		register:    register,
-		healthCheck: healthCheck,
+	metric := Metrics{
+		register:    metrics.NewRegistry(),
+		healthCheck: NewHealthCheck(),
 	}
+
+	//Set register health checker and set default value to unhealthy
+	metric.register.GetOrRegister("health", metric.healthCheck)
+	metric.Unhealthy(errors.New("services not initialize yet"))
+
+	return metric
 }
 
 func (m *Metrics) Register(name string, value interface{}) {
