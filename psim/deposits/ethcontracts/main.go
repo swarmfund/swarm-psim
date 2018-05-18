@@ -3,13 +3,12 @@ package ethcontracts
 import (
 	"context"
 
-	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/deposits/ethcontracts/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
-	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 func init() {
@@ -17,42 +16,45 @@ func init() {
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
-	globalConfig := app.Config(ctx)
-	log := app.Log(ctx)
-
-	var config Config
-	err := figure.
-		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceETHContracts)).
-		With(figure.BaseHooks, utils.ETHHooks).
-		Please()
+	config, err := NewConfig(app.Config(ctx).Get(conf.ServiceETHContracts))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceETHContracts,
-		})
+		return nil, errors.Wrap(err, "failed to init config")
 	}
 
-	ethWallet := eth.NewWallet()
-	ethAddress, err := ethWallet.ImportHEX(config.ETHPrivateKey)
+	keypair, err := eth.NewKeypair(config.ETHPrivateKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to import PrivKey hex into ETH Wallet")
+		return nil, errors.Wrap(err, "failed to init keypair")
 	}
 
-	// TODO
-	//horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
+	horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
-	//horizonInfo, err := horizonConnector.Info()
-	//if err != nil {
-	//	return nil, errors.Wrap(err, "Failed to get Horizon info")
-	//}
+	builder, err := horizon.TXBuilder()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed init tx builder")
+	}
 
-	//builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+	deployerID := internal.Hash64(keypair.Address().Bytes())
 
 	return NewService(
-		log,
+		app.Log(ctx),
 		config,
-		ethAddress,
-		globalConfig.Ethereum(),
-		ethWallet,
+		//globalConfig.Ethereum(),
+		builder,
+		horizon,
+		keypair,
+		deployerID,
+		ExternalSystemPoolEntityCount(horizon),
+		app.Config(ctx).Ethereum(),
 	), nil
+}
+
+func ExternalSystemPoolEntityCount(horizon *horizon.Connector) func(string) (uint64, error) {
+	return func(systemType string) (uint64, error) {
+		stats, err := horizon.System().Statistics()
+		if err != nil {
+			return 0, errors.Wrap(err, "failed to get system stats")
+		}
+		count := stats.ExternalSystemPoolEntriesCount[systemType]
+		return count, nil
+	}
 }
