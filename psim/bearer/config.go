@@ -10,9 +10,9 @@ import (
 type Config struct {
 	// Signer is seed of the Master Account Signer,
 	// which can create and submit operations.
-	Signer keypair.Full
+	Signer keypair.Full `fig:"signer,required"`
 	// Source is address of the Master Account.
-	Source keypair.Address
+	Source keypair.Address `fig:"source,required"`
 	// AbnormalPeriod is the time duration between the submissions of
 	// the operations, if previous failed.
 	AbnormalPeriod time.Duration `fig:"abnormal_period"`
