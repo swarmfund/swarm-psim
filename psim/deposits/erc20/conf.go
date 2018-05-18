@@ -9,7 +9,7 @@ type DepositConfig struct {
 	Source        keypair.Address `fig:"source,required"`
 	Signer        keypair.Full    `fig:"signer,required"`
 	Cursor        uint64          `fig:"cursor,required"`
-	Confirmations uint64          `fig:"confirmations,required"`
+	Confirmations uint64          `fig:"confirmations"`
 	BaseAsset     string          `fig:"base_asset,required"`
 	// DepositAsset swarm asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
@@ -21,7 +21,7 @@ type VerifyConfig struct {
 	Host          string       `fig:"host,required"`
 	Port          int          `fig:"port,required"`
 	Signer        keypair.Full `fig:"signer,required"`
-	Confirmations uint64       `fig:"confirmations,required"`
+	Confirmations uint64       `fig:"confirmations"`
 	// DepositAsset swarm asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address

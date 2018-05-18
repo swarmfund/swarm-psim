@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Supervisor      supervisor.Config `fig:"supervisor,required"`
 	Confirmations   uint64            `fig:"confirmations"`
-	Cursor          *big.Int          `fig:"cursor"`
+	Cursor          *big.Int          `fig:"cursor,required"`
 	BaseAsset       string            `fig:"base_asset,required"`
 	DepositAsset    string            `fig:"deposit_asset,required"`
 	FixedDepositFee *big.Int          `fig:"fixed_deposit_fee,required"`

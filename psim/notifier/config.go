@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	Source keypair.Address `fig:"source,required"`
-	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
+	Signer keypair.Full    `fig:"signer,required"`
 
 	OrderCancelled EventConfig `fig:"order_cancelled,required"`
 	KYCCreated     EventConfig `fig:"kyc_created,required"`
