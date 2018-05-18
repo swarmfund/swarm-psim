@@ -18,8 +18,8 @@ type DepositConfig struct {
 }
 
 type VerifyConfig struct {
-	Host          string       `fig:"host,required"`
-	Port          int          `fig:"port,required"`
+	Host          string       `fig:"host"`
+	Port          int          `fig:"port"`
 	Signer        keypair.Full `fig:"signer,required"`
 	Confirmations uint64       `fig:"confirmations"`
 	// DepositAsset swarm asset to deposit
