@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
@@ -105,27 +105,8 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 		return errors.Wrap(err, "Failed to send Transaction into ETH blockchain", fields)
 	}
 
-	s.ensureMined(ctx, tx.Hash())
+	eth.EnsureHashMined(ctx, s.log, s.ethClient, tx.Hash())
 	logger.Info("Successfully submitted ETH TX into ETH blockchain.")
 
 	return nil
-}
-
-func (s *Service) ensureMined(ctx context.Context, hash common.Hash) {
-	running.UntilSuccess(ctx, s.log.WithField("eth_tx_hash", hash.String()), "ensure-mined", func(i context.Context) (bool, error) {
-		tx, pending, err := s.ethClient.TransactionByHash(ctx, hash)
-		if err != nil {
-			return false, errors.Wrap(err, "Failed to get TX.")
-		}
-
-		if pending {
-			return false, nil
-		}
-
-		if tx == nil {
-			return false, errors.New("Transaction not found.")
-		}
-
-		return true, nil
-	}, 10*time.Second, 10*time.Second)
 }
