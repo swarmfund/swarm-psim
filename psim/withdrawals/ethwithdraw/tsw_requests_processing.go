@@ -208,7 +208,6 @@ func (s *Service) rejectTSWRequest(request horizon.Request, rejectReason string)
 
 func convertAmount(tokendAmount int64, assetPrecision uint) *big.Int {
 	bigAmount := big.NewInt(tokendAmount)
-	oneAsset := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(assetPrecision)), big.NewInt(1))
-
+	oneAsset := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(assetPrecision)), big.NewInt(0))
 	return bigAmount.Mul(bigAmount, oneAsset).Div(bigAmount, big.NewInt(amount.One))
 }
