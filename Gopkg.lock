@@ -545,7 +545,8 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
-  revision = "f7d8d80cf167b6ea6896feb087f5e3e448a10233"
+  revision = "023b9c716a08001f0464f43cf1d85dffb209273c"
+  version = "v1"
 
 [[projects]]
   branch = "master"
@@ -699,6 +700,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0a078671191834395f390c4e2425a1d2713a62880790f9d3a348757b05122fb3"
+  inputs-digest = "224fe0730eed729e95d01c4bc2be79112629c0cba7d2e42f85e3e5047909cc16"
   solver-name = "gps-cdcl"
   solver-version = 1
