@@ -63,7 +63,7 @@ func NewService(
 	ethClient ETHClient,
 	ethWallet ETHWallet) (*Service, error) {
 
-	multisigContract, err := eth.NewMultisigWalletTransactor(*config.MultisigWallet, NewContractTransactor(ethClient))
+	multisigContract, err := eth.NewMultisigWalletTransactor(*config.MultisigWallet, eth.NewContractTransactor(ethClient))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create MultisigWallet Contract")
 	}
