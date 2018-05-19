@@ -14,6 +14,9 @@ import (
 
 // SubmitETHTransactions is a blocking method
 func (s *Service) submitETHTransactionsInfinitely(ctx context.Context) {
+	// First time out of loop so that start immediately
+	s.submitAllETHTransactionsOnce(ctx)
+
 	t := time.NewTicker(time.Minute)
 
 	for {
@@ -103,12 +106,13 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 	}
 
 	s.ensureMined(ctx, tx.Hash())
+	logger.Info("Successfully submitted ETH TX into ETH blockchain.")
 
 	return nil
 }
 
 func (s *Service) ensureMined(ctx context.Context, hash common.Hash) {
-	running.UntilSuccess(ctx, s.log, "ensure-mined", func(i context.Context) (bool, error) {
+	running.UntilSuccess(ctx, s.log.WithField("eth_tx_hash", hash.String()), "ensure-mined", func(i context.Context) (bool, error) {
 		tx, pending, err := s.ethClient.TransactionByHash(ctx, hash)
 		if err != nil {
 			return false, errors.Wrap(err, "Failed to get TX.")
