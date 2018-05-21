@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	WithdrawAddressExtDetailsKey = "address"
 	ETHAssetCode                 = "ETH"
 )
 
@@ -47,7 +46,6 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 			requestIsInteresting := isProcessablePendingRequest(*request)
 			if !requestIsInteresting {
 				// Not a pending TwoStepWithdrawRequests
-				// TODO Comment this log once service is working fine, the log is too verbose
 				logger.Debug("Found not interesting Request.")
 				return nil
 			}
@@ -64,7 +62,7 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 	}, 0, 5*time.Second, time.Hour)
 }
 
-// ApprovePendingTSWRequest prepares raw signed ETH TX and puts it into Request Approve.
+// ProcessPendingTSWRequest prepares raw signed ETH TX and puts it into Request Approve.
 //
 // TSWRequest stands from TwoStepWithdraw Request
 func (s *Service) processPendingTSWRequest(ctx context.Context, request horizon.Request) error {
@@ -150,13 +148,13 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, addr string, amount *b
 
 // TSWRequest stands from TwoStepWithdraw Request
 func (s *Service) approveTSWRequest(request horizon.Request, rawETHTxHex, ethTXHash string) error {
-	extDetails := make(map[string]string)
-	extDetails[TX1PreConfirmDetailsKey] = rawETHTxHex
-	extDetails[TX1HashPreConfirmDetailsKey] = ethTXHash
+	newPreConfirmDetails := make(map[string]string)
+	newPreConfirmDetails[TX1PreConfirmDetailsKey] = rawETHTxHex
+	newPreConfirmDetails[TX1HashPreConfirmDetailsKey] = ethTXHash
 
-	extDetailsBB, err := json.Marshal(extDetails)
+	extDetailsBB, err := json.Marshal(newPreConfirmDetails)
 	if err != nil {
-		return errors.Wrap(err, "Failed to marshal external details into JSON bytes")
+		return errors.Wrap(err, "Failed to marshal ExternalDetails into JSON bytes")
 	}
 	fields := logan.F{
 		"approval_external_details": string(extDetailsBB),

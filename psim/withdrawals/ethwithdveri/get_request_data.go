@@ -1,4 +1,4 @@
-package ethwithdraw
+package ethwithdveri
 
 import (
 	"math/big"
@@ -22,18 +22,20 @@ const (
 	RequestStatePending  int32 = 1
 	RequestStateApproved int32 = 3
 
-	TX1PreConfirmDetailsKey     = "raw_eth_tx_1"
 	TX1HashPreConfirmDetailsKey = "eth_tx_1_hash"
+	TX2ReviewerDetailsKey       = "raw_eth_tx_2"
+	TX2HashReviewerDetailsKey   = "eth_tx_2_hash"
 
 	WithdrawAddressExtDetailsKey = "address"
-	VersionExtDetailsKey        = "version"
+	VersionExtDetailsKey         = "version"
 )
 
-// GetTX1 can return nil,nil if:
+// GetTX2 can return nil,nil if:
 // - WithdrawRequest version is not 2, or
 // - The Request is not of type Withdraw
+// - WithdrawRequest is not approved
 // in all other cases - nil error means non-nil Transaction and vice versa.
-func getTX1(request horizon.Request) (*types.Transaction, error) {
+func getTX2(request horizon.Request) (*types.Transaction, error) {
 	version, err := getVersion(request)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get version of the Request")
@@ -51,15 +53,20 @@ func getTX1(request horizon.Request) (*types.Transaction, error) {
 		return nil, errors.New("Unexpected RequestType, only TwoStepWithdraw(7) and Withdraw(4) are expected.")
 	}
 
-	preConfirmDetails := request.Details.Withdraw.PreConfirmationDetails
+	if request.State != RequestStateApproved {
+		// We are looking for TX2 only in approved WithdrawRequests
+		return nil, nil
+	}
 
-	rawTXHexI, ok := preConfirmDetails[TX1PreConfirmDetailsKey]
+	reviewerDetails := request.Details.Withdraw.ReviewerDetails
+
+	rawTXHexI, ok := reviewerDetails[TX2ReviewerDetailsKey]
 	if !ok {
-		return nil, errors.New("Not found raw ETH TX_1 hex in the PreConfirmationDetails.")
+		return nil, errors.New("Not found raw ETH TX_2 hex in the ReviewerDetails.")
 	}
 	rawTXHex, ok := rawTXHexI.(string)
 	if !ok {
-		return nil, errors.New("Raw ETH TX_1 in the PreConfirmationDetails is not of type string.")
+		return nil, errors.New("Raw ETH TX_2 in the ReviewerDetails is not of type string.")
 	}
 	fields := logan.F{
 		"eth_tx_hex": rawTXHex,
@@ -67,12 +74,13 @@ func getTX1(request horizon.Request) (*types.Transaction, error) {
 
 	tx, err := eth.Unmarshal(rawTXHex)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal ETH TX hex from PreConfirmationDetails", fields)
+		return nil, errors.Wrap(err, "Failed to unmarshal ETH TX hex from ReviewerDetails", fields)
 	}
 
 	return tx, nil
 }
 
+// TODO Avoid duplication with ethwithdraw service.
 func getVersion(request horizon.Request) (float64, error) {
 	var extDetails map[string]interface{}
 
@@ -99,10 +107,10 @@ func getVersion(request horizon.Request) (float64, error) {
 	return version, nil
 }
 
-func (s *Service) getTSWRejectReason(request horizon.Request, countedAssetAmount *big.Int) string {
-	tswRequest := request.Details.TwoStepWithdraw
+func (s *Service) getWithdrawRejectReason(request horizon.Request, countedAssetAmount *big.Int) string {
+	withdrawRequest := request.Details.Withdraw
 
-	addrI, ok := tswRequest.ExternalDetails[WithdrawAddressExtDetailsKey]
+	addrI, ok := withdrawRequest.ExternalDetails[WithdrawAddressExtDetailsKey]
 	if !ok {
 		return RejectReasonMissingAddress
 	}
@@ -122,12 +130,12 @@ func (s *Service) getTSWRejectReason(request horizon.Request, countedAssetAmount
 }
 
 func isProcessablePendingRequest(request horizon.Request) bool {
-	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
-		// Withdraw service only approves TwoStepWithdraw Requests, Withdraw Requests will be approved by Verify service.
+	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+		// WithdrawVerify service only approves Withdraw Requests, TwoStepWithdraw Requests were approved by the Withdraw service.
 		return false
 	}
 	if request.State != RequestStatePending {
-		// We are only interested in pending TwoStepWithdrawRequests
+		// We are only interested in pending WithdrawRequests
 		return false
 	}
 

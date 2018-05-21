@@ -1,4 +1,4 @@
-package ethwithdraw
+package ethwithdveri
 
 import (
 	"context"
@@ -42,6 +42,7 @@ func (s *Service) detectLastETHSequence(ctx context.Context) uint64 {
 	return ethSequence
 }
 
+// TODO think of making some common helpers for ethwithdraw and ethwithveri services, as only difference is getTX1/getTX2 function
 func (s *Service) obtainETHSequenceFromCore(ctx context.Context) uint64 {
 	s.log.Info("Starting looking for ETH TXs sequence(nonce) among all WithdrawalRequests from Core.")
 	requestsEvents := s.withdrawRequestsStreamer.StreamWithdrawalRequestsOfAsset(ctx, s.config.Asset, true, false)
@@ -70,13 +71,13 @@ func (s *Service) obtainETHSequenceFromCore(ctx context.Context) uint64 {
 			// This log is a bit redundant, but necessary sometimes.
 			logger.WithFields(fields).Debug("Received WithdrawalRequest.")
 
-			tx, err := getTX1(*request)
+			tx, err := getTX2(*request)
 			if err != nil {
-				return false, errors.Wrap(err, "Failed to get hex of raw ETH TX1", fields)
+				return false, errors.Wrap(err, "Failed to get hex of raw ETH TX2", fields)
 			}
 			if tx == nil {
 				// skip
-				logger.WithFields(fields).Debug("ETH TX1 from WithdrawalRequest is nil.")
+				logger.WithFields(fields).Debug("ETH TX2 from WithdrawalRequest is nil.")
 				return false, nil
 			}
 
