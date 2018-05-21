@@ -6,7 +6,7 @@ const (
 	ServiceBTCDeposit         = "btc_deposit"
 	ServiceBTCDepositVerify   = "btc_deposit_verify"
 	ServiceETHSupervisor      = "eth_supervisor"
-	ServiceETHDeposit         = "eth_deposit"
+	ServiceERC20Deposit       = "erc20_deposit"
 	ServiceERC20DepositVerify = "erc20_deposit_verify"
 	ServiceETHContracts       = "eth_contracts_deploy"
 

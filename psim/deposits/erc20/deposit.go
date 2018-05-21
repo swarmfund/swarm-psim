@@ -9,12 +9,12 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
-	"gitlab.com/swarmfund/psim/psim/deposits/eth/internal"
+	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHDeposit, func(ctx context.Context) (app.Service, error) {
+	app.RegisterService(conf.ServiceERC20Deposit, func(ctx context.Context) (app.Service, error) {
 		config := DepositConfig{
 			Confirmations: 12,
 			// FIXME
@@ -24,7 +24,7 @@ func init() {
 		err := figure.
 			Out(&config).
 			With(figure.BaseHooks, utils.ETHHooks).
-			From(app.Config(ctx).Get(conf.ServiceETHDeposit)).
+			From(app.Config(ctx).Get(conf.ServiceERC20Deposit)).
 			Please()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to figure out")
@@ -53,7 +53,7 @@ func init() {
 			app.Log(ctx),
 			config.Source,
 			config.Signer,
-			conf.ServiceETHDeposit,
+			conf.ServiceERC20Deposit,
 			conf.ServiceERC20DepositVerify,
 			config.Cursor,
 			config.Confirmations,
