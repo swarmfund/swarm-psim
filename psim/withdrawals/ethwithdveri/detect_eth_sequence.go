@@ -71,7 +71,7 @@ func (s *Service) obtainETHSequenceFromCore(ctx context.Context) uint64 {
 			// This log is a bit redundant, but necessary sometimes.
 			logger.WithFields(fields).Debug("Received WithdrawalRequest.")
 
-			tx, err := getTX2(*request)
+			_, tx, err := getTX2(*request)
 			if err != nil {
 				return false, errors.Wrap(err, "Failed to get hex of raw ETH TX2", fields)
 			}

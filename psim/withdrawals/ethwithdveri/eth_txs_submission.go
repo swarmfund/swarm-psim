@@ -74,15 +74,16 @@ func (s *Service) submitAllETHTransactionsOnce(ctx context.Context) {
 }
 
 func (s *Service) processApprovedWithdrawRequest(ctx context.Context, request horizon.Request) error {
-	tx, err := getTX2(request)
+	rawTXHex, tx, err := getTX2(request)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get hex of raw ETH TX2")
+		return errors.Wrap(err, "Failed to get ETH TX2")
 	}
 	if tx == nil {
 		// Request version is not 2 or is not an approved WithdrawRequest, just skipping it, this service doesn't process such requests.
 		return nil
 	}
 	fields := logan.F{
+		"eth_tx_hex":   rawTXHex,
 		"eth_tx_hash":  tx.Hash().String(),
 		"eth_tx_nonce": tx.Nonce(),
 	}
@@ -100,9 +101,16 @@ func (s *Service) processApprovedWithdrawRequest(ctx context.Context, request ho
 
 	logger.Debug("Found not submitted ETH TX in WithdrawRequest in Core, submitting it.")
 
-	err = s.ethClient.SendTransaction(ctx, tx)
-	if err != nil {
-		return errors.Wrap(err, "Failed to send Transaction into ETH blockchain", fields)
+	running.UntilSuccess(ctx, s.log, "eth_tx_sending", func(ctx context.Context) (bool, error) {
+		err = s.ethClient.SendTransaction(ctx, tx)
+		if err != nil {
+			return false, errors.Wrap(err, "Failed to send Transaction into ETH blockchain", fields)
+		}
+
+		return true, nil
+	}, 5*time.Second, 10*time.Minute)
+	if running.IsCancelled(ctx) {
+		return nil
 	}
 
 	eth.EnsureHashMined(ctx, s.log, s.ethClient, tx.Hash())

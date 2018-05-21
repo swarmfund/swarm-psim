@@ -35,38 +35,38 @@ const (
 // - The Request is not of type Withdraw
 // - WithdrawRequest is not approved
 // in all other cases - nil error means non-nil Transaction and vice versa.
-func getTX2(request horizon.Request) (*types.Transaction, error) {
+func getTX2(request horizon.Request) (string, *types.Transaction, error) {
 	version, err := getVersion(request)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get version of the Request")
+		return "", nil, errors.Wrap(err, "Failed to get version of the Request")
 	}
 	// TODO Change following if, if supported versions change.
 	if version != 2 {
 		// Not a v2 WithdrawRequests, this service is unable to process them.
-		return nil, nil
+		return "", nil, nil
 	}
 
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
-		return nil, nil
+		return "", nil, nil
 	}
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
-		return nil, errors.New("Unexpected RequestType, only TwoStepWithdraw(7) and Withdraw(4) are expected.")
+		return "", nil, errors.New("Unexpected RequestType, only TwoStepWithdraw(7) and Withdraw(4) are expected.")
 	}
 
 	if request.State != RequestStateApproved {
 		// We are looking for TX2 only in approved WithdrawRequests
-		return nil, nil
+		return "", nil, nil
 	}
 
 	reviewerDetails := request.Details.Withdraw.ReviewerDetails
 
 	rawTXHexI, ok := reviewerDetails[TX2ReviewerDetailsKey]
 	if !ok {
-		return nil, errors.New("Not found raw ETH TX_2 hex in the ReviewerDetails.")
+		return "", nil, errors.New("Not found raw ETH TX_2 hex in the ReviewerDetails.")
 	}
 	rawTXHex, ok := rawTXHexI.(string)
 	if !ok {
-		return nil, errors.New("Raw ETH TX_2 in the ReviewerDetails is not of type string.")
+		return "", nil, errors.New("Raw ETH TX_2 in the ReviewerDetails is not of type string.")
 	}
 	fields := logan.F{
 		"eth_tx_hex": rawTXHex,
@@ -74,10 +74,10 @@ func getTX2(request horizon.Request) (*types.Transaction, error) {
 
 	tx, err := eth.Unmarshal(rawTXHex)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal ETH TX hex from ReviewerDetails", fields)
+		return "", nil, errors.Wrap(err, "Failed to unmarshal ETH TX hex from ReviewerDetails", fields)
 	}
 
-	return tx, nil
+	return rawTXHex, tx, nil
 }
 
 // TODO Avoid duplication with ethwithdraw service.
