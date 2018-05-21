@@ -7,8 +7,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/go/xdr"
-	horizon "gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type StateMutator func(change xdr.LedgerEntryChange) StateUpdate
@@ -19,7 +18,7 @@ type TXStreamer interface {
 
 type Watcher struct {
 	log        *logan.Entry
-	mutator    StateMutator
+	mutators   []StateMutator
 	txStreamer TXStreamer
 	ctx        context.Context
 
@@ -29,10 +28,10 @@ type Watcher struct {
 	state      *State
 }
 
-func New(ctx context.Context, log *logan.Entry, mutator StateMutator, txQ TXStreamer) *Watcher {
+func New(ctx context.Context, log *logan.Entry, externalSystem int32, mutators []StateMutator, txQ TXStreamer) *Watcher {
 	w := &Watcher{
 		log:        log.WithField("service", "addrstate"),
-		mutator:    mutator,
+		mutators:   mutators,
 		txStreamer: txQ,
 
 		state:      newState(),
@@ -63,61 +62,36 @@ func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	}
 }
 
-func (w *Watcher) AddressAt(ctx context.Context, ts time.Time, offchainAddr string) *string {
-	w.ensureReached(ctx, ts)
-	if app.IsCanceled(ctx) {
-		return nil
-	}
-
-	addrI, ok := w.state.addrs.Load(offchainAddr)
-	if !ok {
-		return nil
-	}
-	addrValue := addrI.(string)
-	return &addrValue
-}
-
-func (w *Watcher) Balance(ctx context.Context, address string) *string {
-	balanceI, ok := w.state.balances.Load(address)
-	if ok {
-		balance := balanceI.(string)
-		return &balance
-	}
-
-	// if we don't have balance already, let's wait for latest ledger
-	now := time.Now()
-	for w.head.Before(now) {
-		select {
-		case <-w.headUpdate:
-			continue
-		}
-	}
-
-	// now check again
-	balanceI, ok = w.state.balances.Load(address)
-	if !ok {
-		return nil
-	}
-
-	balance := balanceI.(string)
-	return &balance
-}
-
 // WatcherState is a connector between LedgerEntryChange and Watcher state for specific consumers
 type StateUpdate struct {
-	AssetPrice *int64
-	Address    *StateAddressUpdate
-	Balance    *StateBalanceUpdate
+	//AssetPrice      *int64
+	ExternalAccount *StateExternalAccountUpdate
+	//Address         *StateAddressUpdate
+	Balance *StateBalanceUpdate
 }
 
-type StateAddressUpdate struct {
-	Offchain string
-	Tokend   string
+type ExternalAccountBindingState int32
+
+const (
+	ExternalAccountBindingStateCreated ExternalAccountBindingState = iota + 1
+	ExternalAccountBindingStateDeleted
+)
+
+type StateExternalAccountUpdate struct {
+	// ExternalType external system accound id type
+	ExternalType int32
+	// Data external system pool entity data
+	Data string
+	// Address is a TokenD account address
+	Address string
+	// State shows current external pool entity binding state
+	State ExternalAccountBindingState
 }
 
 type StateBalanceUpdate struct {
 	Address string
 	Balance string
+	Asset   string
 }
 
 func (w *Watcher) run(ctx context.Context) {
@@ -128,11 +102,16 @@ func (w *Watcher) run(ctx context.Context) {
 		select {
 		case txEvent := <-txStream:
 			if tx := txEvent.Transaction; tx != nil {
+				// go through all ledger changes
 				for _, change := range tx.LedgerChanges() {
-					w.state.Mutate(tx.CreatedAt, w.mutator(change))
+					// apply all mutators
+					for _, mutator := range w.mutators {
+						w.state.Mutate(tx.CreatedAt, mutator(change))
+					}
 				}
 			}
 
+			// if we made it here it's safe to bump head cursor
 			w.head = txEvent.Meta.LatestLedger.ClosedAt
 			w.headUpdate <- struct{}{}
 		case err := <-txStreamErrs:
