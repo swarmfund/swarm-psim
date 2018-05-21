@@ -5,12 +5,11 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit/internal"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -33,7 +32,10 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	addressProvider := addrstate.New(
 		ctx,
 		log,
-		internal.StateMutator,
+		[]addrstate.StateMutator{
+			addrstate.ExternalSystemBindingMutator(config.ExternalSystem),
+			addrstate.BalanceMutator(config.DepositAsset),
+		},
 		horizonConnector.Listener(),
 	)
 
@@ -55,6 +57,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.LastBlocksNotWatch,
 
 		horizonConnector,
+		config.ExternalSystem,
 		addressProvider,
 		globalConfig.Discovery(),
 		builder,

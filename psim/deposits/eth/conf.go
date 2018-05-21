@@ -14,7 +14,8 @@ type DepositConfig struct {
 	// DepositAsset swarm asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
-	Token common.Address `fig:"token,required"`
+	Token          common.Address `fig:"token"`
+	ExternalSystem int32          `fig:"external_system,required"`
 }
 
 type VerifyConfig struct {

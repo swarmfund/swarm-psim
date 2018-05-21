@@ -28,7 +28,7 @@ type Watcher struct {
 	state      *State
 }
 
-func New(ctx context.Context, log *logan.Entry, externalSystem int32, mutators []StateMutator, txQ TXStreamer) *Watcher {
+func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXStreamer) *Watcher {
 	w := &Watcher{
 		log:        log.WithField("service", "addrstate"),
 		mutators:   mutators,

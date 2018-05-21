@@ -11,13 +11,14 @@ import (
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/eth/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
 	app.RegisterService(conf.ServiceETHDeposit, func(ctx context.Context) (app.Service, error) {
 		config := DepositConfig{
 			Confirmations: 12,
+			// FIXME
+			ExternalSystem: 9,
 		}
 
 		err := figure.
@@ -34,17 +35,19 @@ func init() {
 		addrProvider := addrstate.New(
 			ctx,
 			app.Log(ctx),
-			internal.StateMutator(config.BaseAsset, config.DepositAsset),
+			[]addrstate.StateMutator{
+				addrstate.ExternalSystemBindingMutator(config.ExternalSystem),
+				addrstate.BalanceMutator("ETH"),
+			},
 			horizon.Listener(),
 		)
 
-		info, err := horizon.Info()
+		builder, err := horizon.TXBuilder()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get horizon info")
+			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
-		builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
 
-		ethclient := app.Config(ctx).Ethereum()
+		eth := app.Config(ctx).Ethereum()
 
 		return deposit.New(&deposit.Opts{
 			app.Log(ctx),
@@ -55,10 +58,11 @@ func init() {
 			config.Cursor,
 			config.Confirmations,
 			app.Config(ctx).Horizon().WithSigner(config.Signer),
+			config.ExternalSystem,
 			addrProvider,
 			app.Config(ctx).Discovery(),
 			builder,
-			internal.NewERC20Helper(ethclient, config.DepositAsset, config.Token),
+			internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
 		}), nil
 	})
 }

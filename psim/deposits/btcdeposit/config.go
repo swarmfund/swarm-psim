@@ -15,6 +15,7 @@ type Config struct {
 	LastBlocksNotWatch uint64 `fig:"last_blocks_not_watch,required"`
 	MinDepositAmount   uint64 `fig:"min_deposit_amount,required"`
 	DepositAsset       string `fig:"deposit_asset,required"`
+	ExternalSystem     int32  `fig:"external_system,required"`
 	FixedDepositFee    uint64 `fig:"fixed_deposit_fee,required"`
 
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
