@@ -15,6 +15,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
+	"math/big"
 )
 
 type WithdrawRequestsStreamer interface {
@@ -32,6 +33,7 @@ type ETHClient interface {
 
 	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 }
 
 type ETHWallet interface {

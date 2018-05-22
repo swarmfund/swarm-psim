@@ -25,6 +25,10 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
+const (
+	Confirmations = 12
+)
+
 func (s *Service) processWithdrawRequestsInfinitely(ctx context.Context) {
 	s.log.Info("Starting processing(approve/reject) Withdraw Requests.")
 	requestsEvents := s.withdrawRequestsStreamer.StreamWithdrawalRequestsOfAsset(ctx, s.config.Asset, false, true)
@@ -144,7 +148,6 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 }
 
 // WaitForTX is a blocking method, it only returns when TX1 has 12 confirmations or ctx is cancelled.
-// TODO Return false, if (currentBlock - txBlock) < 12
 func (s *Service) waitForTXWithTransfer(ctx context.Context, ethTX1Hash string) Transfer {
 	var transfer Transfer
 
@@ -162,10 +165,14 @@ func (s *Service) waitForTXWithTransfer(ctx context.Context, ethTX1Hash string) 
 		receiptLog := receipt.Logs[0]
 		transferID := new(big.Int).SetBytes(receiptLog.Data)
 
-		// TODO Return false, if (currentBlock - txBlock) < 12
-		// TODO 12 to constants
-		//receiptLog.BlockNumber
-		// return false, nil
+		head, err := s.ethClient.HeaderByNumber(ctx, nil)
+		if err != nil {
+			return false, errors.Wrap(err, "Failed to get last Block's header from ETHClient")
+		}
+		if head.Number.Uint64()-receiptLog.BlockNumber < Confirmations {
+			// Need more confirmations for TX1 before we can proceed.
+			return false, nil
+		}
 
 		transfer, err = s.multisigContractReader.GetPendingTransfer(nil, transferID)
 		if err != nil {
