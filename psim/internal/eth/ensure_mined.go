@@ -29,5 +29,5 @@ func EnsureHashMined(ctx context.Context, log *logan.Entry, getter ByHasher, has
 		}
 
 		return true, nil
-	}, 5*time.Second, time.Minute)
+	}, 5*time.Second, 30*time.Second)
 }
