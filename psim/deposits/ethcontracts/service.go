@@ -145,7 +145,7 @@ func (s *Service) deployContract() (*common.Address, error) {
 		},
 		Value:    big.NewInt(0),
 		GasPrice: eth.FromGwei(s.config.GasPrice),
-		GasLimit: eth.FromGwei(s.config.GasLimit).Uint64(),
+		GasLimit: s.config.GasLimit.Uint64(),
 		Context:  context.TODO(),
 	}, s.eth, s.config.ContractOwner)
 

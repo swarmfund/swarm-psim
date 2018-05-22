@@ -7,6 +7,7 @@ type Account struct {
 	AccountType            string                  `json:"account_type"`
 	ExternalSystemAccounts []ExternalSystemAccount `json:"external_system_accounts"`
 	KYC                    AccountKYC              `json:"account_kyc"`
+	Referrer               string                  `json:"referrer"`
 }
 
 type ExternalSystemAccount struct {

@@ -13,9 +13,11 @@ type DepositConfig struct {
 	// DepositAsset TokenD asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
-	Token          common.Address `fig:"token"`
-	ExternalSystem int32          `fig:"external_system,required"`
-	DisableVerify  bool           `fig:"disable_verify"`
+	Token common.Address `fig:"token"`
+	// ExternalSystem type used for matching deposit addresses,
+	// if set will override one in deposit asset details
+	ExternalSystem int32 `fig:"external_system"`
+	DisableVerify  bool  `fig:"disable_verify"`
 }
 
 type VerifyConfig struct {

@@ -27,7 +27,7 @@ type Config struct {
 
 func NewConfig(raw map[string]interface{}) (*Config, error) {
 	config := &Config{
-		GasLimit: big.NewInt(5),
+		GasLimit: big.NewInt(420000),
 	}
 	err := figure.
 		Out(config).

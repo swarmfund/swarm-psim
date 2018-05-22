@@ -3,13 +3,14 @@ package erc20
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
+	. "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
@@ -17,8 +18,6 @@ func init() {
 	app.RegisterService(conf.ServiceERC20Deposit, func(ctx context.Context) (app.Service, error) {
 		config := DepositConfig{
 			Confirmations: 12,
-			// FIXME
-			ExternalSystem: 9,
 		}
 
 		err := figure.
@@ -47,6 +46,9 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
 
+		if config.ExternalSystem == 0 {
+			config.ExternalSystem = MustGetExternalSystemType(horizon.Assets(), config.DepositAsset)
+		}
 		eth := app.Config(ctx).Ethereum()
 
 		return deposit.New(&deposit.Opts{
