@@ -17,6 +17,9 @@ func (w *Watcher) ExternalAccountAt(ctx context.Context, ts time.Time, systemTyp
 	}
 
 	states := w.state.external[systemType][data]
+	if len(states) == 0 {
+		return nil
+	}
 	// iterating through the closed periods
 	for i := 0; i < len(states)-1; i += 1 {
 		a := states[i]
@@ -73,13 +76,7 @@ func (w *Watcher) Balance(ctx context.Context, address string, asset string) *st
 	}
 
 	// if we don't have balance already, let's wait for latest ledger
-	now := time.Now()
-	for w.head.Before(now) {
-		select {
-		case <-w.headUpdate:
-			continue
-		}
-	}
+	w.ensureReached(ctx, time.Now())
 
 	// now check again
 	if w.state.balances[address] != nil {

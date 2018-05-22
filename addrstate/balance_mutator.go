@@ -15,7 +15,7 @@ func BalanceMutator(asset string) func(xdr.LedgerEntryChange) StateUpdate {
 				update.Balance = &StateBalanceUpdate{
 					Address: data.AccountId.Address(),
 					Balance: data.BalanceId.AsString(),
-					Asset:   data.BalanceId.AsString(),
+					Asset:   string(data.Asset),
 				}
 			}
 		}
