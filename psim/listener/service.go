@@ -2,10 +2,12 @@ package listener
 
 import (
 	"context"
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/distributed_lab/running"
 	"time"
+
+	"gitlab.com/swarmfund/psim/psim/conf"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/running"
 )
 
 type Service struct {
@@ -15,8 +17,8 @@ type Service struct {
 }
 
 const (
-	defaultRetryTimeIncrement = 1*time.Second
-	defaultMaxRetryTime = 30*time.Second
+	defaultRetryTimeIncrement = 1 * time.Second
+	defaultMaxRetryTime       = 30 * time.Second
 )
 
 func New(config Config, listener Listener, log *logan.Entry) *Service {

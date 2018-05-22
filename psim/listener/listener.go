@@ -10,10 +10,8 @@ import (
 )
 
 // TODO edit Makefile before push
-// TODO edit Gopkg.* files before push (custom horizon-connector branch is used)
 // TODO cursor = now before push
 // TODO edit psim config.yaml before push
-// TODO edit README.md if targets or operations to listen are changed
 
 type Listener struct {
 	requestProvider RequestProvider
@@ -31,48 +29,42 @@ type RequestProvider interface {
 }
 
 type OutputEvent struct {
-	Account   string
-	EventName string
+	Account string
+	Name    OutputEventName
 }
 
-func NewOutputEvent(Account string, EventName string) *OutputEvent {
-	return &OutputEvent{Account, EventName}
+func NewOutputEvent(Account string, Name OutputEventName) *OutputEvent {
+	return &OutputEvent{Account, Name}
 }
 
-// returns array from the receiver and new event from arguments
-func (oe *OutputEvent) AppendedBy(Account string, EventName string) (outputEvents []OutputEvent) {
-	outputEvents = append([]OutputEvent{*oe}, *NewOutputEvent(Account, EventName))
+// AppendedBy returns array of the receiver and new event from arguments.
+func (oe *OutputEvent) AppendedBy(Account string, Name OutputEventName) (outputEvents []OutputEvent) {
+	outputEvents = append([]OutputEvent{*oe}, *NewOutputEvent(Account, Name))
 	return
 }
 
-type lol []OutputEvent
-
-func (l lol) Add() lol {
-	return append(l, *NewOutputEvent("", ""))
-}
-
-// returns array of one element which is the receiver
+// Alone returns arrays of one element which is the receiver.
 func (oe *OutputEvent) Alone() (outputEvents []OutputEvent) {
 	outputEvents = []OutputEvent{*oe}
 	return
 }
 
-// TODO rename and fix values
+type OutputEventName string
+
 const (
-	KycCreatedOutputEventName               = "kyc_created"
-	KycUpdatedOutputEventName               = "kyc_updated"
-	KycRejectedOutputEventName              = "kyc_rejected"
-	KycApprovedOutputEventName              = "kyc_approved"
-	IssuanceRequestFulfilledOutputEventName = "issuance_request_fulfilled"
-	UserReferredOutputEventName             = "user_referred"
-	WithdrawOutputEventName                 = "withdraw"
-	PaymentV2ReceivedOutputEventName        = "paymentV2_received"
-	PaymentV2SentOutputEventName            = "paymentV2_sent"
-	PaymentReceivedOutputEventName          = "payment_received"
-	PaymentSentOutputEventName              = "payment_sent"
-	IssuanceRequestOutputEventName          = "issuance_request"
-	ManageOfferOutputEventName              = "manage_offer_done"
-	ReferralPassedKYCOutputEventName        = "referral_passed_kyc"
+	OutputEventNameKycCreated            OutputEventName = "kyc_created"
+	OutputEventNameKycUpdated            OutputEventName = "kyc_updated"
+	OutputEventNameKycRejected           OutputEventName = "kyc_rejected"
+	OutputEventNameKycApproved           OutputEventName = "kyc_approved"
+	OutputEventNameUserReferred          OutputEventName = "user_referred"
+	OutputEventNameFundsWithdrawn        OutputEventName = "funds_withdrawn"
+	OutputEventNamePaymentV2Received     OutputEventName = "payment_v2_received"
+	OutputEventNamePaymentV2Sent         OutputEventName = "payment_v2_sent"
+	OutputEventNamePaymentReceived       OutputEventName = "payment_received"
+	OutputEventNamePaymentSent           OutputEventName = "payment_sent"
+	OutputEventNameFundsDeposited        OutputEventName = "funds_deposited"
+	OutputEventNameFundsInvested         OutputEventName = "funds_invested"
+	OutputEventNameReferredUserPassedKyc OutputEventName = "referred_user_passed_kyc"
 )
 
 func NewListener(requestProvider RequestProvider, txPacketStream <-chan horizon.TXPacket, accountsProvider AccountProvider, logger *logan.Entry) *Listener {
@@ -84,8 +76,7 @@ func NewListener(requestProvider RequestProvider, txPacketStream <-chan horizon.
 	}
 }
 
-// Main Listener function, takes TransactionEvents from TxStreamer
-// and outputs them sequentially to an `outputEventsStream` channel
+// Listen takes TransactionEvents from TxStreamer and outputs them sequentially to outputEventsStream.
 func (l *Listener) Listen(ctx context.Context) <-chan OutputEvent {
 	outputEventsStream := make(chan OutputEvent)
 	go func() {
@@ -116,7 +107,6 @@ func (l *Listener) Listen(ctx context.Context) <-chan OutputEvent {
 	return outputEventsStream
 }
 
-// handle-all-needed-operations func
 func (l *Listener) handleOps(ctx context.Context, tx *horizon.Transaction) (outputEvents []OutputEvent) {
 	if tx == nil {
 		l.logger.Info("Received nil tx")
@@ -190,34 +180,31 @@ func (l *Listener) handleCreateAccountOp(opBody *xdr.CreateAccountOp) (outputEve
 	}
 	referrerAddress := referrer.Address()
 	if referrerAddress != "" {
-		outputEvents = NewOutputEvent(referrerAddress, UserReferredOutputEventName).Alone()
+		outputEvents = NewOutputEvent(referrerAddress, OutputEventNameUserReferred).Alone()
 	}
 	return
 }
 
 func (l *Listener) handleWithdrawRequest(txSourceAccount xdr.AccountId) (outputEvents []OutputEvent) {
-	outputEvents = NewOutputEvent(txSourceAccount.Address(), WithdrawOutputEventName).Alone()
+	outputEvents = NewOutputEvent(txSourceAccount.Address(), OutputEventNameFundsWithdrawn).Alone()
 	return
 }
 
 func (l *Listener) handlePaymentV2(txSourceAccount xdr.AccountId, opResultBody *xdr.PaymentV2Result) (outputEvents []OutputEvent) {
-	// TODO what events to emit if body is empty?
 	if opResultBody == nil {
 		l.logger.Warn("received nil body for paymentV2 op")
 		return
 	}
 	if opResultBody.PaymentV2Response == nil {
-
 		l.logger.Warn("received nil paymentV2response for paymentV2 op")
 		return
 	}
-	outputEvents = NewOutputEvent(txSourceAccount.Address(), PaymentV2SentOutputEventName).
-		AppendedBy(opResultBody.PaymentV2Response.Destination.Address(), PaymentV2ReceivedOutputEventName)
+	outputEvents = NewOutputEvent(txSourceAccount.Address(), OutputEventNamePaymentV2Sent).
+		AppendedBy(opResultBody.PaymentV2Response.Destination.Address(), OutputEventNamePaymentV2Received)
 	return
 }
 
 func (l *Listener) handlePayment(txSourceAccount xdr.AccountId, opResultBody *xdr.PaymentResult) (outputEvents []OutputEvent) {
-	// TODO what events to emit if body is empty?
 	if opResultBody == nil {
 		l.logger.Warn("received nil body for payment op")
 		return
@@ -226,8 +213,8 @@ func (l *Listener) handlePayment(txSourceAccount xdr.AccountId, opResultBody *xd
 		l.logger.Warn("received nil paymentResponse for payment op")
 		return
 	}
-	outputEvents = NewOutputEvent(txSourceAccount.Address(), PaymentSentOutputEventName).
-		AppendedBy(opResultBody.PaymentResponse.Destination.Address(), PaymentReceivedOutputEventName)
+	outputEvents = NewOutputEvent(txSourceAccount.Address(), OutputEventNamePaymentSent).
+		AppendedBy(opResultBody.PaymentResponse.Destination.Address(), OutputEventNamePaymentReceived)
 	return
 }
 
@@ -237,7 +224,7 @@ func (l *Listener) handleManageOfferOp(txSourceAccount xdr.AccountId, opBody *xd
 		return
 	}
 	if opBody.OrderBookId != 0 && opBody.Amount != 0 {
-		outputEvents = NewOutputEvent(txSourceAccount.Address(), ManageOfferOutputEventName).Alone()
+		outputEvents = NewOutputEvent(txSourceAccount.Address(), OutputEventNameFundsInvested).Alone()
 	}
 	return
 }
@@ -253,7 +240,7 @@ func (l *Listener) handleCreateIssuanceRequestOp(opResult xdr.OperationResultTr)
 		return
 	}
 	if opSuccess.Fulfilled == true {
-		outputEvents = NewOutputEvent(opSuccess.Receiver.Address(), IssuanceRequestFulfilledOutputEventName).Alone()
+		outputEvents = NewOutputEvent(opSuccess.Receiver.Address(), OutputEventNameFundsDeposited).Alone()
 	}
 	return
 }
@@ -264,10 +251,10 @@ func (l *Listener) handleKYCCreateUpdateRequestOp(opBody *xdr.CreateUpdateKycReq
 		return
 	}
 	if opBody.RequestId == 0 {
-		outputEvents = NewOutputEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), KycCreatedOutputEventName).Alone()
+		outputEvents = NewOutputEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), OutputEventNameKycCreated).Alone()
 		return
 	} // if op.RequestId != 0
-	outputEvents = NewOutputEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), KycUpdatedOutputEventName).Alone()
+	outputEvents = NewOutputEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), OutputEventNameKycUpdated).Alone()
 	return
 }
 
@@ -282,7 +269,7 @@ func (l *Listener) handleReviewRequestOp(sourceAccount xdr.AccountId, op *xdr.Re
 }
 
 func (l *Listener) handleIssuanceCreateReq(sourceAccount xdr.AccountId) (outputEvents []OutputEvent) {
-	outputEvents = NewOutputEvent(sourceAccount.Address(), IssuanceRequestOutputEventName).Alone()
+	outputEvents = NewOutputEvent(sourceAccount.Address(), OutputEventNameFundsDeposited).Alone()
 	return
 }
 
@@ -303,7 +290,7 @@ func (l *Listener) handleKYCReview(opBody *xdr.ReviewRequestOp, ledgerChanges []
 	kycRequestDetails := request.Details.KYC
 
 	if opBody.Action == xdr.ReviewRequestOpActionReject || opBody.Action == xdr.ReviewRequestOpActionPermanentReject {
-		return NewOutputEvent(kycRequestDetails.AccountToUpdateKYC, KycRejectedOutputEventName).Alone()
+		return NewOutputEvent(kycRequestDetails.AccountToUpdateKYC, OutputEventNameKycRejected).Alone()
 	}
 
 	if opBody.Action != xdr.ReviewRequestOpActionApprove {
@@ -319,14 +306,14 @@ func (l *Listener) handleKYCReview(opBody *xdr.ReviewRequestOp, ledgerChanges []
 		}
 		reviewableRequest := ledgerChange.Removed.ReviewableRequest
 		if opBody.RequestId == reviewableRequest.RequestId {
-			outputEvents = NewOutputEvent(kycRequestDetails.AccountToUpdateKYC, KycApprovedOutputEventName).Alone()
+			outputEvents = NewOutputEvent(kycRequestDetails.AccountToUpdateKYC, OutputEventNameKycApproved).Alone()
 		}
 		account, err := l.accountProvider.ByAddress(kycRequestDetails.AccountToUpdateKYC)
 		if err != nil {
 			l.logger.WithError(err).Warn(err, "cannot get account by address")
 		}
 		if account.Referrer != "" {
-			outputEvents = append(outputEvents, *NewOutputEvent(account.Referrer, ReferralPassedKYCOutputEventName))
+			outputEvents = append(outputEvents, *NewOutputEvent(account.Referrer, OutputEventNameReferredUserPassedKyc))
 		}
 		return
 	}
