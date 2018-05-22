@@ -13,4 +13,5 @@ type Config struct {
 	BaseAsset       string            `fig:"base_asset,required"`
 	DepositAsset    string            `fig:"deposit_asset,required"`
 	FixedDepositFee *big.Int          `fig:"fixed_deposit_fee,required"`
+	ExternalSystem  int32             `fig:"external_system,required"`
 }

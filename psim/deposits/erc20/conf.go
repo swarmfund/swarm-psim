@@ -10,11 +10,14 @@ type DepositConfig struct {
 	Signer        keypair.Full    `fig:"signer,required"`
 	Cursor        uint64          `fig:"cursor,required"`
 	Confirmations uint64          `fig:"confirmations"`
-	BaseAsset     string          `fig:"base_asset,required"`
-	// DepositAsset swarm asset to deposit
+	// DepositAsset TokenD asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
-	Token common.Address `fig:"token,required"`
+	Token common.Address `fig:"token"`
+	// ExternalSystem type used for matching deposit addresses,
+	// if set will override one in deposit asset details
+	ExternalSystem int32 `fig:"external_system"`
+	DisableVerify  bool  `fig:"disable_verify"`
 }
 
 type VerifyConfig struct {

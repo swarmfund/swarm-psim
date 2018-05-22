@@ -3,15 +3,15 @@ package erc20
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
+	. "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -34,17 +34,22 @@ func init() {
 		addrProvider := addrstate.New(
 			ctx,
 			app.Log(ctx),
-			internal.StateMutator(config.BaseAsset, config.DepositAsset),
+			[]addrstate.StateMutator{
+				addrstate.ExternalSystemBindingMutator(config.ExternalSystem),
+				addrstate.BalanceMutator(config.DepositAsset),
+			},
 			horizon.Listener(),
 		)
 
-		info, err := horizon.Info()
+		builder, err := horizon.TXBuilder()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get horizon info")
+			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
-		builder := xdrbuild.NewBuilder(info.Passphrase, info.TXExpirationPeriod)
 
-		ethclient := app.Config(ctx).Ethereum()
+		if config.ExternalSystem == 0 {
+			config.ExternalSystem = MustGetExternalSystemType(horizon.Assets(), config.DepositAsset)
+		}
+		eth := app.Config(ctx).Ethereum()
 
 		return deposit.New(&deposit.Opts{
 			app.Log(ctx),
@@ -55,10 +60,12 @@ func init() {
 			config.Cursor,
 			config.Confirmations,
 			app.Config(ctx).Horizon().WithSigner(config.Signer),
+			config.ExternalSystem,
 			addrProvider,
 			app.Config(ctx).Discovery(),
 			builder,
-			internal.NewERC20Helper(ethclient, config.DepositAsset, config.Token),
+			internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
+			config.DisableVerify,
 		}), nil
 	})
 }

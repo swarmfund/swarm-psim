@@ -8,11 +8,11 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
+	"gitlab.com/tokend/go/amount"
 )
 
 // TODO defer
@@ -127,7 +127,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	}
 
 	// address is watched
-	address := s.state.AddressAt(ctx, tx.Timestamp, tx.To().Hex())
+	address := s.state.ExternalAccountAt(ctx, tx.Timestamp, s.config.ExternalSystem, tx.To().Hex())
 	if app.IsCanceled(ctx) {
 		return nil
 	}
@@ -142,7 +142,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	})
 	entry.Info("Found deposit.")
 
-	receiver := s.state.Balance(ctx, *address)
+	receiver := s.state.Balance(ctx, *address, s.config.DepositAsset)
 	if app.IsCanceled(ctx) {
 		return nil
 	}

@@ -12,8 +12,8 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdepositveri"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/erc20"
-	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/ethcontracts"
+	_ "gitlab.com/swarmfund/psim/psim/ethsupervisor"
 
 	// withdrawals
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
@@ -23,8 +23,8 @@ import (
 
 	// funnels
 	_ "gitlab.com/swarmfund/psim/psim/funnels/btcfunnel"
-	_ "gitlab.com/swarmfund/psim/psim/funnels/ethfunnel"
 	_ "gitlab.com/swarmfund/psim/psim/funnels/contractfunnel"
+	_ "gitlab.com/swarmfund/psim/psim/funnels/ethfunnel"
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
