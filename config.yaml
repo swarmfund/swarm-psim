@@ -12,8 +12,7 @@ log:
   #sentry_dsn: http://...
 
 horizon:
-  #addr: http://swarm:8000
-  addr: https://api.dev.suntri.io/
+  addr: http://swarm:8000
 
 notificator:
   url: http://swarm:9009
@@ -88,11 +87,11 @@ services:
 #  - wallet_cleaner
 
 listener:
-  signer: SAQI5IFSNSYMAAXCOPHCAOT7YBHQXNR7SHAHTKGFBCUY6NJHQYZAJMWX
+  signer: S_SOME_VALID_PRIVATE_KEY
 
 bearer:
-  source: GDKKCM3RNDE4E53IYJECILA3DJ5J4KGOLQV3TEWECRQ5MQAQGEPEMD4A
-  signer: SAKGYPGW6FZTW3YD3NSJJAZYMUYERZKAKG6NZMLBW33T5BRNFLTPQY7R
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
   abnormal_period: 1m
   sleep_period: 5m
 
