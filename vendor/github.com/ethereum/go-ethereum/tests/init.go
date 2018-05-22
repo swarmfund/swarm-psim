@@ -23,7 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
-// Forks table defines supported forks and their chain config.
+// This table defines supported forks and their chain config.
 var Forks = map[string]*params.ChainConfig{
 	"Frontier": {
 		ChainId: big.NewInt(1),

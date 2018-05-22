@@ -375,10 +375,10 @@ var opCodeToString = map[OpCode]string{
 	SWAP: "SWAP",
 }
 
-func (op OpCode) String() string {
-	str := opCodeToString[op]
+func (o OpCode) String() string {
+	str := opCodeToString[o]
 	if len(str) == 0 {
-		return fmt.Sprintf("Missing opcode 0x%x", int(op))
+		return fmt.Sprintf("Missing opcode 0x%x", int(o))
 	}
 
 	return str

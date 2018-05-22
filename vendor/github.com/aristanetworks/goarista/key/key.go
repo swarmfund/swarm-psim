@@ -16,8 +16,7 @@ import (
 // Key represents the Key in the updates and deletes of the Notification
 // objects.  The only reason this exists is that Go won't let us define
 // our own hash function for non-hashable types, and unfortunately we
-// need to be able to index maps by map[string]interface{} objects
-// and slices by []interface{} objects.
+// need to be able to index maps by map[string]interface{} objects.
 type Key interface {
 	Key() interface{}
 	String() string
@@ -51,9 +50,7 @@ type boolKey bool
 func New(intf interface{}) Key {
 	switch t := intf.(type) {
 	case map[string]interface{}:
-		return composite{sentinel: sentinel, m: t}
-	case []interface{}:
-		return composite{sentinel: sentinel, s: t}
+		return composite{sentinel, t}
 	case string:
 		return strKey(t)
 	case int8:
@@ -124,18 +121,6 @@ func mapStringEqual(a, b map[string]interface{}) bool {
 	return true
 }
 
-func sliceEqual(a, b []interface{}) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if !keyEqual(v, b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 func keyEqual(a, b interface{}) bool {
 	switch a := a.(type) {
 	case map[string]interface{}:
@@ -152,9 +137,6 @@ func keyEqual(a, b interface{}) bool {
 			}
 		}
 		return true
-	case []interface{}:
-		b, ok := b.([]interface{})
-		return ok && sliceEqual(a, b)
 	case Comparable:
 		return a.Equal(b)
 	}

@@ -23,18 +23,17 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -45,13 +44,14 @@ import (
 	"github.com/ethereum/go-ethereum/signer/rules"
 	"github.com/ethereum/go-ethereum/signer/storage"
 	"gopkg.in/urfave/cli.v1"
+	"os/signal"
 )
 
-// ExternalAPIVersion -- see extapi_changelog.md
-const ExternalAPIVersion = "2.0.0"
+// ExternalApiVersion -- see extapi_changelog.md
+const ExternalApiVersion = "2.0.0"
 
-// InternalAPIVersion -- see intapi_changelog.md
-const InternalAPIVersion = "2.0.0"
+// InternalApiVersion -- see intapi_changelog.md
+const InternalApiVersion = "2.0.0"
 
 const legalWarning = `
 WARNING! 
@@ -398,10 +398,10 @@ func signer(c *cli.Context) error {
 	}
 	// register signer API with server
 	var (
-		extapiURL = "n/a"
-		ipcapiURL = "n/a"
+		extapiUrl = "n/a"
+		ipcApiUrl = "n/a"
 	)
-	rpcAPI := []rpc.API{
+	rpcApi := []rpc.API{
 		{
 			Namespace: "account",
 			Public:    true,
@@ -415,12 +415,12 @@ func signer(c *cli.Context) error {
 
 		// start http server
 		httpEndpoint := fmt.Sprintf("%s:%d", c.String(utils.RPCListenAddrFlag.Name), c.Int(rpcPortFlag.Name))
-		listener, _, err := rpc.StartHTTPEndpoint(httpEndpoint, rpcAPI, []string{"account"}, cors, vhosts)
+		listener, _, err := rpc.StartHTTPEndpoint(httpEndpoint, rpcApi, []string{"account"}, cors, vhosts)
 		if err != nil {
 			utils.Fatalf("Could not start RPC api: %v", err)
 		}
-		extapiURL = fmt.Sprintf("http://%s", httpEndpoint)
-		log.Info("HTTP endpoint opened", "url", extapiURL)
+		extapiUrl = fmt.Sprintf("http://%s", httpEndpoint)
+		log.Info("HTTP endpoint opened", "url", extapiUrl)
 
 		defer func() {
 			listener.Close()
@@ -430,19 +430,19 @@ func signer(c *cli.Context) error {
 	}
 	if !c.Bool(utils.IPCDisabledFlag.Name) {
 		if c.IsSet(utils.IPCPathFlag.Name) {
-			ipcapiURL = c.String(utils.IPCPathFlag.Name)
+			ipcApiUrl = c.String(utils.IPCPathFlag.Name)
 		} else {
-			ipcapiURL = filepath.Join(configDir, "clef.ipc")
+			ipcApiUrl = filepath.Join(configDir, "clef.ipc")
 		}
 
-		listener, _, err := rpc.StartIPCEndpoint(ipcapiURL, rpcAPI)
+		listener, _, err := rpc.StartIPCEndpoint(func() bool { return true }, ipcApiUrl, rpcApi)
 		if err != nil {
 			utils.Fatalf("Could not start IPC api: %v", err)
 		}
-		log.Info("IPC endpoint opened", "url", ipcapiURL)
+		log.Info("IPC endpoint opened", "url", ipcApiUrl)
 		defer func() {
 			listener.Close()
-			log.Info("IPC endpoint closed", "url", ipcapiURL)
+			log.Info("IPC endpoint closed", "url", ipcApiUrl)
 		}()
 
 	}
@@ -453,10 +453,10 @@ func signer(c *cli.Context) error {
 	}
 	ui.OnSignerStartup(core.StartupInfo{
 		Info: map[string]interface{}{
-			"extapi_version": ExternalAPIVersion,
-			"intapi_version": InternalAPIVersion,
-			"extapi_http":    extapiURL,
-			"extapi_ipc":     ipcapiURL,
+			"extapi_version": ExternalApiVersion,
+			"intapi_version": InternalApiVersion,
+			"extapi_http":    extapiUrl,
+			"extapi_ipc":     ipcApiUrl,
 		},
 	})
 

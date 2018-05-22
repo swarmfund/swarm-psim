@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,5 +74,45 @@ func TestParseFieldTagErr(t *testing.T) {
 			_, err := parseFieldTag(c.field, keyTag)
 			assert.Equal(t, c.expectedErr, err)
 		})
+	}
+}
+
+func TestFigurator_Please(t *testing.T) {
+	var config struct {
+		SomeVar     int `fig:"foo"`
+		AnotherVar  int `fig:"-"`
+		RequiredVar int `fig:"bar,required"`
+	}
+
+	figurator := Out(&config).From(map[string]interface{}{
+		"foo":         123,
+		"another_var": 321,
+		"bar":         666,
+	})
+	var err error
+	assert.NotPanics(t, func() {
+		err = figurator.Please()
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 123, config.SomeVar)
+	assert.Equal(t, 0, config.AnotherVar)
+	assert.Equal(t, 666, config.RequiredVar)
+}
+
+func TestFailedFigurator_Please(t *testing.T) {
+	var config struct {
+		SomeVar     int `fig:"foo"`
+		AnotherVar  int `fig:"-"`
+		RequiredVar int `fig:"bar,required"`
+	}
+
+	err := Out(&config).From(map[string]interface{}{
+		"foo":         123,
+		"another_var": 321,
+	}).Please()
+
+	if assert.Error(t, err) {
+		assert.Equal(t, ErrRequiredValue, errors.Cause(err))
 	}
 }

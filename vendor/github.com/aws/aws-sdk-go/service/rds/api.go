@@ -72,14 +72,14 @@ func (c *RDS) AddRoleToDBClusterRequest(input *AddRoleToDBClusterInput) (req *re
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeDBClusterRoleAlreadyExistsFault "DBClusterRoleAlreadyExists"
 //   The specified IAM role Amazon Resource Name (ARN) is already associated with
 //   the specified DB cluster.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeDBClusterRoleQuotaExceededFault "DBClusterRoleQuotaExceeded"
 //   You have exceeded the maximum number of IAM roles that can be associated
@@ -251,13 +251,13 @@ func (c *RDS) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/AddTagsToResource
 func (c *RDS) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
@@ -428,17 +428,17 @@ func (c *RDS) AuthorizeDBSecurityGroupIngressRequest(input *AuthorizeDBSecurityG
 //
 // Returned Error Codes:
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeInvalidDBSecurityGroupStateFault "InvalidDBSecurityGroupState"
-//   The state of the DB security group doesn't allow deletion.
+//   The state of the DB security group does not allow deletion.
 //
 //   * ErrCodeAuthorizationAlreadyExistsFault "AuthorizationAlreadyExists"
-//   The specified CIDRIP or Amazon EC2 security group is already authorized for
-//   the specified DB security group.
+//   The specified CIDRIP or EC2 security group is already authorized for the
+//   specified DB security group.
 //
 //   * ErrCodeAuthorizationQuotaExceededFault "AuthorizationQuotaExceeded"
-//   The DB security group authorization quota has been reached.
+//   DB security group authorization quota has been reached.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/AuthorizeDBSecurityGroupIngress
 func (c *RDS) AuthorizeDBSecurityGroupIngress(input *AuthorizeDBSecurityGroupIngressInput) (*AuthorizeDBSecurityGroupIngressOutput, error) {
@@ -457,92 +457,6 @@ func (c *RDS) AuthorizeDBSecurityGroupIngress(input *AuthorizeDBSecurityGroupIng
 // for more information on using Contexts.
 func (c *RDS) AuthorizeDBSecurityGroupIngressWithContext(ctx aws.Context, input *AuthorizeDBSecurityGroupIngressInput, opts ...request.Option) (*AuthorizeDBSecurityGroupIngressOutput, error) {
 	req, out := c.AuthorizeDBSecurityGroupIngressRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
-}
-
-const opBacktrackDBCluster = "BacktrackDBCluster"
-
-// BacktrackDBClusterRequest generates a "aws/request.Request" representing the
-// client's request for the BacktrackDBCluster operation. The "output" return
-// value will be populated with the request's response once the request completes
-// successfuly.
-//
-// Use "Send" method on the returned Request to send the API call to the service.
-// the "output" return value is not valid until after Send returns without error.
-//
-// See BacktrackDBCluster for more information on using the BacktrackDBCluster
-// API call, and error handling.
-//
-// This method is useful when you want to inject custom logic or configuration
-// into the SDK's request lifecycle. Such as custom headers, or retry logic.
-//
-//
-//    // Example sending a request using the BacktrackDBClusterRequest method.
-//    req, resp := client.BacktrackDBClusterRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/BacktrackDBCluster
-func (c *RDS) BacktrackDBClusterRequest(input *BacktrackDBClusterInput) (req *request.Request, output *BacktrackDBClusterOutput) {
-	op := &request.Operation{
-		Name:       opBacktrackDBCluster,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &BacktrackDBClusterInput{}
-	}
-
-	output = &BacktrackDBClusterOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// BacktrackDBCluster API operation for Amazon Relational Database Service.
-//
-// Backtracks a DB cluster to a specific time, without creating a new DB cluster.
-//
-// For more information on backtracking, see  Backtracking an Aurora DB Cluster
-// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AuroraMySQL.Managing.Backtrack.html)
-// in the Amazon RDS User Guide.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Relational Database Service's
-// API operation BacktrackDBCluster for usage and error information.
-//
-// Returned Error Codes:
-//   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
-//
-//   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/BacktrackDBCluster
-func (c *RDS) BacktrackDBCluster(input *BacktrackDBClusterInput) (*BacktrackDBClusterOutput, error) {
-	req, out := c.BacktrackDBClusterRequest(input)
-	return out, req.Send()
-}
-
-// BacktrackDBClusterWithContext is the same as BacktrackDBCluster with the addition of
-// the ability to pass a context and additional request options.
-//
-// See BacktrackDBCluster for details on how to use this API operation.
-//
-// The context must be non-nil and will be used for request cancellation. If
-// the context is nil a panic will occur. In the future the SDK may create
-// sub-contexts for http.Requests. See https://golang.org/pkg/context/
-// for more information on using Contexts.
-func (c *RDS) BacktrackDBClusterWithContext(ctx aws.Context, input *BacktrackDBClusterInput, opts ...request.Option) (*BacktrackDBClusterOutput, error) {
-	req, out := c.BacktrackDBClusterRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -603,10 +517,10 @@ func (c *RDS) CopyDBClusterParameterGroupRequest(input *CopyDBClusterParameterGr
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeDBParameterGroupQuotaExceededFault "DBParameterGroupQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB parameter
+//   Request would result in user exceeding the allowed number of DB parameter
 //   groups.
 //
 //   * ErrCodeDBParameterGroupAlreadyExistsFault "DBParameterGroupAlreadyExists"
@@ -751,22 +665,22 @@ func (c *RDS) CopyDBClusterSnapshotRequest(input *CopyDBClusterSnapshotInput) (r
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterSnapshotAlreadyExistsFault "DBClusterSnapshotAlreadyExistsFault"
-//   The user already has a DB cluster snapshot with the given identifier.
+//   User already has a DB cluster snapshot with the given identifier.
 //
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CopyDBClusterSnapshot
 func (c *RDS) CopyDBClusterSnapshot(input *CopyDBClusterSnapshotInput) (*CopyDBClusterSnapshotOutput, error) {
@@ -845,13 +759,13 @@ func (c *RDS) CopyDBParameterGroupRequest(input *CopyDBParameterGroupInput) (req
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeDBParameterGroupAlreadyExistsFault "DBParameterGroupAlreadyExists"
 //   A DB parameter group with the same name exists.
 //
 //   * ErrCodeDBParameterGroupQuotaExceededFault "DBParameterGroupQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB parameter
+//   Request would result in user exceeding the allowed number of DB parameter
 //   groups.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CopyDBParameterGroup
@@ -942,16 +856,16 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 //   DBSnapshotIdentifier is already used by an existing snapshot.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot doesn't allow deletion.
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CopyDBSnapshot
 func (c *RDS) CopyDBSnapshot(input *CopyDBSnapshotInput) (*CopyDBSnapshotOutput, error) {
@@ -1123,53 +1037,53 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterAlreadyExistsFault "DBClusterAlreadyExistsFault"
-//   The user already has a DB cluster with the given identifier.
+//   User already has a DB cluster with the given identifier.
 //
 //   * ErrCodeInsufficientStorageClusterCapacityFault "InsufficientStorageClusterCapacity"
-//   There is insufficient storage available for the current action. You might
-//   be able to resolve this error by updating your subnet group to use different
+//   There is insufficient storage available for the current action. You may be
+//   able to resolve this error by updating your subnet group to use different
 //   Availability Zones that have more storage available.
 //
 //   * ErrCodeDBClusterQuotaExceededFault "DBClusterQuotaExceededFault"
-//   The user attempted to create a new DB cluster and the user has already reached
+//   User attempted to create a new DB cluster and the user has already reached
 //   the maximum allowed DB cluster quota.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidDBSubnetGroupStateFault "InvalidDBSubnetGroupStateFault"
-//   The DB subnet group cannot be deleted because it's in use.
+//   The DB subnet group cannot be deleted because it is in use.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBClusterParameterGroupNotFoundFault "DBClusterParameterGroupNotFound"
-//   DBClusterParameterGroupName doesn't refer to an existing DB cluster parameter
+//   DBClusterParameterGroupName does not refer to an existing DB Cluster parameter
 //   group.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
@@ -1279,7 +1193,7 @@ func (c *RDS) CreateDBClusterParameterGroupRequest(input *CreateDBClusterParamet
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupQuotaExceededFault "DBParameterGroupQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB parameter
+//   Request would result in user exceeding the allowed number of DB parameter
 //   groups.
 //
 //   * ErrCodeDBParameterGroupAlreadyExistsFault "DBParameterGroupAlreadyExists"
@@ -1364,19 +1278,19 @@ func (c *RDS) CreateDBClusterSnapshotRequest(input *CreateDBClusterSnapshotInput
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterSnapshotAlreadyExistsFault "DBClusterSnapshotAlreadyExistsFault"
-//   The user already has a DB cluster snapshot with the given identifier.
+//   User already has a DB cluster snapshot with the given identifier.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBClusterSnapshot
 func (c *RDS) CreateDBClusterSnapshot(input *CreateDBClusterSnapshotInput) (*CreateDBClusterSnapshotOutput, error) {
@@ -1455,42 +1369,42 @@ func (c *RDS) CreateDBInstanceRequest(input *CreateDBInstanceInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceAlreadyExistsFault "DBInstanceAlreadyExists"
-//   The user already has a DB instance with the given identifier.
+//   User already has a DB instance with the given identifier.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeInstanceQuotaExceededFault "InstanceQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB instances.
+//   Request would result in user exceeding the allowed number of DB instances.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
 //   unless there is only one Availability Zone.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeProvisionedIopsNotAvailableInAZFault "ProvisionedIopsNotAvailableInAZFault"
 //   Provisioned IOPS not available in the specified Availability Zone.
@@ -1499,23 +1413,23 @@ func (c *RDS) CreateDBInstanceRequest(input *CreateDBInstanceInput) (req *reques
 //   The specified option group could not be found.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeStorageTypeNotSupportedFault "StorageTypeNotSupported"
-//   Storage of the StorageType specified can't be associated with the DB instance.
+//   StorageType specified cannot be associated with the DB Instance.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 //   * ErrCodeDomainNotFoundFault "DomainNotFoundFault"
-//   Domain doesn't refer to an existing Active Directory domain.
+//   Domain does not refer to an existing Active Directory Domain.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBInstance
 func (c *RDS) CreateDBInstance(input *CreateDBInstanceInput) (*CreateDBInstanceOutput, error) {
@@ -1606,33 +1520,33 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceAlreadyExistsFault "DBInstanceAlreadyExists"
-//   The user already has a DB instance with the given identifier.
+//   User already has a DB instance with the given identifier.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeInstanceQuotaExceededFault "InstanceQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB instances.
+//   Request would result in user exceeding the allowed number of DB instances.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
@@ -1643,8 +1557,8 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeProvisionedIopsNotAvailableInAZFault "ProvisionedIopsNotAvailableInAZFault"
 //   Provisioned IOPS not available in the specified Availability Zone.
@@ -1653,18 +1567,18 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 //   The specified option group could not be found.
 //
 //   * ErrCodeDBSubnetGroupNotAllowedFault "DBSubnetGroupNotAllowedFault"
-//   The DBSubnetGroup shouldn't be specified while creating read replicas that
-//   lie in the same region as the source instance.
+//   Indicates that the DBSubnetGroup should not be specified while creating read
+//   replicas that lie in the same region as the source instance.
 //
 //   * ErrCodeInvalidDBSubnetGroupFault "InvalidDBSubnetGroupFault"
-//   The DBSubnetGroup doesn't belong to the same VPC as that of an existing cross-region
-//   read replica of the same source instance.
+//   Indicates the DBSubnetGroup does not belong to the same VPC as that of an
+//   existing cross region read replica of the same source instance.
 //
 //   * ErrCodeStorageTypeNotSupportedFault "StorageTypeNotSupported"
-//   Storage of the StorageType specified can't be associated with the DB instance.
+//   StorageType specified cannot be associated with the DB Instance.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBInstanceReadReplica
 func (c *RDS) CreateDBInstanceReadReplica(input *CreateDBInstanceReadReplicaInput) (*CreateDBInstanceReadReplicaOutput, error) {
@@ -1763,7 +1677,7 @@ func (c *RDS) CreateDBParameterGroupRequest(input *CreateDBParameterGroupInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupQuotaExceededFault "DBParameterGroupQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB parameter
+//   Request would result in user exceeding the allowed number of DB parameter
 //   groups.
 //
 //   * ErrCodeDBParameterGroupAlreadyExistsFault "DBParameterGroupAlreadyExists"
@@ -1851,11 +1765,11 @@ func (c *RDS) CreateDBSecurityGroupRequest(input *CreateDBSecurityGroupInput) (r
 //   exists.
 //
 //   * ErrCodeDBSecurityGroupQuotaExceededFault "QuotaExceeded.DBSecurityGroup"
-//   The request would result in the user exceeding the allowed number of DB security
+//   Request would result in user exceeding the allowed number of DB security
 //   groups.
 //
 //   * ErrCodeDBSecurityGroupNotSupportedFault "DBSecurityGroupNotSupported"
-//   A DB security group isn't allowed for this action.
+//   A DB security group is not allowed for this action.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBSecurityGroup
 func (c *RDS) CreateDBSecurityGroup(input *CreateDBSecurityGroupInput) (*CreateDBSecurityGroupOutput, error) {
@@ -1937,13 +1851,13 @@ func (c *RDS) CreateDBSnapshotRequest(input *CreateDBSnapshotInput) (req *reques
 //   DBSnapshotIdentifier is already used by an existing snapshot.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBSnapshot
 func (c *RDS) CreateDBSnapshot(input *CreateDBSnapshotInput) (*CreateDBSnapshotOutput, error) {
@@ -2026,12 +1940,11 @@ func (c *RDS) CreateDBSubnetGroupRequest(input *CreateDBSubnetGroupInput) (req *
 //   DBSubnetGroupName is already used by an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupQuotaExceededFault "DBSubnetGroupQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB subnet
-//   groups.
+//   Request would result in user exceeding the allowed number of DB subnet groups.
 //
 //   * ErrCodeDBSubnetQuotaExceededFault "DBSubnetQuotaExceededFault"
-//   The request would result in the user exceeding the allowed number of subnets
-//   in a DB subnet groups.
+//   Request would result in user exceeding the allowed number of subnets in a
+//   DB subnet groups.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
@@ -2319,19 +2232,19 @@ func (c *RDS) DeleteDBClusterRequest(input *DeleteDBClusterInput) (req *request.
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeDBClusterSnapshotAlreadyExistsFault "DBClusterSnapshotAlreadyExistsFault"
-//   The user already has a DB cluster snapshot with the given identifier.
+//   User already has a DB cluster snapshot with the given identifier.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBCluster
 func (c *RDS) DeleteDBCluster(input *DeleteDBClusterInput) (*DeleteDBClusterOutput, error) {
@@ -2417,11 +2330,11 @@ func (c *RDS) DeleteDBClusterParameterGroupRequest(input *DeleteDBClusterParamet
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
 //   The DB parameter group is in use or is in an invalid state. If you are attempting
-//   to delete the parameter group, you can't delete it when the parameter group
+//   to delete the parameter group, you cannot delete it when the parameter group
 //   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBClusterParameterGroup
 func (c *RDS) DeleteDBClusterParameterGroup(input *DeleteDBClusterParameterGroupInput) (*DeleteDBClusterParameterGroupOutput, error) {
@@ -2506,10 +2419,10 @@ func (c *RDS) DeleteDBClusterSnapshotRequest(input *DeleteDBClusterSnapshotInput
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBClusterSnapshot
 func (c *RDS) DeleteDBClusterSnapshot(input *DeleteDBClusterSnapshotInput) (*DeleteDBClusterSnapshotOutput, error) {
@@ -2612,19 +2525,19 @@ func (c *RDS) DeleteDBInstanceRequest(input *DeleteDBInstanceInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBSnapshotAlreadyExistsFault "DBSnapshotAlreadyExists"
 //   DBSnapshotIdentifier is already used by an existing snapshot.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBInstance
 func (c *RDS) DeleteDBInstance(input *DeleteDBInstanceInput) (*DeleteDBInstanceOutput, error) {
@@ -2707,11 +2620,11 @@ func (c *RDS) DeleteDBParameterGroupRequest(input *DeleteDBParameterGroupInput) 
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
 //   The DB parameter group is in use or is in an invalid state. If you are attempting
-//   to delete the parameter group, you can't delete it when the parameter group
+//   to delete the parameter group, you cannot delete it when the parameter group
 //   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBParameterGroup
 func (c *RDS) DeleteDBParameterGroup(input *DeleteDBParameterGroupInput) (*DeleteDBParameterGroupOutput, error) {
@@ -2794,10 +2707,10 @@ func (c *RDS) DeleteDBSecurityGroupRequest(input *DeleteDBSecurityGroupInput) (r
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBSecurityGroupStateFault "InvalidDBSecurityGroupState"
-//   The state of the DB security group doesn't allow deletion.
+//   The state of the DB security group does not allow deletion.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBSecurityGroup
 func (c *RDS) DeleteDBSecurityGroup(input *DeleteDBSecurityGroupInput) (*DeleteDBSecurityGroupOutput, error) {
@@ -2879,10 +2792,10 @@ func (c *RDS) DeleteDBSnapshotRequest(input *DeleteDBSnapshotInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot doesn't allow deletion.
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBSnapshot
 func (c *RDS) DeleteDBSnapshot(input *DeleteDBSnapshotInput) (*DeleteDBSnapshotOutput, error) {
@@ -2965,13 +2878,13 @@ func (c *RDS) DeleteDBSubnetGroupRequest(input *DeleteDBSubnetGroupInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBSubnetGroupStateFault "InvalidDBSubnetGroupStateFault"
-//   The DB subnet group cannot be deleted because it's in use.
+//   The DB subnet group cannot be deleted because it is in use.
 //
 //   * ErrCodeInvalidDBSubnetStateFault "InvalidDBSubnetStateFault"
-//   The DB subnet isn't in the available state.
+//   The DB subnet is not in the available state.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteDBSubnetGroup
 func (c *RDS) DeleteDBSubnetGroup(input *DeleteDBSubnetGroupInput) (*DeleteDBSubnetGroupOutput, error) {
@@ -3138,7 +3051,7 @@ func (c *RDS) DeleteOptionGroupRequest(input *DeleteOptionGroupInput) (req *requ
 //   The specified option group could not be found.
 //
 //   * ErrCodeInvalidOptionGroupStateFault "InvalidOptionGroupStateFault"
-//   The option group isn't in the available state.
+//   The option group is not in the available state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DeleteOptionGroup
 func (c *RDS) DeleteOptionGroup(input *DeleteOptionGroupInput) (*DeleteOptionGroupOutput, error) {
@@ -3296,7 +3209,7 @@ func (c *RDS) DescribeCertificatesRequest(input *DescribeCertificatesInput) (req
 //
 // Returned Error Codes:
 //   * ErrCodeCertificateNotFoundFault "CertificateNotFound"
-//   CertificateIdentifier doesn't refer to an existing certificate.
+//   CertificateIdentifier does not refer to an existing certificate.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeCertificates
 func (c *RDS) DescribeCertificates(input *DescribeCertificatesInput) (*DescribeCertificatesOutput, error) {
@@ -3315,91 +3228,6 @@ func (c *RDS) DescribeCertificates(input *DescribeCertificatesInput) (*DescribeC
 // for more information on using Contexts.
 func (c *RDS) DescribeCertificatesWithContext(ctx aws.Context, input *DescribeCertificatesInput, opts ...request.Option) (*DescribeCertificatesOutput, error) {
 	req, out := c.DescribeCertificatesRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
-}
-
-const opDescribeDBClusterBacktracks = "DescribeDBClusterBacktracks"
-
-// DescribeDBClusterBacktracksRequest generates a "aws/request.Request" representing the
-// client's request for the DescribeDBClusterBacktracks operation. The "output" return
-// value will be populated with the request's response once the request completes
-// successfuly.
-//
-// Use "Send" method on the returned Request to send the API call to the service.
-// the "output" return value is not valid until after Send returns without error.
-//
-// See DescribeDBClusterBacktracks for more information on using the DescribeDBClusterBacktracks
-// API call, and error handling.
-//
-// This method is useful when you want to inject custom logic or configuration
-// into the SDK's request lifecycle. Such as custom headers, or retry logic.
-//
-//
-//    // Example sending a request using the DescribeDBClusterBacktracksRequest method.
-//    req, resp := client.DescribeDBClusterBacktracksRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusterBacktracks
-func (c *RDS) DescribeDBClusterBacktracksRequest(input *DescribeDBClusterBacktracksInput) (req *request.Request, output *DescribeDBClusterBacktracksOutput) {
-	op := &request.Operation{
-		Name:       opDescribeDBClusterBacktracks,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &DescribeDBClusterBacktracksInput{}
-	}
-
-	output = &DescribeDBClusterBacktracksOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// DescribeDBClusterBacktracks API operation for Amazon Relational Database Service.
-//
-// Returns information about backtracks for a DB cluster.
-//
-// For more information on Amazon Aurora, see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
-// in the Amazon RDS User Guide.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Relational Database Service's
-// API operation DescribeDBClusterBacktracks for usage and error information.
-//
-// Returned Error Codes:
-//   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
-//
-//   * ErrCodeDBClusterBacktrackNotFoundFault "DBClusterBacktrackNotFoundFault"
-//   BacktrackIdentifier doesn't refer to an existing backtrack.
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusterBacktracks
-func (c *RDS) DescribeDBClusterBacktracks(input *DescribeDBClusterBacktracksInput) (*DescribeDBClusterBacktracksOutput, error) {
-	req, out := c.DescribeDBClusterBacktracksRequest(input)
-	return out, req.Send()
-}
-
-// DescribeDBClusterBacktracksWithContext is the same as DescribeDBClusterBacktracks with the addition of
-// the ability to pass a context and additional request options.
-//
-// See DescribeDBClusterBacktracks for details on how to use this API operation.
-//
-// The context must be non-nil and will be used for request cancellation. If
-// the context is nil a panic will occur. In the future the SDK may create
-// sub-contexts for http.Requests. See https://golang.org/pkg/context/
-// for more information on using Contexts.
-func (c *RDS) DescribeDBClusterBacktracksWithContext(ctx aws.Context, input *DescribeDBClusterBacktracksInput, opts ...request.Option) (*DescribeDBClusterBacktracksOutput, error) {
-	req, out := c.DescribeDBClusterBacktracksRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3465,7 +3293,7 @@ func (c *RDS) DescribeDBClusterParameterGroupsRequest(input *DescribeDBClusterPa
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusterParameterGroups
 func (c *RDS) DescribeDBClusterParameterGroups(input *DescribeDBClusterParameterGroupsInput) (*DescribeDBClusterParameterGroupsOutput, error) {
@@ -3548,7 +3376,7 @@ func (c *RDS) DescribeDBClusterParametersRequest(input *DescribeDBClusterParamet
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusterParameters
 func (c *RDS) DescribeDBClusterParameters(input *DescribeDBClusterParametersInput) (*DescribeDBClusterParametersOutput, error) {
@@ -3638,7 +3466,7 @@ func (c *RDS) DescribeDBClusterSnapshotAttributesRequest(input *DescribeDBCluste
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusterSnapshotAttributes
 func (c *RDS) DescribeDBClusterSnapshotAttributes(input *DescribeDBClusterSnapshotAttributesInput) (*DescribeDBClusterSnapshotAttributesOutput, error) {
@@ -3721,7 +3549,7 @@ func (c *RDS) DescribeDBClusterSnapshotsRequest(input *DescribeDBClusterSnapshot
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusterSnapshots
 func (c *RDS) DescribeDBClusterSnapshots(input *DescribeDBClusterSnapshotsInput) (*DescribeDBClusterSnapshotsOutput, error) {
@@ -3804,7 +3632,7 @@ func (c *RDS) DescribeDBClustersRequest(input *DescribeDBClustersInput) (req *re
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBClusters
 func (c *RDS) DescribeDBClusters(input *DescribeDBClustersInput) (*DescribeDBClustersOutput, error) {
@@ -4019,7 +3847,7 @@ func (c *RDS) DescribeDBInstancesRequest(input *DescribeDBInstancesInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBInstances
 func (c *RDS) DescribeDBInstances(input *DescribeDBInstancesInput) (*DescribeDBInstancesOutput, error) {
@@ -4154,7 +3982,7 @@ func (c *RDS) DescribeDBLogFilesRequest(input *DescribeDBLogFilesInput) (req *re
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBLogFiles
 func (c *RDS) DescribeDBLogFiles(input *DescribeDBLogFilesInput) (*DescribeDBLogFilesOutput, error) {
@@ -4291,7 +4119,7 @@ func (c *RDS) DescribeDBParameterGroupsRequest(input *DescribeDBParameterGroupsI
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBParameterGroups
 func (c *RDS) DescribeDBParameterGroups(input *DescribeDBParameterGroupsInput) (*DescribeDBParameterGroupsOutput, error) {
@@ -4426,7 +4254,7 @@ func (c *RDS) DescribeDBParametersRequest(input *DescribeDBParametersInput) (req
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBParameters
 func (c *RDS) DescribeDBParameters(input *DescribeDBParametersInput) (*DescribeDBParametersOutput, error) {
@@ -4563,7 +4391,7 @@ func (c *RDS) DescribeDBSecurityGroupsRequest(input *DescribeDBSecurityGroupsInp
 //
 // Returned Error Codes:
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBSecurityGroups
 func (c *RDS) DescribeDBSecurityGroups(input *DescribeDBSecurityGroupsInput) (*DescribeDBSecurityGroupsOutput, error) {
@@ -4703,7 +4531,7 @@ func (c *RDS) DescribeDBSnapshotAttributesRequest(input *DescribeDBSnapshotAttri
 //
 // Returned Error Codes:
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBSnapshotAttributes
 func (c *RDS) DescribeDBSnapshotAttributes(input *DescribeDBSnapshotAttributesInput) (*DescribeDBSnapshotAttributesOutput, error) {
@@ -4788,7 +4616,7 @@ func (c *RDS) DescribeDBSnapshotsRequest(input *DescribeDBSnapshotsInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBSnapshots
 func (c *RDS) DescribeDBSnapshots(input *DescribeDBSnapshotsInput) (*DescribeDBSnapshotsOutput, error) {
@@ -4926,7 +4754,7 @@ func (c *RDS) DescribeDBSubnetGroupsRequest(input *DescribeDBSubnetGroupsInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeDBSubnetGroups
 func (c *RDS) DescribeDBSubnetGroups(input *DescribeDBSubnetGroupsInput) (*DescribeDBSubnetGroupsOutput, error) {
@@ -6438,10 +6266,10 @@ func (c *RDS) DescribeValidDBInstanceModificationsRequest(input *DescribeValidDB
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DescribeValidDBInstanceModifications
 func (c *RDS) DescribeValidDBInstanceModifications(input *DescribeValidDBInstanceModificationsInput) (*DescribeValidDBInstanceModificationsOutput, error) {
@@ -6526,10 +6354,10 @@ func (c *RDS) DownloadDBLogFilePortionRequest(input *DownloadDBLogFilePortionInp
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeDBLogFileNotFoundFault "DBLogFileNotFoundFault"
-//   LogFileName doesn't refer to an existing DB log file.
+//   LogFileName does not refer to an existing DB log file.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DownloadDBLogFilePortion
 func (c *RDS) DownloadDBLogFilePortion(input *DownloadDBLogFilePortionInput) (*DownloadDBLogFilePortionOutput, error) {
@@ -6671,13 +6499,13 @@ func (c *RDS) FailoverDBClusterRequest(input *FailoverDBClusterInput) (req *requ
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/FailoverDBCluster
 func (c *RDS) FailoverDBCluster(input *FailoverDBClusterInput) (*FailoverDBClusterOutput, error) {
@@ -6759,13 +6587,13 @@ func (c *RDS) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ListTagsForResource
 func (c *RDS) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
@@ -6848,41 +6676,41 @@ func (c *RDS) ModifyDBClusterRequest(input *ModifyDBClusterInput) (req *request.
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidDBSubnetGroupStateFault "InvalidDBSubnetGroupStateFault"
-//   The DB subnet group cannot be deleted because it's in use.
+//   The DB subnet group cannot be deleted because it is in use.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
 //   * ErrCodeDBClusterParameterGroupNotFoundFault "DBClusterParameterGroupNotFound"
-//   DBClusterParameterGroupName doesn't refer to an existing DB cluster parameter
+//   DBClusterParameterGroupName does not refer to an existing DB Cluster parameter
 //   group.
 //
 //   * ErrCodeInvalidDBSecurityGroupStateFault "InvalidDBSecurityGroupState"
-//   The state of the DB security group doesn't allow deletion.
+//   The state of the DB security group does not allow deletion.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBClusterAlreadyExistsFault "DBClusterAlreadyExistsFault"
-//   The user already has a DB cluster with the given identifier.
+//   User already has a DB cluster with the given identifier.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBCluster
 func (c *RDS) ModifyDBCluster(input *ModifyDBClusterInput) (*ModifyDBClusterOutput, error) {
@@ -6981,11 +6809,11 @@ func (c *RDS) ModifyDBClusterParameterGroupRequest(input *ModifyDBClusterParamet
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
 //   The DB parameter group is in use or is in an invalid state. If you are attempting
-//   to delete the parameter group, you can't delete it when the parameter group
+//   to delete the parameter group, you cannot delete it when the parameter group
 //   is in this state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBClusterParameterGroup
@@ -7081,10 +6909,10 @@ func (c *RDS) ModifyDBClusterSnapshotAttributeRequest(input *ModifyDBClusterSnap
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 //   * ErrCodeSharedSnapshotQuotaExceededFault "SharedSnapshotQuotaExceeded"
 //   You have exceeded the maximum number of accounts that you can share a manual
@@ -7170,34 +6998,34 @@ func (c *RDS) ModifyDBInstanceRequest(input *ModifyDBInstanceInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeInvalidDBSecurityGroupStateFault "InvalidDBSecurityGroupState"
-//   The state of the DB security group doesn't allow deletion.
+//   The state of the DB security group does not allow deletion.
 //
 //   * ErrCodeDBInstanceAlreadyExistsFault "DBInstanceAlreadyExists"
-//   The user already has a DB instance with the given identifier.
+//   User already has a DB instance with the given identifier.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeProvisionedIopsNotAvailableInAZFault "ProvisionedIopsNotAvailableInAZFault"
 //   Provisioned IOPS not available in the specified Availability Zone.
@@ -7206,23 +7034,23 @@ func (c *RDS) ModifyDBInstanceRequest(input *ModifyDBInstanceInput) (req *reques
 //   The specified option group could not be found.
 //
 //   * ErrCodeDBUpgradeDependencyFailureFault "DBUpgradeDependencyFailure"
-//   The DB upgrade failed because a resource the DB depends on can't be modified.
+//   The DB upgrade failed because a resource the DB depends on could not be modified.
 //
 //   * ErrCodeStorageTypeNotSupportedFault "StorageTypeNotSupported"
-//   Storage of the StorageType specified can't be associated with the DB instance.
+//   StorageType specified cannot be associated with the DB Instance.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeCertificateNotFoundFault "CertificateNotFound"
-//   CertificateIdentifier doesn't refer to an existing certificate.
+//   CertificateIdentifier does not refer to an existing certificate.
 //
 //   * ErrCodeDomainNotFoundFault "DomainNotFoundFault"
-//   Domain doesn't refer to an existing Active Directory domain.
+//   Domain does not refer to an existing Active Directory Domain.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBInstance
 func (c *RDS) ModifyDBInstance(input *ModifyDBInstanceInput) (*ModifyDBInstanceOutput, error) {
@@ -7318,11 +7146,11 @@ func (c *RDS) ModifyDBParameterGroupRequest(input *ModifyDBParameterGroupInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
 //   The DB parameter group is in use or is in an invalid state. If you are attempting
-//   to delete the parameter group, you can't delete it when the parameter group
+//   to delete the parameter group, you cannot delete it when the parameter group
 //   is in this state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBParameterGroup
@@ -7405,7 +7233,7 @@ func (c *RDS) ModifyDBSnapshotRequest(input *ModifyDBSnapshotInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshot
 func (c *RDS) ModifyDBSnapshot(input *ModifyDBSnapshotInput) (*ModifyDBSnapshotOutput, error) {
@@ -7500,10 +7328,10 @@ func (c *RDS) ModifyDBSnapshotAttributeRequest(input *ModifyDBSnapshotAttributeI
 //
 // Returned Error Codes:
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot doesn't allow deletion.
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeSharedSnapshotQuotaExceededFault "SharedSnapshotQuotaExceeded"
 //   You have exceeded the maximum number of accounts that you can share a manual
@@ -7587,11 +7415,11 @@ func (c *RDS) ModifyDBSubnetGroupRequest(input *ModifyDBSubnetGroupInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetQuotaExceededFault "DBSubnetQuotaExceededFault"
-//   The request would result in the user exceeding the allowed number of subnets
-//   in a DB subnet groups.
+//   Request would result in user exceeding the allowed number of subnets in a
+//   DB subnet groups.
 //
 //   * ErrCodeSubnetAlreadyInUse "SubnetAlreadyInUse"
 //   The DB subnet is already in use in the Availability Zone.
@@ -7783,7 +7611,7 @@ func (c *RDS) ModifyOptionGroupRequest(input *ModifyOptionGroupInput) (req *requ
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidOptionGroupStateFault "InvalidOptionGroupStateFault"
-//   The option group isn't in the available state.
+//   The option group is not in the available state.
 //
 //   * ErrCodeOptionGroupNotFoundFault "OptionGroupNotFoundFault"
 //   The specified option group could not be found.
@@ -7875,10 +7703,10 @@ func (c *RDS) PromoteReadReplicaRequest(input *PromoteReadReplicaInput) (req *re
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/PromoteReadReplica
 func (c *RDS) PromoteReadReplica(input *PromoteReadReplicaInput) (*PromoteReadReplicaOutput, error) {
@@ -7957,10 +7785,10 @@ func (c *RDS) PromoteReadReplicaDBClusterRequest(input *PromoteReadReplicaDBClus
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/PromoteReadReplicaDBCluster
 func (c *RDS) PromoteReadReplicaDBCluster(input *PromoteReadReplicaDBClusterInput) (*PromoteReadReplicaDBClusterOutput, error) {
@@ -8133,10 +7961,10 @@ func (c *RDS) RebootDBInstanceRequest(input *RebootDBInstanceInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RebootDBInstance
 func (c *RDS) RebootDBInstance(input *RebootDBInstanceInput) (*RebootDBInstanceOutput, error) {
@@ -8219,14 +8047,14 @@ func (c *RDS) RemoveRoleFromDBClusterRequest(input *RemoveRoleFromDBClusterInput
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeDBClusterRoleNotFoundFault "DBClusterRoleNotFound"
-//   The specified IAM role Amazon Resource Name (ARN) isn't associated with the
-//   specified DB cluster.
+//   The specified IAM role Amazon Resource Name (ARN) is not associated with
+//   the specified DB cluster.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RemoveRoleFromDBCluster
 func (c *RDS) RemoveRoleFromDBCluster(input *RemoveRoleFromDBClusterInput) (*RemoveRoleFromDBClusterOutput, error) {
@@ -8392,13 +8220,13 @@ func (c *RDS) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RemoveTagsFromResource
 func (c *RDS) RemoveTagsFromResource(input *RemoveTagsFromResourceInput) (*RemoveTagsFromResourceOutput, error) {
@@ -8490,11 +8318,11 @@ func (c *RDS) ResetDBClusterParameterGroupRequest(input *ResetDBClusterParameter
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
 //   The DB parameter group is in use or is in an invalid state. If you are attempting
-//   to delete the parameter group, you can't delete it when the parameter group
+//   to delete the parameter group, you cannot delete it when the parameter group
 //   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ResetDBClusterParameterGroup
 func (c *RDS) ResetDBClusterParameterGroup(input *ResetDBClusterParameterGroupInput) (*DBClusterParameterGroupNameMessage, error) {
@@ -8580,11 +8408,11 @@ func (c *RDS) ResetDBParameterGroupRequest(input *ResetDBParameterGroupInput) (r
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
 //   The DB parameter group is in use or is in an invalid state. If you are attempting
-//   to delete the parameter group, you can't delete it when the parameter group
+//   to delete the parameter group, you cannot delete it when the parameter group
 //   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ResetDBParameterGroup
 func (c *RDS) ResetDBParameterGroup(input *ResetDBParameterGroupInput) (*DBParameterGroupNameMessage, error) {
@@ -8666,51 +8494,51 @@ func (c *RDS) RestoreDBClusterFromS3Request(input *RestoreDBClusterFromS3Input) 
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterAlreadyExistsFault "DBClusterAlreadyExistsFault"
-//   The user already has a DB cluster with the given identifier.
+//   User already has a DB cluster with the given identifier.
 //
 //   * ErrCodeDBClusterQuotaExceededFault "DBClusterQuotaExceededFault"
-//   The user attempted to create a new DB cluster and the user has already reached
+//   User attempted to create a new DB cluster and the user has already reached
 //   the maximum allowed DB cluster quota.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidDBSubnetGroupStateFault "InvalidDBSubnetGroupStateFault"
-//   The DB subnet group cannot be deleted because it's in use.
+//   The DB subnet group cannot be deleted because it is in use.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidS3BucketFault "InvalidS3BucketFault"
-//   The specified Amazon S3 bucket name can't be found or Amazon RDS isn't authorized
-//   to access the specified Amazon S3 bucket. Verify the SourceS3BucketName and
-//   S3IngestionRoleArn values and try again.
+//   The specified Amazon S3 bucket name could not be found or Amazon RDS is not
+//   authorized to access the specified Amazon S3 bucket. Verify the SourceS3BucketName
+//   and S3IngestionRoleArn values and try again.
 //
 //   * ErrCodeDBClusterParameterGroupNotFoundFault "DBClusterParameterGroupNotFound"
-//   DBClusterParameterGroupName doesn't refer to an existing DB cluster parameter
+//   DBClusterParameterGroupName does not refer to an existing DB Cluster parameter
 //   group.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeInsufficientStorageClusterCapacityFault "InsufficientStorageClusterCapacity"
-//   There is insufficient storage available for the current action. You might
-//   be able to resolve this error by updating your subnet group to use different
+//   There is insufficient storage available for the current action. You may be
+//   able to resolve this error by updating your subnet group to use different
 //   Availability Zones that have more storage available.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBClusterFromS3
@@ -8801,52 +8629,52 @@ func (c *RDS) RestoreDBClusterFromSnapshotRequest(input *RestoreDBClusterFromSna
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterAlreadyExistsFault "DBClusterAlreadyExistsFault"
-//   The user already has a DB cluster with the given identifier.
+//   User already has a DB cluster with the given identifier.
 //
 //   * ErrCodeDBClusterQuotaExceededFault "DBClusterQuotaExceededFault"
-//   The user attempted to create a new DB cluster and the user has already reached
+//   User attempted to create a new DB cluster and the user has already reached
 //   the maximum allowed DB cluster quota.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 //   * ErrCodeInsufficientDBClusterCapacityFault "InsufficientDBClusterCapacityFault"
-//   The DB cluster doesn't have enough capacity for the current operation.
+//   The DB cluster does not have enough capacity for the current operation.
 //
 //   * ErrCodeInsufficientStorageClusterCapacityFault "InsufficientStorageClusterCapacity"
-//   There is insufficient storage available for the current action. You might
-//   be able to resolve this error by updating your subnet group to use different
+//   There is insufficient storage available for the current action. You may be
+//   able to resolve this error by updating your subnet group to use different
 //   Availability Zones that have more storage available.
 //
 //   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot doesn't allow deletion.
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidRestoreFault "InvalidRestoreFault"
-//   Cannot restore from VPC backup to non-VPC DB instance.
+//   Cannot restore from vpc backup to non-vpc DB instance.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
@@ -8856,7 +8684,7 @@ func (c *RDS) RestoreDBClusterFromSnapshotRequest(input *RestoreDBClusterFromSna
 //   The specified option group could not be found.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBClusterFromSnapshot
 func (c *RDS) RestoreDBClusterFromSnapshot(input *RestoreDBClusterFromSnapshotInput) (*RestoreDBClusterFromSnapshotOutput, error) {
@@ -8949,58 +8777,58 @@ func (c *RDS) RestoreDBClusterToPointInTimeRequest(input *RestoreDBClusterToPoin
 //
 // Returned Error Codes:
 //   * ErrCodeDBClusterAlreadyExistsFault "DBClusterAlreadyExistsFault"
-//   The user already has a DB cluster with the given identifier.
+//   User already has a DB cluster with the given identifier.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeDBClusterQuotaExceededFault "DBClusterQuotaExceededFault"
-//   The user attempted to create a new DB cluster and the user has already reached
+//   User attempted to create a new DB cluster and the user has already reached
 //   the maximum allowed DB cluster quota.
 //
 //   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier doesn't refer to an existing DB cluster snapshot.
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeInsufficientDBClusterCapacityFault "InsufficientDBClusterCapacityFault"
-//   The DB cluster doesn't have enough capacity for the current operation.
+//   The DB cluster does not have enough capacity for the current operation.
 //
 //   * ErrCodeInsufficientStorageClusterCapacityFault "InsufficientStorageClusterCapacity"
-//   There is insufficient storage available for the current action. You might
-//   be able to resolve this error by updating your subnet group to use different
+//   There is insufficient storage available for the current action. You may be
+//   able to resolve this error by updating your subnet group to use different
 //   Availability Zones that have more storage available.
 //
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
-//   The supplied value isn't a valid DB cluster snapshot state.
+//   The supplied value is not a valid DB cluster snapshot state.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot doesn't allow deletion.
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeInvalidRestoreFault "InvalidRestoreFault"
-//   Cannot restore from VPC backup to non-VPC DB instance.
+//   Cannot restore from vpc backup to non-vpc DB instance.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 //   * ErrCodeOptionGroupNotFoundFault "OptionGroupNotFoundFault"
 //   The specified option group could not be found.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBClusterToPointInTime
 func (c *RDS) RestoreDBClusterToPointInTime(input *RestoreDBClusterToPointInTimeInput) (*RestoreDBClusterToPointInTimeOutput, error) {
@@ -9100,34 +8928,34 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceAlreadyExistsFault "DBInstanceAlreadyExists"
-//   The user already has a DB instance with the given identifier.
+//   User already has a DB instance with the given identifier.
 //
 //   * ErrCodeDBSnapshotNotFoundFault "DBSnapshotNotFound"
-//   DBSnapshotIdentifier doesn't refer to an existing DB snapshot.
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
 //   * ErrCodeInstanceQuotaExceededFault "InstanceQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB instances.
+//   Request would result in user exceeding the allowed number of DB instances.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot doesn't allow deletion.
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidRestoreFault "InvalidRestoreFault"
-//   Cannot restore from VPC backup to non-VPC DB instance.
+//   Cannot restore from vpc backup to non-vpc DB instance.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
@@ -9144,23 +8972,23 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 //   The specified option group could not be found.
 //
 //   * ErrCodeStorageTypeNotSupportedFault "StorageTypeNotSupported"
-//   Storage of the StorageType specified can't be associated with the DB instance.
+//   StorageType specified cannot be associated with the DB Instance.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeDomainNotFoundFault "DomainNotFoundFault"
-//   Domain doesn't refer to an existing Active Directory domain.
+//   Domain does not refer to an existing Active Directory Domain.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceFromDBSnapshot
 func (c *RDS) RestoreDBInstanceFromDBSnapshot(input *RestoreDBInstanceFromDBSnapshotInput) (*RestoreDBInstanceFromDBSnapshotOutput, error) {
@@ -9244,27 +9072,27 @@ func (c *RDS) RestoreDBInstanceFromS3Request(input *RestoreDBInstanceFromS3Input
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceAlreadyExistsFault "DBInstanceAlreadyExists"
-//   The user already has a DB instance with the given identifier.
+//   User already has a DB instance with the given identifier.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
-//   DBParameterGroupName doesn't refer to an existing DB parameter group.
+//   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeInstanceQuotaExceededFault "InstanceQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB instances.
+//   Request would result in user exceeding the allowed number of DB instances.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
@@ -9275,13 +9103,13 @@ func (c *RDS) RestoreDBInstanceFromS3Request(input *RestoreDBInstanceFromS3Input
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidS3BucketFault "InvalidS3BucketFault"
-//   The specified Amazon S3 bucket name can't be found or Amazon RDS isn't authorized
-//   to access the specified Amazon S3 bucket. Verify the SourceS3BucketName and
-//   S3IngestionRoleArn values and try again.
+//   The specified Amazon S3 bucket name could not be found or Amazon RDS is not
+//   authorized to access the specified Amazon S3 bucket. Verify the SourceS3BucketName
+//   and S3IngestionRoleArn values and try again.
 //
 //   * ErrCodeProvisionedIopsNotAvailableInAZFault "ProvisionedIopsNotAvailableInAZFault"
 //   Provisioned IOPS not available in the specified Availability Zone.
@@ -9290,17 +9118,17 @@ func (c *RDS) RestoreDBInstanceFromS3Request(input *RestoreDBInstanceFromS3Input
 //   The specified option group could not be found.
 //
 //   * ErrCodeStorageTypeNotSupportedFault "StorageTypeNotSupported"
-//   Storage of the StorageType specified can't be associated with the DB instance.
+//   StorageType specified cannot be associated with the DB Instance.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceFromS3
 func (c *RDS) RestoreDBInstanceFromS3(input *RestoreDBInstanceFromS3Input) (*RestoreDBInstanceFromS3Output, error) {
@@ -9393,38 +9221,38 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceAlreadyExistsFault "DBInstanceAlreadyExists"
-//   The user already has a DB instance with the given identifier.
+//   User already has a DB instance with the given identifier.
 //
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeInstanceQuotaExceededFault "InstanceQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB instances.
+//   Request would result in user exceeding the allowed number of DB instances.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodePointInTimeRestoreNotEnabledFault "PointInTimeRestoreNotEnabled"
 //   SourceDBInstanceIdentifier refers to a DB instance with BackupRetentionPeriod
 //   equal to 0.
 //
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   The request would result in the user exceeding the allowed amount of storage
-//   available across all DB instances.
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeInvalidRestoreFault "InvalidRestoreFault"
-//   Cannot restore from VPC backup to non-VPC DB instance.
+//   Cannot restore from vpc backup to non-vpc DB instance.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
@@ -9441,23 +9269,23 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 //   The specified option group could not be found.
 //
 //   * ErrCodeStorageTypeNotSupportedFault "StorageTypeNotSupported"
-//   Storage of the StorageType specified can't be associated with the DB instance.
+//   StorageType specified cannot be associated with the DB Instance.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeDomainNotFoundFault "DomainNotFoundFault"
-//   Domain doesn't refer to an existing Active Directory domain.
+//   Domain does not refer to an existing Active Directory Domain.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceToPointInTime
 func (c *RDS) RestoreDBInstanceToPointInTime(input *RestoreDBInstanceToPointInTimeInput) (*RestoreDBInstanceToPointInTimeOutput, error) {
@@ -9539,17 +9367,17 @@ func (c *RDS) RevokeDBSecurityGroupIngressRequest(input *RevokeDBSecurityGroupIn
 //
 // Returned Error Codes:
 //   * ErrCodeDBSecurityGroupNotFoundFault "DBSecurityGroupNotFound"
-//   DBSecurityGroupName doesn't refer to an existing DB security group.
+//   DBSecurityGroupName does not refer to an existing DB security group.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeInvalidDBSecurityGroupStateFault "InvalidDBSecurityGroupState"
-//   The state of the DB security group doesn't allow deletion.
+//   The state of the DB security group does not allow deletion.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RevokeDBSecurityGroupIngress
 func (c *RDS) RevokeDBSecurityGroupIngress(input *RevokeDBSecurityGroupIngressInput) (*RevokeDBSecurityGroupIngressOutput, error) {
@@ -9632,45 +9460,45 @@ func (c *RDS) StartDBInstanceRequest(input *StartDBInstanceInput) (req *request.
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
-//   The specified DB instance class isn't available in the specified Availability
+//   Specified DB instance class is not available in the specified Availability
 //   Zone.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName doesn't refer to an existing DB subnet group.
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
 //   Subnets in the DB subnet group should cover at least two Availability Zones
 //   unless there is only one Availability Zone.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
 //   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   The DB subnet group doesn't cover all Availability Zones after it's created
-//   because of users' change.
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier doesn't refer to an existing DB cluster.
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 //   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
-//   The specified CIDRIP or Amazon EC2 security group isn't authorized for the
-//   specified DB security group.
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
 //
-//   RDS also may not be authorized by using IAM to perform necessary actions
-//   on your behalf.
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
-//   An error occurred accessing an AWS KMS key.
+//   Error accessing KMS key.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StartDBInstance
 func (c *RDS) StartDBInstance(input *StartDBInstanceInput) (*StartDBInstanceOutput, error) {
@@ -9755,19 +9583,19 @@ func (c *RDS) StopDBInstanceRequest(input *StopDBInstanceInput) (req *request.Re
 //
 // Returned Error Codes:
 //   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
-//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//   DBInstanceIdentifier does not refer to an existing DB instance.
 //
 //   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
-//   The specified DB instance isn't in the available state.
+//   The specified DB instance is not in the available state.
 //
 //   * ErrCodeDBSnapshotAlreadyExistsFault "DBSnapshotAlreadyExists"
 //   DBSnapshotIdentifier is already used by an existing snapshot.
 //
 //   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
-//   The request would result in the user exceeding the allowed number of DB snapshots.
+//   Request would result in user exceeding the allowed number of DB snapshots.
 //
 //   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
-//   The DB cluster isn't in a valid state.
+//   The DB cluster is not in a valid state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StopDBInstance
 func (c *RDS) StopDBInstance(input *StopDBInstanceInput) (*StopDBInstanceOutput, error) {
@@ -10299,186 +10127,6 @@ func (s *AvailabilityZone) SetName(v string) *AvailabilityZone {
 	return s
 }
 
-type BacktrackDBClusterInput struct {
-	_ struct{} `type:"structure"`
-
-	// The timestamp of the time to backtrack the DB cluster to, specified in ISO
-	// 8601 format. For more information about ISO 8601, see the ISO8601 Wikipedia
-	// page. (http://en.wikipedia.org/wiki/ISO_8601)
-	//
-	// If the specified time is not a consistent time for the DB cluster, Aurora
-	// automatically chooses the nearest possible consistent time for the DB cluster.
-	//
-	// Constraints:
-	//
-	//    * Must contain a valid ISO 8601 timestamp.
-	//
-	//    * Cannot contain a timestamp set in the future.
-	//
-	// Example: 2017-07-08T18:00Z
-	//
-	// BacktrackTo is a required field
-	BacktrackTo *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
-
-	// The DB cluster identifier of the DB cluster to be backtracked. This parameter
-	// is stored as a lowercase string.
-	//
-	// Constraints:
-	//
-	//    * Must contain from 1 to 63 alphanumeric characters or hyphens.
-	//
-	//    * First character must be a letter.
-	//
-	//    * Cannot end with a hyphen or contain two consecutive hyphens.
-	//
-	// Example: my-cluster1
-	//
-	// DBClusterIdentifier is a required field
-	DBClusterIdentifier *string `type:"string" required:"true"`
-
-	// A value that, if specified, forces the DB cluster to backtrack when binary
-	// logging is enabled. Otherwise, an error occurs when binary logging is enabled.
-	Force *bool `type:"boolean"`
-
-	// If BacktrackTo is set to a timestamp earlier than the earliest backtrack
-	// time, this value backtracks the DB cluster to the earliest possible backtrack
-	// time. Otherwise, an error occurs.
-	UseEarliestTimeOnPointInTimeUnavailable *bool `type:"boolean"`
-}
-
-// String returns the string representation
-func (s BacktrackDBClusterInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s BacktrackDBClusterInput) GoString() string {
-	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *BacktrackDBClusterInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "BacktrackDBClusterInput"}
-	if s.BacktrackTo == nil {
-		invalidParams.Add(request.NewErrParamRequired("BacktrackTo"))
-	}
-	if s.DBClusterIdentifier == nil {
-		invalidParams.Add(request.NewErrParamRequired("DBClusterIdentifier"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetBacktrackTo sets the BacktrackTo field's value.
-func (s *BacktrackDBClusterInput) SetBacktrackTo(v time.Time) *BacktrackDBClusterInput {
-	s.BacktrackTo = &v
-	return s
-}
-
-// SetDBClusterIdentifier sets the DBClusterIdentifier field's value.
-func (s *BacktrackDBClusterInput) SetDBClusterIdentifier(v string) *BacktrackDBClusterInput {
-	s.DBClusterIdentifier = &v
-	return s
-}
-
-// SetForce sets the Force field's value.
-func (s *BacktrackDBClusterInput) SetForce(v bool) *BacktrackDBClusterInput {
-	s.Force = &v
-	return s
-}
-
-// SetUseEarliestTimeOnPointInTimeUnavailable sets the UseEarliestTimeOnPointInTimeUnavailable field's value.
-func (s *BacktrackDBClusterInput) SetUseEarliestTimeOnPointInTimeUnavailable(v bool) *BacktrackDBClusterInput {
-	s.UseEarliestTimeOnPointInTimeUnavailable = &v
-	return s
-}
-
-// This data type is used as a response element in the DescribeDBClusterBacktracks
-// action.
-type BacktrackDBClusterOutput struct {
-	_ struct{} `type:"structure"`
-
-	// Contains the backtrack identifier.
-	BacktrackIdentifier *string `type:"string"`
-
-	// The timestamp of the time at which the backtrack was requested.
-	BacktrackRequestCreationTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// The timestamp of the time to which the DB cluster was backtracked.
-	BacktrackTo *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// The timestamp of the time from which the DB cluster was backtracked.
-	BacktrackedFrom *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// Contains a user-supplied DB cluster identifier. This identifier is the unique
-	// key that identifies a DB cluster.
-	DBClusterIdentifier *string `type:"string"`
-
-	// The status of the backtrack. This property returns one of the following values:
-	//
-	//    * applying - The backtrack is currently being applied to or rolled back
-	//    from the DB cluster.
-	//
-	//    * completed - The backtrack has successfully been applied to or rolled
-	//    back from the DB cluster.
-	//
-	//    * failed - An error occurred while the backtrack was applied to or rolled
-	//    back from the DB cluster.
-	//
-	//    * pending - The backtrack is currently pending application to or rollback
-	//    from the DB cluster.
-	Status *string `type:"string"`
-}
-
-// String returns the string representation
-func (s BacktrackDBClusterOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s BacktrackDBClusterOutput) GoString() string {
-	return s.String()
-}
-
-// SetBacktrackIdentifier sets the BacktrackIdentifier field's value.
-func (s *BacktrackDBClusterOutput) SetBacktrackIdentifier(v string) *BacktrackDBClusterOutput {
-	s.BacktrackIdentifier = &v
-	return s
-}
-
-// SetBacktrackRequestCreationTime sets the BacktrackRequestCreationTime field's value.
-func (s *BacktrackDBClusterOutput) SetBacktrackRequestCreationTime(v time.Time) *BacktrackDBClusterOutput {
-	s.BacktrackRequestCreationTime = &v
-	return s
-}
-
-// SetBacktrackTo sets the BacktrackTo field's value.
-func (s *BacktrackDBClusterOutput) SetBacktrackTo(v time.Time) *BacktrackDBClusterOutput {
-	s.BacktrackTo = &v
-	return s
-}
-
-// SetBacktrackedFrom sets the BacktrackedFrom field's value.
-func (s *BacktrackDBClusterOutput) SetBacktrackedFrom(v time.Time) *BacktrackDBClusterOutput {
-	s.BacktrackedFrom = &v
-	return s
-}
-
-// SetDBClusterIdentifier sets the DBClusterIdentifier field's value.
-func (s *BacktrackDBClusterOutput) SetDBClusterIdentifier(v string) *BacktrackDBClusterOutput {
-	s.DBClusterIdentifier = &v
-	return s
-}
-
-// SetStatus sets the Status field's value.
-func (s *BacktrackDBClusterOutput) SetStatus(v string) *BacktrackDBClusterOutput {
-	s.Status = &v
-	return s
-}
-
 // A CA certificate for an AWS account.
 type Certificate struct {
 	_ struct{} `type:"structure"`
@@ -10755,6 +10403,10 @@ type CopyDBClusterSnapshotInput struct {
 	// ID is the Amazon Resource Name (ARN), KMS key identifier, or the KMS key
 	// alias for the KMS encryption key.
 	//
+	// If you copy an unencrypted DB cluster snapshot and specify a value for the
+	// KmsKeyId parameter, Amazon RDS encrypts the target DB cluster snapshot using
+	// the specified KMS encryption key.
+	//
 	// If you copy an encrypted DB cluster snapshot from your AWS account, you can
 	// specify a value for KmsKeyId to encrypt the copy with a new KMS encryption
 	// key. If you don't specify a value for KmsKeyId, then the copy of the DB cluster
@@ -10768,9 +10420,6 @@ type CopyDBClusterSnapshotInput struct {
 	// DB cluster snapshot in the destination AWS Region. KMS encryption keys are
 	// specific to the AWS Region that they are created in, and you can't use encryption
 	// keys from one AWS Region in another AWS Region.
-	//
-	// If you copy an unencrypted DB cluster snapshot and specify a value for the
-	// KmsKeyId parameter, an error is returned.
 	KmsKeyId *string `type:"string"`
 
 	// The URL that contains a Signature Version 4 signed request for the CopyDBClusterSnapshot
@@ -11442,17 +11091,6 @@ type CreateDBClusterInput struct {
 	// and Availability Zones (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html).
 	AvailabilityZones []*string `locationNameList:"AvailabilityZone" type:"list"`
 
-	// The target backtrack window, in seconds. To disable backtracking, set this
-	// value to 0.
-	//
-	// Default: 0
-	//
-	// Constraints:
-	//
-	//    * If specified, this value must be set to a number from 0 to 259,200 (72
-	//    hours).
-	BacktrackWindow *int64 `type:"long"`
-
 	// The number of days for which automated backups are retained. You must specify
 	// a minimum value of 1.
 	//
@@ -11698,12 +11336,6 @@ func (s *CreateDBClusterInput) Validate() error {
 // SetAvailabilityZones sets the AvailabilityZones field's value.
 func (s *CreateDBClusterInput) SetAvailabilityZones(v []*string) *CreateDBClusterInput {
 	s.AvailabilityZones = v
-	return s
-}
-
-// SetBacktrackWindow sets the BacktrackWindow field's value.
-func (s *CreateDBClusterInput) SetBacktrackWindow(v int64) *CreateDBClusterInput {
-	s.BacktrackWindow = &v
 	return s
 }
 
@@ -14322,13 +13954,6 @@ type DBCluster struct {
 	// can be created in.
 	AvailabilityZones []*string `locationNameList:"AvailabilityZone" type:"list"`
 
-	// The number of change records stored for Backtrack.
-	BacktrackConsumedChangeRecords *int64 `type:"long"`
-
-	// The target backtrack window, in seconds. If this value is set to 0, backtracking
-	// is disabled for the DB cluster. Otherwise, backtracking is enabled.
-	BacktrackWindow *int64 `type:"long"`
-
 	// Specifies the number of days for which automatic DB snapshots are retained.
 	BackupRetentionPeriod *int64 `type:"integer"`
 
@@ -14373,10 +13998,7 @@ type DBCluster struct {
 	// cluster is accessed.
 	DbClusterResourceId *string `type:"string"`
 
-	// The earliest time to which a DB cluster can be backtracked.
-	EarliestBacktrackTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// The earliest time to which a database can be restored with point-in-time
+	// Specifies the earliest time to which a database can be restored with point-in-time
 	// restore.
 	EarliestRestorableTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
@@ -14483,18 +14105,6 @@ func (s *DBCluster) SetAvailabilityZones(v []*string) *DBCluster {
 	return s
 }
 
-// SetBacktrackConsumedChangeRecords sets the BacktrackConsumedChangeRecords field's value.
-func (s *DBCluster) SetBacktrackConsumedChangeRecords(v int64) *DBCluster {
-	s.BacktrackConsumedChangeRecords = &v
-	return s
-}
-
-// SetBacktrackWindow sets the BacktrackWindow field's value.
-func (s *DBCluster) SetBacktrackWindow(v int64) *DBCluster {
-	s.BacktrackWindow = &v
-	return s
-}
-
 // SetBackupRetentionPeriod sets the BackupRetentionPeriod field's value.
 func (s *DBCluster) SetBackupRetentionPeriod(v int64) *DBCluster {
 	s.BackupRetentionPeriod = &v
@@ -14564,12 +14174,6 @@ func (s *DBCluster) SetDatabaseName(v string) *DBCluster {
 // SetDbClusterResourceId sets the DbClusterResourceId field's value.
 func (s *DBCluster) SetDbClusterResourceId(v string) *DBCluster {
 	s.DbClusterResourceId = &v
-	return s
-}
-
-// SetEarliestBacktrackTime sets the EarliestBacktrackTime field's value.
-func (s *DBCluster) SetEarliestBacktrackTime(v time.Time) *DBCluster {
-	s.EarliestBacktrackTime = &v
 	return s
 }
 
@@ -17485,173 +17089,6 @@ func (s *DescribeCertificatesOutput) SetMarker(v string) *DescribeCertificatesOu
 	return s
 }
 
-type DescribeDBClusterBacktracksInput struct {
-	_ struct{} `type:"structure"`
-
-	// If specified, this value is the backtrack identifier of the backtrack to
-	// be described.
-	//
-	// Constraints:
-	//
-	//    * Must contain a valid universally unique identifier (UUID). For more
-	//    information about UUIDs, see A Universally Unique Identifier (UUID) URN
-	//    Namespace (http://www.ietf.org/rfc/rfc4122.txt).
-	//
-	// Example: 123e4567-e89b-12d3-a456-426655440000
-	BacktrackIdentifier *string `type:"string"`
-
-	// The DB cluster identifier of the DB cluster to be described. This parameter
-	// is stored as a lowercase string.
-	//
-	// Constraints:
-	//
-	//    * Must contain from 1 to 63 alphanumeric characters or hyphens.
-	//
-	//    * First character must be a letter.
-	//
-	//    * Cannot end with a hyphen or contain two consecutive hyphens.
-	//
-	// Example: my-cluster1
-	//
-	// DBClusterIdentifier is a required field
-	DBClusterIdentifier *string `type:"string" required:"true"`
-
-	// A filter that specifies one or more DB clusters to describe. Supported filters
-	// include the following:
-	//
-	//    * db-cluster-backtrack-id - Accepts backtrack identifiers. The results
-	//    list includes information about only the backtracks identified by these
-	//    identifiers.
-	//
-	//    * db-cluster-backtrack-status - Accepts any of the following backtrack
-	//    status values:
-	//
-	// applying
-	//
-	// completed
-	//
-	// failed
-	//
-	// pending
-	//
-	// The results list includes information about only the backtracks identified
-	//    by these values. For more information about backtrack status values, see
-	//    DBClusterBacktrack.
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
-
-	// An optional pagination token provided by a previous DescribeDBClusterBacktracks
-	// request. If this parameter is specified, the response includes only records
-	// beyond the marker, up to the value specified by MaxRecords.
-	Marker *string `type:"string"`
-
-	// The maximum number of records to include in the response. If more records
-	// exist than the specified MaxRecords value, a pagination token called a marker
-	// is included in the response so that the remaining results can be retrieved.
-	//
-	// Default: 100
-	//
-	// Constraints: Minimum 20, maximum 100.
-	MaxRecords *int64 `type:"integer"`
-}
-
-// String returns the string representation
-func (s DescribeDBClusterBacktracksInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s DescribeDBClusterBacktracksInput) GoString() string {
-	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *DescribeDBClusterBacktracksInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "DescribeDBClusterBacktracksInput"}
-	if s.DBClusterIdentifier == nil {
-		invalidParams.Add(request.NewErrParamRequired("DBClusterIdentifier"))
-	}
-	if s.Filters != nil {
-		for i, v := range s.Filters {
-			if v == nil {
-				continue
-			}
-			if err := v.Validate(); err != nil {
-				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
-			}
-		}
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetBacktrackIdentifier sets the BacktrackIdentifier field's value.
-func (s *DescribeDBClusterBacktracksInput) SetBacktrackIdentifier(v string) *DescribeDBClusterBacktracksInput {
-	s.BacktrackIdentifier = &v
-	return s
-}
-
-// SetDBClusterIdentifier sets the DBClusterIdentifier field's value.
-func (s *DescribeDBClusterBacktracksInput) SetDBClusterIdentifier(v string) *DescribeDBClusterBacktracksInput {
-	s.DBClusterIdentifier = &v
-	return s
-}
-
-// SetFilters sets the Filters field's value.
-func (s *DescribeDBClusterBacktracksInput) SetFilters(v []*Filter) *DescribeDBClusterBacktracksInput {
-	s.Filters = v
-	return s
-}
-
-// SetMarker sets the Marker field's value.
-func (s *DescribeDBClusterBacktracksInput) SetMarker(v string) *DescribeDBClusterBacktracksInput {
-	s.Marker = &v
-	return s
-}
-
-// SetMaxRecords sets the MaxRecords field's value.
-func (s *DescribeDBClusterBacktracksInput) SetMaxRecords(v int64) *DescribeDBClusterBacktracksInput {
-	s.MaxRecords = &v
-	return s
-}
-
-// Contains the result of a successful invocation of the DescribeDBClusterBacktracks
-// action.
-type DescribeDBClusterBacktracksOutput struct {
-	_ struct{} `type:"structure"`
-
-	// Contains a list of backtracks for the user.
-	DBClusterBacktracks []*BacktrackDBClusterOutput `locationNameList:"DBClusterBacktrack" type:"list"`
-
-	// A pagination token that can be used in a subsequent DescribeDBClusterBacktracks
-	// request.
-	Marker *string `type:"string"`
-}
-
-// String returns the string representation
-func (s DescribeDBClusterBacktracksOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s DescribeDBClusterBacktracksOutput) GoString() string {
-	return s.String()
-}
-
-// SetDBClusterBacktracks sets the DBClusterBacktracks field's value.
-func (s *DescribeDBClusterBacktracksOutput) SetDBClusterBacktracks(v []*BacktrackDBClusterOutput) *DescribeDBClusterBacktracksOutput {
-	s.DBClusterBacktracks = v
-	return s
-}
-
-// SetMarker sets the Marker field's value.
-func (s *DescribeDBClusterBacktracksOutput) SetMarker(v string) *DescribeDBClusterBacktracksOutput {
-	s.Marker = &v
-	return s
-}
-
 type DescribeDBClusterParameterGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18312,7 +17749,7 @@ type DescribeDBEngineVersionsInput struct {
 	// Example: 5.1.49
 	EngineVersion *string `type:"string"`
 
-	// This parameter is not currently supported.
+	// Not currently supported.
 	Filters []*Filter `locationNameList:"Filter" type:"list"`
 
 	// If this parameter is specified and the requested engine supports the CharacterSetName
@@ -19638,7 +19075,7 @@ type DescribeEngineDefaultParametersInput struct {
 	// DBParameterGroupFamily is a required field
 	DBParameterGroupFamily *string `type:"string" required:"true"`
 
-	// This parameter is not currently supported.
+	// Not currently supported.
 	Filters []*Filter `locationNameList:"Filter" type:"list"`
 
 	// An optional pagination token provided by a previous DescribeEngineDefaultParameters
@@ -21857,31 +21294,16 @@ func (s *FailoverDBClusterOutput) SetDBCluster(v *DBCluster) *FailoverDBClusterO
 	return s
 }
 
-// A filter name and value pair that is used to return a more specific list
-// of results from a describe operation. Filters can be used to match a set
-// of resources by specific criteria, such as IDs. The filters supported by
-// a describe operation are documented with the describe operation.
-//
-// Currently, wildcards are not supported in filters.
-//
-// The following actions can be filtered:
-//
-//    * DescribeDBClusterBacktracks
-//
-//    * DescribeDBClusters
-//
-//    * DescribeDBInstances
-//
-//    * DescribePendingMaintenanceActions
+// This type is not currently supported.
 type Filter struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the filter. Filter names are case-sensitive.
+	// This parameter is not currently supported.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
-	// One or more filter values. Filter values are case-sensitive.
+	// This parameter is not currently supported.
 	//
 	// Values is a required field
 	Values []*string `locationNameList:"Value" type:"list" required:"true"`
@@ -22061,17 +21483,6 @@ type ModifyDBClusterInput struct {
 	// Default: false
 	ApplyImmediately *bool `type:"boolean"`
 
-	// The target backtrack window, in seconds. To disable backtracking, set this
-	// value to 0.
-	//
-	// Default: 0
-	//
-	// Constraints:
-	//
-	//    * If specified, this value must be set to a number from 0 to 259,200 (72
-	//    hours).
-	BacktrackWindow *int64 `type:"long"`
-
 	// The number of days for which automated backups are retained. You must specify
 	// a minimum value of 1.
 	//
@@ -22212,12 +21623,6 @@ func (s *ModifyDBClusterInput) Validate() error {
 // SetApplyImmediately sets the ApplyImmediately field's value.
 func (s *ModifyDBClusterInput) SetApplyImmediately(v bool) *ModifyDBClusterInput {
 	s.ApplyImmediately = &v
-	return s
-}
-
-// SetBacktrackWindow sets the BacktrackWindow field's value.
-func (s *ModifyDBClusterInput) SetBacktrackWindow(v int64) *ModifyDBClusterInput {
-	s.BacktrackWindow = &v
 	return s
 }
 
@@ -26159,17 +25564,6 @@ type RestoreDBClusterFromS3Input struct {
 	// can be created in.
 	AvailabilityZones []*string `locationNameList:"AvailabilityZone" type:"list"`
 
-	// The target backtrack window, in seconds. To disable backtracking, set this
-	// value to 0.
-	//
-	// Default: 0
-	//
-	// Constraints:
-	//
-	//    * If specified, this value must be set to a number from 0 to 259,200 (72
-	//    hours).
-	BacktrackWindow *int64 `type:"long"`
-
 	// The number of days for which automated backups of the restored DB cluster
 	// are retained. You must specify a minimum value of 1.
 	//
@@ -26420,12 +25814,6 @@ func (s *RestoreDBClusterFromS3Input) SetAvailabilityZones(v []*string) *Restore
 	return s
 }
 
-// SetBacktrackWindow sets the BacktrackWindow field's value.
-func (s *RestoreDBClusterFromS3Input) SetBacktrackWindow(v int64) *RestoreDBClusterFromS3Input {
-	s.BacktrackWindow = &v
-	return s
-}
-
 // SetBackupRetentionPeriod sets the BackupRetentionPeriod field's value.
 func (s *RestoreDBClusterFromS3Input) SetBackupRetentionPeriod(v int64) *RestoreDBClusterFromS3Input {
 	s.BackupRetentionPeriod = &v
@@ -26602,17 +25990,6 @@ type RestoreDBClusterFromSnapshotInput struct {
 	// DB cluster can be created in.
 	AvailabilityZones []*string `locationNameList:"AvailabilityZone" type:"list"`
 
-	// The target backtrack window, in seconds. To disable backtracking, set this
-	// value to 0.
-	//
-	// Default: 0
-	//
-	// Constraints:
-	//
-	//    * If specified, this value must be set to a number from 0 to 259,200 (72
-	//    hours).
-	BacktrackWindow *int64 `type:"long"`
-
 	// The name of the DB cluster to create from the DB snapshot or DB cluster snapshot.
 	// This parameter isn't case-sensitive.
 	//
@@ -26741,12 +26118,6 @@ func (s *RestoreDBClusterFromSnapshotInput) SetAvailabilityZones(v []*string) *R
 	return s
 }
 
-// SetBacktrackWindow sets the BacktrackWindow field's value.
-func (s *RestoreDBClusterFromSnapshotInput) SetBacktrackWindow(v int64) *RestoreDBClusterFromSnapshotInput {
-	s.BacktrackWindow = &v
-	return s
-}
-
 // SetDBClusterIdentifier sets the DBClusterIdentifier field's value.
 func (s *RestoreDBClusterFromSnapshotInput) SetDBClusterIdentifier(v string) *RestoreDBClusterFromSnapshotInput {
 	s.DBClusterIdentifier = &v
@@ -26846,17 +26217,6 @@ func (s *RestoreDBClusterFromSnapshotOutput) SetDBCluster(v *DBCluster) *Restore
 
 type RestoreDBClusterToPointInTimeInput struct {
 	_ struct{} `type:"structure"`
-
-	// The target backtrack window, in seconds. To disable backtracking, set this
-	// value to 0.
-	//
-	// Default: 0
-	//
-	// Constraints:
-	//
-	//    * If specified, this value must be set to a number from 0 to 259,200 (72
-	//    hours).
-	BacktrackWindow *int64 `type:"long"`
 
 	// The name of the new DB cluster to be created.
 	//
@@ -27001,12 +26361,6 @@ func (s *RestoreDBClusterToPointInTimeInput) Validate() error {
 		return invalidParams
 	}
 	return nil
-}
-
-// SetBacktrackWindow sets the BacktrackWindow field's value.
-func (s *RestoreDBClusterToPointInTimeInput) SetBacktrackWindow(v int64) *RestoreDBClusterToPointInTimeInput {
-	s.BacktrackWindow = &v
-	return s
 }
 
 // SetDBClusterIdentifier sets the DBClusterIdentifier field's value.

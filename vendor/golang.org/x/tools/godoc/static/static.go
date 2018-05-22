@@ -2329,11 +2329,10 @@ here's a skeleton implementation of a playground transport.
         }
 */
 
-// HTTPTransport is the default transport.
-// enableVet enables running vet if a program was compiled and ran successfully.
-// If vet returned any errors, display them before the output of a program.
-function HTTPTransport(enableVet) {
+function HTTPTransport() {
 	'use strict';
+
+	// TODO(adg): support stderr
 
 	function playback(output, events) {
 		var timeout;
@@ -2345,12 +2344,12 @@ function HTTPTransport(enableVet) {
 			}
 			var e = events.shift();
 			if (e.Delay === 0) {
-				output({Kind: e.Kind, Body: e.Message});
+				output({Kind: 'stdout', Body: e.Message});
 				next();
 				return;
 			}
 			timeout = setTimeout(function() {
-				output({Kind: e.Kind, Body: e.Message});
+				output({Kind: 'stdout', Body: e.Message});
 				next();
 			}, e.Delay / 1000000);
 		}
@@ -2359,7 +2358,7 @@ function HTTPTransport(enableVet) {
 			Stop: function() {
 				clearTimeout(timeout);
 			}
-		};
+		}
 	}
 
 	function error(output, msg) {
@@ -2386,28 +2385,7 @@ function HTTPTransport(enableVet) {
 						error(output, data.Errors);
 						return;
 					}
-
-					if (!enableVet) {
-						playing = playback(output, data.Events);
-						return;
-					}
-
-					$.ajax("/vet", {
-						data: {"body": body},
-						type: "POST",
-						dataType: "json",
-						success: function(dataVet) {
-							if (dataVet.Errors) {
-								// inject errors from the vet as the first event in the output
-								data.Events.unshift({Message: 'Go vet exited.\n\n', Kind: 'system', Delay: 0});
-								data.Events.unshift({Message: dataVet.Errors, Kind: 'stderr', Delay: 0});
-							}
-							playing = playback(output, data.Events);
-						},
-						error: function() {
-							playing = playback(output, data.Events);
-						}
-					});
+					playing = playback(output, data.Events);
 				},
 				error: function() {
 					error(output, 'Error communicating with remote server.');
@@ -2438,7 +2416,7 @@ function SocketTransport() {
 
 	websocket.onclose = function() {
 		console.log('websocket connection closed');
-	};
+	}
 
 	websocket.onmessage = function(e) {
 		var m = JSON.parse(e.data);
@@ -2450,7 +2428,7 @@ function SocketTransport() {
 			started[m.Id] = true;
 		}
 		output({Kind: m.Kind, Body: m.Body});
-	};
+	}
 
 	function send(m) {
 		websocket.send(JSON.stringify(m));
@@ -2518,7 +2496,7 @@ function PlaygroundOutput(el) {
 
 		if (needScroll)
 			el.scrollTop = el.scrollHeight - el.offsetHeight;
-	};
+	}
 }
 
 (function() {
@@ -2534,7 +2512,7 @@ function PlaygroundOutput(el) {
     return function(write) {
       if (write.Body) lineHighlight(write.Body);
       wrappedOutput(write);
-    };
+    }
   }
   function lineClear() {
     $(".lineerror").removeClass("lineerror");
@@ -2549,14 +2527,14 @@ function PlaygroundOutput(el) {
   //  shareEl - share button element (optional)
   //  shareURLEl - share URL text input element (optional)
   //  shareRedirect - base URL to redirect to on share (optional)
+  //  vetEl - vet button element (optional)
   //  toysEl - toys select element (optional)
   //  enableHistory - enable using HTML5 history API (optional)
   //  transport - playground transport to use (default is HTTPTransport)
   //  enableShortcuts - whether to enable shortcuts (Ctrl+S/Cmd+S to save) (default is false)
-  //  enableVet - enable running vet and displaying its errors
   function playground(opts) {
     var code = $(opts.codeEl);
-    var transport = opts['transport'] || new HTTPTransport(opts['enableVet']);
+    var transport = opts['transport'] || new HTTPTransport();
     var running;
 
     // autoindent helpers.
@@ -2680,6 +2658,11 @@ function PlaygroundOutput(el) {
       if (running) running.Kill();
       output.removeClass("error").text('Waiting for remote server...');
     }
+    function noError() {
+      lineClear();
+      if (running) running.Kill();
+      output.removeClass("error").text('No errors.');
+    }
     function run() {
       loading();
       running = transport.Run(body(), highlightOutput(PlaygroundOutput(output[0])));
@@ -2702,6 +2685,26 @@ function PlaygroundOutput(el) {
             setBody(data.Body);
             setError("");
           }
+        }
+      });
+    }
+
+    function vet() {
+      loading();
+      var data = {"body": body()};
+      $.ajax("/vet", {
+        data: data,
+        type: "POST",
+        dataType: "json",
+        success: function(data) {
+          if (data.Errors) {
+            setError(data.Errors);
+          } else {
+            noError();
+          }
+        },
+        error: function() {
+          setError('Error communicating with remote server.');
         }
       });
     }
@@ -2753,6 +2756,7 @@ function PlaygroundOutput(el) {
 
     $(opts.runEl).click(run);
     $(opts.fmtEl).click(fmt);
+    $(opts.vetEl).click(vet);
 
     if (opts.shareEl !== null && (opts.shareURLEl !== null || opts.shareRedirect !== null)) {
       if (opts.shareURLEl) {
@@ -3000,18 +3004,17 @@ function PlaygroundOutput(el) {
 	"style.css": `body {
 	margin: 0;
 	font-family: Arial, sans-serif;
+	font-size: 16px;
 	background-color: #fff;
-	line-height: 1.3;
-	text-align: center;
-	color: #222;
+	line-height: 1.3em;
 }
 pre,
 code {
 	font-family: Menlo, monospace;
-	font-size: 0.875rem;
+	font-size: 14px;
 }
 pre {
-	line-height: 1.4;
+	line-height: 1.4em;
 	overflow-x: auto;
 }
 pre .comment {
@@ -3038,6 +3041,9 @@ pre .ln {
 	user-select: none;
 }
 
+body {
+	color: #222;
+}
 a,
 .exampleHeading .text {
 	color: #375EAB;
@@ -3062,19 +3068,22 @@ a:hover,
 }
 
 p, li {
-	max-width: 50rem;
+	max-width: 800px;
 	word-wrap: break-word;
 }
 p,
 pre,
 ul,
 ol {
-	margin: 1.25rem;
+	margin: 20px;
 }
 pre {
 	background: #EFEFEF;
-	padding: 0.625rem;
-	border-radius: 0.3125rem;
+	padding: 10px;
+
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
 }
 
 h1,
@@ -3082,22 +3091,22 @@ h2,
 h3,
 h4,
 .rootHeading {
-	margin: 1.25rem 0 1.25rem;
+	margin: 20px 0 20px;
 	padding: 0;
 	color: #375EAB;
 	font-weight: bold;
 }
 h1 {
-	font-size: 1.75rem;
+	font-size: 28px;
 	line-height: 1;
 }
 h1 .text-muted {
 	color:#777;
 }
 h2 {
-	font-size: 1.25rem;
+	font-size: 20px;
 	background: #E0EBF5;
-	padding: 0.5rem;
+	padding: 8px;
 	line-height: 1.25;
 	font-weight: normal;
 }
@@ -3105,46 +3114,47 @@ h2 a {
 	font-weight: bold;
 }
 h3 {
-	font-size: 1.25rem;
+	font-size: 20px;
 }
 h3,
 h4 {
-	margin: 1.25rem 0.3125rem;
+	margin: 20px 5px;
 }
 h4 {
-	font-size: 1rem;
+	font-size: 16px;
 }
 .rootHeading {
-	font-size: 1.25rem;
+	font-size: 20px;
 	margin: 0;
 }
 
 dl {
-	margin: 1.25rem;
+	margin: 20px;
 }
 dd {
-	margin: 0 0 0 1.25rem;
+	margin: 0 0 0 20px;
 }
 dl,
 dd {
-	font-size: 0.875rem;
+	font-size: 14px;
 }
 div#nav table td {
 	vertical-align: top;
 }
 
+
 #pkg-index h3 {
-	font-size: 1rem;
+	font-size: 16px;
 }
 .pkg-dir {
-	padding: 0 0.625rem;
+	padding: 0 10px;
 }
 .pkg-dir table {
 	border-collapse: collapse;
 	border-spacing: 0;
 }
 .pkg-name {
-	padding-right: 0.625rem;
+	padding-right: 10px;
 }
 .alert {
 	color: #AA0000;
@@ -3152,8 +3162,8 @@ div#nav table td {
 
 .top-heading {
 	float: left;
-	padding: 1.313rem 0;
-	font-size: 1.25rem;
+	padding: 21px 0;
+	font-size: 20px;
 	font-weight: normal;
 }
 .top-heading a {
@@ -3163,10 +3173,13 @@ div#nav table td {
 
 div#topbar {
 	background: #E0EBF5;
-	height: 4rem;
+	height: 64px;
 	overflow: hidden;
 }
 
+body {
+	text-align: center;
+}
 div#page {
 	width: 100%;
 }
@@ -3175,11 +3188,11 @@ div#topbar > .container {
 	text-align: left;
 	margin-left: auto;
 	margin-right: auto;
-	padding: 0 1.25rem;
+	padding: 0 20px;
 }
 div#topbar > .container,
 div#page > .container {
-	max-width: 59.38rem;
+	max-width: 950px;
 }
 div#page.wide > .container,
 div#topbar.wide > .container {
@@ -3188,14 +3201,14 @@ div#topbar.wide > .container {
 div#plusone {
 	float: right;
 	clear: right;
-	margin-top: 0.3125rem;
+	margin-top: 5px;
 }
 
 div#footer {
 	text-align: center;
 	color: #666;
-	font-size: 0.875rem;
-	margin: 2.5rem 0;
+	font-size: 14px;
+	margin: 40px 0;
 }
 
 div#menu > a,
@@ -3204,17 +3217,20 @@ div#learn .buttons a,
 div.play .buttons a,
 div#blog .read a,
 #menu-button {
-	padding: 0.625rem;
+	padding: 10px;
 
 	text-decoration: none;
-	font-size: 1rem;
-	border-radius: 0.3125rem;
+	font-size: 16px;
+
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
 }
 div#playground .buttons a,
 div#menu > a,
 input#search,
 #menu-button {
-	border: 0.0625rem solid #375EAB;
+	border: 1px solid #375EAB;
 }
 div#playground .buttons a,
 div#menu > a,
@@ -3231,16 +3247,16 @@ div#learn .buttons a,
 div.play .buttons a,
 div#blog .read a {
 	color: #222;
-	border: 0.0625rem solid #375EAB;
+	border: 1px solid #375EAB;
 	background: #E0EBF5;
 }
 .download {
-	width: 9.375rem;
+	width: 150px;
 }
 
 div#menu {
 	text-align: right;
-	padding: 0.625rem;
+	padding: 10px;
 	white-space: nowrap;
 	max-height: 0;
 	-moz-transition: max-height .25s linear;
@@ -3248,12 +3264,12 @@ div#menu {
 	width: 100%;
 }
 div#menu.menu-visible {
-	max-height: 31.25rem;
+	max-height: 500px;
 }
 div#menu > a,
 #menu-button {
-	margin: 0.625rem 0.125rem;
-	padding: 0.625rem;
+	margin: 10px 2px;
+	padding: 10px;
 }
 ::-webkit-input-placeholder {
 	color: #7f7f7f;
@@ -3265,7 +3281,7 @@ div#menu > a,
 }
 #menu .search-box {
 	display: inline-flex;
-	width: 8.75rem;
+	width: 140px;
 }
 input#search {
 	background: white;
@@ -3278,7 +3294,7 @@ input#search {
 	margin-right: 0;
 	flex-grow: 1;
 	max-width: 100%;
-	min-width: 5.625rem;
+	min-width: 90px;
 }
 input#search:-moz-ui-invalid {
 	box-shadow: unset;
@@ -3288,11 +3304,11 @@ input#search + button {
 	font-size: 1em;
 	background-color: #375EAB;
 	color: white;
-	border: 0.0625rem solid #375EAB;
+	border: 1px solid #375EAB;
 	border-top-left-radius: 0;
-	border-top-right-radius: 0.3125rem;
+	border-top-right-radius: 5px;
 	border-bottom-left-radius: 0;
-	border-bottom-right-radius: 0.3125rem;
+	border-bottom-right-radius: 5px;
 	margin-left: 0;
 	cursor: pointer;
 }
@@ -3306,9 +3322,9 @@ input#search + button svg {
 #menu-button {
 	display: none;
 	position: absolute;
-	right: 0.3125rem;
+	right: 5px;
 	top: 0;
-	margin-right: 0.3125rem;
+	margin-right: 5px;
 }
 #menu-button-arrow {
 	display: inline-block;
@@ -3334,65 +3350,71 @@ div.right {
 
 div#learn,
 div#about {
-	padding-top: 1.25rem;
+	padding-top: 20px;
 }
 div#learn h2,
 div#about {
 	margin: 0;
 }
 div#about {
-	font-size: 1.25rem;
-	margin: 0 auto 1.875rem;
+	font-size: 20px;
+	margin: 0 auto 30px;
 }
 div#gopher {
 	background: url(/doc/gopher/frontpage.png) no-repeat;
 	background-position: center top;
-	height: 9.688rem;
-	max-height: 200px; /* Setting in px to prevent the gopher from blowing up in very high default font-sizes */
+	height: 155px;
 }
 a#start {
 	display: block;
-	padding: 0.625rem;
+	padding: 10px;
 
 	text-align: center;
 	text-decoration: none;
-	border-radius: 0.3125rem;
+
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
 }
 a#start .big {
 	display: block;
 	font-weight: bold;
-	font-size: 1.25rem;
+	font-size: 20px;
 }
 a#start .desc {
 	display: block;
-	font-size: 0.875rem;
+	font-size: 14px;
 	font-weight: normal;
-	margin-top: 0.3125rem;
+	margin-top: 5px;
 }
 
 div#learn .popout {
 	float: right;
 	display: block;
 	cursor: pointer;
-	font-size: 0.75rem;
+	font-size: 12px;
 	background: url(/doc/share.png) no-repeat;
-	background-position: right center;
-	padding: 0.375rem 1.688rem;
+	background-position: right top;
+	padding: 5px 27px;
 }
 div#learn pre,
 div#learn textarea {
 	padding: 0;
 	margin: 0;
 	font-family: Menlo, monospace;
-	font-size: 0.875rem;
+	font-size: 14px;
 }
 div#learn .input {
-	padding: 0.625rem;
-	margin-top: 0.625rem;
-	height: 9.375rem;
+	padding: 10px;
+	margin-top: 10px;
+	height: 150px;
 
-	border-top-left-radius: 0.3125rem;
-	border-top-right-radius: 0.3125rem;
+	-webkit-border-top-left-radius: 5px;
+	-webkit-border-top-right-radius: 5px;
+	-moz-border-radius-topleft: 5px;
+	-moz-border-radius-topright: 5px;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
 }
 div#learn .input textarea {
 	width: 100%;
@@ -3404,15 +3426,22 @@ div#learn .input textarea {
 div#learn .output {
 	border-top: none !important;
 
-	padding: 0.625rem;
-	height: 3.688rem;
+	padding: 10px;
+	height: 59px;
 	overflow: auto;
 
-	border-bottom-right-radius: 0.3125rem;
-	border-bottom-left-radius: 0.3125rem;
+	-webkit-border-bottom-right-radius: 5px;
+	-webkit-border-bottom-left-radius: 5px;
+	-moz-border-radius-bottomright: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	border-bottom-right-radius: 5px;
+	border-bottom-left-radius: 5px;
 }
 div#learn .output pre {
 	padding: 0;
+
+	-webkit-border-radius: 0;
+	-moz-border-radius: 0;
 	border-radius: 0;
 }
 div#learn .input,
@@ -3423,24 +3452,23 @@ div#learn .output pre {
 }
 div#learn .input,
 div#learn .output {
-	border: 0.0625rem solid #375EAB;
+	border: 1px solid #375EAB;
 }
 div#learn .buttons {
 	float: right;
-	padding: 1.25rem 0 0.625rem 0;
+	padding: 20px 0 10px 0;
 	text-align: right;
 }
 div#learn .buttons a {
-	height: 1rem;
-	margin-left: 0.3125rem;
-	padding: 0.625rem;
+	height: 16px;
+	margin-left: 5px;
+	padding: 10px;
 }
 div#learn .toys {
-	margin-top: 0.5rem;
+	margin-top: 8px;
 }
 div#learn .toys select {
-	font-size: 0.875rem;
-	border: 0.0625rem solid #375EAB;
+	border: 1px solid #375EAB;
 	margin: 0;
 }
 div#learn .output .exit {
@@ -3452,7 +3480,7 @@ div#video {
 }
 div#blog,
 div#video {
-	margin-top: 2.5rem;
+	margin-top: 40px;
 }
 div#blog > a,
 div#blog > div,
@@ -3460,35 +3488,19 @@ div#blog > h2,
 div#video > a,
 div#video > div,
 div#video > h2 {
-	margin-bottom: 0.625rem;
+	margin-bottom: 10px;
 }
 div#blog .title,
 div#video .title {
 	display: block;
-	font-size: 1.25rem;
+	font-size: 20px;
 }
 div#blog .when {
 	color: #666;
-	font-size: 0.875rem;
+	font-size: 14px;
 }
 div#blog .read {
 	text-align: right;
-}
-
-@supports (--c: 0) {
-	[style*="--aspect-ratio-padding:"] {
-		position: relative;
-		overflow: hidden;
-		padding-top: var(--aspect-ratio-padding);
-	}
-
-	[style*="--aspect-ratio-padding:"]>* {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-	}
 }
 
 .toggleButton { cursor: pointer; }
@@ -3498,20 +3510,20 @@ div#blog .read {
 .toggleVisible > .expanded { display: block; }
 
 table.codetable { margin-left: auto; margin-right: auto; border-style: none; }
-table.codetable td { padding-right: 0.625rem; }
-hr { border-style: none; border-top: 0.0625rem solid black; }
+table.codetable td { padding-right: 10px; }
+hr { border-style: none; border-top: 1px solid black; }
 
 img.gopher {
 	float: right;
-	margin-left: 0.625rem;
-	margin-bottom: 0.625rem;
+	margin-left: 10px;
+	margin-bottom: 10px;
 	z-index: -1;
 }
 h2 { clear: right; }
 
 /* example and drop-down playground */
 div.play {
-	padding: 0 1.25rem 2.5rem 1.25rem;
+	padding: 0 20px 40px 20px;
 }
 div.play pre,
 div.play textarea,
@@ -3519,14 +3531,18 @@ div.play .lines {
 	padding: 0;
 	margin: 0;
 	font-family: Menlo, monospace;
-	font-size: 0.875rem;
+	font-size: 14px;
 }
 div.play .input {
-	padding: 0.625rem;
-	margin-top: 0.625rem;
+	padding: 10px;
+	margin-top: 10px;
 
-	border-top-left-radius: 0.3125rem;
-	border-top-right-radius: 0.3125rem;
+	-webkit-border-top-left-radius: 5px;
+	-webkit-border-top-right-radius: 5px;
+	-moz-border-radius-topleft: 5px;
+	-moz-border-radius-topright: 5px;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
 
 	overflow: hidden;
 }
@@ -3546,15 +3562,22 @@ div#playground .input textarea {
 div.play .output {
 	border-top: none !important;
 
-	padding: 0.625rem;
-	max-height: 12.5rem;
+	padding: 10px;
+	max-height: 200px;
 	overflow: auto;
 
-	border-bottom-right-radius: 0.3125rem;
-	border-bottom-left-radius: 0.3125rem;
+	-webkit-border-bottom-right-radius: 5px;
+	-webkit-border-bottom-left-radius: 5px;
+	-moz-border-radius-bottomright: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	border-bottom-right-radius: 5px;
+	border-bottom-left-radius: 5px;
 }
 div.play .output pre {
 	padding: 0;
+
+	-webkit-border-radius: 0;
+	-moz-border-radius: 0;
 	border-radius: 0;
 }
 div.play .input,
@@ -3565,17 +3588,17 @@ div.play .output pre {
 }
 div.play .input,
 div.play .output {
-	border: 0.0625rem solid #375EAB;
+	border: 1px solid #375EAB;
 }
 div.play .buttons {
 	float: right;
-	padding: 1.25rem 0 0.625rem 0;
+	padding: 20px 0 10px 0;
 	text-align: right;
 }
 div.play .buttons a {
-	height: 1rem;
-	margin-left: 0.3125rem;
-	padding: 0.625rem;
+	height: 16px;
+	margin-left: 5px;
+	padding: 10px;
 	cursor: pointer;
 }
 .output .stderr {
@@ -3593,25 +3616,29 @@ div#playground {
 }
 div#playground {
 	position: absolute;
-	top: 3.938rem;
-	right: 1.25rem;
-	padding: 0 0.625rem 0.625rem 0.625rem;
+	top: 63px;
+	right: 20px;
+	padding: 0 10px 10px 10px;
 	z-index: 1;
 	text-align: left;
 	background: #E0EBF5;
 
-	border: 0.0625rem solid #B0BBC5;
+	border: 1px solid #B0BBC5;
 	border-top: none;
 
-	border-bottom-left-radius: 0.3125rem;
-	border-bottom-right-radius: 0.3125rem;
+	-webkit-border-bottom-left-radius: 5px;
+	-webkit-border-bottom-right-radius: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	-moz-border-radius-bottomright: 5px;
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
 }
 div#playground .code {
-	width: 32.5rem;
-	height: 12.5rem;
+	width: 520px;
+	height: 200px;
 }
 div#playground .output {
-	height: 6.25rem;
+	height: 100px;
 }
 
 /* Inline runnable snippets (play.js/initPlayground) */
@@ -3620,7 +3647,7 @@ div#playground .output {
         padding: 0;
         background: none;
         border: none;
-	outline: 0 solid transparent;
+	outline: 0px solid transparent;
         overflow: auto;
 }
 #content .playground .number, #content .code .number {
@@ -3628,9 +3655,11 @@ div#playground .output {
 }
 #content .code, #content .playground, #content .output {
 	width: auto;
-        margin: 1.25rem;
-        padding: 0.625rem;
-        border-radius: 0.3125rem;
+        margin: 20px;
+        padding: 10px;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+        border-radius: 5px;
 }
 #content .code, #content .playground {
         background: #e9e9e9;
@@ -3650,11 +3679,11 @@ div#playground .output {
 #content .buttons {
         position: relative;
         float: right;
-        top: -3.125rem;
-        right: 1.875rem;
+        top: -50px;
+        right: 30px;
 }
 #content .output .buttons {
-        top: -3.75rem;
+        top: -60px;
         right: 0;
         height: 0;
 }
@@ -3666,11 +3695,11 @@ a.error {
 	font-weight: bold;
         color: white;
 	background-color: darkred;
-        border-bottom-left-radius: 0.25rem;
-        border-bottom-right-radius: 0.25rem;
-        border-top-left-radius: 0.25rem;
-        border-top-right-radius: 0.25rem;
-        padding: 0.125rem 0.25rem 0.125rem 0.25rem; /* TRBL */
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        padding: 2px 4px 2px 4px; /* TRBL */
 }
 
 
@@ -3680,12 +3709,12 @@ a.error {
 
 .downloading {
 	background: #F9F9BE;
-	padding: 0.625rem;
+	padding: 10px;
 	text-align: center;
-	border-radius: 0.3125rem;
+	border-radius: 5px;
 }
 
-@media (max-width: 58.125em) {
+@media (max-width: 930px) {
 	#heading-wide {
 		display: none;
 	}
@@ -3694,7 +3723,8 @@ a.error {
 	}
 }
 
-@media (max-width: 47.5em) {
+
+@media (max-width: 760px) {
 	.container .left,
 	.container .right {
 		width: auto;
@@ -3702,39 +3732,39 @@ a.error {
 	}
 
 	div#about {
-		max-width: 31.25rem;
+		max-width: 500px;
 		text-align: center;
 	}
 }
 
-@media (min-width: 43.75em) and (max-width: 62.5em) {
+@media (min-width: 700px) and (max-width: 1000px) {
 	div#menu > a {
-		margin: 0.3125rem 0;
-		font-size: 0.875rem;
+		margin: 5px 0;
+		font-size: 14px;
 	}
 
 	input#search {
-		font-size: 0.875rem;
+		font-size: 14px;
 	}
 }
 
-@media (max-width: 43.75em) {
+@media (max-width: 700px) {
 	body {
-		font-size: 0.9375rem;
+		font-size: 15px;
 	}
 
 	pre,
 	code {
-		font-size: 0.866rem;
+		font-size: 13px;
 	}
 
 	div#page > .container {
-		padding: 0 0.625rem;
+		padding: 0 10px;
 	}
 
 	div#topbar {
 		height: auto;
-		padding: 0.625rem;
+		padding: 10px;
 	}
 
 	div#topbar > .container {
@@ -3751,7 +3781,7 @@ a.error {
 	.top-heading {
 		float: none;
 		display: inline-block;
-		padding: 0.75rem;
+		padding: 12px;
 	}
 
 	div#menu {
@@ -3780,7 +3810,7 @@ a.error {
 	pre,
 	ul,
 	ol {
-		margin: 0.625rem;
+		margin: 10px;
 	}
 
 	.pkg-synopsis {
@@ -3792,7 +3822,7 @@ a.error {
 	}
 }
 
-@media (max-width: 30em) {
+@media (max-width: 480px) {
 	#heading-wide {
 		display: none;
 	}
@@ -3804,7 +3834,7 @@ a.error {
 @media print {
 	pre {
 		background: #FFF;
-		border: 0.0625rem solid #BBB;
+		border: 1px solid #BBB;
 		white-space: pre-wrap;
 	}
 }

@@ -3193,9 +3193,6 @@ const (
 
 	// BudgetTypeRiUtilization is a BudgetType enum value
 	BudgetTypeRiUtilization = "RI_UTILIZATION"
-
-	// BudgetTypeRiCoverage is a BudgetType enum value
-	BudgetTypeRiCoverage = "RI_COVERAGE"
 )
 
 // The comparison operator of a notification. Currently we support less than,

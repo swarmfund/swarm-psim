@@ -481,8 +481,7 @@
         "ModelName":{"shape":"ModelName"},
         "PrimaryContainer":{"shape":"ContainerDefinition"},
         "ExecutionRoleArn":{"shape":"RoleArn"},
-        "Tags":{"shape":"TagList"},
-        "VpcConfig":{"shape":"VpcConfig"}
+        "Tags":{"shape":"TagList"}
       }
     },
     "CreateModelOutput":{
@@ -565,7 +564,6 @@
         "InputDataConfig":{"shape":"InputDataConfig"},
         "OutputDataConfig":{"shape":"OutputDataConfig"},
         "ResourceConfig":{"shape":"ResourceConfig"},
-        "VpcConfig":{"shape":"VpcConfig"},
         "StoppingCondition":{"shape":"StoppingCondition"},
         "Tags":{"shape":"TagList"}
       }
@@ -707,7 +705,6 @@
         "ModelName":{"shape":"ModelName"},
         "PrimaryContainer":{"shape":"ContainerDefinition"},
         "ExecutionRoleArn":{"shape":"RoleArn"},
-        "VpcConfig":{"shape":"VpcConfig"},
         "CreationTime":{"shape":"Timestamp"},
         "ModelArn":{"shape":"ModelArn"}
       }
@@ -791,7 +788,6 @@
         "InputDataConfig":{"shape":"InputDataConfig"},
         "OutputDataConfig":{"shape":"OutputDataConfig"},
         "ResourceConfig":{"shape":"ResourceConfig"},
-        "VpcConfig":{"shape":"VpcConfig"},
         "StoppingCondition":{"shape":"StoppingCondition"},
         "CreationTime":{"shape":"Timestamp"},
         "TrainingStartTime":{"shape":"Timestamp"},
@@ -1572,12 +1568,6 @@
       "type":"string",
       "max":32
     },
-    "Subnets":{
-      "type":"list",
-      "member":{"shape":"SubnetId"},
-      "max":16,
-      "min":1
-    },
     "Tag":{
       "type":"structure",
       "required":[
@@ -1782,23 +1772,6 @@
     },
     "VolumeSizeInGB":{
       "type":"integer",
-      "min":1
-    },
-    "VpcConfig":{
-      "type":"structure",
-      "required":[
-        "SecurityGroupIds",
-        "Subnets"
-      ],
-      "members":{
-        "SecurityGroupIds":{"shape":"VpcSecurityGroupIds"},
-        "Subnets":{"shape":"Subnets"}
-      }
-    },
-    "VpcSecurityGroupIds":{
-      "type":"list",
-      "member":{"shape":"SecurityGroupId"},
-      "max":5,
       "min":1
     }
   }

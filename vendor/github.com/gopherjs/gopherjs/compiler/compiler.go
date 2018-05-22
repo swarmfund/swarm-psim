@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/gopherjs/gopherjs/compiler/prelude"
-	"golang.org/x/tools/go/gcexportdata"
+	"golang.org/x/tools/go/gcimporter15"
 )
 
 var sizes32 = &types.StdSizes{WordSize: 4, MaxAlign: 8}
@@ -243,7 +243,7 @@ func ReadArchive(filename, path string, r io.Reader, packages map[string]*types.
 	}
 
 	var err error
-	packages[path], err = gcexportdata.Read(bytes.NewReader(a.ExportData), token.NewFileSet(), packages, path)
+	_, packages[path], err = gcimporter.BImportData(token.NewFileSet(), packages, a.ExportData, path)
 	if err != nil {
 		return nil, err
 	}

@@ -19,8 +19,6 @@ import (
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Self struct {
@@ -77,14 +75,6 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
-// enablePrometheusOutput will look for Prometheus mime-type or format Query parameter the same way as Nomad
-func enablePrometheusOutput(req *http.Request) bool {
-	if format := req.URL.Query().Get("format"); format == "prometheus" {
-		return true
-	}
-	return false
-}
-
 func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
@@ -96,21 +86,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
 		return nil, acl.ErrPermissionDenied
 	}
-	if enablePrometheusOutput(req) {
-		if s.agent.config.TelemetryPrometheusRetentionTime < 1 {
-			resp.WriteHeader(http.StatusUnsupportedMediaType)
-			fmt.Fprint(resp, "Prometheus is not enable since its retention time is not positive")
-			return nil, nil
-		}
-		handlerOptions := promhttp.HandlerOpts{
-			ErrorLog:      s.agent.logger,
-			ErrorHandling: promhttp.ContinueOnError,
-		}
 
-		handler := promhttp.HandlerFor(prometheus.DefaultGatherer, handlerOptions)
-		handler.ServeHTTP(resp, req)
-		return nil, nil
-	}
 	return s.agent.MemSink.DisplayMetrics(resp, req)
 }
 
@@ -155,18 +131,9 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 
 	// Use empty list instead of nil
 	for id, s := range services {
-		if s.Tags == nil || s.Meta == nil {
+		if s.Tags == nil {
 			clone := *s
-			if s.Tags == nil {
-				clone.Tags = make([]string, 0)
-			} else {
-				clone.Tags = s.Tags
-			}
-			if s.Meta == nil {
-				clone.Meta = make(map[string]string)
-			} else {
-				clone.Meta = s.Meta
-			}
+			clone.Tags = make([]string, 0)
 			services[id] = &clone
 		}
 	}

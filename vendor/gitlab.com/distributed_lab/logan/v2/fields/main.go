@@ -5,15 +5,12 @@ package fields
 // each key provided in the return map of implementation of `GetLoganFields()`
 // will be prefixed with the key of the whole entity, using `_` delimiter.
 // See example in tests.
-//
 // DEPRECATED
-// Use logan/v3 instead
 type Provider interface {
 	GetLoganFields() map[string]interface{}
 }
 
 // Fields is just to simplify the code readability
-//
 // DEPRECATED
 type fields map[string]interface{}
 
@@ -24,9 +21,7 @@ type fields map[string]interface{}
 //		}
 //
 // If `value` does not implement Provider - a map with 1 key and plain value will be returned.
-//
 // DEPRECATED
-// Use logan/v3 instead
 func Obtain(entityName string, value interface{}) map[string]interface{} {
 	fieldedEntity, ok := value.(Provider)
 
@@ -64,9 +59,7 @@ func obtain(entityName string, fieldedEntity Provider) (result fields) {
 // Merge merges two instances of `map[string]interface{}`.
 // You can pass here as arguments any types, which are in fact `map[string]interface{}`.
 // If both maps has some key - the value from the `f2` will be used.
-//
 // DEPRECATED
-// Use logan/v3 instead
 func Merge(m1 map[string]interface{}, m2 map[string]interface{}) map[string]interface{} {
 	result := make(fields, len(m1)+len(m2))
 

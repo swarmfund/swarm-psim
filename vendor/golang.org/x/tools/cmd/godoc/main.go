@@ -356,7 +356,6 @@ func main() {
 		return
 	}
 
-	build.Default.GOROOT = *goroot
 	if err := godoc.CommandLine(os.Stdout, fs, pres, flag.Args()); err != nil {
 		log.Print(err)
 	}

@@ -5,7 +5,7 @@ import (
 
 	"strings"
 
-	"gitlab.com/distributed_lab/logan/v3/errors"
+	"github.com/pkg/errors"
 )
 
 var (

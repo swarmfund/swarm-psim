@@ -73,7 +73,7 @@ func TestAPI_AgentReload(t *testing.T) {
 	agent := c.Agent()
 
 	// Update the config file with a service definition
-	config := `{"service":{"name":"redis", "port":1234, "Meta": {"some": "meta"}}}`
+	config := `{"service":{"name":"redis", "port":1234}}`
 	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -94,9 +94,6 @@ func TestAPI_AgentReload(t *testing.T) {
 	}
 	if service.Port != 1234 {
 		t.Fatalf("bad: %v", service.Port)
-	}
-	if service.Meta["some"] != "meta" {
-		t.Fatalf("Missing metadata some:=meta in %v", service)
 	}
 }
 
@@ -694,7 +691,7 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 		ServiceID: "redis",
 		AgentServiceCheck: AgentServiceCheck{
 			DockerContainerID: "f972c95ebf0e",
-			Args:              []string{"/bin/true"},
+			Script:            "/bin/true",
 			Shell:             "/bin/bash",
 			Interval:          "10s",
 		},

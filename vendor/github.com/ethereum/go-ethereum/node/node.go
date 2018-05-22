@@ -303,13 +303,23 @@ func (n *Node) stopInProc() {
 
 // startIPC initializes and starts the IPC RPC endpoint.
 func (n *Node) startIPC(apis []rpc.API) error {
+	// Short circuit if the IPC endpoint isn't being exposed
 	if n.ipcEndpoint == "" {
-		return nil // IPC disabled.
+		return nil
+
 	}
-	listener, handler, err := rpc.StartIPCEndpoint(n.ipcEndpoint, apis)
+	isClosed := func() bool {
+		n.lock.RLock()
+		defer n.lock.RUnlock()
+		return n.ipcListener == nil
+	}
+
+	listener, handler, err := rpc.StartIPCEndpoint(isClosed, n.ipcEndpoint, apis)
 	if err != nil {
 		return err
 	}
+
+	// All listeners booted successfully
 	n.ipcListener = listener
 	n.ipcHandler = handler
 	n.log.Info("IPC endpoint opened", "url", n.ipcEndpoint)
@@ -568,7 +578,7 @@ func (n *Node) EventMux() *event.TypeMux {
 // ephemeral, a memory database is returned.
 func (n *Node) OpenDatabase(name string, cache, handles int) (ethdb.Database, error) {
 	if n.config.DataDir == "" {
-		return ethdb.NewMemDatabase(), nil
+		return ethdb.NewMemDatabase()
 	}
 	return ethdb.NewLDBDatabase(n.config.resolvePath(name), cache, handles)
 }

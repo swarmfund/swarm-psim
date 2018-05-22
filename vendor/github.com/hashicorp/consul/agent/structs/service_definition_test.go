@@ -14,8 +14,8 @@ func TestAgentStructs_CheckTypes(t *testing.T) {
 
 	// Singular Check field works
 	svc.Check = CheckType{
-		ScriptArgs: []string{"/foo/bar"},
-		Interval:   10 * time.Second,
+		Script:   "/foo/bar",
+		Interval: 10 * time.Second,
 	}
 
 	// Returns HTTP checks
@@ -26,8 +26,8 @@ func TestAgentStructs_CheckTypes(t *testing.T) {
 
 	// Returns Script checks
 	svc.Checks = append(svc.Checks, &CheckType{
-		ScriptArgs: []string{"/foo/bar"},
-		Interval:   10 * time.Second,
+		Script:   "/foo/bar",
+		Interval: 10 * time.Second,
 	})
 
 	// Returns TTL checks

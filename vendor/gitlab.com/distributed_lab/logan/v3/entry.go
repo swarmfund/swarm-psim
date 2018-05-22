@@ -25,11 +25,6 @@ func (e *Entry) WithRecover(recoverData interface{}) *Entry {
 func (e *Entry) WithError(err error) *Entry {
 	errorFields := errors.GetFields(err)
 
-	if fieldsProvider, ok := err.(fields.Provider); ok {
-		// This error also implements GetLoganFields().
-		errorFields = fields.Merge(errorFields, fieldsProvider.GetLoganFields())
-	}
-
 	return &Entry{
 		entry: e.WithFields(errorFields).entry.WithError(err),
 	}

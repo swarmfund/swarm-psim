@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 //
-
 package storage
 
 import (
@@ -107,8 +106,10 @@ func (s *AESEncryptedStorage) readEncryptedStorage() (map[string]storedCredentia
 		if os.IsNotExist(err) {
 			// Doesn't exist yet
 			return creds, nil
+
+		} else {
+			log.Warn("Failed to read encrypted storage", "err", err, "file", s.filename)
 		}
-		log.Warn("Failed to read encrypted storage", "err", err, "file", s.filename)
 	}
 	if err = json.Unmarshal(raw, &creds); err != nil {
 		log.Warn("Failed to unmarshal encrypted storage", "err", err, "file", s.filename)

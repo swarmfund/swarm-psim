@@ -32,8 +32,6 @@ type JSONLogger struct {
 	cfg     *vm.LogConfig
 }
 
-// NewJSONLogger creates a new EVM tracer that prints execution steps as JSON objects
-// into the provided stream.
 func NewJSONLogger(cfg *vm.LogConfig, writer io.Writer) *JSONLogger {
 	return &JSONLogger{json.NewEncoder(writer), cfg}
 }

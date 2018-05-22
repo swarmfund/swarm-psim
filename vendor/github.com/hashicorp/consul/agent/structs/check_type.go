@@ -25,6 +25,7 @@ type CheckType struct {
 	// fields copied to CheckDefinition
 	// Update CheckDefinition when adding fields here
 
+	Script            string
 	ScriptArgs        []string
 	HTTP              string
 	Header            map[string][]string
@@ -69,7 +70,7 @@ func (c *CheckType) Empty() bool {
 
 // IsScript checks if this is a check that execs some kind of script.
 func (c *CheckType) IsScript() bool {
-	return len(c.ScriptArgs) > 0
+	return c.Script != "" || len(c.ScriptArgs) > 0
 }
 
 // IsTTL checks if this is a TTL type

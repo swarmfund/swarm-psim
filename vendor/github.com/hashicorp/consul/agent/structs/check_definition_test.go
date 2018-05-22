@@ -83,7 +83,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 
 		ServiceID:         "svcid",
 		Token:             "tok",
-		ScriptArgs:        []string{"/bin/foo"},
+		Script:            "/bin/foo",
 		HTTP:              "someurl",
 		TCP:               "host:port",
 		Interval:          1 * time.Second,
@@ -100,7 +100,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		Status:  "green",
 		Notes:   "notes",
 
-		ScriptArgs:        []string{"/bin/foo"},
+		Script:            "/bin/foo",
 		HTTP:              "someurl",
 		TCP:               "host:port",
 		Interval:          1 * time.Second,

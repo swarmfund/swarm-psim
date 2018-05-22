@@ -68,11 +68,6 @@ func (timestamp *Timestamp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (timestamp Timestamp) Format(format string) string {
-	t := time.Time(timestamp)
-	return t.Format(format)
-}
-
 // An Interface is a Sentry interface that will be serialized as JSON.
 // It must implement json.Marshaler or use json struct tags.
 type Interface interface {
@@ -87,8 +82,6 @@ type Culpriter interface {
 type Transport interface {
 	Send(url, authHeader string, packet *Packet) error
 }
-
-type Extra map[string]interface{}
 
 type outgoingPacket struct {
 	packet *Packet
@@ -156,50 +149,32 @@ type Packet struct {
 	Logger    string    `json:"logger"`
 
 	// Optional
-	Platform    string            `json:"platform,omitempty"`
-	Culprit     string            `json:"culprit,omitempty"`
-	ServerName  string            `json:"server_name,omitempty"`
-	Release     string            `json:"release,omitempty"`
-	Environment string            `json:"environment,omitempty"`
-	Tags        Tags              `json:"tags,omitempty"`
-	Modules     map[string]string `json:"modules,omitempty"`
-	Fingerprint []string          `json:"fingerprint,omitempty"`
-	Extra       Extra             `json:"extra,omitempty"`
+	Platform    string                 `json:"platform,omitempty"`
+	Culprit     string                 `json:"culprit,omitempty"`
+	ServerName  string                 `json:"server_name,omitempty"`
+	Release     string                 `json:"release,omitempty"`
+	Environment string                 `json:"environment,omitempty"`
+	Tags        Tags                   `json:"tags,omitempty"`
+	Modules     map[string]string      `json:"modules,omitempty"`
+	Fingerprint []string               `json:"fingerprint,omitempty"`
+	Extra       map[string]interface{} `json:"extra,omitempty"`
 
 	Interfaces []Interface `json:"-"`
 }
 
 // NewPacket constructs a packet with the specified message and interfaces.
 func NewPacket(message string, interfaces ...Interface) *Packet {
-	extra := Extra{}
-	setExtraDefaults(extra)
+	extra := map[string]interface{}{
+		"runtime.Version":      runtime.Version(),
+		"runtime.NumCPU":       runtime.NumCPU(),
+		"runtime.GOMAXPROCS":   runtime.GOMAXPROCS(0), // 0 just returns the current value
+		"runtime.NumGoroutine": runtime.NumGoroutine(),
+	}
 	return &Packet{
 		Message:    message,
 		Interfaces: interfaces,
 		Extra:      extra,
 	}
-}
-
-// NewPacketWithExtra constructs a packet with the specified message, extra information, and interfaces.
-func NewPacketWithExtra(message string, extra Extra, interfaces ...Interface) *Packet {
-	if extra == nil {
-		extra = Extra{}
-	}
-	setExtraDefaults(extra)
-
-	return &Packet{
-		Message:    message,
-		Interfaces: interfaces,
-		Extra:      extra,
-	}
-}
-
-func setExtraDefaults(extra Extra) Extra {
-	extra["runtime.Version"] = runtime.Version()
-	extra["runtime.NumCPU"] = runtime.NumCPU()
-	extra["runtime.GOMAXPROCS"] = runtime.GOMAXPROCS(0) // 0 just returns the current value
-	extra["runtime.NumGoroutine"] = runtime.NumGoroutine()
-	return extra
 }
 
 // Init initializes required fields in a packet. It is typically called by
@@ -486,7 +461,7 @@ func (client *Client) SetDSN(dsn string) error {
 	if hasSecretKey {
 		client.authHeader = fmt.Sprintf("Sentry sentry_version=4, sentry_key=%s, sentry_secret=%s", publicKey, secretKey)
 	} else {
-		client.authHeader = fmt.Sprintf("Sentry sentry_version=4, sentry_key=%s", publicKey)
+		client.authHeader = fmt.Sprintf("Sentry sentry_version=4, sentry_key=%s", publicKey, secretKey)
 	}
 
 	return nil
@@ -706,10 +681,9 @@ func (client *Client) CaptureError(err error, tags map[string]string, interfaces
 		return ""
 	}
 
-	extra := extractExtra(err)
 	cause := pkgErrors.Cause(err)
 
-	packet := NewPacketWithExtra(err.Error(), extra, append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
+	packet := NewPacket(cause.Error(), append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
 	eventID, _ := client.Capture(packet, tags)
 
 	return eventID
@@ -731,10 +705,9 @@ func (client *Client) CaptureErrorAndWait(err error, tags map[string]string, int
 		return ""
 	}
 
-	extra := extractExtra(err)
 	cause := pkgErrors.Cause(err)
 
-	packet := NewPacketWithExtra(err.Error(), extra, append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
+	packet := NewPacket(cause.Error(), append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
 	eventID, ch := client.Capture(packet, tags)
 	if eventID != "" {
 		<-ch

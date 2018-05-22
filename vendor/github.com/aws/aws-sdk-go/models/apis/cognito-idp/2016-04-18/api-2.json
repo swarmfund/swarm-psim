@@ -3614,8 +3614,7 @@
         "SAML",
         "Facebook",
         "Google",
-        "LoginWithAmazon",
-        "OIDC"
+        "LoginWithAmazon"
       ]
     },
     "IdpIdentifierType":{
@@ -5021,8 +5020,7 @@
         "EmailConfigurationFailure":{"shape":"StringType"},
         "Domain":{"shape":"DomainType"},
         "AdminCreateUserConfig":{"shape":"AdminCreateUserConfigType"},
-        "UserPoolAddOns":{"shape":"UserPoolAddOnsType"},
-        "Arn":{"shape":"ArnType"}
+        "UserPoolAddOns":{"shape":"UserPoolAddOnsType"}
       }
     },
     "UserStatusType":{

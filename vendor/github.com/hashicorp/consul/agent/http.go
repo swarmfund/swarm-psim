@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,18 +39,6 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
-}
-
-type redirectFS struct {
-	fs http.FileSystem
-}
-
-func (fs *redirectFS) Open(name string) (http.File, error) {
-	file, err := fs.fs.Open(name)
-	if err != nil {
-		file, err = fs.fs.Open("/index.html")
-	}
-	return file, err
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -123,6 +110,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 			key := append([]string{"http", req.Method}, parts...)
+			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
 
@@ -147,32 +135,11 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	if s.IsUIEnabled() {
-		new_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_BETA"))
-		if err != nil {
-			new_ui = false
-		}
-		var uifs http.FileSystem
-
-		// Use the custom UI dir if provided.
-		if s.agent.config.UIDir != "" {
-			uifs = http.Dir(s.agent.config.UIDir)
-		} else {
-			fs := assetFS()
-
-			if new_ui {
-				fs.Prefix += "/v2/"
-			} else {
-				fs.Prefix += "/v1/"
-			}
-			uifs = fs
-		}
-
-		if new_ui {
-			uifs = &redirectFS{fs: uifs}
-		}
-
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
+	// Use the custom UI dir if provided.
+	if s.agent.config.UIDir != "" {
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
+	} else if s.agent.config.EnableUI {
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable

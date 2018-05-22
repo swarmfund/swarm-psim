@@ -61,6 +61,7 @@
         {"shape":"ConcurrentModificationException"},
         {"shape":"UnauthorizedException"},
         {"shape":"InternalFailureException"},
+        {"shape":"LimitExceededException"},
         {"shape":"ApiLimitExceededException"}
       ]
     },
@@ -478,8 +479,7 @@
       "enum":[
         "API_KEY",
         "AWS_IAM",
-        "AMAZON_COGNITO_USER_POOLS",
-        "OPENID_CONNECT"
+        "AMAZON_COGNITO_USER_POOLS"
       ]
     },
     "BadRequestException":{
@@ -555,10 +555,8 @@
       ],
       "members":{
         "name":{"shape":"String"},
-        "logConfig":{"shape":"LogConfig"},
         "authenticationType":{"shape":"AuthenticationType"},
-        "userPoolConfig":{"shape":"UserPoolConfig"},
-        "openIDConnectConfig":{"shape":"OpenIDConnectConfig"}
+        "userPoolConfig":{"shape":"UserPoolConfig"}
       }
     },
     "CreateGraphqlApiResponse":{
@@ -797,14 +795,6 @@
       }
     },
     "ErrorMessage":{"type":"string"},
-    "FieldLogLevel":{
-      "type":"string",
-      "enum":[
-        "NONE",
-        "ERROR",
-        "ALL"
-      ]
-    },
     "GetDataSourceRequest":{
       "type":"structure",
       "required":[
@@ -967,9 +957,7 @@
         "name":{"shape":"ResourceName"},
         "apiId":{"shape":"String"},
         "authenticationType":{"shape":"AuthenticationType"},
-        "logConfig":{"shape":"LogConfig"},
         "userPoolConfig":{"shape":"UserPoolConfig"},
-        "openIDConnectConfig":{"shape":"OpenIDConnectConfig"},
         "arn":{"shape":"String"},
         "uris":{"shape":"MapOfStringToString"}
       }
@@ -1152,17 +1140,6 @@
         "nextToken":{"shape":"PaginationToken"}
       }
     },
-    "LogConfig":{
-      "type":"structure",
-      "required":[
-        "fieldLogLevel",
-        "cloudWatchLogsRoleArn"
-      ],
-      "members":{
-        "fieldLogLevel":{"shape":"FieldLogLevel"},
-        "cloudWatchLogsRoleArn":{"shape":"String"}
-      }
-    },
     "Long":{"type":"long"},
     "MapOfStringToString":{
       "type":"map",
@@ -1172,7 +1149,7 @@
     "MappingTemplate":{
       "type":"string",
       "max":65536,
-      "min":1
+      "min":0
     },
     "MaxResults":{
       "type":"integer",
@@ -1186,16 +1163,6 @@
       },
       "error":{"httpStatusCode":404},
       "exception":true
-    },
-    "OpenIDConnectConfig":{
-      "type":"structure",
-      "required":["issuer"],
-      "members":{
-        "issuer":{"shape":"String"},
-        "clientId":{"shape":"String"},
-        "iatTTL":{"shape":"Long"},
-        "authTTL":{"shape":"Long"}
-      }
     },
     "OutputType":{
       "type":"string",
@@ -1358,10 +1325,8 @@
           "locationName":"apiId"
         },
         "name":{"shape":"String"},
-        "logConfig":{"shape":"LogConfig"},
         "authenticationType":{"shape":"AuthenticationType"},
-        "userPoolConfig":{"shape":"UserPoolConfig"},
-        "openIDConnectConfig":{"shape":"OpenIDConnectConfig"}
+        "userPoolConfig":{"shape":"UserPoolConfig"}
       }
     },
     "UpdateGraphqlApiResponse":{

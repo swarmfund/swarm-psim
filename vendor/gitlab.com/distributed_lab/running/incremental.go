@@ -46,27 +46,34 @@ func WithBackOff(
 		normalPeriod = 1
 	}
 
+	//logger := log.WithField("runner", runnerName)
 	fields := logan.F{
 		"runner": runnerName,
 	}
 	normalTicker := time.NewTicker(normalPeriod)
 
-	for ;; waitForCtxOrTicker(ctx, normalTicker) {
-		// To guarantee *no* work is being done after ctx was cancelled.
-		if IsCancelled(ctx) {
-			log.Log(uint32(logan.InfoLevel), fields, nil, false, fmt.Sprintf("Context is canceled - stopping '%s' runner.", runnerName))
+	for {
+		select {
+		case <-ctx.Done():
+			log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
 			return
-		}
-
-		err := RunSafely(ctx, runnerName, runner)
-
-		if err != nil {
-			log.Log(uint32(logan.ErrorLevel), fields, err, true, fmt.Sprintf("Runner '%s' returned error.", runnerName))
-
-			runAbnormalExecution(ctx, log, runnerName, runner, minAbnormalPeriod, maxAbnormalPeriod)
+		case <-normalTicker.C:
+			// To guarantee *no* work is being done after ctx was cancelled.
 			if IsCancelled(ctx) {
-				log.Log(uint32(logan.InfoLevel), fields, nil, false, fmt.Sprintf("Context is canceled - stopping '%s' runner.", runnerName))
+				log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
 				return
+			}
+
+			err := runSafely(ctx, runner)
+
+			if err != nil {
+				log.Log(uint32(logan.ErrorLevel), fields, err, true, fmt.Sprintf("Runner '%s' returned error.", runnerName))
+
+				runAbnormalExecution(ctx, log, runnerName, runner, minAbnormalPeriod, maxAbnormalPeriod)
+				if IsCancelled(ctx) {
+					log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
+					return
+				}
 			}
 		}
 	}
@@ -92,7 +99,7 @@ func UntilSuccess(
 	minRetryPeriod,
 	maxRetryPeriod time.Duration) {
 
-	success, err := runSafelyWithSuccess(ctx, runnerName, runner)
+	success, err := runSafelyWithSuccess(ctx, runner)
 	if success && err == nil {
 		// Brief success!
 		return
@@ -123,17 +130,8 @@ func UntilSuccess(
 				return
 			}
 
-			success, err = runSafelyWithSuccess(ctx, runnerName, runner)
+			success, err = runSafelyWithSuccess(ctx, runner)
 		}
-	}
-}
-
-func waitForCtxOrTicker(ctx context.Context, ticker *time.Ticker) {
-	select {
-	case <- ctx.Done():
-		return
-	case <- ticker.C:
-		return
 	}
 }
 
@@ -158,11 +156,11 @@ func runAbnormalExecution(
 				return
 			}
 
-			err := RunSafely(ctx, runnerName, runner)
+			err := runSafely(ctx, runner)
 			if err == nil {
 				log.Log(uint32(logan.InfoLevel), logan.F{
 					"runner": runnerName,
-				}, nil, false, fmt.Sprintf("Runner '%s' is returning to normal execution.", runnerName))
+				}, nil, false, "Runner is returning to normal execution.")
 				return
 			}
 
@@ -176,13 +174,10 @@ func runAbnormalExecution(
 }
 
 // RunSafely handles panic using defer.
-//
-// If no panic happens - RunSafely does nothing except
-// calling the provided runner with the provided context.
-func RunSafely(ctx context.Context, runnerName string, runner func(context.Context) error) (err error) {
+func runSafely(ctx context.Context, runner func(context.Context) error) (err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), fmt.Sprintf("Runner '%s' panicked", runnerName))
+			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), "Runner panicked")
 		}
 	}()
 
@@ -190,11 +185,11 @@ func RunSafely(ctx context.Context, runnerName string, runner func(context.Conte
 }
 
 // RunSafely handles panic using defer.
-func runSafelyWithSuccess(ctx context.Context, runnerName string, runner func(context.Context) (bool, error)) (success bool, err error) {
+func runSafelyWithSuccess(ctx context.Context, runner func(context.Context) (bool, error)) (success bool, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			success = false
-			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), fmt.Sprintf("Runner '%s' panicked", runnerName))
+			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), "Runner panicked")
 		}
 	}()
 

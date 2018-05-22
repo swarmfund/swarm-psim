@@ -1,6 +1,4 @@
-document.addEventListener('turbolinks:load', function() {
-  analytics.page()
-
+document.addEventListener('DOMContentLoaded', function() {
   track('.downloads .download .details li a', function(el) {
     var m = el.href.match(/consul_(.*?)_(.*?)_(.*?)\.zip/)
     return {

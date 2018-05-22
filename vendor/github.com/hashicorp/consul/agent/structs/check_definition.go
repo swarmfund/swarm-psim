@@ -21,6 +21,7 @@ type CheckDefinition struct {
 	//
 	//   ID (CheckID), Name, Status, Notes
 	//
+	Script                         string
 	ScriptArgs                     []string
 	HTTP                           string
 	Header                         map[string][]string
@@ -62,6 +63,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Status:  c.Status,
 		Notes:   c.Notes,
 
+		Script:            c.Script,
 		ScriptArgs:        c.ScriptArgs,
 		HTTP:              c.HTTP,
 		GRPC:              c.GRPC,

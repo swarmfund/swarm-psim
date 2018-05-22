@@ -18,10 +18,7 @@
         "requestUri":"/"
       },
       "input":{"shape":"AssociateContactWithAddressBookRequest"},
-      "output":{"shape":"AssociateContactWithAddressBookResponse"},
-      "errors":[
-        {"shape":"LimitExceededException"}
-      ]
+      "output":{"shape":"AssociateContactWithAddressBookResponse"}
     },
     "AssociateDeviceWithRoom":{
       "name":"AssociateDeviceWithRoom",
@@ -310,18 +307,6 @@
       },
       "input":{"shape":"GetSkillGroupRequest"},
       "output":{"shape":"GetSkillGroupResponse"},
-      "errors":[
-        {"shape":"NotFoundException"}
-      ]
-    },
-    "ListDeviceEvents":{
-      "name":"ListDeviceEvents",
-      "http":{
-        "method":"POST",
-        "requestUri":"/"
-      },
-      "input":{"shape":"ListDeviceEventsRequest"},
-      "output":{"shape":"ListDeviceEventsResponse"},
       "errors":[
         {"shape":"NotFoundException"}
       ]
@@ -662,13 +647,6 @@
       "min":10,
       "pattern":"[a-zA-Z0-9][a-zA-Z0-9_-]*"
     },
-    "ConnectionStatus":{
-      "type":"string",
-      "enum":[
-        "ONLINE",
-        "OFFLINE"
-      ]
-    },
     "Contact":{
       "type":"structure",
       "members":{
@@ -952,26 +930,6 @@
       "type":"list",
       "member":{"shape":"DeviceData"}
     },
-    "DeviceEvent":{
-      "type":"structure",
-      "members":{
-        "Type":{"shape":"DeviceEventType"},
-        "Value":{"shape":"DeviceEventValue"},
-        "Timestamp":{"shape":"Timestamp"}
-      }
-    },
-    "DeviceEventList":{
-      "type":"list",
-      "member":{"shape":"DeviceEvent"}
-    },
-    "DeviceEventType":{
-      "type":"string",
-      "enum":[
-        "CONNECTION_STATUS",
-        "DEVICE_STATUS"
-      ]
-    },
-    "DeviceEventValue":{"type":"string"},
     "DeviceName":{
       "type":"string",
       "max":100,
@@ -987,8 +945,7 @@
       "enum":[
         "READY",
         "PENDING",
-        "WAS_OFFLINE",
-        "DEREGISTERED"
+        "WAS_OFFLINE"
       ]
     },
     "DeviceStatusDetail":{
@@ -1011,8 +968,7 @@
     "DeviceStatusInfo":{
       "type":"structure",
       "members":{
-        "DeviceStatusDetails":{"shape":"DeviceStatusDetails"},
-        "ConnectionStatus":{"shape":"ConnectionStatus"}
+        "DeviceStatusDetails":{"shape":"DeviceStatusDetails"}
       }
     },
     "DeviceType":{
@@ -1086,7 +1042,6 @@
         "INITIALIZED",
         "PENDING",
         "REGISTERED",
-        "DISASSOCIATING",
         "DEREGISTERING"
       ]
     },
@@ -1242,23 +1197,6 @@
         "Message":{"shape":"ErrorMessage"}
       },
       "exception":true
-    },
-    "ListDeviceEventsRequest":{
-      "type":"structure",
-      "required":["DeviceArn"],
-      "members":{
-        "DeviceArn":{"shape":"Arn"},
-        "EventType":{"shape":"DeviceEventType"},
-        "NextToken":{"shape":"NextToken"},
-        "MaxResults":{"shape":"MaxResults"}
-      }
-    },
-    "ListDeviceEventsResponse":{
-      "type":"structure",
-      "members":{
-        "DeviceEvents":{"shape":"DeviceEventList"},
-        "NextToken":{"shape":"NextToken"}
-      }
     },
     "ListSkillsRequest":{
       "type":"structure",
@@ -1759,7 +1697,6 @@
         "CELSIUS"
       ]
     },
-    "Timestamp":{"type":"timestamp"},
     "Timezone":{
       "type":"string",
       "max":100,

@@ -268,8 +268,14 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc
 }
 
 // FilterCriteria represents a request to create a new filter.
-// Same as ethereum.FilterQuery but with UnmarshalJSON() method.
-type FilterCriteria ethereum.FilterQuery
+//
+// TODO(karalabe): Kill this in favor of ethereum.FilterQuery.
+type FilterCriteria struct {
+	FromBlock *big.Int
+	ToBlock   *big.Int
+	Addresses []common.Address
+	Topics    [][]common.Hash
+}
 
 // NewFilter creates a new filter and returns the filter id. It can be
 // used to retrieve logs when the state changes. This method cannot be

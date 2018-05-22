@@ -63,10 +63,7 @@ type UnknownType undefined
 		if info.Files == nil {
 			continue // empty directory
 		}
-		exportdata, err := gcimporter.BExportData(conf.Fset, pkg)
-		if err != nil {
-			t.Fatal(err)
-		}
+		exportdata := gcimporter.BExportData(conf.Fset, pkg)
 
 		imports := make(map[string]*types.Package)
 		fset2 := token.NewFileSet()
@@ -309,10 +306,7 @@ func TestVeryLongFile(t *testing.T) {
 	}
 
 	// export
-	exportdata, err := gcimporter.BExportData(fset1, pkg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	exportdata := gcimporter.BExportData(fset1, pkg)
 
 	// import
 	imports := make(map[string]*types.Package)

@@ -154,30 +154,30 @@ type SimNode struct {
 }
 
 // Addr returns the node's discovery address
-func (sn *SimNode) Addr() []byte {
-	return []byte(sn.Node().String())
+func (self *SimNode) Addr() []byte {
+	return []byte(self.Node().String())
 }
 
 // Node returns a discover.Node representing the SimNode
-func (sn *SimNode) Node() *discover.Node {
-	return discover.NewNode(sn.ID, net.IP{127, 0, 0, 1}, 30303, 30303)
+func (self *SimNode) Node() *discover.Node {
+	return discover.NewNode(self.ID, net.IP{127, 0, 0, 1}, 30303, 30303)
 }
 
 // Client returns an rpc.Client which can be used to communicate with the
 // underlying services (it is set once the node has started)
-func (sn *SimNode) Client() (*rpc.Client, error) {
-	sn.lock.RLock()
-	defer sn.lock.RUnlock()
-	if sn.client == nil {
+func (self *SimNode) Client() (*rpc.Client, error) {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	if self.client == nil {
 		return nil, errors.New("node not started")
 	}
-	return sn.client, nil
+	return self.client, nil
 }
 
 // ServeRPC serves RPC requests over the given connection by creating an
 // in-memory client to the node's RPC server
-func (sn *SimNode) ServeRPC(conn net.Conn) error {
-	handler, err := sn.node.RPCHandler()
+func (self *SimNode) ServeRPC(conn net.Conn) error {
+	handler, err := self.node.RPCHandler()
 	if err != nil {
 		return err
 	}
@@ -187,13 +187,13 @@ func (sn *SimNode) ServeRPC(conn net.Conn) error {
 
 // Snapshots creates snapshots of the services by calling the
 // simulation_snapshot RPC method
-func (sn *SimNode) Snapshots() (map[string][]byte, error) {
-	sn.lock.RLock()
-	services := make(map[string]node.Service, len(sn.running))
-	for name, service := range sn.running {
+func (self *SimNode) Snapshots() (map[string][]byte, error) {
+	self.lock.RLock()
+	services := make(map[string]node.Service, len(self.running))
+	for name, service := range self.running {
 		services[name] = service
 	}
-	sn.lock.RUnlock()
+	self.lock.RUnlock()
 	if len(services) == 0 {
 		return nil, errors.New("no running services")
 	}
@@ -213,23 +213,23 @@ func (sn *SimNode) Snapshots() (map[string][]byte, error) {
 }
 
 // Start registers the services and starts the underlying devp2p node
-func (sn *SimNode) Start(snapshots map[string][]byte) error {
+func (self *SimNode) Start(snapshots map[string][]byte) error {
 	newService := func(name string) func(ctx *node.ServiceContext) (node.Service, error) {
 		return func(nodeCtx *node.ServiceContext) (node.Service, error) {
 			ctx := &ServiceContext{
-				RPCDialer:   sn.adapter,
+				RPCDialer:   self.adapter,
 				NodeContext: nodeCtx,
-				Config:      sn.config,
+				Config:      self.config,
 			}
 			if snapshots != nil {
 				ctx.Snapshot = snapshots[name]
 			}
-			serviceFunc := sn.adapter.services[name]
+			serviceFunc := self.adapter.services[name]
 			service, err := serviceFunc(ctx)
 			if err != nil {
 				return nil, err
 			}
-			sn.running[name] = service
+			self.running[name] = service
 			return service, nil
 		}
 	}
@@ -237,9 +237,9 @@ func (sn *SimNode) Start(snapshots map[string][]byte) error {
 	// ensure we only register the services once in the case of the node
 	// being stopped and then started again
 	var regErr error
-	sn.registerOnce.Do(func() {
-		for _, name := range sn.config.Services {
-			if err := sn.node.Register(newService(name)); err != nil {
+	self.registerOnce.Do(func() {
+		for _, name := range self.config.Services {
+			if err := self.node.Register(newService(name)); err != nil {
 				regErr = err
 				return
 			}
@@ -249,54 +249,54 @@ func (sn *SimNode) Start(snapshots map[string][]byte) error {
 		return regErr
 	}
 
-	if err := sn.node.Start(); err != nil {
+	if err := self.node.Start(); err != nil {
 		return err
 	}
 
 	// create an in-process RPC client
-	handler, err := sn.node.RPCHandler()
+	handler, err := self.node.RPCHandler()
 	if err != nil {
 		return err
 	}
 
-	sn.lock.Lock()
-	sn.client = rpc.DialInProc(handler)
-	sn.lock.Unlock()
+	self.lock.Lock()
+	self.client = rpc.DialInProc(handler)
+	self.lock.Unlock()
 
 	return nil
 }
 
 // Stop closes the RPC client and stops the underlying devp2p node
-func (sn *SimNode) Stop() error {
-	sn.lock.Lock()
-	if sn.client != nil {
-		sn.client.Close()
-		sn.client = nil
+func (self *SimNode) Stop() error {
+	self.lock.Lock()
+	if self.client != nil {
+		self.client.Close()
+		self.client = nil
 	}
-	sn.lock.Unlock()
-	return sn.node.Stop()
+	self.lock.Unlock()
+	return self.node.Stop()
 }
 
 // Services returns a copy of the underlying services
-func (sn *SimNode) Services() []node.Service {
-	sn.lock.RLock()
-	defer sn.lock.RUnlock()
-	services := make([]node.Service, 0, len(sn.running))
-	for _, service := range sn.running {
+func (self *SimNode) Services() []node.Service {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	services := make([]node.Service, 0, len(self.running))
+	for _, service := range self.running {
 		services = append(services, service)
 	}
 	return services
 }
 
 // Server returns the underlying p2p.Server
-func (sn *SimNode) Server() *p2p.Server {
-	return sn.node.Server()
+func (self *SimNode) Server() *p2p.Server {
+	return self.node.Server()
 }
 
 // SubscribeEvents subscribes the given channel to peer events from the
 // underlying p2p.Server
-func (sn *SimNode) SubscribeEvents(ch chan *p2p.PeerEvent) event.Subscription {
-	srv := sn.Server()
+func (self *SimNode) SubscribeEvents(ch chan *p2p.PeerEvent) event.Subscription {
+	srv := self.Server()
 	if srv == nil {
 		panic("node not running")
 	}
@@ -304,12 +304,12 @@ func (sn *SimNode) SubscribeEvents(ch chan *p2p.PeerEvent) event.Subscription {
 }
 
 // NodeInfo returns information about the node
-func (sn *SimNode) NodeInfo() *p2p.NodeInfo {
-	server := sn.Server()
+func (self *SimNode) NodeInfo() *p2p.NodeInfo {
+	server := self.Server()
 	if server == nil {
 		return &p2p.NodeInfo{
-			ID:    sn.ID.String(),
-			Enode: sn.Node().String(),
+			ID:    self.ID.String(),
+			Enode: self.Node().String(),
 		}
 	}
 	return server.NodeInfo()

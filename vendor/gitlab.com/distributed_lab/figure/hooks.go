@@ -8,9 +8,9 @@ import (
 
 	"net/url"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 //todo add base pointer types
@@ -23,13 +23,6 @@ var (
 				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
 			}
 			return reflect.ValueOf(result), nil
-		},
-		"*string": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToStringE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
-			}
-			return reflect.ValueOf(&result), nil
 		},
 		"[]string": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToStringSliceE(value)
@@ -93,13 +86,6 @@ var (
 				return reflect.Value{}, errors.Wrap(err, "failed to parse bool")
 			}
 			return reflect.ValueOf(result), nil
-		},
-		"*bool": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToBoolE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse bool")
-			}
-			return reflect.ValueOf(&result), nil
 		},
 		"time.Time": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToTimeE(value)

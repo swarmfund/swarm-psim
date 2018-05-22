@@ -23,6 +23,7 @@ func init() {
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "register"}, time.Now())
 	var req structs.RegisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
@@ -38,6 +39,7 @@ func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 }
 
 func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "deregister"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "deregister"}, time.Now())
 	var req structs.DeregisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
@@ -71,6 +73,8 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "kvs"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "kvs"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
@@ -116,6 +120,8 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "session"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "session"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
@@ -137,6 +143,8 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "acl"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
@@ -169,6 +177,8 @@ func (c *FSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "tombstone"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "tombstone"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
@@ -189,6 +199,7 @@ func (c *FSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &updates); err != nil {
 		panic(fmt.Errorf("failed to decode batch updates: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "coordinate", "batch-update"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "coordinate", "batch-update"}, time.Now())
 	if err := c.state.CoordinateBatchUpdate(index, updates); err != nil {
 		return err
@@ -204,6 +215,8 @@ func (c *FSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} 
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "prepared-query"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "prepared-query"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
@@ -222,6 +235,7 @@ func (c *FSM) applyTxn(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "txn"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "txn"}, time.Now())
 	results, errors := c.state.TxnRW(index, req.Ops)
 	return structs.TxnResponse{
@@ -235,6 +249,7 @@ func (c *FSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "autopilot"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "autopilot"}, time.Now())
 
 	if req.CAS {

@@ -189,8 +189,7 @@ func (fs *fileStorage) doLog(t time.Time, str string) {
 	// write
 	fs.buf = append(fs.buf, []byte(str)...)
 	fs.buf = append(fs.buf, '\n')
-	n, _ := fs.logw.Write(fs.buf)
-	fs.logSize += int64(n)
+	fs.logw.Write(fs.buf)
 }
 
 func (fs *fileStorage) Log(str string) {

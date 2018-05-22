@@ -35,10 +35,7 @@
 //
 // The AWS Budgets API provides the following endpoint:
 //
-//    * https://budgets.amazonaws.com
-//
-// For information about costs associated with the AWS Budgets API, see AWS
-// Cost Management Pricing (https://aws.amazon.com/aws-cost-management/pricing/).
+//    * https://budgets.us-east-1.amazonaws.com
 //
 // See budgets package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/budgets/
