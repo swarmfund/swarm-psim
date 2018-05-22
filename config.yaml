@@ -273,11 +273,28 @@ btc_withdraw_verify:
   signer: S_SOME_VALID_PRIVATE_KEY
 
 eth_withdraw:
-  key: "hot_wallet_private_key"
-  asset: "ETH"
-  gas_price: 1000000000
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
+
+  private_key: first_signer_of_multisig_wallet_private_key
+  multisig_wallet_contract_address: 0xcontract_address_hex
+  asset: SWM # TokenD asset code
+  asset_precision: 18 # 18 for ETH and most ERC20 tokens
+  token_address: 0xaddres_of_the_erc_20_token_hex # for not 'ETH' TokenD asset, optional and unused field if 'ETH' in asset
+  min_withdraw_amount: 1000000000000000 # 0.001 (in Wei)
+  gas_price: 50000000000 # 50 GWei (in Wei)
+
+eth_withdraw_verify:
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  private_key: second_signer_of_multisig_wallet_private_key
+  multisig_wallet_contract_address: 0xcontract_address_hex
+  asset: SWM # TokenD asset code
+  asset_precision: 18 # 18 for ETH and most ERC20 tokens
+  token_address: 0xaddres_of_the_erc_20_token_hex # for not 'ETH' TokenD asset, optional and unused field if 'ETH' in asset
+  min_withdraw_amount: 1000000000000000 # 0.001 (in Wei)
+  gas_price: 50000000000 # 50 GWei (in Wei)
 
 # prices
 price_setter:
