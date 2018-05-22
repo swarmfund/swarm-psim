@@ -101,8 +101,13 @@ func (s *Service) Run(ctx context.Context) {
 		wg.Done()
 	}()
 
+	var err error
 	// blocking call here intentionally - we don't start approving requests until get proper ETH sequence
-	s.newETHSequence = s.detectLastETHSequence(ctx) + 1
+	s.newETHSequence, err = s.detectNewETHSequence(ctx)
+	if err != nil {
+		s.log.WithError(err).Error("Failed to detect new ETH TX Sequence - critical error, stopping.")
+		return
+	}
 	if running.IsCancelled(ctx) {
 		wg.Wait()
 		s.log.Info("Service stopped smoothly during detecting of ETH sequence(nonce), " +
