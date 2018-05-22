@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/swarmfund/psim/addrstate"
+	"gitlab.com/tokend/go/xdr"
 )
 
 const (

@@ -13,7 +13,7 @@ log:
 
 horizon:
   #addr: http://swarm:8000
-  addr: http://localhost:8000
+  addr: https://api.dev.suntri.io/
 
 notificator:
   url: http://swarm:9009
@@ -54,6 +54,7 @@ s3:
 # services
 
 services:
+  - listener
 #  - bearer
 #  - notifier
 #  - charger
@@ -86,9 +87,13 @@ services:
 #  - template_provider
 #  - wallet_cleaner
 
+listener:
+  # source: GDKKCM3RNDE4E53IYJECILA3DJ5J4KGOLQV3TEWECRQ5MQAQGEPEMD4A
+  signer: SAQI5IFSNSYMAAXCOPHCAOT7YBHQXNR7SHAHTKGFBCUY6NJHQYZAJMWX
+
 bearer:
-  source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
-  signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
+  source: GDKKCM3RNDE4E53IYJECILA3DJ5J4KGOLQV3TEWECRQ5MQAQGEPEMD4A
+  signer: SAKGYPGW6FZTW3YD3NSJJAZYMUYERZKAKG6NZMLBW33T5BRNFLTPQY7R
   abnormal_period: 1m
   sleep_period: 5m
 

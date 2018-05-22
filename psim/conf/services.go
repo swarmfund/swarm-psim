@@ -2,6 +2,8 @@ package conf
 
 // All services existing in PSIM
 const (
+	ListenerService = "listener"
+
 	// deposits
 	ServiceBTCDeposit         = "btc_deposit"
 	ServiceBTCDepositVerify   = "btc_deposit_verify"

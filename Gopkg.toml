@@ -89,13 +89,12 @@
   name = "gitlab.com/tokend/go"
 
 [[constraint]]
-  branch = "master"
   name = "gitlab.com/tokend/horizon-connector"
+  branch = "master"
 
 [[constraint]]
   branch = "master"
   name = "github.com/evalphobia/logrus_sentry"
-
 
 [[constraint]]
   branch = "master"
