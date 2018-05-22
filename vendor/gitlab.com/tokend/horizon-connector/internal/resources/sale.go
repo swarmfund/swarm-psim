@@ -6,6 +6,7 @@ type CoreSale struct {
 
 type Sale struct {
 	ID      string      `json:"id"`
+	Owner   string      `json:"owner"`
 	Details SaleDetails `json:"details"`
 }
 

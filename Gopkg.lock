@@ -26,7 +26,7 @@
   branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
-  revision = "7744847ed4e70ed5e50090f9094ed621b4f305d6"
+  revision = "af0603585f7cbc33623a0670a85a2bfdf559cf1a"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
@@ -61,8 +61,8 @@
     "service/s3/s3manager",
     "service/sts"
   ]
-  revision = "3e7014382cdc91695381614d0110a3cff997ba72"
-  version = "v1.13.34"
+  revision = "cf00d544fc3c02f31e05e8d02444a1325d3a840b"
+  version = "v1.13.53"
 
 [[projects]]
   branch = "master"
@@ -74,7 +74,7 @@
     "txscript",
     "wire"
   ]
-  revision = "675abc5df3c5531bc741b56a765e35623459da6d"
+  revision = "1432d294a5b055c297457c25434efbf13384cc46"
 
 [[projects]]
   branch = "master"
@@ -91,7 +91,7 @@
     "bech32",
     "hdkeychain"
   ]
-  revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
+  revision = "b9afb0b9868a757e8fcc3c3adf5b129979f9b3e6"
 
 [[projects]]
   name = "github.com/certifi/gocertifi"
@@ -127,13 +127,14 @@
     "event",
     "log",
     "metrics",
+    "p2p/netutil",
     "params",
     "rlp",
     "rpc",
     "trie"
   ]
-  revision = "2423ae01e0d2f853512eb2b46954b5ad0754a897"
-  version = "v1.8.4"
+  revision = "2688dab48c9b8ae71b8d95c7678817eaa17f2b53"
+  version = "v1.8.8"
 
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
@@ -151,7 +152,7 @@
   branch = "master"
   name = "github.com/getsentry/raven-go"
   packages = ["."]
-  revision = "d1470f50d3a3a38533355a9fab7393e25a3b4226"
+  revision = "ed7bcb39ff10f39ab08e317ce16df282845852fa"
 
 [[projects]]
   name = "github.com/go-chi/chi"
@@ -184,7 +185,7 @@
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
-  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
   name = "github.com/google/jsonapi"
@@ -196,7 +197,7 @@
   branch = "master"
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
-  revision = "1daac00a5961469351b87e7ac223239c37938d2a"
+  revision = "8dffc02ea1cb8398bb73f30424697c60fcf8d4c5"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -207,8 +208,8 @@
 [[projects]]
   name = "github.com/hashicorp/consul"
   packages = ["api"]
-  revision = "fb848fc48818f58690db09d14640513aa6bf3c02"
-  version = "v1.0.7"
+  revision = "5174058f0d2bda63fa5198ab96c33d9a909c58ed"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -268,8 +269,8 @@
     ".",
     "assert"
   ]
-  revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
-  version = "v1.7.6"
+  revision = "c2353362d570a7bfa228149c62842019201cfb71"
+  version = "v1.8.0"
 
 [[projects]]
   branch = "master"
@@ -281,7 +282,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+  revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
 
 [[projects]]
   branch = "master"
@@ -396,8 +397,8 @@
 [[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "a1f051bc3eba734da4772d60e2d677f47cf93ef4"
-  version = "v0.0.2"
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
 
 [[projects]]
   branch = "master"
@@ -496,7 +497,7 @@
     "leveldb/table",
     "leveldb/util"
   ]
-  revision = "714f901b98fdb3aa954b4193d8cbd64a28d80cad"
+  revision = "5d6fca44a948d2be89a9702de7717f0168403d3d"
 
 [[projects]]
   branch = "master"
@@ -523,7 +524,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
-  revision = "f0d0fbcbe98b4b3a7c68ba02122770f3a820a30e"
+  revision = "21ba3b8f508e2638402bf83aa62eff1a86d61020"
 
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
@@ -532,8 +533,8 @@
     "v3/errors",
     "v3/fields"
   ]
-  revision = "f4e85a29dac688ce751d0202d6244c229f07dc53"
-  version = "v3.5.1"
+  revision = "618e702b8aaf18b947a442d952adac04de41fe90"
+  version = "v3.6"
 
 [[projects]]
   branch = "master"
@@ -545,7 +546,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
-  revision = "f7d8d80cf167b6ea6896feb087f5e3e448a10233"
+  revision = "7742709fb00d9b3f9348ab457b14f751d2605b7a"
 
 [[projects]]
   branch = "master"
@@ -566,7 +567,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "3c89b8556d91033edbecc446803a1f5c8431f795"
+  revision = "4c971c6d1e18a394763ace81ee67328da9bb137e"
 
 [[projects]]
   branch = "master"
@@ -593,7 +594,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "1fac308bf3228825330248f7ee4023f236e2a16c"
+  revision = "071f1a95042e2899c6064e30e044f8b270cc7384"
 
 [[projects]]
   branch = "master"
@@ -623,7 +624,7 @@
     "scrypt",
     "ssh/terminal"
   ]
-  revision = "2b6c08872f4b66da917bb4ce98df4f0307330f78"
+  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
 
 [[projects]]
   branch = "master"
@@ -632,7 +633,7 @@
     "context",
     "websocket"
   ]
-  revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
+  revision = "8e0cdda24ed423affc8f35c241e5e9b16180338e"
 
 [[projects]]
   branch = "master"
@@ -641,7 +642,7 @@
     "unix",
     "windows"
   ]
-  revision = "79b0c6888797020a994db17c8510466c72fe75d9"
+  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -670,7 +671,7 @@
     "imports",
     "internal/fastwalk"
   ]
-  revision = "94b14834a20132093826ea5e2da5502a13908ad3"
+  revision = "28aef64757f4d432485ab970b094e1af8b301e84"
 
 [[projects]]
   name = "gopkg.in/fatih/set.v0"
