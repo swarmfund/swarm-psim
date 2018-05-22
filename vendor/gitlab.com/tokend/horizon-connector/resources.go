@@ -1,11 +1,12 @@
 package horizon
 
 import (
-	"gitlab.com/tokend/horizon-connector/internal/resources"
 	goresources "gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/horizon-connector/internal/listener"
-	"gitlab.com/tokend/horizon-connector/internal/resources/operations"
 	"gitlab.com/tokend/horizon-connector/internal/operation"
+	"gitlab.com/tokend/horizon-connector/internal/resources"
+	"gitlab.com/tokend/horizon-connector/internal/resources/operations"
+	"gitlab.com/tokend/regources"
 )
 
 // don't blame me, just make sure all exported types are really exported
@@ -13,16 +14,12 @@ import (
 type Transaction = resources.Transaction
 type TransactionEvent = resources.TransactionEvent
 type TXPacket = listener.TXPacket
-
 type Request = resources.Request
 type WithdrawRequest = resources.RequestWithdrawDetails
 type KYCRequest = resources.RequestKYCDetails
-
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
 type Info = resources.Info
 type Signer = goresources.Signer
-type Asset = resources.Asset
-type Amount = resources.Amount
 type Sale = resources.Sale
 type CoreSale = resources.CoreSale
 type SaleDetails = resources.SaleDetails
@@ -41,3 +38,9 @@ type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
 type ReviewRequestOp = operations.ReviewRequest
 type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
 type ReviewableRequestType = operation.ReviewableRequestType
+
+// DEPRECATED: use regources directly
+type Asset = regources.Asset
+
+// DEPRECATED: use regources directly
+type Amount = regources.Amount

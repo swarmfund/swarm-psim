@@ -54,7 +54,7 @@ s3:
 # services
 
 services:
-  - listener
+#  - listener
 #  - bearer
 #  - notifier
 #  - charger
@@ -88,7 +88,6 @@ services:
 #  - wallet_cleaner
 
 listener:
-  # source: GDKKCM3RNDE4E53IYJECILA3DJ5J4KGOLQV3TEWECRQ5MQAQGEPEMD4A
   signer: SAQI5IFSNSYMAAXCOPHCAOT7YBHQXNR7SHAHTKGFBCUY6NJHQYZAJMWX
 
 bearer:

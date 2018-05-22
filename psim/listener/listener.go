@@ -9,10 +9,6 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
-// TODO edit Makefile before push
-// TODO cursor = now before push
-// TODO edit psim config.yaml before push
-
 type Listener struct {
 	requestProvider RequestProvider
 	txPacketStream  <-chan horizon.TXPacket

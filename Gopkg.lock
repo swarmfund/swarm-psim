@@ -545,7 +545,7 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
-  revision = "f7d8d80cf167b6ea6896feb087f5e3e448a10233"
+  revision = "7742709fb00d9b3f9348ab457b14f751d2605b7a"
 
 [[projects]]
   branch = "master"
@@ -593,7 +593,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "1fac308bf3228825330248f7ee4023f236e2a16c"
+  revision = "d8655a4c6cb3cc63f11c97eb5a4295fa12623586"
 
 [[projects]]
   branch = "master"
@@ -610,7 +610,7 @@
   branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "ecbffe29f291da2f85844e0faa7c65922cd86abf"
+  revision = "818aed2a97732eacd2e346b79233ebef38f0d90c"
 
 [[projects]]
   branch = "master"

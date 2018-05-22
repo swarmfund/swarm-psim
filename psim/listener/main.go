@@ -28,7 +28,7 @@ func setup(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "failed to figure out listener config")
 	}
 	horizonConnector := appConfig.Horizon().WithSigner(listenerConfig.Signer)
-	txStreamResponse := horizonConnector.Listener().StreamTXsFromCursor(ctx, "", false)
+	txStreamResponse := horizonConnector.Listener().StreamTXsFromCursor(ctx, "now", false)
 	requestsProvider := horizonConnector.Operations()
 	accountsProvider := horizonConnector.Accounts()
 	logger := app.Log(ctx).WithField("service", conf.ListenerService)
