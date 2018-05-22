@@ -532,8 +532,8 @@
     "v3/errors",
     "v3/fields"
   ]
-  revision = "f4e85a29dac688ce751d0202d6244c229f07dc53"
-  version = "v3.5.1"
+  revision = "618e702b8aaf18b947a442d952adac04de41fe90"
+  version = "v3.6"
 
 [[projects]]
   branch = "master"
@@ -545,7 +545,8 @@
   branch = "master"
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
-  revision = "f7d8d80cf167b6ea6896feb087f5e3e448a10233"
+  revision = "023b9c716a08001f0464f43cf1d85dffb209273c"
+  version = "v1"
 
 [[projects]]
   branch = "master"
@@ -593,7 +594,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "1fac308bf3228825330248f7ee4023f236e2a16c"
+  revision = "5e2eb74740877a2ff82b3cdea8dfd68be59cfc5a"
 
 [[projects]]
   branch = "master"
@@ -699,6 +700,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b3a8e18b881ccc65808a61146addf19f7671913d85577ff87901d96ef83d5c0b"
+  inputs-digest = "224fe0730eed729e95d01c4bc2be79112629c0cba7d2e42f85e3e5047909cc16"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,9 +1,11 @@
 package logan
 
 // DEPRECATED
+// Use logan/v3 instead
 const NilValueToLog = "<nil>"
 
 // DEPRECATED
+// Use logan/v3 instead
 type FieldedEntityI interface {
 	GetLogFields() F
 }

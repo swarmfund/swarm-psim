@@ -46,34 +46,27 @@ func WithBackOff(
 		normalPeriod = 1
 	}
 
-	//logger := log.WithField("runner", runnerName)
 	fields := logan.F{
 		"runner": runnerName,
 	}
 	normalTicker := time.NewTicker(normalPeriod)
 
-	for {
-		select {
-		case <-ctx.Done():
-			log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
+	for ;; waitForCtxOrTicker(ctx, normalTicker) {
+		// To guarantee *no* work is being done after ctx was cancelled.
+		if IsCancelled(ctx) {
+			log.Log(uint32(logan.InfoLevel), fields, nil, false, fmt.Sprintf("Context is canceled - stopping '%s' runner.", runnerName))
 			return
-		case <-normalTicker.C:
-			// To guarantee *no* work is being done after ctx was cancelled.
+		}
+
+		err := runSafely(ctx, runnerName, runner)
+
+		if err != nil {
+			log.Log(uint32(logan.ErrorLevel), fields, err, true, fmt.Sprintf("Runner '%s' returned error.", runnerName))
+
+			runAbnormalExecution(ctx, log, runnerName, runner, minAbnormalPeriod, maxAbnormalPeriod)
 			if IsCancelled(ctx) {
 				log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
 				return
-			}
-
-			err := runSafely(ctx, runner)
-
-			if err != nil {
-				log.Log(uint32(logan.ErrorLevel), fields, err, true, fmt.Sprintf("Runner '%s' returned error.", runnerName))
-
-				runAbnormalExecution(ctx, log, runnerName, runner, minAbnormalPeriod, maxAbnormalPeriod)
-				if IsCancelled(ctx) {
-					log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
-					return
-				}
 			}
 		}
 	}
@@ -99,7 +92,7 @@ func UntilSuccess(
 	minRetryPeriod,
 	maxRetryPeriod time.Duration) {
 
-	success, err := runSafelyWithSuccess(ctx, runner)
+	success, err := runSafelyWithSuccess(ctx, runnerName, runner)
 	if success && err == nil {
 		// Brief success!
 		return
@@ -130,8 +123,17 @@ func UntilSuccess(
 				return
 			}
 
-			success, err = runSafelyWithSuccess(ctx, runner)
+			success, err = runSafelyWithSuccess(ctx, runnerName, runner)
 		}
+	}
+}
+
+func waitForCtxOrTicker(ctx context.Context, ticker *time.Ticker) {
+	select {
+	case <- ctx.Done():
+		return
+	case <- ticker.C:
+		return
 	}
 }
 
@@ -156,11 +158,11 @@ func runAbnormalExecution(
 				return
 			}
 
-			err := runSafely(ctx, runner)
+			err := runSafely(ctx, runnerName, runner)
 			if err == nil {
 				log.Log(uint32(logan.InfoLevel), logan.F{
 					"runner": runnerName,
-				}, nil, false, "Runner is returning to normal execution.")
+				}, nil, false, fmt.Sprintf("Runner '%s' is returning to normal execution.", runnerName))
 				return
 			}
 
@@ -174,10 +176,10 @@ func runAbnormalExecution(
 }
 
 // RunSafely handles panic using defer.
-func runSafely(ctx context.Context, runner func(context.Context) error) (err error) {
+func runSafely(ctx context.Context, runnerName string, runner func(context.Context) error) (err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), "Runner panicked")
+			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), fmt.Sprintf("Runner '%s' panicked", runnerName))
 		}
 	}()
 
@@ -185,11 +187,11 @@ func runSafely(ctx context.Context, runner func(context.Context) error) (err err
 }
 
 // RunSafely handles panic using defer.
-func runSafelyWithSuccess(ctx context.Context, runner func(context.Context) (bool, error)) (success bool, err error) {
+func runSafelyWithSuccess(ctx context.Context, runnerName string, runner func(context.Context) (bool, error)) (success bool, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			success = false
-			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), "Runner panicked")
+			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), fmt.Sprintf("Runner '%s' panicked", runnerName))
 		}
 	}()
 
