@@ -19,6 +19,7 @@ import (
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
+	"encoding/hex"
 )
 
 const (
@@ -100,7 +101,7 @@ func (s *Service) processPendingTSWRequest(ctx context.Context, request horizon.
 		return errors.Wrap(err, "Failed to marshal ETH TX into hex")
 	}
 
-	err = s.approveTSWRequest(request, txHex, tx.Hash().Str())
+	err = s.approveTSWRequest(request, txHex, hex.EncodeToString(tx.Hash().Bytes()))
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve TwoStepWithdraw Request")
 	}

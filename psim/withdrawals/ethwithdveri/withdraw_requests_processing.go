@@ -10,6 +10,8 @@ import (
 
 	"fmt"
 
+	"encoding/hex"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -126,7 +128,7 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 		return errors.Wrap(err, "Failed to marshal ETH TX into hex")
 	}
 
-	err = s.approveWithdrawRequest(request, txHex, tx.Hash().Str())
+	err = s.approveWithdrawRequest(request, txHex, hex.EncodeToString(tx.Hash().Bytes()))
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve Withdraw Request")
 	}
