@@ -70,5 +70,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 			globalConfig.Bitcoin(),
 		),
+		config.DisableVerify,
 	}), nil
 }

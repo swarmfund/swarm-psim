@@ -37,7 +37,7 @@ func init() {
 			app.Log(ctx),
 			[]addrstate.StateMutator{
 				addrstate.ExternalSystemBindingMutator(config.ExternalSystem),
-				addrstate.BalanceMutator("ETH"),
+				addrstate.BalanceMutator(config.DepositAsset),
 			},
 			horizon.Listener(),
 		)
@@ -63,6 +63,7 @@ func init() {
 			app.Config(ctx).Discovery(),
 			builder,
 			internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
+			config.DisableVerify,
 		}), nil
 	})
 }

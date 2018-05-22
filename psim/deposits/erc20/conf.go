@@ -10,12 +10,12 @@ type DepositConfig struct {
 	Signer        keypair.Full    `fig:"signer,required"`
 	Cursor        uint64          `fig:"cursor,required"`
 	Confirmations uint64          `fig:"confirmations"`
-	BaseAsset     string          `fig:"base_asset,required"`
-	// DepositAsset swarm asset to deposit
+	// DepositAsset TokenD asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
 	Token          common.Address `fig:"token"`
 	ExternalSystem int32          `fig:"external_system,required"`
+	DisableVerify  bool           `fig:"disable_verify"`
 }
 
 type VerifyConfig struct {

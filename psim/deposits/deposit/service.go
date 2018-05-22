@@ -88,6 +88,7 @@ type Service struct {
 	lastProcessedBlock  uint64
 	lastBlocksNotWatch  uint64
 	externalSystem      int32
+	disableVerify       bool
 
 	// TODO Interface
 	horizon         *horizon.Connector
@@ -115,6 +116,7 @@ func New(opts *Opts) *Service {
 		builder:             opts.Builder,
 		offchainHelper:      opts.OffchainHelper,
 		externalSystem:      opts.ExternalSystem,
+		disableVerify:       opts.DisableVerify,
 	}
 }
 
@@ -132,6 +134,7 @@ type Opts struct {
 	Discovery           Discovery
 	Builder             *xdrbuild.Builder
 	OffchainHelper      OffchainHelper
+	DisableVerify       bool
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -262,7 +265,7 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 	if balanceID == nil {
 		// user does not have target balance
 		// unfortunate, but we don't care
-		s.log.WithFields(fields).Warn("not depost asset balance found")
+		s.log.WithFields(fields).Warn("no depost asset balance found")
 		return nil
 	}
 
@@ -314,19 +317,18 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		"issuance":         issuanceOpt,
 	})
 
-	readyEnvelope, err := s.sendToVerifier(envelope)
-	if err != nil {
-		return errors.Wrap(err, "Failed to Verify Issuance TX")
-	}
-
-	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
-	if checkErr != nil {
-		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
-	}
-
-	envelopeBase64, err := xdr.MarshalBase64(*readyEnvelope)
-	if err != nil {
-		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
+	var envelopeBase64 string
+	if !s.disableVerify {
+		readyEnvelope, err := s.verifyIssuance(envelope, issuanceOpt)
+		if err != nil {
+			return errors.Wrap(err, "failed to verify issuance request")
+		}
+		envelopeBase64, err = xdr.MarshalBase64(*readyEnvelope)
+		if err != nil {
+			return errors.Wrap(err, "Failed to marshal fully signed Envelope")
+		}
+	} else {
+		envelopeBase64 = envelope
 	}
 
 	ok, err := issuance.SubmitEnvelope(ctx, envelopeBase64, s.horizon.Submitter())
@@ -341,6 +343,19 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		logger.Debug("Reference duplication - already processed Deposit, skipping.")
 	}
 	return nil
+}
+
+func (s *Service) verifyIssuance(envelope string, issuanceOpt issuance.RequestOpt) (*xdr.TransactionEnvelope, error) {
+	readyEnvelope, err := s.sendToVerifier(envelope)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Verify Issuance TX")
+	}
+
+	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
+	if checkErr != nil {
+		return nil, errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
+	}
+	return readyEnvelope, nil
 }
 
 func (s *Service) sendToVerifier(envelope string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {

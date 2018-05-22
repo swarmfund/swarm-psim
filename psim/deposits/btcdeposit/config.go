@@ -17,6 +17,7 @@ type Config struct {
 	DepositAsset       string `fig:"deposit_asset,required"`
 	ExternalSystem     int32  `fig:"external_system,required"`
 	FixedDepositFee    uint64 `fig:"fixed_deposit_fee,required"`
+	DisableVerify      bool   `fig:"disable_verify"`
 
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
 	Source keypair.Address `fig:"source,required"`
