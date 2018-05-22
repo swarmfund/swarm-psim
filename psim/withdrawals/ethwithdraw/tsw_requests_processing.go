@@ -100,7 +100,7 @@ func (s *Service) processPendingTSWRequest(ctx context.Context, request horizon.
 		return errors.Wrap(err, "Failed to marshal ETH TX into hex")
 	}
 
-	err = s.approveTSWRequest(request, txHex, tx.Hash().String())
+	err = s.approveTSWRequest(request, txHex, tx.Hash().Str())
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve TwoStepWithdraw Request")
 	}

@@ -126,7 +126,7 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 		return errors.Wrap(err, "Failed to marshal ETH TX into hex")
 	}
 
-	err = s.approveWithdrawRequest(request, txHex, tx.Hash().String())
+	err = s.approveWithdrawRequest(request, txHex, tx.Hash().Str())
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve Withdraw Request")
 	}

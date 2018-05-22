@@ -70,7 +70,7 @@ func (s *Service) submitAllETHTransactionsOnce(ctx context.Context) {
 
 			return nil
 		}
-	}, 0, 5*time.Second, time.Hour)
+	}, 0, 5*time.Second, 30*time.Second)
 }
 
 func (s *Service) processApprovedWithdrawRequest(ctx context.Context, request horizon.Request) error {
