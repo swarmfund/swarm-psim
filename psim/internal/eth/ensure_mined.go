@@ -15,21 +15,19 @@ type ByHasher interface {
 	TransactionByHash(context.Context, common.Hash) (*types.Transaction, bool, error)
 }
 
-func EnsureHashMined(ctx context.Context, log running.Logger, getter ByHasher, hash common.Hash) {
-	fields := logan.F{
-		"tx_hash": hash.String(),
-	}
-	running.UntilSuccess(ctx, log, "ensure-hash-mined", func(ctx context.Context) (bool, error) {
+func EnsureHashMined(ctx context.Context, log *logan.Entry, getter ByHasher, hash common.Hash) {
+	running.UntilSuccess(ctx, log.WithField("tx_hash", hash.String()), "ensure-hash-mined", func(ctx context.Context) (bool, error) {
 		tx, isPending, err := getter.TransactionByHash(ctx, hash)
 		if err != nil {
-			return false, errors.Wrap(err, "failed to get tx", fields)
+			return false, errors.Wrap(err, "failed to get tx")
 		}
 		if tx == nil {
-			return false, errors.From(errors.New("tx not found"), fields)
+			return false, errors.New("tx not found")
 		}
 		if isPending {
 			return false, nil
 		}
+
 		return true, nil
-	}, 5*time.Second, time.Minute)
+	}, 5*time.Second, 30*time.Second)
 }

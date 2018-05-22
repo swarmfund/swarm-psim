@@ -1,4 +1,4 @@
-package ethwithdraw
+package ethwithdveri
 
 import (
 	"context"
@@ -14,23 +14,23 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceETHWithdraw, func(ctx context.Context) (app.Service, error) {
+	app.RegisterService(conf.ServiceETHWithdrawVerify, func(ctx context.Context) (app.Service, error) {
+		fields := logan.F{
+			"service": conf.ServiceETHWithdrawVerify,
+		}
+
 		var config Config
 		err := figure.
 			Out(&config).
 			With(figure.BaseHooks, utils.ETHHooks).
-			From(app.Config(ctx).GetRequired(conf.ServiceETHWithdraw)).
+			From(app.Config(ctx).GetRequired(conf.ServiceETHWithdrawVerify)).
 			Please()
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to figure out config", logan.F{
-				"service": conf.ServiceETHWithdraw,
-			})
+			return nil, errors.Wrap(err, "Failed to figure out config", fields)
 		}
 
 		if err := config.Validate(); err != nil {
-			return nil, errors.Wrap(err, "Config is invalid", logan.F{
-				"service": conf.ServiceETHWithdraw,
-			})
+			return nil, errors.Wrap(err, "Config is invalid", fields)
 		}
 
 		log := app.Log(ctx)

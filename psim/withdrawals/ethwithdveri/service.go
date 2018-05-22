@@ -1,4 +1,4 @@
-package ethwithdraw
+package ethwithdveri
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
+	"math/big"
 )
 
 type WithdrawRequestsStreamer interface {
@@ -31,6 +32,8 @@ type ETHClient interface {
 	//PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
 
 	TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 }
 
 type ETHWallet interface {
@@ -46,9 +49,10 @@ type Service struct {
 	xdrbuilder               *xdrbuild.Builder
 	txSubmitter              TXSubmitter
 
-	ethClient        ETHClient
-	ethWallet        ETHWallet
-	multisigContract *eth.MultisigWalletTransactor
+	ethClient              ETHClient
+	ethWallet              ETHWallet
+	multisigContractWriter *eth.MultisigWalletTransactor
+	multisigContractReader *eth.MultisigWalletCaller
 
 	newETHSequence uint64
 }
@@ -63,9 +67,13 @@ func NewService(
 	ethClient ETHClient,
 	ethWallet ETHWallet) (*Service, error) {
 
-	multisigContract, err := eth.NewMultisigWalletTransactor(*config.MultisigWallet, eth.NewContractTransactor(ethClient))
+	multisigContractWriter, err := eth.NewMultisigWalletTransactor(*config.MultisigWallet, eth.NewContractTransactor(ethClient))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create MultisigWallet Contract")
+		return nil, errors.Wrap(err, "Failed to create MultisigWallet Contract writer")
+	}
+	multisigContractReader, err := eth.NewMultisigWalletCaller(*config.MultisigWallet, ethClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create MultisigWallet Contract reader")
 	}
 
 	return &Service{
@@ -77,9 +85,10 @@ func NewService(
 		xdrbuilder:               xdrbuilder,
 		txSubmitter:              txSubmitter,
 
-		ethClient:        ethClient,
-		ethWallet:        ethWallet,
-		multisigContract: multisigContract,
+		ethClient:              ethClient,
+		ethWallet:              ethWallet,
+		multisigContractWriter: multisigContractWriter,
+		multisigContractReader: multisigContractReader,
 	}, nil
 }
 
@@ -110,7 +119,7 @@ func (s *Service) Run(ctx context.Context) {
 
 	wg.Add(1)
 	go func() {
-		s.processTSWRequestsInfinitely(ctx)
+		s.processWithdrawRequestsInfinitely(ctx)
 		wg.Done()
 	}()
 

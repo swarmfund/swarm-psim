@@ -1,4 +1,4 @@
-package ethwithdraw
+package eth
 
 import (
 	"github.com/ethereum/go-ethereum/common"
@@ -9,6 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 
+// ContractTransactor wraps provided bind.ContractBackend (ETHClient)
+// and changes `SendTransaction` method to do nothing.
+//
+// ContractTransactor is used to be passed into specific Contracts Transactors
+// so that no sending TXs into ETH blockchain happen.
 type ContractTransactor struct {
 	client bind.ContractBackend
 }
