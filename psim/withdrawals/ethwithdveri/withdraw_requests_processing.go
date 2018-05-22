@@ -93,6 +93,11 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 	if !ok {
 		return errors.New("Raw ETH TX_1 in the PreConfirmationDetails of WithdrawRequest is not of type string.")
 	}
+	if _, err := hex.DecodeString(tx1Hash); err != nil {
+		return errors.Wrap(err, "Failed to decode bytes from hex of TX1 hash string", logan.F{
+			"tx_1_hash_string": tx1Hash,
+		})
+	}
 
 	transfer := s.waitForTXWithTransfer(ctx, tx1Hash)
 	if running.IsCancelled(ctx) {
