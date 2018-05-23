@@ -21,10 +21,10 @@ notificator:
   public: string
 
 bitcoin:
-  # move node to separate object?
-  node_host: swarm
-  node_port: 8332
-  node_auth_key: dTAwM2IwNGVmOTUwMWJiZjA2YjpwMDA2NWUyN2MxNWY1NTBiOTJh
+  node:
+    host: swarm
+    port: 8332
+    auth_key: base64(user:password)
   testnet: true
   request_timeout_s: 30
 
