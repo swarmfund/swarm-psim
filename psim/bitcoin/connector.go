@@ -423,7 +423,7 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 		return errors.Wrap(err, "Failed to create http POST request", fields)
 	}
 
-	request.Header.Set("Authorization", "Basic "+c.config.NodeAuthKey)
+	request.Header.Set("Authorization", "Basic "+c.config.Node.AuthKey)
 
 	resp, err := c.client.Do(request)
 	if err != nil {
@@ -447,7 +447,7 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 }
 
 func (c *NodeConnector) getNodeURL() string {
-	return fmt.Sprintf("http://%s:%d", c.config.NodeIP, c.config.NodePort)
+	return fmt.Sprintf("http://%s:%d", c.config.Node.Host, c.config.Node.Port)
 }
 
 func (c *NodeConnector) buildRequestBody(requestID, methodName, params string) string {

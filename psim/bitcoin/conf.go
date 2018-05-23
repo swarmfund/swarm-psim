@@ -16,9 +16,16 @@ type ConnectorConfig struct {
 }
 
 type NodeConfig struct {
-	NodeIP      string `fig:"node_host,required"`
-	NodePort    int    `fig:"node_port,required"`
-	NodeAuthKey string `fig:"node_auth_key,required"`
+	Host    string `fig:"host,required"`
+	Port    int    `fig:"port,required"`
+	AuthKey string `fig:"auth_key,required"`
+}
+
+func (c NodeConfig) GetLoganFields() map[string]interface{} {
+	return map[string]interface{} {
+		"host": c.Host,
+		"post": c.Port,
+	}
 }
 
 var FigureHooks = figure.Hooks{
