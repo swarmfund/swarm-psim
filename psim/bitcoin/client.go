@@ -9,11 +9,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-const (
-	MainnetName = "Mainnet"
-	TestnetName = "Testnet"
-)
-
 // Client uses Connector to request some Bitcoin Node
 // and transforms raw responses to btcutil structures.
 type Client struct {
@@ -239,14 +234,6 @@ func (c Client) GetNetParams() *chaincfg.Params {
 		return &chaincfg.TestNet3Params
 	} else {
 		return &chaincfg.MainNetParams
-	}
-}
-
-func (c Client) GetNetworkName() string {
-	if c.connector.IsTestnet() {
-		return TestnetName
-	} else {
-		return MainnetName
 	}
 }
 

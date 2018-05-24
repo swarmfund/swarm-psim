@@ -167,7 +167,7 @@ func (app *App) Run() {
 			defer func() {
 				if rec := recover(); rec != nil {
 					err := errors.FromPanic(rec)
-					entry.WithStack(errors.WithStack(err)).WithError(err).Error("service panicked")
+					entry.WithStack(errors.WithStack(err)).WithError(err).Error("Service panicked during initialization or executing.")
 				}
 				wg.Done()
 			}()
