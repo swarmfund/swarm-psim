@@ -55,12 +55,14 @@ inside the setUp function during the `init()`.
 
 ##### Make sure no sensitive or specific real data is mentioned in the [config.yaml](./config.yaml) (such as keys, secrets, real urls, etc)
 
-### General requirements
+### General requirements and recommendations
 
-- Make Run() methods blocking, so that possible to handle on the caller side when some runnable entity finishes.
+- Run() methods must be blocking, so that possible to handle on the caller side when some runnable entity finishes.
 
-- All functions which are bloking or can work a long while - should normally receive context(as the first parameter)
+- All functions which are blocking or can work a long while - should normally receive context(as the first parameter)
 and listen to ctx.Done() so that to stop executing when latter is closed.
 
 - If some entity uses channels to provide data for reading - it must return a channel for reading, but not take a channel for writing.
 
+- Named return arguments should only be used for non-obvious values being returned, especially for values of simple type (string, int, bool, etc);
+if named return arguments are used, return statements should return the variables explicitly, empty implicit returns should be avoided.
