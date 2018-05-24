@@ -21,7 +21,6 @@ import (
 )
 
 var (
-	ErrNoBalanceID        = errors.New("No BalanceID for the Account.")
 	ErrNoVerifierServices = errors.New("No Deposit Verify services were found.")
 )
 
@@ -86,7 +85,7 @@ type Service struct {
 	serviceName         string
 	verifierServiceName string
 	lastProcessedBlock  uint64
-	lastBlocksNotWatch  uint64
+	lastBlocksNotWatch  uint64 // confirmations
 	externalSystem      int32
 	disableVerify       bool
 

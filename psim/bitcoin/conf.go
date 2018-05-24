@@ -16,13 +16,14 @@ type ConnectorConfig struct {
 }
 
 type NodeConfig struct {
-	Host    string `fig:"host,required"`
-	Port    int    `fig:"port,required"`
-	AuthKey string `fig:"auth_key,required"`
+	Host     string `fig:"host,required"`
+	Port     int    `fig:"port,required"`
+	User     string `fig:"user,required"`
+	Password string `fig:"password,required"`
 }
 
 func (c NodeConfig) GetLoganFields() map[string]interface{} {
-	return map[string]interface{} {
+	return map[string]interface{}{
 		"host": c.Host,
 		"post": c.Port,
 	}

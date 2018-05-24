@@ -39,7 +39,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Listener(),
 	)
 
-	horizonInfo, err := horizonConnector.Info()
+	horizonInfo, err := horizonConnector.System().Info()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}

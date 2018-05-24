@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"encoding/base64"
 )
 
 var (
@@ -51,6 +52,7 @@ type Connector interface {
 // which requests Bitcoin core RPC to get the blockchain info
 type NodeConnector struct {
 	config ConnectorConfig
+	authKey string
 	client *http.Client
 }
 
@@ -59,6 +61,7 @@ type NodeConnector struct {
 func NewNodeConnector(config ConnectorConfig) Connector {
 	return &NodeConnector{
 		config: config,
+		authKey: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`%s:%s`, config.Node.User, config.Node.Password))),
 		client: &http.Client{
 			Timeout: time.Duration(config.RequestTimeout) * time.Second,
 		},
@@ -423,7 +426,7 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 		return errors.Wrap(err, "Failed to create http POST request", fields)
 	}
 
-	request.Header.Set("Authorization", "Basic "+c.config.Node.AuthKey)
+	request.Header.Set("Authorization", "Basic "+c.authKey)
 
 	resp, err := c.client.Do(request)
 	if err != nil {

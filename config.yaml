@@ -24,7 +24,8 @@ bitcoin:
   node:
     host: swarm
     port: 8332
-    auth_key: base64(user:password)
+    user: user
+    password: password
   testnet: true
   request_timeout_s: 30
 
@@ -165,19 +166,18 @@ btc_deposit:
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # satoshis (0.005 BTC)
   deposit_asset: BTC
+  external_system: 1
   fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
+  disable_verify: false # optional field
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-
-  # TODO Remove after moving logic of the second signature to the verifier.
-  additional_signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_deposit_verify:
   host: localhost
   port: 8102
 
-  # Should actually by 5 (6+ confirmations for transactions)
+  # Should actually be 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
   deposit_asset: BTC
