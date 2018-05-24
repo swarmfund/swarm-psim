@@ -45,6 +45,20 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+	btcHelper, err := NewBTCHelper(
+		log,
+
+		config.DepositAsset,
+		config.MinDepositAmount,
+		config.FixedDepositFee,
+		config.OffchainCurrency,
+		config.OffchainBlockchain,
+
+		globalConfig.Bitcoin(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create BTCHelper")
+	}
 
 	return deposit.New(&deposit.Opts{
 		log,
@@ -61,15 +75,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		addressProvider,
 		globalConfig.Discovery(),
 		builder,
-		NewBTCHelper(
-			log,
-
-			config.DepositAsset,
-			config.MinDepositAmount,
-			config.FixedDepositFee,
-
-			globalConfig.Bitcoin(),
-		),
+		btcHelper,
 		config.DisableVerify,
 	}), nil
 }

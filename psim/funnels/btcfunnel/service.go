@@ -23,7 +23,6 @@ const (
 // BTCClient is the interface to be implemented by a
 // Bitcoin client to parametrize the Service.
 type BTCClient interface {
-	GetNetParams() *chaincfg.Params
 	// EstimateFee returns fee per KB in BTC
 	EstimateFee(blocksToBeIncluded uint) (float64, error)
 
@@ -52,8 +51,10 @@ type Service struct {
 	config Config
 	log    *logan.Entry
 
-	lastProcessedBlock    uint64
-	addrToPriv            map[string]string
+	lastProcessedBlock uint64
+	addrToPriv         map[string]string
+	netParams          *chaincfg.Params
+
 	lastMinBalanceAlarmAt time.Time
 
 	btcClient          BTCClient
@@ -61,13 +62,14 @@ type Service struct {
 }
 
 // New is constructor for btcfunnel Service.
-func New(config Config, log *logan.Entry, btcClient BTCClient, notificationSender NotificationSender) *Service {
+func New(config Config, log *logan.Entry, btcClient BTCClient, netParams *chaincfg.Params, notificationSender NotificationSender) *Service {
 	return &Service{
 		config: config,
 		log:    log,
 
 		lastProcessedBlock: config.LastProcessedBlock,
 		addrToPriv:         make(map[string]string),
+		netParams:          netParams,
 
 		btcClient:          btcClient,
 		notificationSender: notificationSender,
@@ -105,7 +107,7 @@ func (s *Service) deriveKeys() error {
 		return errors.Wrap(err, "Failed to create new ExtendedPrivateKey from the string representation")
 	}
 
-	extKey.SetNet(s.btcClient.GetNetParams())
+	extKey.SetNet(s.netParams)
 
 	for i := uint64(0); i < s.config.KeysToDerive; i++ {
 		fields := logan.F{
@@ -122,13 +124,13 @@ func (s *Service) deriveKeys() error {
 			return errors.Wrap(err, "Failed to get ECPrivKey from the Child", fields)
 		}
 
-		wif, err := btcutil.NewWIF(priv, s.btcClient.GetNetParams(), true)
+		wif, err := btcutil.NewWIF(priv, s.netParams, true)
 		if err != nil {
 			return errors.Wrap(err, "Failed to get WIF key from the PrivKey", fields)
 		}
 
 		pubKeyHash := btcutil.Hash160(priv.PubKey().SerializeCompressed())
-		addr, err := btcutil.NewAddressPubKeyHash(pubKeyHash, s.btcClient.GetNetParams())
+		addr, err := btcutil.NewAddressPubKeyHash(pubKeyHash, s.netParams)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create P2PKH Address of the PrivKey", fields.Merge(logan.F{
 				"pub_key_hash": hex.EncodeToString(pubKeyHash),

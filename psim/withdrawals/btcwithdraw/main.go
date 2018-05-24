@@ -34,6 +34,20 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+	btcHelper, err := NewBTCHelper(
+		log,
+		config.MinWithdrawAmount,
+		config.HotWalletAddress,
+		config.HotWalletScriptPubKey,
+		config.HotWalletRedeemScript,
+		config.PrivateKey,
+		config.OffchainCurrency,
+		config.OffchainBlockchain,
+		globalConfig.Bitcoin(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create CommonBTCHelper")
+	}
 
 	return withdraw.New(
 		conf.ServiceBTCWithdraw,
@@ -45,14 +59,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Submitter(),
 		builder,
 		globalConfig.Discovery(),
-		NewBTCHelper(
-			log,
-			config.MinWithdrawAmount,
-			config.HotWalletAddress,
-			config.HotWalletScriptPubKey,
-			config.HotWalletRedeemScript,
-			config.PrivateKey,
-			globalConfig.Bitcoin(),
-		),
+		btcHelper,
 	), nil
 }

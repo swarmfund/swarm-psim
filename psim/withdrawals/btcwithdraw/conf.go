@@ -14,9 +14,23 @@ type Config struct {
 	HotWalletScriptPubKey string `fig:"hot_wallet_script_pub_key,required"`
 	HotWalletRedeemScript string `fig:"hot_wallet_redeem_script,required"`
 
+	OffchainCurrency   string `fig:"offchain_currency,required"`
+	OffchainBlockchain string `fig:"offchain_blockchain,required"`
+
 	MinWithdrawAmount int64 `fig:"min_withdraw_amount,required"`
 
 	SignerKP keypair.Full `fig:"signer,required" mapstructure:"signer"`
+}
+
+func (c Config) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"hot_wallet_address":        c.HotWalletAddress,
+		"hot_wallet_script_pub_key": c.HotWalletScriptPubKey,
+		"hot_wallet_redeem_script":  c.HotWalletRedeemScript,
+		"offchain_currency":         c.OffchainCurrency,
+		"offchain_blockchain":       c.OffchainBlockchain,
+		"min_withdraw_amount":       c.MinWithdrawAmount,
+	}
 }
 
 func NewConfig(configData map[string]interface{}) (*Config, error) {

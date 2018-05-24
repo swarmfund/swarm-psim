@@ -3,7 +3,6 @@ package bitcoin
 import (
 	"encoding/hex"
 
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -227,14 +226,6 @@ func (c Client) parseTX(txHex string) (*btcutil.Tx, error) {
 
 func (c Client) IsTestnet() bool {
 	return c.connector.IsTestnet()
-}
-
-func (c Client) GetNetParams() *chaincfg.Params {
-	if c.connector.IsTestnet() {
-		return &chaincfg.TestNet3Params
-	} else {
-		return &chaincfg.MainNetParams
-	}
 }
 
 func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {

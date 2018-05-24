@@ -165,7 +165,9 @@ btc_deposit:
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # satoshis (0.005 BTC)
-  deposit_asset: BTC
+  deposit_asset: BTC #TokenD asset code
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
   external_system: 1
   fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
   disable_verify: false # optional field
@@ -180,7 +182,9 @@ btc_deposit_verify:
   # Should actually be 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
-  deposit_asset: BTC
+  deposit_asset: BTC #TokenD asset code
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
   fixed_deposit_fee: 100000 # 0.001 BTC (integer in satoshis)
 
   signer: S_SOME_VALID_PRIVATE_KEY
@@ -222,7 +226,8 @@ btc_funnel:
   dust_output_limit: 0.005 # (float in BTC)
   max_fee_per_kb: 0.00024 # 24000 satoshi (float in BTC)
   blocks_to_be_included: 4 # from 2 to 25
-  offchain_blockchain: Testnet
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
 
   min_balance_alarm_threshold: 100 # (float in BTC)
   min_balance_alarm_period: 1h

@@ -11,8 +11,9 @@ import (
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
+	"gitlab.com/tokend/go/amount"
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -22,7 +23,6 @@ type BTCClient interface {
 	GetBlock(blockIndex uint64) (*btcutil.Block, error)
 
 	IsTestnet() bool
-	GetNetParams() *chaincfg.Params
 }
 
 // CommonBTCHelper is BTC specific implementation of the OffchainHelper interface from package deposit.
@@ -32,6 +32,7 @@ type CommonBTCHelper struct {
 	depositAsset     string
 	minDepositAmount uint64
 	fixedDepositFee  uint64
+	netParams        *chaincfg.Params
 
 	btcClient BTCClient
 }
@@ -43,9 +44,17 @@ func NewBTCHelper(
 	depositAsset string,
 	minDepositAmount uint64,
 	fixedDepositFee uint64,
+	currency, blockchain string,
 
-	btcClient BTCClient,
-) *CommonBTCHelper {
+	btcClient BTCClient) (*CommonBTCHelper, error) {
+
+	netParams, err := bitcoin.GetNetParams(currency, blockchain)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
+			"currency":   currency,
+			"blockchain": blockchain,
+		})
+	}
 
 	return &CommonBTCHelper{
 		log: log,
@@ -53,9 +62,10 @@ func NewBTCHelper(
 		depositAsset:     depositAsset,
 		minDepositAmount: minDepositAmount,
 		fixedDepositFee:  fixedDepositFee,
+		netParams:        netParams,
 
 		btcClient: btcClient,
-	}
+	}, nil
 }
 
 func (h CommonBTCHelper) GetLastKnownBlockNumber() (uint64, error) {
@@ -114,7 +124,7 @@ func (h CommonBTCHelper) parseTX(tx btcutil.Tx) deposit.Tx {
 }
 
 func (h CommonBTCHelper) parseOut(out wire.TxOut) (*deposit.Out, error) {
-	scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, h.btcClient.GetNetParams())
+	scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, h.netParams)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to extract PK script Addresses from TX Output")
 	}

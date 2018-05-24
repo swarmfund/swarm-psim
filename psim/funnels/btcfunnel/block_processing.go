@@ -73,7 +73,7 @@ func (s *Service) streamOurOuts(block *btcutil.Block, outsCh chan<- bitcoin.Out)
 		for i, out := range tx.MsgTx().TxOut {
 			fields["out_number"] = i
 
-			scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, s.btcClient.GetNetParams())
+			scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, s.netParams)
 			if err != nil {
 				// Just a weird TX Output in the Blockchain - just ignoring.
 				continue

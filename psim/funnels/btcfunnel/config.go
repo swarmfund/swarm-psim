@@ -15,6 +15,7 @@ type Config struct {
 	DustOutputLimit    float64 `fig:"dust_output_limit,required"`
 	BlocksToBeIncluded uint    `fig:"blocks_to_be_included,required"` // From 2 to 25
 	MaxFeePerKB        float64 `fig:"max_fee_per_kb,required"`
+	OffchainCurrency   string `fig:"offchain_currency,required"`
 	OffchainBlockchain string  `fig:"offchain_blockchain,required"`
 
 	MinBalanceAlarmThreshold float64       `fig:"min_balance_alarm_threshold,required"`
