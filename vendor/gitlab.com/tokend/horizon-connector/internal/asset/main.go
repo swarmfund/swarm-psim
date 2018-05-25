@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/tokend/horizon-connector/internal"
-	"gitlab.com/tokend/horizon-connector/internal/resources"
+	"gitlab.com/tokend/regources"
 )
 
 type Q struct {
@@ -19,7 +19,7 @@ func NewQ(client internal.Client) *Q {
 		client,
 	}
 }
-func (q Q) ByCode(code string) (*resources.Asset, error) {
+func (q Q) ByCode(code string) (*regources.Asset, error) {
 	endpoint := fmt.Sprintf("/assets/%s", code)
 	response, err := q.client.Get(endpoint)
 	if err != nil {
@@ -30,14 +30,14 @@ func (q Q) ByCode(code string) (*resources.Asset, error) {
 		return nil, nil
 	}
 
-	var asset resources.Asset
+	var asset regources.Asset
 	if err := json.Unmarshal(response, &asset); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return &asset, nil
 }
 
-func (q Q) Index() ([]resources.Asset, error) {
+func (q Q) Index() ([]regources.Asset, error) {
 	endpoint := "/assets"
 	response, err := q.client.Get(endpoint)
 	if err != nil {
@@ -48,7 +48,7 @@ func (q Q) Index() ([]resources.Asset, error) {
 		return nil, nil
 	}
 
-	var assets []resources.Asset
+	var assets []regources.Asset
 	if err := json.Unmarshal(response, &assets); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
