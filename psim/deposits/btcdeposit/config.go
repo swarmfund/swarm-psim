@@ -31,7 +31,7 @@ func NewConfig(configData map[string]interface{}) (*Config, error) {
 	err := figure.
 		Out(config).
 		From(configData).
-		With(figure.BaseHooks, utils.CommonHooks).
+		With(figure.BaseHooks, utils.CommonHooks, supervisor.DLFigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out")
