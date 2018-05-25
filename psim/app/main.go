@@ -201,6 +201,7 @@ func (app *App) isServiceEnabled(name string) bool {
 	return false
 }
 
+// DEPRECATED: Use running package instead
 func IsCanceled(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():

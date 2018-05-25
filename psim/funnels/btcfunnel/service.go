@@ -7,12 +7,14 @@ import (
 
 	"time"
 
+	"sync"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
@@ -79,9 +81,14 @@ func New(config Config, log *logan.Entry, btcClient BTCClient, netParams *chainc
 // Run is implementation of app.Service, Run is called by the app.
 // Run will return only when work is finished.
 func (s *Service) Run(ctx context.Context) {
-	s.log.Info("Starting.")
+	s.log.WithField("", s.config).Info("Starting.")
 
-	go s.monitorLowBalance(ctx)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		s.monitorLowBalance(ctx)
+		wg.Done()
+	}()
 
 	err := s.deriveKeys()
 	if err != nil {
@@ -90,13 +97,19 @@ func (s *Service) Run(ctx context.Context) {
 		return
 	}
 
-	app.RunUntilSuccess(ctx, s.log, "existing_blocks_fetcher", s.fetchExistingBlocks, 5*time.Second)
-	if app.IsCanceled(ctx) {
+	running.UntilSuccess(ctx, s.log, "existing_blocks_fetcher", s.fetchExistingBlocks, 5*time.Second, 10*time.Minute)
+	if running.IsCancelled(ctx) {
+		wg.Wait()
+		s.log.Info("Service stopped smoothly before starting to fetch new Blocks.")
 		return
 	}
 
+	// All existing Blocks are now fetched
 	s.log.Info("Started listening to newly appeared Blocks.")
-	app.RunOverIncrementalTimer(ctx, s.log, "new_blocks_fetcher", s.fetchNewBlock, 10*time.Second, 5*time.Second)
+	running.WithBackOff(ctx, s.log, "new_blocks_fetcher", s.fetchNewBlock, 10*time.Second, 5*time.Second, time.Hour)
+
+	wg.Wait()
+	s.log.Info("Service stopped smoothly.")
 }
 
 func (s *Service) deriveKeys() error {
