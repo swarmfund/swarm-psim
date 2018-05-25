@@ -31,6 +31,10 @@ func init() {
 
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
+		if config.ExternalSystem == 0 {
+			config.ExternalSystem = MustGetExternalSystemType(horizon.Assets(), config.DepositAsset)
+		}
+
 		addrProvider := addrstate.New(
 			ctx,
 			app.Log(ctx),
@@ -46,9 +50,6 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
 
-		if config.ExternalSystem == 0 {
-			config.ExternalSystem = MustGetExternalSystemType(horizon.Assets(), config.DepositAsset)
-		}
 		eth := app.Config(ctx).Ethereum()
 
 		return deposit.New(&deposit.Opts{

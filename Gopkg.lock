@@ -138,8 +138,8 @@
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
   packages = ["."]
-  revision = "57846a82817615f185b10cc40de8dc60c1ca5ae1"
-  version = "v0.4.5"
+  revision = "b78b27461c8163c45abf4ab3a8330d2b1ee9456a"
+  version = "v0.4.6"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -546,7 +546,6 @@
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
   revision = "023b9c716a08001f0464f43cf1d85dffb209273c"
-  version = "v1"
 
 [[projects]]
   branch = "master"
@@ -567,7 +566,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "3c89b8556d91033edbecc446803a1f5c8431f795"
+  revision = "4c971c6d1e18a394763ace81ee67328da9bb137e"
 
 [[projects]]
   branch = "master"
@@ -594,7 +593,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "5e2eb74740877a2ff82b3cdea8dfd68be59cfc5a"
+  revision = "d8655a4c6cb3cc63f11c97eb5a4295fa12623586"
 
 [[projects]]
   branch = "master"
@@ -611,7 +610,7 @@
   branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "9fcdb886170d6274b427f528a036ff53a57eb392"
+  revision = "818aed2a97732eacd2e346b79233ebef38f0d90c"
 
 [[projects]]
   branch = "master"
@@ -700,6 +699,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "224fe0730eed729e95d01c4bc2be79112629c0cba7d2e42f85e3e5047909cc16"
+  inputs-digest = "27817dd1f449e85be494aea63748230202d8385c0e6cf313be4daa63dd2990fc"
   solver-name = "gps-cdcl"
   solver-version = 1
