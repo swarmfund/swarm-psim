@@ -26,10 +26,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/mitchellh/mapstructure"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/multiplay/go-slack"
 
 [[constraint]]
@@ -79,10 +75,6 @@
 [[constraint]]
   name = "gitlab.com/distributed_lab/figure"
   branch = "master"
-
-[[constraint]]
-  name = "gitlab.com/distributed_lab/sse-go"
-  version = "1.0.0"
 
 [[override]]
   branch = "master"
