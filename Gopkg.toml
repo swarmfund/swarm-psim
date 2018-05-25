@@ -108,3 +108,11 @@
 [[constraint]]
   name = "github.com/ethereum/go-ethereum"
   version = "1.8.4"
+
+[prune]
+  non-go = true
+  go-tests = true
+
+  [[prune.project]]
+    name = "github.com/aws/aws-sdk-go"
+    unused-packages = true

@@ -1,1 +1,0 @@
-alter table requests add column hash varchar(255) not null;
