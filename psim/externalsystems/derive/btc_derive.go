@@ -1,4 +1,4 @@
-package internal
+package derive
 
 import (
 	"github.com/btcsuite/btcutil"
@@ -39,7 +39,7 @@ func (s *BTCFamilyDeriver) ChildAddress(i uint32) (string, error) {
 	return addr.EncodeAddress(), nil
 }
 
-func (s *BTCFamilyDeriver) ChildWIF(i uint32) (string, error) {
+func (s *BTCFamilyDeriver) ChildPrivate(i uint32) (string, error) {
 	child, err := s.key.Child(i)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to derive child")

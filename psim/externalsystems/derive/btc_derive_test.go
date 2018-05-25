@@ -1,4 +1,4 @@
-package internal
+package derive
 
 import (
 	"fmt"
@@ -75,7 +75,7 @@ func TestDeriveBTCFamilyChildAddress(t *testing.T) {
 	}
 }
 
-func TestDeriveBTCFamilyChildWIF(t *testing.T) {
+func TestDeriveBTCFamilyChildPrivate(t *testing.T) {
 	cases := []struct {
 		network  NetworkType
 		key      string
@@ -133,7 +133,7 @@ func TestDeriveBTCFamilyChildWIF(t *testing.T) {
 		t.Run(fmt.Sprintf("%d-%d", tc.network, tc.child), func(t *testing.T) {
 			deriver, err := NewBTCFamilyDeriver(tc.network, tc.key)
 			assert.NoError(t, err)
-			got, err := deriver.ChildWIF(tc.child)
+			got, err := deriver.ChildPrivate(tc.child)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, got)
 		})

@@ -1,4 +1,4 @@
-package internal
+package derive
 
 import "github.com/btcsuite/btcd/chaincfg"
 
@@ -9,6 +9,8 @@ const (
 	NetworkTypeBTCTestnet
 	NetworkTypeDashMainnet
 	NetworkTypeDashTestnet
+	NetworkTypeETHMainnet
+	NetworkTypeETHTestnet
 )
 
 var (
@@ -33,9 +35,9 @@ var (
 
 func NetworkParams(network NetworkType) *chaincfg.Params {
 	switch network {
-	case NetworkTypeBTCMainnet:
+	case NetworkTypeBTCMainnet, NetworkTypeETHMainnet:
 		return &chaincfg.MainNetParams
-	case NetworkTypeBTCTestnet:
+	case NetworkTypeBTCTestnet, NetworkTypeETHTestnet:
 		return &chaincfg.TestNet3Params
 	case NetworkTypeDashMainnet:
 		return DashMainnetChainParams

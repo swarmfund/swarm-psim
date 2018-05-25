@@ -1,4 +1,4 @@
-package internal
+package derive
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBTCFamilyMaster(t *testing.T) {
+func TestHDMaster(t *testing.T) {
 	cases := []struct {
 		network NetworkType
 		private string
@@ -34,10 +34,20 @@ func TestBTCFamilyMaster(t *testing.T) {
 			`^tprv`,
 			`^tpub`,
 		},
+		{
+			NetworkTypeETHMainnet,
+			`^xprv`,
+			`^xpub`,
+		},
+		{
+			NetworkTypeETHTestnet,
+			`^tprv`,
+			`^tpub`,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%d", tc.network), func(t *testing.T) {
-			master, err := NewBTCFamilyMaster(tc.network)
+			master, err := NewHDMaster(tc.network)
 			assert.NoError(t, err)
 			prv, err := master.ExtendedPrivate()
 			assert.NoError(t, err)
