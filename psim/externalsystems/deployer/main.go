@@ -29,6 +29,20 @@ type Opts struct {
 	Source        keypair.Address
 	Signer        keypair.Full
 	Horizon       *horizon.Connector
+	DeployerID    uint64
+}
+
+type Service struct {
+	opts Opts
+}
+
+func NewService(opts Opts) *Service {
+	return &Service{opts}
+}
+
+func (s *Service) Run(ctx context.Context) {
+	running.WithBackOff(ctx, s.opts.Log, "deployer-iteration", ExternalAccountDeployer(s.opts), 2*time.Second, 2*time.Second, 1*time.Hour)
+	<-ctx.Done()
 }
 
 func ExternalAccountDeployer(opts Opts) func(context.Context) error {
@@ -64,7 +78,7 @@ func ExternalAccountDeployer(opts Opts) func(context.Context) error {
 				running.UntilSuccess(context.Background(), opts.Log, "create-pool-entity", func(i context.Context) (bool, error) {
 					tx := opts.TXBuilder.Transaction(opts.Source)
 					for _, systemType := range opts.ExternalTypes {
-						tx = tx.Op(xdrbuild.CreateExternalPoolEntry(cast.ToInt32(systemType), data, s.deployerID))
+						tx = tx.Op(xdrbuild.CreateExternalPoolEntry(cast.ToInt32(systemType), address, opts.DeployerID))
 					}
 					tx = tx.Sign(opts.Signer)
 					envelope, err := tx.Marshal()
@@ -88,5 +102,16 @@ func ExternalAccountDeployer(opts Opts) func(context.Context) error {
 		}
 		opts.Log.Info("all good")
 		return nil
+	}
+}
+
+func ExternalSystemPoolEntityCount(horizon *horizon.Connector) func(string) (uint64, error) {
+	return func(systemType string) (uint64, error) {
+		stats, err := horizon.System().Statistics()
+		if err != nil {
+			return 0, errors.Wrap(err, "failed to get system stats")
+		}
+		count := stats.ExternalSystemPoolEntriesCount[systemType]
+		return count, nil
 	}
 }

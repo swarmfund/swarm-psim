@@ -1,6 +1,8 @@
 package derive
 
 import (
+	"math"
+
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/pkg/errors"
@@ -19,8 +21,11 @@ func NewBTCFamilyDeriver(network NetworkType, src string) (*BTCFamilyDeriver, er
 	return &BTCFamilyDeriver{network, key}, nil
 }
 
-func (s *BTCFamilyDeriver) ChildAddress(i uint32) (string, error) {
-	child, err := s.key.Child(i)
+func (s *BTCFamilyDeriver) ChildAddress(i uint64) (string, error) {
+	if i >= math.MaxUint32 {
+		panic("child overflow")
+	}
+	child, err := s.key.Child(uint32(i))
 	if err != nil {
 		return "", err
 	}
