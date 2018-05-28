@@ -8,6 +8,8 @@ import (
 
 	"encoding/json"
 
+	"encoding/hex"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,11 +21,10 @@ import (
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
-	"encoding/hex"
 )
 
 const (
-	ETHAssetCode                 = "ETH"
+	ETHAssetCode = "ETH"
 )
 
 func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
@@ -35,6 +36,11 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 		case <-ctx.Done():
 			return nil
 		case requestEvent := <-requestsEvents:
+			// To be sure now work is done once ctx is cancelled.
+			if running.IsCancelled(ctx) {
+				return nil
+			}
+
 			request, err := requestEvent.Unwrap()
 			if err != nil {
 				return errors.Wrap(err, "Received erroneous WithdrawRequestEvent")
@@ -53,10 +59,14 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 
 			logger.Info("Found interesting WithdrawRequest to approve/reject.")
 
-			err = s.processPendingTSWRequest(ctx, *request)
-			if err != nil {
-				return errors.Wrap(err, "Failed to process pending TwoStepWithdraw Request", fields)
-			}
+			running.UntilSuccess(ctx, s.log, "pending_request_processor", func(ctx context.Context) (bool, error) {
+				err = s.processPendingTSWRequest(ctx, *request)
+				if err != nil {
+					return false, errors.Wrap(err, "Failed to process pending TwoStepWithdraw Request", fields)
+				}
+
+				return true, nil
+			}, 5*time.Second, 10*time.Minute)
 
 			return nil
 		}
