@@ -8,7 +8,6 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/distributed_lab/logan/v3"
 	"context"
-	"bytes"
 )
 
 type Q struct {
@@ -61,21 +60,23 @@ func (q *Q) SubmitBlob(ctx context.Context, blobType, attrValue string, relation
 		blob.AddRelationship(k, v)
 	}
 
-	reqBB, err := json.Marshal(struct{
+	req := struct{
 		Data resources.Blob `json:"data"`
 	}{
 		Data: blob,
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to marshal request")
 	}
 
-	respBB, err := q.client.Post("/blobs", bytes.NewReader(reqBB))
+	statusCode, respBB, err :=q.client.PostJSON("/blobs", req)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to send request")
+		return "", errors.Wrap(err, "Failed to send request via Client")
 	}
 	fields := logan.F{
+		"status_code": statusCode,
 		"raw_response": string(respBB),
+	}
+
+	if !isStatusCodeSuccessful(statusCode) {
+		return "", errors.From(errors.New("Received unsuccessful status code"), fields)
 	}
 
 	var respBlob struct{
@@ -83,8 +84,12 @@ func (q *Q) SubmitBlob(ctx context.Context, blobType, attrValue string, relation
 	}
 	err = json.Unmarshal(respBB, &respBlob)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to unmarshal response bytes into Blob struct", fields)
+		return "", errors.Wrap(err, "Failed to unmarshal bytes of successful response into struct with Blob", fields)
 	}
 
 	return respBlob.Data.ID, nil
+}
+
+func isStatusCodeSuccessful(code int) bool {
+	return code >= 200 && code < 300
 }

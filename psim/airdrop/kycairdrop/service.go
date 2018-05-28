@@ -15,7 +15,7 @@ type IssuanceSubmitter interface {
 }
 
 type LedgerStreamer interface {
-	Run(ctx context.Context)
+	Run(ctx context.Context, cursor string)
 	GetStream() <-chan lchanges.TimedLedgerChange
 }
 

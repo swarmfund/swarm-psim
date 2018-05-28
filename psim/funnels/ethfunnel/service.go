@@ -15,7 +15,7 @@ import (
 
 var (
 	// Seems like constant value
-	gasPerTX = big.NewInt(21000)
+	gasPerTX = uint64(21000)
 )
 
 type Service struct {
@@ -206,7 +206,7 @@ func (s *Service) processAddr(ctx context.Context, address common.Address) (err 
 		types.NewTransaction(
 			nonce,
 			s.config.Destination,
-			new(big.Int).Sub(balance, new(big.Int).Mul(gasPerTX, s.config.GasPrice)),
+			new(big.Int).Sub(balance, new(big.Int).Mul(big.NewInt(int64(gasPerTX)), s.config.GasPrice)),
 			gasPerTX,
 			s.config.GasPrice,
 			nil),

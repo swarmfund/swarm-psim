@@ -10,13 +10,13 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/issuance"
+	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/app"
-	"gitlab.com/swarmfund/psim/psim/issuance"
-	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -27,7 +27,8 @@ var (
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
 type AddressProvider interface {
-	AddressAt(ctx context.Context, t time.Time, btcAddress string) (tokendAddress *string)
+	ExternalAccountAt(ctx context.Context, ts time.Time, externalSystem int32, externalData string) (address *string)
+	Balance(ctx context.Context, address string, asset string) (balance *string)
 }
 
 // Discovery must be implemented by Discovery(Consul) client to pass into Service constructor.
@@ -86,6 +87,8 @@ type Service struct {
 	verifierServiceName string
 	lastProcessedBlock  uint64
 	lastBlocksNotWatch  uint64
+	externalSystem      int32
+	disableVerify       bool
 
 	// TODO Interface
 	horizon         *horizon.Connector
@@ -112,6 +115,8 @@ func New(opts *Opts) *Service {
 		discovery:           opts.Discovery,
 		builder:             opts.Builder,
 		offchainHelper:      opts.OffchainHelper,
+		externalSystem:      opts.ExternalSystem,
+		disableVerify:       opts.DisableVerify,
 	}
 }
 
@@ -124,10 +129,12 @@ type Opts struct {
 	LastProcessedBlock  uint64
 	LastBlocksNotWatch  uint64
 	Horizon             *horizon.Connector
+	ExternalSystem      int32
 	AddressProvider     AddressProvider
 	Discovery           Discovery
 	Builder             *xdrbuild.Builder
 	OffchainHelper      OffchainHelper
+	DisableVerify       bool
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -206,13 +213,13 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 			continue
 		}
 
-		accountAddress := s.addressProvider.AddressAt(ctx, blockTime, out.Address)
+		accountAddress := s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, out.Address)
 		if app.IsCanceled(ctx) {
 			return nil
 		}
 
 		if accountAddress == nil {
-			// This addr58 is not among our watch addresses - ignoring this TxOUT.
+			// external address is not among our watch addresses, ignoring
 			continue
 		}
 
@@ -244,28 +251,33 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 }
 
 func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockTime time.Time, txHash string, outIndex uint, out Out, accountAddress string) error {
-	s.log.WithFields(logan.F{
+	fields := logan.F{
 		"block_number":    blockNumber,
 		"tx_hash":         txHash,
 		"out_index":       outIndex,
 		"offchain_addr":   out.Address,
 		"offchain_amount": out.Value,
 		"account_address": accountAddress,
-	}).Debug("Processing deposit.")
+	}
+	s.log.WithFields(fields).Debug("Processing deposit.")
 
-	balanceID, err := s.getBalanceID(accountAddress)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get BalanceID")
+	balanceID := s.addressProvider.Balance(ctx, accountAddress, s.offchainHelper.GetAsset())
+	if balanceID == nil {
+		// user does not have target balance
+		// unfortunate, but we don't care
+		s.log.WithFields(fields).Warn("no depost asset balance found")
+		return nil
 	}
 
 	valueWithoutDepositFee := out.Value - s.offchainHelper.GetFixedDepositFee()
 	emissionAmount := s.offchainHelper.ConvertToSystem(valueWithoutDepositFee)
 
 	reference := s.offchainHelper.BuildReference(blockNumber, txHash, out.Address, outIndex, 64)
+	// TODO check maxLen
 
 	issuanceOpt := issuance.RequestOpt{
 		Reference: reference,
-		Receiver:  balanceID,
+		Receiver:  *balanceID,
 		Asset:     s.offchainHelper.GetAsset(),
 		Amount:    emissionAmount,
 		Details: ExternalDetails{
@@ -276,13 +288,15 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 		}.Encode(),
 	}
 
-	err = s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuanceOpt)
+	fields = fields.Merge(logan.F{
+		"balance_id":              balanceID,
+		"converted_system_amount": emissionAmount,
+		"reference":               reference,
+	})
+
+	err := s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuanceOpt)
 	if err != nil {
-		return errors.Wrap(err, "Failed to process Issuance", logan.F{
-			"balance_id":              balanceID,
-			"converted_system_amount": emissionAmount,
-			"reference":               reference,
-		})
+		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
 	return nil
@@ -303,19 +317,18 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		"issuance":         issuanceOpt,
 	})
 
-	readyEnvelope, err := s.sendToVerifier(envelope)
-	if err != nil {
-		return errors.Wrap(err, "Failed to Verify Issuance TX")
-	}
-
-	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
-	if checkErr != nil {
-		return errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
-	}
-
-	envelopeBase64, err := xdr.MarshalBase64(*readyEnvelope)
-	if err != nil {
-		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
+	var envelopeBase64 string
+	if !s.disableVerify {
+		readyEnvelope, err := s.verifyIssuance(envelope, issuanceOpt)
+		if err != nil {
+			return errors.Wrap(err, "failed to verify issuance request")
+		}
+		envelopeBase64, err = xdr.MarshalBase64(*readyEnvelope)
+		if err != nil {
+			return errors.Wrap(err, "Failed to marshal fully signed Envelope")
+		}
+	} else {
+		envelopeBase64 = envelope
 	}
 
 	ok, err := issuance.SubmitEnvelope(ctx, envelopeBase64, s.horizon.Submitter())
@@ -332,20 +345,17 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 	return nil
 }
 
-func (s *Service) getBalanceID(accountAddress string) (string, error) {
-	balances, err := s.horizon.Accounts().Balances(accountAddress)
+func (s *Service) verifyIssuance(envelope string, issuanceOpt issuance.RequestOpt) (*xdr.TransactionEnvelope, error) {
+	readyEnvelope, err := s.sendToVerifier(envelope)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to get Account Balances from Horizon")
+		return nil, errors.Wrap(err, "Failed to Verify Issuance TX")
 	}
 
-	for _, b := range balances {
-		if b.Asset == s.offchainHelper.GetAsset() {
-			return b.BalanceID, nil
-		}
+	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
+	if checkErr != nil {
+		return nil, errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
 	}
-
-	// No BalanceID of the Offchain asset for the Account.
-	return "", ErrNoBalanceID
+	return readyEnvelope, nil
 }
 
 func (s *Service) sendToVerifier(envelope string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {

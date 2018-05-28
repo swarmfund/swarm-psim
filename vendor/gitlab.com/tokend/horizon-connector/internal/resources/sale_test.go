@@ -3,6 +3,7 @@ package resources
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"encoding/json"
 )
 
 func TestSaleUnmarshal(t *testing.T) {
@@ -60,7 +61,7 @@ func TestSaleUnmarshal(t *testing.T) {
 				  }
 				}`,
 			expected: Sale{
-				ID: 1,
+				ID: "1",
 				Details: SaleDetails{
 					Name: "sale name",
 				},
@@ -71,7 +72,8 @@ func TestSaleUnmarshal(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var got Sale
-			if err := got.UnmarshalJSON([]byte(tc.data)); err != nil {
+			err := json.Unmarshal([]byte(tc.data), &got)
+			if err != nil {
 				t.Fatal(err)
 			}
 			assert.EqualValues(t, tc.expected, got)

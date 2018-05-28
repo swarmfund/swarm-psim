@@ -7,15 +7,19 @@ type Account struct {
 	AccountType            string                  `json:"account_type"`
 	ExternalSystemAccounts []ExternalSystemAccount `json:"external_system_accounts"`
 	KYC                    AccountKYC              `json:"account_kyc"`
+	Referrer               string                  `json:"referrer"`
 }
 
 type ExternalSystemAccount struct {
 	Type struct {
-		Name  string `json:"name"`
-		Value int    `json:"value"`
+		// Name human readable asset name
+		Name string `json:"name"`
+		// Value external system type
+		Value int `json:"value"`
 	} `json:"type"`
-
-	Address string `json:"data"`
+	// AssetCode TokenD asset code
+	AssetCode string `json:"asset_code"`
+	Address   string `json:"data"`
 }
 
 type AccountKYC struct {

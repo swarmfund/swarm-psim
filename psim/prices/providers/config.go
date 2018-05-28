@@ -10,8 +10,8 @@ import (
 )
 
 type ProviderConfig struct {
-	Name   string        `mapstructure:"name,required"`
-	Period time.Duration `mapstructure:"period,required"`
+	Name   string        `fig:"name,required" mapstructure:"name,required"`
+	Period time.Duration `fig:"period,required" mapstructure:"period,required"`
 }
 
 func (c ProviderConfig) GetLoganFields() map[string]interface{} {

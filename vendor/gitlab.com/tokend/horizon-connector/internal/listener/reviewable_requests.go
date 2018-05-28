@@ -13,7 +13,7 @@ func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableR
 		return q.opQ.AllRequests(cursor)
 	}
 
-	return streamReviewableRequests(ctx, reqGetter, false)
+	return streamReviewableRequests(ctx, reqGetter, "", false)
 }
 
 // StreamAllKYCRequests streams all ReviewableRequests of type KYC from very beginning,
@@ -28,22 +28,35 @@ func (q *Q) StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time
 }
 
 func (q *Q) streamKYCRequests(ctx context.Context, filters string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
-	reqGetter := func(cursor string) ([]resources.Request, error) {
-		return q.opQ.Requests(filters, cursor, operation.KYCReviewableRequestType)
-	}
-
-	return streamReviewableRequests(ctx, reqGetter, stopOnEmptyPage)
+	return q.getAndStreamReviewableRequests(ctx, filters, "", operation.KYCReviewableRequestType, stopOnEmptyPage)
 }
 
+// StreamWithdrawalRequests streams all ReviewableRequests of type Withdraw and TwoStepWithdraw
 func (q *Q) StreamWithdrawalRequests(ctx context.Context) (<-chan ReviewableRequestEvent) {
-	reqGetter := func(cursor string) ([]resources.Request, error) {
-		return q.opQ.Requests("", cursor, operation.WithdrawalsReviewableRequestType)
-	}
-
-	return streamReviewableRequests(ctx, reqGetter, false)
+	return q.getAndStreamReviewableRequests(ctx, "", "", operation.WithdrawalsReviewableRequestType, false)
 }
 
-func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]resources.Request, error), stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
+// StreamWithdrawalRequestsOfAsset streams all Withdraw and TwoStepWithdraw ReviewableRequests
+// with filter by provided destAssetCode
+func (q *Q) StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder, endlessly bool) (<-chan ReviewableRequestEvent) {
+	getParams := fmt.Sprintf("dest_asset_code=%s", destAssetCode)
+
+	if reverseOrder {
+		getParams += "&order=desc"
+	}
+
+	return q.getAndStreamReviewableRequests(ctx, getParams, "", operation.WithdrawalsReviewableRequestType, !endlessly)
+}
+
+func (q *Q) getAndStreamReviewableRequests(ctx context.Context, getParams, cursor string, reqType operation.ReviewableRequestType, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
+	reqGetter := func(cursor string) ([]resources.Request, error) {
+		return q.opQ.Requests(getParams, cursor, reqType)
+	}
+
+	return streamReviewableRequests(ctx, reqGetter, cursor, stopOnEmptyPage)
+}
+
+func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]resources.Request, error), cursor string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
 	reqStream := make(chan ReviewableRequestEvent)
 
 	go func() {
@@ -51,7 +64,6 @@ func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string)
 			close(reqStream)
 		}()
 
-		cursor := ""
 		for {
 			select {
 			case <-ctx.Done():

@@ -5,12 +5,12 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -41,7 +41,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	return depositveri.New(
-		"bitcoin",
+		"BTC",
 		conf.ServiceBTCDepositVerify,
 		log,
 		config.Signer,

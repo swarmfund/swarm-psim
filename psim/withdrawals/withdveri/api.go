@@ -37,7 +37,7 @@ func (s *Service) serveAPI(ctx context.Context) {
 }
 
 func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, neededRequestType int32) (request *horizon.Request, checkErr string, err error) {
-	request, err = withdraw.ObtainRequest(s.horizon.Client(), requestID)
+	request, err = s.requestsConnector.GetRequestByID(requestID)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "Failed to Obtain WithdrawRequest from Horizon")
 	}

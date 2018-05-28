@@ -6,13 +6,15 @@ import (
 
 	"crypto/sha256"
 
+	"context"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"gitlab.com/tokend/go/amount"
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -162,7 +164,7 @@ func (h CommonBTCHelper) ConvertAmount(destinationAmount int64) int64 {
 }
 
 // CreateTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) CreateTX(addr string, amount int64) (txHex string, err error) {
+func (h CommonBTCHelper) CreateTX(_ context.Context, addr string, amount int64) (txHex string, err error) {
 	floatAmount := float64(amount) / 100000000
 
 	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.hotWalletAddress, nil)
@@ -187,7 +189,7 @@ func (h CommonBTCHelper) SignTX(txHex string) (string, error) {
 }
 
 // SendTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) SendTX(txHex string) (txHash string, err error) {
+func (h CommonBTCHelper) SendTX(ctx context.Context, txHex string) (txHash string, err error) {
 	txHash, err = h.btcClient.SendRawTX(txHex)
 
 	if errors.Cause(err) == bitcoin.ErrAlreadyInChain {

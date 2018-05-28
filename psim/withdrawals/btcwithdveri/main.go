@@ -46,7 +46,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		log,
 		config.SourceKP,
 		config.SignerKP,
-		horizonConnector,
+		horizonConnector.Operations(),
 		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
 		listener,
 		globalConfig.Discovery(),
