@@ -1,7 +1,6 @@
 package withdraw
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"gitlab.com/distributed_lab/logan/v3"
@@ -97,26 +96,6 @@ func GetTXHex(request horizon.Request) (string, error) {
 	}
 
 	return txHex, nil
-}
-
-// ObtainRequest gets Request by the requestID from Horizon, using provided horizonConnector.
-// Error means that could not get response from Horizon
-// or failed to unmarshal the response into horizon.Request.
-func ObtainRequest(horizonClient *horizon.Client, requestID uint64) (*horizon.Request, error) {
-	respBytes, err := horizonClient.Get(fmt.Sprintf("/requests/%d", requestID))
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Request from Horizon")
-	}
-
-	var request horizon.Request
-	err = json.Unmarshal(respBytes, &request)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal Request from the Horizon response", logan.F{
-			"horizon_response": string(respBytes),
-		})
-	}
-
-	return &request, nil
 }
 
 // ProvePendingRequest returns empty string if the Request is:

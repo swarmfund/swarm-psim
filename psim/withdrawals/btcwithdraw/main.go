@@ -41,7 +41,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.SignerKP,
 		log,
 		horizonConnector.Listener(),
-		horizonConnector,
+		horizonConnector.Operations(),
+		horizonConnector.Submitter(),
 		builder,
 		globalConfig.Discovery(),
 		NewBTCHelper(

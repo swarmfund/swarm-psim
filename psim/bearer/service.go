@@ -13,7 +13,7 @@ import (
 )
 
 type SalesQ interface {
-	Sales() ([]horizon.Sale, error)
+	CoreSales() ([]horizon.CoreSale, error)
 }
 
 // CheckSalesStateHelperInterface is an interface allows to perform check sale state operation
@@ -76,7 +76,7 @@ func (s *Service) worker(ctx context.Context) error {
 }
 
 func (s *Service) checkSalesState(ctx context.Context) error {
-	sales, err := s.helper.Sales()
+	sales, err := s.helper.CoreSales()
 	if err != nil {
 		return errors.Wrap(err, "failed to get sales")
 	}

@@ -11,8 +11,7 @@ import (
 )
 
 type TXStreamer interface {
-	//StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
-	StreamTXs(ctx context.Context, stopOnEmptyPage bool) <-chan horizon.TXPacket
+	StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyPage bool) <-chan horizon.TXPacket
 }
 
 type TimedLedgerChange struct {
@@ -49,9 +48,12 @@ func (s Streamer) GetStream() <-chan TimedLedgerChange {
 // - txStream was closed (if stopOnEmptyPage is true)
 //
 // Run is not supposed to be called more than once - it closes LC stream in defer.
-func (s *Streamer) Run(ctx context.Context) {
+//
+// Cursor is PagingToken for Transaction to start from,
+// use empty string to start from the very beginning of Transactions history.
+func (s *Streamer) Run(ctx context.Context, cursor string) {
 	s.log.Info("Started listening Transactions stream.")
-	txStream := s.txStreamer.StreamTXs(ctx, s.stopOnEmptyPage)
+	txStream := s.txStreamer.StreamTXsFromCursor(ctx, "", s.stopOnEmptyPage)
 
 	defer func() {
 		close(s.timedChangesStream)

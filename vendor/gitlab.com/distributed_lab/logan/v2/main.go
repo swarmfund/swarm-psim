@@ -8,6 +8,7 @@ import (
 )
 
 // DEPRECATED
+// Use Entry from logan/v3 instead
 func New() *Entry {
 	lastLogLevel := AllLevels[len(AllLevels)-1]
 
@@ -20,6 +21,7 @@ func New() *Entry {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func (e *Entry) Out(writer io.Writer) *Entry {
 	logger := copyLogger(e.Entry.Logger)
 	logger.Out = writer
@@ -30,6 +32,7 @@ func (e *Entry) Out(writer io.Writer) *Entry {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func (e *Entry) Formatter(formatter Formatter) *Entry {
 	logger := copyLogger(e.Entry.Logger)
 	logger.Formatter = formatter
@@ -40,6 +43,7 @@ func (e *Entry) Formatter(formatter Formatter) *Entry {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func (e *Entry) Level(level Level) *Entry {
 	logger := copyLogger(e.Entry.Logger)
 	logger.Level = logrus.Level(level)

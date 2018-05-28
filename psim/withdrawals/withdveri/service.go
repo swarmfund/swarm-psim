@@ -8,12 +8,16 @@ import (
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
 )
+
+type RequestsConnector interface {
+	GetRequestByID(requestID uint64) (*horizon.Request, error)
+}
 
 type Service struct {
 	serviceName string
@@ -23,7 +27,7 @@ type Service struct {
 	sourceKP keypair.Address
 	signerKP keypair.Full
 
-	horizon    *horizon.Connector
+	requestsConnector RequestsConnector
 	xdrbuilder *xdrbuild.Builder
 	listener   net.Listener
 
@@ -39,7 +43,7 @@ func New(
 	log *logan.Entry,
 	sourceKP keypair.Address,
 	signerKP keypair.Full,
-	horizon *horizon.Connector,
+	requestsConnector RequestsConnector,
 	builder *xdrbuild.Builder,
 	listener net.Listener,
 	discoveryClient *discovery.Client,
@@ -55,7 +59,7 @@ func New(
 		sourceKP: sourceKP,
 		signerKP: signerKP,
 
-		horizon:    horizon,
+		requestsConnector:    requestsConnector,
 		xdrbuilder: builder,
 		listener:   listener,
 

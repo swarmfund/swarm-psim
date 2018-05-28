@@ -1,11 +1,11 @@
 package ethsupervisor
 
 import (
-	"time"
 	"context"
+	"time"
 )
 
 type State interface {
-	AddressAt(context.Context, time.Time, string) *string
-	Balance(context.Context, string) *string
+	ExternalAccountAt(context.Context, time.Time, int32, string) *string
+	Balance(context.Context, string, string) *string
 }

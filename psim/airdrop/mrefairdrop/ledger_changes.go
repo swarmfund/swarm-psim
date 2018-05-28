@@ -14,7 +14,7 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 	s.log.WithField("snapshot_time", s.config.SnapshotTime).Info("Started listening TimedLedgers stream.")
 	ledgerStream := s.ledgerStreamer.GetStream()
 	// TODO Listen to Streamer stop
-	go s.ledgerStreamer.Run(ctx)
+	go s.ledgerStreamer.Run(ctx, "")
 
 	var snapshotPassAnnounced bool
 	for {

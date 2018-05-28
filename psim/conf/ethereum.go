@@ -10,9 +10,9 @@ import (
 
 func (c *ViperConfig) Ethereum() *ethclient.Client {
 	config := struct {
-		Proto string
-		Host  string
-		Port  int
+		Proto string `fig:"proto"`
+		Host  string `fig:"host"`
+		Port  int    `fig:"port"`
 	}{
 		Proto: "http",
 		Host:  "localhost",

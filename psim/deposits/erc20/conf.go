@@ -6,24 +6,27 @@ import (
 )
 
 type DepositConfig struct {
-	Source        keypair.Address
-	Signer        keypair.Full
-	Cursor        uint64
-	Confirmations uint64
-	BaseAsset     string
-	// DepositAsset swarm asset to deposit
-	DepositAsset string
+	Source        keypair.Address `fig:"source,required"`
+	Signer        keypair.Full    `fig:"signer,required"`
+	Cursor        uint64          `fig:"cursor,required"`
+	Confirmations uint64          `fig:"confirmations"`
+	// DepositAsset TokenD asset to deposit
+	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
-	Token common.Address
+	Token common.Address `fig:"token"`
+	// ExternalSystem type used for matching deposit addresses,
+	// if set will override one in deposit asset details
+	ExternalSystem int32 `fig:"external_system"`
+	DisableVerify  bool  `fig:"disable_verify"`
 }
 
 type VerifyConfig struct {
-	Host          string
-	Port          int
-	Signer        keypair.Full
-	Confirmations uint64
+	Host          string       `fig:"host"`
+	Port          int          `fig:"port"`
+	Signer        keypair.Full `fig:"signer,required"`
+	Confirmations uint64       `fig:"confirmations"`
 	// DepositAsset swarm asset to deposit
-	DepositAsset string
+	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
-	Token common.Address
+	Token common.Address `fig:"token,required"`
 }
