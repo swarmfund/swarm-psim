@@ -131,7 +131,7 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, addr string, amount *b
 		Value:    big.NewInt(0),
 		GasPrice: s.config.GasPrice,
 		// GasLimit probably depends on the Contract, for current MultisigWallet Contract GasPrice was 186552 in Ropsten.
-		GasLimit: 200000,
+		GasLimit: s.config.GasLimit,
 		Context:  ctx,
 	}
 

@@ -230,7 +230,7 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, transferID *big.Int) (
 		Value:    big.NewInt(0),
 		GasPrice: s.config.GasPrice,
 		// GasLimit probably depends on the Contract and method
-		GasLimit: 200000,
+		GasLimit: s.config.GasLimit,
 		Context:  ctx,
 	}
 

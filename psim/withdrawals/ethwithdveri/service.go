@@ -5,6 +5,8 @@ import (
 
 	"sync"
 
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -15,7 +17,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
-	"math/big"
 )
 
 type WithdrawRequestsStreamer interface {
@@ -77,7 +78,7 @@ func NewService(
 	}
 
 	return &Service{
-		log:        log.WithField("service_name", conf.ServiceETHWithdraw),
+		log:        log.WithField("service_name", conf.ServiceETHWithdrawVerify),
 		config:     config,
 		ethAddress: ethAddress,
 
