@@ -284,7 +284,7 @@ func (s *Service) rejectWithdrawRequest(request horizon.Request, rejectReason st
 		Hash:   request.Hash,
 		Action: xdr.ReviewRequestOpActionPermanentReject,
 		Details: xdrbuild.WithdrawalDetails{
-			ExternalDetails: "",
+			ExternalDetails: "{}",
 		},
 		Reason: rejectReason,
 	}).Sign(s.config.Signer).Marshal()
