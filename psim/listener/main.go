@@ -9,29 +9,28 @@ import (
 
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+
+	"gitlab.com/swarmfund/psim/psim/listener/internal"
 )
 
 func init() {
-	app.RegisterService(conf.ListenerService, setup)
+	app.RegisterService(conf.ListenerService, setupService)
 }
 
-func setup(ctx context.Context) (app.Service, error) {
+// TODO make targets to be loaded from config
+func setupService(ctx context.Context) (app.Service, error) {
 	appConfig := app.Config(ctx)
-	listenerConfig := Config{}
-
+	listenerConfig := ServiceConfig{}
 	err := figure.
 		Out(&listenerConfig).
 		From(appConfig.Get(conf.ListenerService)).
 		With(figure.BaseHooks, utils.ETHHooks).
 		Please()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to figure out listener config")
+		return nil, errors.Wrap(err, "failed to figure out extractor config")
 	}
 	horizonConnector := appConfig.Horizon().WithSigner(listenerConfig.Signer)
-	txStreamResponse := horizonConnector.Listener().StreamTXsFromCursor(ctx, "now", false)
-	requestsProvider := horizonConnector.Operations()
-	accountsProvider := horizonConnector.Accounts()
+	var txStreamResponse TokendExtractor = horizonConnector.Listener().StreamTXsFromCursor(ctx, "", false)
 	logger := app.Log(ctx).WithField("service", conf.ListenerService)
-	listener := NewListener(requestsProvider, txStreamResponse, accountsProvider, logger)
-	return New(listenerConfig, *listener, logger), nil
+	return NewService(listenerConfig, txStreamResponse, *NewTokendHandler(horizonConnector.Operations(), horizonConnector.Accounts()), internal.NewGenericBroadcaster(NewMixpanelTarget("371c0e972d45715b770c176386f82971")), logger), nil
 }
