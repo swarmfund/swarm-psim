@@ -12,6 +12,8 @@ import (
 
 	"encoding/hex"
 
+	"strings"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -186,8 +188,12 @@ func (s *Service) waitForTXWithTransfer(ctx context.Context, ethTX1Hash string) 
 }
 
 func (s *Service) getTransferRejectReason(transfer Transfer, expectedAddress string, expectedAmount *big.Int) string {
-	if transfer.To.String() != expectedAddress {
-		return fmt.Sprintf("Invalid destination Address in Transfer, expected (%s), got (%s).", expectedAddress, transfer.To.String())
+	transferTo := strings.ToLower(transfer.To.String())
+	// Just in case
+	expectedAddress = strings.ToLower(expectedAddress)
+
+	if transferTo != expectedAddress {
+		return fmt.Sprintf("Invalid destination Address in Transfer, expected (%s), got (%s).", expectedAddress, transferTo)
 	}
 	if transfer.Amount.Cmp(expectedAmount) != 0 {
 		return fmt.Sprintf("Invalid Amount in Transfer, expected (%s), got (%s).", expectedAmount.String(), transfer.Amount.String())
