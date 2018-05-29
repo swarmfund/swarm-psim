@@ -47,7 +47,6 @@ func NewService(
 	entityCount EntityCountGetter,
 	eth *ethclient.Client,
 ) *Service {
-
 	return &Service{
 		log:         log,
 		config:      config,

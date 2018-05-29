@@ -8,6 +8,9 @@ import (
 
 	// import services for side effects
 
+	// derivers
+	_ "gitlab.com/swarmfund/psim/psim/externalsystems/btc"
+
 	// deposits
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdepositveri"
