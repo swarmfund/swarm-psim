@@ -202,7 +202,7 @@ eth_contracts_deploy:
   signer: SBQ3YVRINQOJDT6FQD3EFMZ5THZFWVSQ37RZYTFZBF3TEE5GPBS6NNXD
   eth_private_key: "1E2E09CC58A8CA23217C8559AA4BA58CD34379EB9F1716DB422DC0BA6E701F18"
   contract_owner: "0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF" # 0002
-  gas_price: 1000000000 # TODO Add comment
+  gas_price: 1 # In GWei
   external_types:
     - 9
     - 10

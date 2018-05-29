@@ -16,7 +16,9 @@ type ByHasher interface {
 }
 
 func EnsureHashMined(ctx context.Context, log *logan.Entry, getter ByHasher, hash common.Hash) {
-	running.UntilSuccess(ctx, log.WithField("tx_hash", hash.String()), "ensure-hash-mined", func(ctx context.Context) (bool, error) {
+	logger := log.WithField("tx_hash", hash.String())
+
+	running.UntilSuccess(ctx, logger, "ensure-hash-mined", func(ctx context.Context) (bool, error) {
 		tx, isPending, err := getter.TransactionByHash(ctx, hash)
 		if err != nil {
 			return false, errors.Wrap(err, "failed to get tx")

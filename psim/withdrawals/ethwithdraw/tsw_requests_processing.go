@@ -57,7 +57,7 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 				return nil
 			}
 
-			logger.Info("Found interesting WithdrawRequest to approve/reject.")
+			logger.Info("Found interesting TSWRequest to approve/reject.")
 
 			running.UntilSuccess(ctx, s.log, "pending_request_processor", func(ctx context.Context) (bool, error) {
 				err = s.processPendingTSWRequest(ctx, *request)

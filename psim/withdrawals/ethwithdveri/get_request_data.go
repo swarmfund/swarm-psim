@@ -3,6 +3,8 @@ package ethwithdveri
 import (
 	"math/big"
 
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -40,7 +42,7 @@ func getTX2(request horizon.Request) (string, *types.Transaction, error) {
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Failed to get version of the Request")
 	}
-	// TODO Change following if, if supported versions change.
+	// Change following if, if supported versions change.
 	if version != 2 {
 		// Not a v2 WithdrawRequests, this service is unable to process them.
 		return "", nil, nil
@@ -129,15 +131,17 @@ func (s *Service) getWithdrawRejectReason(request horizon.Request, countedAssetA
 	return ""
 }
 
-func isProcessablePendingRequest(request horizon.Request) bool {
-	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
-		// WithdrawVerify service only approves Withdraw Requests, TwoStepWithdraw Requests were approved by the Withdraw service.
-		return false
-	}
-	if request.State != RequestStatePending {
-		// We are only interested in pending WithdrawRequests
-		return false
+func getRequestNotProcessableReason(request horizon.Request) string {
+	// Just in case, should never happen as filters only request Withdrawal requests
+	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) && request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+		return fmt.Sprintf("Invalid RequestType (%d).", request.Details.RequestType)
 	}
 
-	return true
+	if request.State != RequestStatePending {
+		// We are only interested in pending WithdrawRequests
+		return fmt.Sprintf("Invalid Request State (%d).", request.State)
+
+	}
+
+	return ""
 }
