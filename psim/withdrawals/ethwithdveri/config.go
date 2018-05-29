@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/keypair"
+	"strings"
 )
 
 type Config struct {
@@ -32,16 +33,21 @@ type Config struct {
 	MinWithdrawAmount *big.Int `fig:"min_withdraw_amount,required"`
 	// GasPrice transaction gas price in Wei
 	GasPrice *big.Int `fig:"gas_price,required"`
+	GasLimit uint64   `fig:"gas_limit,required"`
+
+	ETHTxsWhiteList []string `fig:"eth_txs_white_list"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"multisig_wallet_contract_address": c.MultisigWallet.String(),
-		"asset":           c.Asset,
-		"asset_precision": c.AssetPrecision,
-		"token_address":   c.TokenAddress.String(),
-		"threshold":       c.MinWithdrawAmount,
-		"gas_price":       c.GasPrice.String(),
+		"asset":              c.Asset,
+		"asset_precision":    c.AssetPrecision,
+		"token_address":      c.TokenAddress.String(),
+		"threshold":          c.MinWithdrawAmount,
+		"gas_price":          c.GasPrice.String(),
+		"gas_limit":          c.GasLimit,
+		"eth_txs_white_list": c.ETHTxsWhiteList,
 	}
 }
 
@@ -51,6 +57,24 @@ func (c Config) Validate() error {
 	}
 
 	return nil
+}
+
+func (c Config) IsETHTxWhitelisted(ethTXHash string) bool {
+	if strings.HasPrefix(ethTXHash, "0x") {
+		ethTXHash = ethTXHash[2:]
+	}
+
+	for _, h := range c.ETHTxsWhiteList {
+		if strings.HasPrefix(h, "0x") {
+			h = h[2:]
+		}
+
+		if h == ethTXHash {
+			return true
+		}
+	}
+
+	return false
 }
 
 func NewConfig(configData map[string]interface{}) (*Config, error) {

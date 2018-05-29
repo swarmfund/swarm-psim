@@ -35,15 +35,20 @@ func (s *Service) submitAllETHTransactionsOnce(ctx context.Context) {
 	requestsEvents := s.withdrawRequestsStreamer.StreamWithdrawalRequestsOfAsset(ctx, s.config.Asset, false, false)
 
 	// This doneCtx is used to exit WithBackOff from inside.
-	doneCtx, notifyNoMoreRequests := context.WithCancel(ctx)
+	doneCtx, notifyEndOfRequests := context.WithCancel(ctx)
 	running.WithBackOff(doneCtx, s.log, "eth_txs_submitter", func(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return nil
 		case requestEvent, ok := <-requestsEvents:
+			// To make sure no work is tired to be done after ctx is cancelled.
+			if running.IsCancelled(ctx) {
+				return nil
+			}
+
 			if !ok {
 				// No more Requests
-				notifyNoMoreRequests()
+				notifyEndOfRequests()
 				return nil
 			}
 
@@ -53,6 +58,12 @@ func (s *Service) submitAllETHTransactionsOnce(ctx context.Context) {
 			}
 			fields := logan.F{
 				"request": request,
+			}
+
+			if request.Details.RequestType == int32(xdr.ReviewableRequestTypeWithdraw) && request.State == RequestStatePending {
+				// Found pending (not approved/rejected) WithdrawRequest, can't proceed until this WithdrawRequest is processed.
+				notifyEndOfRequests()
+				return nil
 			}
 
 			if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
@@ -96,6 +107,11 @@ func (s *Service) processApprovedWithdrawRequest(ctx context.Context, request ho
 	if ethTX != nil && !isPending {
 		// Everything is fine, TX is in ETH blockchain - nothing to do
 		logger.Debug("Found already submitted ETH TX from WithdrawRequest from Core, skipping it.")
+		return nil
+	}
+
+	if s.config.IsETHTxWhitelisted(tx.Hash().String()) {
+		logger.Info("Found white-listed ETH transaction before submission, skipping it.")
 		return nil
 	}
 

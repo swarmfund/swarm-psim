@@ -12,6 +12,8 @@ import (
 
 	"encoding/hex"
 
+	"strings"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -38,6 +40,11 @@ func (s *Service) processWithdrawRequestsInfinitely(ctx context.Context) {
 		case <-ctx.Done():
 			return nil
 		case requestEvent := <-requestsEvents:
+			// To be sure now work is done once ctx is cancelled.
+			if running.IsCancelled(ctx) {
+				return nil
+			}
+
 			request, err := requestEvent.Unwrap()
 			if err != nil {
 				return errors.Wrap(err, "Received erroneous WithdrawRequestEvent")
@@ -56,10 +63,14 @@ func (s *Service) processWithdrawRequestsInfinitely(ctx context.Context) {
 
 			logger.Info("Found interesting WithdrawRequest to approve/reject.")
 
-			err = s.processPendingWithdrawRequest(ctx, *request)
-			if err != nil {
-				return errors.Wrap(err, "Failed to process pending Withdraw Request", fields)
-			}
+			running.UntilSuccess(ctx, s.log, "pending_request_processor", func(ctx context.Context) (bool, error) {
+				err = s.processPendingWithdrawRequest(ctx, *request)
+				if err != nil {
+					return false, errors.Wrap(err, "Failed to process pending Withdraw Request", fields)
+				}
+
+				return true, nil
+			}, 5*time.Second, 10*time.Minute)
 
 			return nil
 		}
@@ -186,8 +197,12 @@ func (s *Service) waitForTXWithTransfer(ctx context.Context, ethTX1Hash string) 
 }
 
 func (s *Service) getTransferRejectReason(transfer Transfer, expectedAddress string, expectedAmount *big.Int) string {
-	if transfer.To.String() != expectedAddress {
-		return fmt.Sprintf("Invalid destination Address in Transfer, expected (%s), got (%s).", expectedAddress, transfer.To.String())
+	transferTo := strings.ToLower(transfer.To.String())
+	// Just in case
+	expectedAddress = strings.ToLower(expectedAddress)
+
+	if transferTo != expectedAddress {
+		return fmt.Sprintf("Invalid destination Address in Transfer, expected (%s), got (%s).", expectedAddress, transferTo)
 	}
 	if transfer.Amount.Cmp(expectedAmount) != 0 {
 		return fmt.Sprintf("Invalid Amount in Transfer, expected (%s), got (%s).", expectedAmount.String(), transfer.Amount.String())
@@ -224,7 +239,7 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, transferID *big.Int) (
 		Value:    big.NewInt(0),
 		GasPrice: s.config.GasPrice,
 		// GasLimit probably depends on the Contract and method
-		GasLimit: 200000,
+		GasLimit: s.config.GasLimit,
 		Context:  ctx,
 	}
 
@@ -278,7 +293,7 @@ func (s *Service) rejectWithdrawRequest(request horizon.Request, rejectReason st
 		Hash:   request.Hash,
 		Action: xdr.ReviewRequestOpActionPermanentReject,
 		Details: xdrbuild.WithdrawalDetails{
-			ExternalDetails: "",
+			ExternalDetails: "{}",
 		},
 		Reason: rejectReason,
 	}).Sign(s.config.Signer).Marshal()
