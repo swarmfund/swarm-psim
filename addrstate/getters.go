@@ -41,9 +41,9 @@ func (w *Watcher) ExternalAccountAt(ctx context.Context, ts time.Time, systemTyp
 	return nil
 }
 
-func (w *Watcher) BindedExternalSystemEntities(ctx context.Context, ts time.Time, systemType int32) (result []string) {
-	w.ensureReached(ctx, ts)
-
+// BindExternalSystemEntities returns all known external data for systemType
+func (w *Watcher) BindedExternalSystemEntities(ctx context.Context, systemType int32) (result []string) {
+	w.ensureReached(ctx, time.Now())
 	w.state.Lock()
 	defer w.state.Unlock()
 
@@ -52,14 +52,8 @@ func (w *Watcher) BindedExternalSystemEntities(ctx context.Context, ts time.Time
 	}
 
 	entities := w.state.external[systemType]
-	for entity, states := range entities {
-		// FIXME iterate in reverse order
-		for _, state := range states {
-			if state.State == ExternalAccountBindingStateCreated && ts.After(state.UpdatedAt) {
-				// FIXME ABANDON THIS, ITERATE OVER ALL BINDED CONTRACTS.
-				result = append(result, entity)
-			}
-		}
+	for entity, _ := range entities {
+		result = append(result, entity)
 	}
 	return result
 }

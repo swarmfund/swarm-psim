@@ -546,7 +546,6 @@
   name = "gitlab.com/distributed_lab/running"
   packages = ["."]
   revision = "023b9c716a08001f0464f43cf1d85dffb209273c"
-  version = "v1"
 
 [[projects]]
   branch = "master"

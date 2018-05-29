@@ -3,11 +3,11 @@ package contractfunnel
 import (
 	"context"
 
-	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
 )
 
 func init() {
@@ -15,39 +15,42 @@ func init() {
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
-	globalConfig := app.Config(ctx)
-	log := app.Log(ctx)
-
-	var config Config
-	err := figure.
-		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceETHContractFunnel)).
-		With(figure.BaseHooks, utils.ETHHooks, hooks).
-		Please()
+	config, err := NewConfig(app.Config(ctx).Get(conf.ServiceETHContractFunnel))
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to figure out")
+		return nil, errors.Wrap(err, "failed to init config")
 	}
 
-	//ethWallet := eth.NewWallet()
-	//ethAddress, err := ethWallet.ImportHEX(config.ETHPrivateKey)
-	//if err != nil {
-	//	return nil, errors.Wrap(err, "Failed to import PrivKey hex into ETH Wallet")
-	//}
+	keypair, err := eth.NewKeypair(config.PrivateKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init keypair")
+	}
 
-	// TODO
-	//horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
+	horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
-	//horizonInfo, err := horizonConnector.Info()
-	//if err != nil {
-	//	return nil, errors.Wrap(err, "Failed to get Horizon info")
-	//}
+	mutators := make([]addrstate.StateMutator, 0, len(config.ExternalSystems))
+	for _, system := range config.ExternalSystems {
+		mutators = append(mutators, addrstate.ExternalSystemBindingMutator(system))
+	}
 
-	//builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
-
-	return NewService(
-		log,
-		config,
-		globalConfig.Ethereum(),
-		//ethWallet,
+	addrProvider := addrstate.New(
+		ctx,
+		app.Log(ctx),
+		mutators,
+		horizon.Listener(),
 	)
+
+	return &Service{
+		Opts: Opts{
+			app.Log(ctx),
+			config,
+			app.Config(ctx).Ethereum(),
+			keypair,
+			addrProvider,
+			config.ExternalSystems,
+			config.Tokens,
+			config.HotWallet,
+			config.Threshold,
+			config.GasPrice,
+		},
+	}, nil
 }
