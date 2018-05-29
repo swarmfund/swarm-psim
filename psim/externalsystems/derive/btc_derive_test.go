@@ -11,7 +11,7 @@ func TestDeriveBTCFamilyChildAddress(t *testing.T) {
 	cases := []struct {
 		network  NetworkType
 		key      string
-		child    uint32
+		child    uint64
 		expected string
 	}{
 		{
@@ -79,7 +79,7 @@ func TestDeriveBTCFamilyChildPrivate(t *testing.T) {
 	cases := []struct {
 		network  NetworkType
 		key      string
-		child    uint32
+		child    uint64
 		expected string
 	}{
 		{

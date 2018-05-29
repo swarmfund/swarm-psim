@@ -44,8 +44,11 @@ func (s *BTCFamilyDeriver) ChildAddress(i uint64) (string, error) {
 	return addr.EncodeAddress(), nil
 }
 
-func (s *BTCFamilyDeriver) ChildPrivate(i uint32) (string, error) {
-	child, err := s.key.Child(i)
+func (s *BTCFamilyDeriver) ChildPrivate(i uint64) (string, error) {
+	if i >= math.MaxUint32 {
+		panic("child overflow")
+	}
+	child, err := s.key.Child(uint32(i))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to derive child")
 	}
