@@ -32,6 +32,7 @@ type Config struct {
 	MinWithdrawAmount *big.Int `fig:"min_withdraw_amount,required"`
 	// GasPrice transaction gas price in Wei
 	GasPrice *big.Int `fig:"gas_price,required"`
+	GasLimit uint64 `fig:"gas_limit,required"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
@@ -42,6 +43,7 @@ func (c Config) GetLoganFields() map[string]interface{} {
 		"token_address":   c.TokenAddress.String(),
 		"threshold":       c.MinWithdrawAmount,
 		"gas_price":       c.GasPrice.String(),
+		"gas_limit":       c.GasLimit,
 	}
 }
 
