@@ -54,6 +54,7 @@ func init() {
 			config,
 			ethAddress,
 			horizonConnector.Listener(),
+			horizonConnector.Operations(),
 			builder,
 			horizonConnector.Submitter(),
 			app.Config(ctx).Ethereum(),

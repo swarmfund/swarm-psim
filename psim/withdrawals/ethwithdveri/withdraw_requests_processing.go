@@ -54,10 +54,10 @@ func (s *Service) processWithdrawRequestsInfinitely(ctx context.Context) {
 			}
 			logger := s.log.WithField("request", request)
 
-			requestIsInteresting := isProcessablePendingRequest(*request)
-			if !requestIsInteresting {
+			notProcessableReason := getRequestNotProcessableReason(*request)
+			if notProcessableReason != "" {
 				// Not a pending WithdrawRequests
-				logger.Debug("Found not interesting Request.")
+				logger.WithField("request_not_processable_reason", notProcessableReason).Debug("Found not interesting Request.")
 				return nil
 			}
 
@@ -79,6 +79,21 @@ func (s *Service) processWithdrawRequestsInfinitely(ctx context.Context) {
 
 // ProcessPendingWithdrawRequest prepares raw signed ETH TX and puts it into Request Approve.
 func (s *Service) processPendingWithdrawRequest(ctx context.Context, request horizon.Request) error {
+	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+		running.UntilSuccess(ctx, s.log.WithField("request_id", request.ID), "withdraw_first_step_approval_waiter",
+			func(ctx context.Context) (bool, error) {
+				freshRequest, err := s.requestGetter.GetRequestByID(request.ID)
+				if err != nil {
+					return false, errors.Wrap(err, "Failed to get Request by ID from Horizon", logan.F{"request": request})
+				}
+
+				request = *freshRequest
+				return request.Details.RequestType == int32(xdr.ReviewableRequestTypeWithdraw), nil
+			}, 10*time.Second, time.Minute)
+	}
+	logger := s.log.WithField("request", request)
+	logger.Info("Request has passed first step - ready to process it.")
+
 	withdrawRequest := request.Details.Withdraw
 
 	assetAmount := convertAmount(int64(withdrawRequest.Amount), s.config.AssetPrecision)
@@ -93,10 +108,7 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 			})
 		}
 
-		s.log.WithField("request", request).Warn("Rejected Withdraw Request successfully (due to initial validation fail).", logan.F{
-			"request":       request,
-			"reject_reason": rejectReason,
-		})
+		logger.WithField("reject_reason", rejectReason).Warn("Rejected Withdraw Request successfully (due to initial validation fail).")
 		return nil
 	}
 
@@ -131,10 +143,7 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 			})
 		}
 
-		s.log.WithField("request", request).Warn("Rejected Withdraw Request successfully (due to invalid Transfer).", logan.F{
-			"request":       request,
-			"reject_reason": rejectReason,
-		})
+		logger.WithField("reject_reason", rejectReason).Warn("Rejected Withdraw Request successfully (due to invalid Transfer).")
 		return nil
 	}
 

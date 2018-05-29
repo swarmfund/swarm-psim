@@ -23,6 +23,10 @@ type WithdrawRequestsStreamer interface {
 	StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
+type RequestGetter interface {
+	GetRequestByID(requestID uint64) (*horizon.Request, error)
+}
+
 type TXSubmitter interface {
 	SubmitE(txEnvelope string) (horizon.SubmitResponseDetails, error)
 }
@@ -47,6 +51,7 @@ type Service struct {
 	ethAddress common.Address
 
 	withdrawRequestsStreamer WithdrawRequestsStreamer
+	requestGetter            RequestGetter
 	xdrbuilder               *xdrbuild.Builder
 	txSubmitter              TXSubmitter
 
@@ -63,6 +68,7 @@ func NewService(
 	config Config,
 	ethAddress common.Address,
 	streamer WithdrawRequestsStreamer,
+	requestGetter RequestGetter,
 	xdrbuilder *xdrbuild.Builder,
 	txSubmitter TXSubmitter,
 	ethClient ETHClient,
@@ -83,6 +89,7 @@ func NewService(
 		ethAddress: ethAddress,
 
 		withdrawRequestsStreamer: streamer,
+		requestGetter:            requestGetter,
 		xdrbuilder:               xdrbuilder,
 		txSubmitter:              txSubmitter,
 
@@ -98,11 +105,11 @@ func (s *Service) Run(ctx context.Context) {
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	go func() {
-		s.submitETHTransactionsInfinitely(ctx)
-		wg.Done()
-	}()
+	//wg.Add(1)
+	//go func() {
+	//	s.submitETHTransactionsInfinitely(ctx)
+	//	wg.Done()
+	//}()
 
 	var err error
 	// blocking call here intentionally - we don't start approving requests until get proper ETH sequence

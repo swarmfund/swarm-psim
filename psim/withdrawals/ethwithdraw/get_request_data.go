@@ -38,7 +38,7 @@ func getTX1(request horizon.Request) (*types.Transaction, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get version of the Request")
 	}
-	// TODO Change following if, if supported versions change.
+	// Change following if, if supported versions change.
 	if version != 2 {
 		// Not a v2 WithdrawRequests, this service is unable to process them.
 		return nil, nil
