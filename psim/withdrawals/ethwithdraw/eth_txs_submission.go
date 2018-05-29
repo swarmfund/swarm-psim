@@ -109,6 +109,11 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 		return nil
 	}
 
+	if s.config.IsETHTxWhitelisted(tx.Hash().String()) {
+		logger.Info("Found white-listed ETH transaction before submission, skipping it.")
+		return nil
+	}
+
 	logger.Debug("Found not submitted ETH TX in WithdrawRequest in Core, submitting it.")
 
 	err = s.ethClient.SendTransaction(ctx, tx)
