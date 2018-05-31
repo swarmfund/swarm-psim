@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"time"
 
+	"strings"
+
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -89,7 +91,7 @@ func NewReferenceBuilder() *ReferenceBuilder {
 
 func (h *ReferenceBuilder) BuildReference(_ uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
 	// block number is not included in reference to mitigate chain branching
-	base := fmt.Sprintf("%s:%s:%d", txHash, offchainAddress, outIndex)
+	base := strings.ToLower(fmt.Sprintf("%s:%s:%d", txHash, offchainAddress, outIndex))
 	hash := hash.Hash([]byte(base))
 	return hex.EncodeToString(hash[:])
 }
