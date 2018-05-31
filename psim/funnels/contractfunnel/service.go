@@ -130,10 +130,10 @@ func (s *Service) Run(ctx context.Context) {
 							return s.Keypair.SignTX(transaction)
 						},
 					}, s.HotWallet, tokenaddr)
-					fields["tx_hash"] = tx.Hash()
 					if err != nil {
 						return errors.Wrap(err, "failed to withdraw token", fields)
 					}
+					fields["tx_hash"] = tx.Hash()
 
 					eth.EnsureHashMined(ctx, s.Log.WithFields(fields), s.Eth, tx.Hash())
 				}
