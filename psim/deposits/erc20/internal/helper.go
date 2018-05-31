@@ -92,6 +92,7 @@ func NewReferenceBuilder() *ReferenceBuilder {
 func (h *ReferenceBuilder) BuildReference(_ uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
 	// block number is not included in reference to mitigate chain branching
 	base := strings.ToLower(fmt.Sprintf("%s:%s:%d", txHash, offchainAddress, outIndex))
+	fmt.Println(base)
 	hash := hash.Hash([]byte(base))
 	return hex.EncodeToString(hash[:])
 }
