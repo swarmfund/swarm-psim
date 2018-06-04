@@ -7,9 +7,16 @@ import (
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
 	"gitlab.com/tokend/keypair"
 
+	"time"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/go/xdr"
+)
+
+const (
+	defaultServiceRetryTimeIncrement = 1 * time.Second
+	defaultMaxServiceRetryTime       = 30 * time.Second
 )
 
 type ServiceConfig struct {
@@ -35,7 +42,7 @@ func NewService(config ServiceConfig, extractor internal.Extractor, handler Toke
 }
 
 func (s *Service) Run(ctx context.Context) {
-	running.UntilSuccess(ctx, s.logger, conf.ListenerService, s.DispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
+	running.UntilSuccess(ctx, s.logger, conf.ListenerService, s.dispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
 }
 
 func (s *Service) registerProcessors() {
@@ -51,7 +58,7 @@ func (s *Service) registerProcessors() {
 
 }
 
-func (s *Service) DispatchEvents(ctx context.Context) (bool, error) {
+func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {
 	extractedTxData, err := s.extractor.Extract(ctx)
 	if err != nil {
 		return false, err
@@ -62,6 +69,7 @@ func (s *Service) DispatchEvents(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	err = s.broadcaster.BroadcastEvents(ctx, emittedEvents)
 	if err != nil {
 		return false, err

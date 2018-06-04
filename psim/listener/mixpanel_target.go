@@ -6,6 +6,8 @@ import (
 	"github.com/dukex/mixpanel"
 )
 
+const defaultMixpanelURL = ""
+
 // MixpanelTarget is used as Mixpanel client and target to broadcast events
 type MixpanelTarget struct {
 	mixpanel.Mixpanel

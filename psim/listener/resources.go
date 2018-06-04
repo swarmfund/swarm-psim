@@ -1,8 +1,6 @@
 package listener
 
 import (
-	"time"
-
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
 )
 
@@ -27,10 +25,3 @@ const (
 	OutputEventNameFundsInvested         BroadcastedEventName = "funds_invested"
 	OutputEventNameReferredUserPassedKyc BroadcastedEventName = "referred_user_passed_kyc"
 )
-
-const (
-	defaultServiceRetryTimeIncrement = 1 * time.Second
-	defaultMaxServiceRetryTime       = 30 * time.Second
-)
-
-const defaultMixpanelURL = ""

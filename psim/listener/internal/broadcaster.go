@@ -6,7 +6,6 @@ import (
 
 type Source <-chan []BroadcastedEvent
 
-// TODO review interface fields
 type Broadcaster interface {
 	SetSource(newSource Source)
 	SetTargets(newTargets []Target)

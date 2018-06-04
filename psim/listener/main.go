@@ -21,6 +21,7 @@ func init() {
 func setupService(ctx context.Context) (app.Service, error) {
 	appConfig := app.Config(ctx)
 	listenerConfig := ServiceConfig{}
+
 	err := figure.
 		Out(&listenerConfig).
 		From(appConfig.Get(conf.ListenerService)).
@@ -29,8 +30,15 @@ func setupService(ctx context.Context) (app.Service, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to figure out extractor config")
 	}
+
 	horizonConnector := appConfig.Horizon().WithSigner(listenerConfig.Signer)
 	var txStreamResponse TokendExtractor = horizonConnector.Listener().StreamTXsFromCursor(ctx, "", false)
 	logger := app.Log(ctx).WithField("service", conf.ListenerService)
-	return NewService(listenerConfig, txStreamResponse, *NewTokendHandler(horizonConnector.Operations(), horizonConnector.Accounts()), internal.NewGenericBroadcaster(NewMixpanelTarget("371c0e972d45715b770c176386f82971")), logger), nil
+
+	return NewService(
+		listenerConfig,
+		txStreamResponse,
+		*NewTokendHandler(horizonConnector.Operations(), horizonConnector.Accounts()),
+		internal.NewGenericBroadcaster(NewMixpanelTarget("371c0e972d45715b770c176386f82971")),
+		logger), nil
 }

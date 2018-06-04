@@ -15,7 +15,7 @@ type RequestProvider interface {
 
 type TokendHandler struct {
 	// TODO by next checkpoint invent better name
-	ProcessorByOpType map[xdr.OperationType]Processor
+	processorByOpType map[xdr.OperationType]Processor
 
 	requestsProvider RequestProvider
 
@@ -27,23 +27,25 @@ func NewTokendHandler(requestsProvider RequestProvider, accountsProvider Account
 }
 
 func (th *TokendHandler) SetProcessor(opType xdr.OperationType, processor Processor) {
-	th.ProcessorByOpType[opType] = processor
+	th.processorByOpType[opType] = processor
 }
 
 func (th *TokendHandler) Process(txData <-chan TxData) (<-chan []BroadcastedEvent, error) {
 	broadcastedEvents := make(chan []BroadcastedEvent)
+
 	go func() {
 		defer func() {
 			close(broadcastedEvents)
 		}()
 		for txDataEntry := range txData {
 			txType := txDataEntry.Op.Body.Type
-			process := th.ProcessorByOpType[txType]
+			process := th.processorByOpType[txType]
 			if process == nil {
 				continue
 			}
 			broadcastedEvents <- process(txDataEntry)
 		}
 	}()
+
 	return broadcastedEvents, nil
 }
