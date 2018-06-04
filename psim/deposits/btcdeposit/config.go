@@ -25,6 +25,22 @@ type Config struct {
 	Source keypair.Address `fig:"source,required"`
 }
 
+func (c Config) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"supervisor": c.Supervisor,
+
+		"last_processed_block":  c.LastProcessedBlock,
+		"last_blocks_not_watch": c.LastBlocksNotWatch,
+		"min_deposit_amount":    c.MinDepositAmount,
+		"deposit_asset":         c.DepositAsset,
+		"offchain_currency":     c.OffchainCurrency,
+		"offchain_blockchain":   c.OffchainBlockchain,
+		"external_system":       c.ExternalSystem,
+		"fixed_deposit_fee":     c.FixedDepositFee,
+		"disable_verify":        c.DisableVerify,
+	}
+}
+
 func NewConfig(configData map[string]interface{}) (*Config, error) {
 	config := &Config{}
 

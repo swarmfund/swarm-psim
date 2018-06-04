@@ -22,6 +22,15 @@ type Config struct {
 	ExchangeKP keypair.Address `fig:"exchange"`
 }
 
+func (c Config) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"host": c.Host,
+		"port": c.Port,
+
+		"leadership_key": c.LeadershipKey,
+	}
+}
+
 func NewConfig(serviceName string) Config {
 	return Config{
 		LeadershipKey: fmt.Sprintf("service/%s/leader", serviceName),
