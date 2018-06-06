@@ -1,49 +1,69 @@
 package listener
 
 import (
+	"context"
+
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/listener/internal"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
 )
 
-type AccountProvider interface {
-	ByAddress(string) (*horizon.Account, error)
-}
-
-type RequestProvider interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
-}
-
+// TokendHandler is a Handler implementation to be used with tokend stuff
 type TokendHandler struct {
-	// TODO by next checkpoint invent better name
-	ProcessorByOpType map[xdr.OperationType]Processor
-
-	requestsProvider RequestProvider
-
-	accountsProvider AccountProvider
+	processorByOpType map[xdr.OperationType]Processor
 }
 
-func NewTokendHandler(requestsProvider RequestProvider, accountsProvider AccountProvider) *TokendHandler {
-	return &TokendHandler{make(map[xdr.OperationType]Processor), requestsProvider, accountsProvider}
+// NewTokendHandler constructs a TokendHandler without any binded processors
+func NewTokendHandler() *TokendHandler {
+	return &TokendHandler{make(map[xdr.OperationType]Processor)}
 }
 
-func (th *TokendHandler) SetProcessor(opType xdr.OperationType, processor Processor) {
-	th.ProcessorByOpType[opType] = processor
+// SetProcessor binds a processor to specified opType
+func (th TokendHandler) SetProcessor(opType xdr.OperationType, processor Processor) {
+	th.processorByOpType[opType] = processor
 }
 
-func (th *TokendHandler) Process(txData <-chan TxData) (<-chan []BroadcastedEvent, error) {
-	broadcastedEvents := make(chan []BroadcastedEvent)
+// Process starts processing all op using processors in the map
+func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan ExtractedItem) <-chan ProcessedItem {
+	broadcastedEvents := make(chan ProcessedItem)
+
 	go func() {
 		defer func() {
 			close(broadcastedEvents)
 		}()
-		for txDataEntry := range txData {
-			txType := txDataEntry.Op.Body.Type
-			process := th.ProcessorByOpType[txType]
+
+		for extractedItem := range extractedItems {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			if extractedItem.Error != nil {
+				broadcastedEvents <- *internal.InvalidProcessedItem(errors.Wrap(extractedItem.Error, "received invalid extracted item"))
+				continue
+			}
+
+			opData := extractedItem.ExtractedOpData
+			opType := opData.Op.Body.Type
+
+			process := th.processorByOpType[opType]
 			if process == nil {
 				continue
 			}
-			broadcastedEvents <- process(txDataEntry)
+
+			events := process(opData)
+
+			for _, event := range events {
+				if event.Error != nil {
+					broadcastedEvents <- *internal.InvalidProcessedItem(errors.Wrap(event.Error, "failed to process op data from extracted item"))
+					continue
+				}
+
+				broadcastedEvents <- *internal.ValidProcessedItem(event.BroadcastedEvent)
+			}
 		}
 	}()
-	return broadcastedEvents, nil
+
+	return broadcastedEvents
 }

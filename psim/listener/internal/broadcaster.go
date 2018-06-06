@@ -4,12 +4,8 @@ import (
 	"context"
 )
 
-type Source <-chan []BroadcastedEvent
-
-// TODO review interface fields
+// Broadcaster is responsible for holding several targets and sending same events to them
 type Broadcaster interface {
-	SetSource(newSource Source)
-	SetTargets(newTargets []Target)
 	AddTarget(target Target)
-	BroadcastEvents(ctx context.Context, events <-chan []BroadcastedEvent) error
+	BroadcastEvents(ctx context.Context, events <-chan ProcessedItem) chan error
 }

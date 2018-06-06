@@ -1,167 +1,268 @@
 package listener
 
 import (
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
-
-	"time"
+	"gitlab.com/tokend/horizon-connector"
 
 	"gitlab.com/tokend/go/xdr"
 )
 
-func (th *TokendHandler) processCreateAccountOp(txData TxData) (outputEvents []BroadcastedEvent) {
-	opBody := txData.Op.Body.CreateAccountOp
+// AccountProvider is responsible for account lookup by address
+type AccountProvider interface {
+	ByAddress(string) (*horizon.Account, error)
+}
+
+// RequestProvider is responsible for request lookup by address
+type RequestProvider interface {
+	GetRequestByID(requestID uint64) (*horizon.Request, error)
+}
+
+// Event names sent to analytics services
+const (
+	BroadcastedEventNameKycCreated            BroadcastedEventName = "kyc_created"
+	BroadcastedEventNameKycUpdated            BroadcastedEventName = "kyc_updated"
+	BroadcastedEventNameKycRejected           BroadcastedEventName = "kyc_rejected"
+	BroadcastedEventNameKycApproved           BroadcastedEventName = "kyc_approved"
+	BroadcastedEventNameUserReferred          BroadcastedEventName = "user_referred"
+	BroadcastedEventNameFundsWithdrawn        BroadcastedEventName = "funds_withdrawn"
+	BroadcastedEventNamePaymentV2Received     BroadcastedEventName = "payment_v2_received"
+	BroadcastedEventNamePaymentV2Sent         BroadcastedEventName = "payment_v2_sent"
+	BroadcastedEventNamePaymentReceived       BroadcastedEventName = "payment_received"
+	BroadcastedEventNamePaymentSent           BroadcastedEventName = "payment_sent"
+	BroadcastedEventNameFundsDeposited        BroadcastedEventName = "funds_deposited"
+	BroadcastedEventNameFundsInvested         BroadcastedEventName = "funds_invested"
+	BroadcastedEventNameReferredUserPassedKyc BroadcastedEventName = "referred_user_passed_kyc"
+)
+
+func processCreateAccountOp(opData OpData) []MaybeBroadcastedEvent {
+	opBody := opData.Op.Body.CreateAccountOp
 	if opBody == nil {
-		return
+		return internal.InvalidBroadcastedEvent(errors.New("received nil create account op body")).Alone()
 	}
+
 	referrer := opBody.Referrer
+
 	if referrer == nil {
-		return
+		return internal.InvalidBroadcastedEvent(errors.New("received nil create account op referer")).Alone()
 	}
+
 	referrerAddress := referrer.Address()
-	if referrerAddress != "" {
-		outputEvents = internal.NewBroadcastedEvent(referrerAddress, OutputEventNameUserReferred, txData.CreatedAt).Alone()
+
+	if referrerAddress == "" {
+		return internal.InvalidBroadcastedEvent(errors.New("received empty create account referrer op address")).Alone()
 	}
-	return outputEvents
+
+	return internal.ValidBroadcastedEvent(referrerAddress, BroadcastedEventNameUserReferred, opData.CreatedAt).Alone()
 }
 
-func (th *TokendHandler) processWithdrawRequest(txData TxData) (outputEvents []BroadcastedEvent) {
-	txSourceAccount := txData.SourceAccount
-	outputEvents = internal.NewBroadcastedEvent(txSourceAccount.Address(), OutputEventNameFundsWithdrawn, txData.CreatedAt).Alone()
-	return
+func processWithdrawRequest(opData OpData) []MaybeBroadcastedEvent {
+	txSourceAccountAddress := opData.SourceAccount.Address()
+
+	return internal.ValidBroadcastedEvent(txSourceAccountAddress, BroadcastedEventNameFundsWithdrawn, opData.CreatedAt).Alone()
 }
 
-func (th *TokendHandler) processPaymentV2(txData TxData) (outputEvents []BroadcastedEvent) {
-	txSourceAccount := txData.SourceAccount
-	opResultBody := txData.OpResult.PaymentV2Result
+func processPaymentV2(opData OpData) []MaybeBroadcastedEvent {
+	txSourceAccount := opData.SourceAccount
+	opResultBody := opData.OpResult.PaymentV2Result
+
 	if opResultBody == nil {
-		return
+		return internal.InvalidBroadcastedEvent(errors.New("received nil payment v2 op result body")).Alone()
 	}
+
 	if opResultBody.PaymentV2Response == nil {
-		return
+		return internal.InvalidBroadcastedEvent(errors.New("received nil payment v2 response")).Alone()
 	}
-	outputEvents = internal.NewBroadcastedEvent(txSourceAccount.Address(), OutputEventNamePaymentV2Sent, txData.CreatedAt).
-		AppendedBy(opResultBody.PaymentV2Response.Destination.Address(), OutputEventNamePaymentV2Received, txData.CreatedAt)
-	return
-}
 
-func (th *TokendHandler) processPayment(txData TxData) (outputEvents []BroadcastedEvent) {
-	txSourceAccount := txData.SourceAccount
-	opResultBody := txData.OpResult.PaymentResult
-	if opResultBody == nil {
-		return
-	}
-	if opResultBody.PaymentResponse == nil {
-		return
-	}
-	outputEvents = internal.NewBroadcastedEvent(txSourceAccount.Address(), OutputEventNamePaymentSent, txData.CreatedAt).
-		AppendedBy(opResultBody.PaymentResponse.Destination.Address(), OutputEventNamePaymentReceived, txData.CreatedAt)
-	return
-}
+	outputEvents := internal.ValidBroadcastedEvent(txSourceAccount.Address(), BroadcastedEventNamePaymentV2Sent, opData.CreatedAt).
+		AppendedBy(opResultBody.PaymentV2Response.Destination.Address(), BroadcastedEventNamePaymentV2Received, opData.CreatedAt)
 
-func (th *TokendHandler) processManageOfferOp(txData TxData) (outputEvents []BroadcastedEvent) {
-	txSourceAccount := txData.SourceAccount
-	opBody := txData.Op.Body.ManageOfferOp
-	if opBody == nil {
-		return
-	}
-	if opBody.OrderBookId != 0 && opBody.Amount != 0 {
-		outputEvents = internal.NewBroadcastedEvent(txSourceAccount.Address(), OutputEventNameFundsInvested, txData.CreatedAt).Alone()
-	}
-	return
-}
-
-func (th *TokendHandler) processCreateIssuanceRequestOp(txData TxData) (outputEvents []BroadcastedEvent) {
-	opResult := txData.OpResult
-	if opResult.CreateIssuanceRequestResult == nil {
-		return
-	}
-	opSuccess := opResult.CreateIssuanceRequestResult.Success
-	if opSuccess == nil {
-		return
-	}
-	if opSuccess.Fulfilled == true {
-		outputEvents = internal.NewBroadcastedEvent(opSuccess.Receiver.Address(), OutputEventNameFundsDeposited, txData.CreatedAt).Alone()
-	}
-	return
-}
-
-func (th *TokendHandler) processKYCCreateUpdateRequestOp(txData TxData) (outputEvents []BroadcastedEvent) {
-	opBody := txData.Op.Body.CreateUpdateKycRequestOp
-	if opBody == nil {
-		return
-	}
-	if opBody.RequestId == 0 {
-		outputEvents = internal.NewBroadcastedEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), OutputEventNameKycCreated, txData.CreatedAt).Alone()
-		return
-	} // if op.RequestId != 0
-	outputEvents = internal.NewBroadcastedEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), OutputEventNameKycUpdated, txData.CreatedAt).Alone()
-	return
-}
-
-// TODO generalize this method, too
-func (th *TokendHandler) processReviewRequestOp(txData TxData) (outputEvents []BroadcastedEvent) {
-
-	sourceAccount := txData.SourceAccount
-	op := txData.Op.Body.ReviewRequestOp
-	ledgerEntryChanges := txData.OpLedgerChanges
-	time := txData.CreatedAt
-
-	var err error
-	switch op.RequestDetails.RequestType {
-	case xdr.ReviewableRequestTypeUpdateKyc:
-		outputEvents, err = th.handleKYCReview(op, ledgerEntryChanges, time)
-	case xdr.ReviewableRequestTypeIssuanceCreate:
-		outputEvents = th.handleIssuanceCreateReq(sourceAccount, time)
-	}
-	if err != nil {
-	}
 	return outputEvents
 }
 
-func (th *TokendHandler) handleIssuanceCreateReq(sourceAccount xdr.AccountId, time *time.Time) []BroadcastedEvent {
-	return internal.NewBroadcastedEvent(sourceAccount.Address(), OutputEventNameFundsDeposited, time).Alone()
+func processPayment(opData OpData) []MaybeBroadcastedEvent {
+	txSourceAccount := opData.SourceAccount
+	opResultBody := opData.OpResult.PaymentResult
+
+	if opResultBody == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil payment op result body")).Alone()
+	}
+
+	if opResultBody.PaymentResponse == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil payment response")).Alone()
+	}
+
+	outputEvents := internal.ValidBroadcastedEvent(txSourceAccount.Address(), BroadcastedEventNamePaymentSent, opData.CreatedAt).
+		AppendedBy(opResultBody.PaymentResponse.Destination.Address(), BroadcastedEventNamePaymentReceived, opData.CreatedAt)
+
+	return outputEvents
 }
 
-func (th *TokendHandler) handleKYCReview(opBody *xdr.ReviewRequestOp, ledgerChanges []xdr.LedgerEntryChange, time *time.Time) (outputEvents []BroadcastedEvent, errx error) {
+func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
+	txSourceAccount := opData.SourceAccount
+	opBody := opData.Op.Body.ManageOfferOp
+
 	if opBody == nil {
-		return nil, nil
-	}
-	request, err := th.requestsProvider.GetRequestByID(uint64(opBody.RequestId))
-	if err != nil {
-		return nil, nil
+		return internal.InvalidBroadcastedEvent(errors.New("received nil manage offer op body")).Alone()
 	}
 
-	if request == nil {
-		return nil, nil
+	if opBody.OrderBookId == 0 {
+		return internal.InvalidBroadcastedEvent(errors.New("receive manage offer op has 0 order book id")).Alone()
 	}
 
-	kycRequestDetails := request.Details.KYC
-
-	if opBody.Action == xdr.ReviewRequestOpActionReject || opBody.Action == xdr.ReviewRequestOpActionPermanentReject {
-		return internal.NewBroadcastedEvent(kycRequestDetails.AccountToUpdateKYC, OutputEventNameKycRejected, time).Alone(), nil
+	if opBody.Amount == 0 {
+		return internal.InvalidBroadcastedEvent(errors.New("receive manage offer op has 0 order book amount")).Alone()
 	}
 
-	if opBody.Action != xdr.ReviewRequestOpActionApprove {
-		return nil, nil
+	return internal.ValidBroadcastedEvent(txSourceAccount.Address(), BroadcastedEventNameFundsInvested, opData.CreatedAt).Alone()
+}
+
+func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
+	opResult := opData.OpResult
+
+	if opResult.CreateIssuanceRequestResult == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil create issuance req op body")).Alone()
 	}
 
+	opSuccess := opResult.CreateIssuanceRequestResult.Success
+
+	if opSuccess == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil create issuance req op result")).Alone()
+	}
+
+	if !opSuccess.Fulfilled {
+		return internal.InvalidBroadcastedEvent(errors.New("received 'not fulfilled' create issuance request result")).Alone()
+	}
+
+	return internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
+}
+
+func processKYCCreateUpdateRequestOp(opData OpData) []MaybeBroadcastedEvent {
+	opBody := opData.Op.Body.CreateUpdateKycRequestOp
+
+	if opBody == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil op body")).Alone()
+	}
+
+	if opBody.RequestId == 0 {
+		// kyc_created
+		return internal.ValidBroadcastedEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), BroadcastedEventNameKycCreated, opData.CreatedAt).Alone()
+	}
+
+	// kyc_updated
+	return internal.ValidBroadcastedEvent(opBody.UpdateKycRequestData.AccountToUpdateKyc.Address(), BroadcastedEventNameKycUpdated, opData.CreatedAt).Alone()
+}
+
+func processReviewRequestOp(requestsProvider RequestProvider, accountsProvider AccountProvider) Processor {
+	return func(opData OpData) []MaybeBroadcastedEvent {
+		requestType := opData.Op.Body.ReviewRequestOp.RequestDetails.RequestType
+
+		switch requestType {
+		case xdr.ReviewableRequestTypeUpdateKyc:
+			return handleKYCReview(opData, requestsProvider, accountsProvider)
+		case xdr.ReviewableRequestTypeIssuanceCreate:
+			return handleIssuanceCreateReq(opData)
+		}
+
+		return internal.InvalidBroadcastedEvent(errors.New("no suitable processor for review request type")).Alone()
+	}
+}
+
+func handleIssuanceCreateReq(opData OpData) []MaybeBroadcastedEvent {
+	sourceAccountAddress := opData.SourceAccount.Address()
+	time := opData.CreatedAt
+	return internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
+}
+
+func findRemoval(ledgerChanges []xdr.LedgerEntryChange) *xdr.LedgerKeyReviewableRequest {
 	for _, ledgerChange := range ledgerChanges {
 		if ledgerChange.Removed == nil {
 			continue
 		}
+
 		if ledgerChange.Removed.ReviewableRequest == nil {
 			continue
 		}
-		reviewableRequest := ledgerChange.Removed.ReviewableRequest
-		if opBody.RequestId == reviewableRequest.RequestId {
-			outputEvents = internal.NewBroadcastedEvent(kycRequestDetails.AccountToUpdateKYC, OutputEventNameKycApproved, time).Alone()
-		}
-		account, err := th.accountsProvider.ByAddress(kycRequestDetails.AccountToUpdateKYC)
-		if err != nil {
-		}
-		if account.Referrer != "" {
-			outputEvents = append(outputEvents, *internal.NewBroadcastedEvent(account.Referrer, OutputEventNameReferredUserPassedKyc, time))
-		}
+
+		return ledgerChange.Removed.ReviewableRequest
 	}
-	return
+	return nil
+}
+
+func getRequestKYCDetailsByID(id xdr.Uint64, requestsProvider RequestProvider) (*horizon.RequestKYCDetails, error) {
+	request, err := requestsProvider.GetRequestByID(uint64(id))
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get request by id")
+	}
+
+	if request == nil {
+		return nil, errors.Wrap(err, "request not found")
+	}
+
+	return request.Details.KYC, nil
+}
+
+func findReferrer(accountsProvider AccountProvider, kycRequestDetails *horizon.RequestKYCDetails) (string, error) {
+	account, err := accountsProvider.ByAddress(kycRequestDetails.AccountToUpdateKYC)
+
+	if err != nil {
+		return "", errors.New("failed to find account by address")
+	}
+
+	if account == nil {
+		return "", errors.New("account by address doesn't exist")
+	}
+
+	if account.Referrer == "" {
+		return "", errors.New("account has no referrer")
+	}
+
+	return account.Referrer, nil
+}
+
+func handleKYCReview(opData OpData, requestsProvider RequestProvider, accountsProvider AccountProvider) []MaybeBroadcastedEvent {
+	ledgerChanges := opData.OpLedgerChanges
+	time := opData.CreatedAt
+	opBody := opData.Op.Body.ReviewRequestOp
+	if opBody == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil kyc review request body")).Alone()
+	}
+
+	kycRequestDetails, err := getRequestKYCDetailsByID(opBody.RequestId, requestsProvider)
+	if err != nil {
+		return internal.InvalidBroadcastedEvent(errors.Wrap(err, "failed to get kyc details")).Alone()
+	}
+
+	if kycRequestDetails.AccountToUpdateKYC == "" {
+		return internal.InvalidBroadcastedEvent(errors.New("account to update kyc is empty")).Alone()
+	}
+
+	if opBody.Action == xdr.ReviewRequestOpActionReject || opBody.Action == xdr.ReviewRequestOpActionPermanentReject {
+		return internal.ValidBroadcastedEvent(kycRequestDetails.AccountToUpdateKYC, BroadcastedEventNameKycRejected, time).Alone()
+	}
+
+	if opBody.Action != xdr.ReviewRequestOpActionApprove {
+		return internal.InvalidBroadcastedEvent(errors.New("kyc review request is neither approved nor rejected")).Alone()
+	}
+
+	var outputEvents []MaybeBroadcastedEvent
+
+	reviewableRequest := findRemoval(ledgerChanges)
+	if opBody.RequestId == reviewableRequest.RequestId {
+		outputEvents = append(outputEvents, *internal.ValidBroadcastedEvent(kycRequestDetails.AccountToUpdateKYC, BroadcastedEventNameKycApproved, time))
+	}
+
+	referrer, err := findReferrer(accountsProvider, kycRequestDetails)
+	if err != nil {
+		outputEvents = append(outputEvents, *internal.InvalidBroadcastedEvent(errors.Wrap(err, "failed to find referrer")))
+	}
+
+	if referrer == "" {
+		outputEvents = append(outputEvents, *internal.InvalidBroadcastedEvent(errors.New("empty referrer")))
+	} else {
+		outputEvents = append(outputEvents, *internal.ValidBroadcastedEvent(referrer, BroadcastedEventNameReferredUserPassedKyc, time))
+	}
+
+	return outputEvents
 }

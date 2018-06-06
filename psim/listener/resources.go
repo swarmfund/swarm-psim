@@ -1,36 +1,41 @@
 package listener
 
 import (
-	"time"
-
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
 )
 
+// BroadcastedEvent exported to be used in listener package
 type BroadcastedEvent = internal.BroadcastedEvent
+
+// MaybeBroadcastedEvent exported to be used in listener package
+type MaybeBroadcastedEvent = internal.MaybeBroadcastedEvent
+
+// BroadcastedEventName exported to be used in listener package
 type BroadcastedEventName = internal.BroadcastedEventName
+
+// Processor exported to be used in listener package
 type Processor = internal.Processor
-type TxData = internal.TxData
 
-// TODO rename Output to Broadcasted
-const (
-	OutputEventNameKycCreated            BroadcastedEventName = "kyc_created"
-	OutputEventNameKycUpdated            BroadcastedEventName = "kyc_updated"
-	OutputEventNameKycRejected           BroadcastedEventName = "kyc_rejected"
-	OutputEventNameKycApproved           BroadcastedEventName = "kyc_approved"
-	OutputEventNameUserReferred          BroadcastedEventName = "user_referred"
-	OutputEventNameFundsWithdrawn        BroadcastedEventName = "funds_withdrawn"
-	OutputEventNamePaymentV2Received     BroadcastedEventName = "payment_v2_received"
-	OutputEventNamePaymentV2Sent         BroadcastedEventName = "payment_v2_sent"
-	OutputEventNamePaymentReceived       BroadcastedEventName = "payment_received"
-	OutputEventNamePaymentSent           BroadcastedEventName = "payment_sent"
-	OutputEventNameFundsDeposited        BroadcastedEventName = "funds_deposited"
-	OutputEventNameFundsInvested         BroadcastedEventName = "funds_invested"
-	OutputEventNameReferredUserPassedKyc BroadcastedEventName = "referred_user_passed_kyc"
-)
+// OpData exported to be used in listener package
+type OpData = internal.OpData
 
-const (
-	defaultServiceRetryTimeIncrement = 1 * time.Second
-	defaultMaxServiceRetryTime       = 30 * time.Second
-)
+// Broadcaster exported to be used in listener package
+type Broadcaster = internal.Broadcaster
 
-const defaultMixpanelURL = ""
+// GenericBroadcaster exported to be used in listener package
+type GenericBroadcaster = internal.GenericBroadcaster
+
+// Target exported to be used in listener package
+type Target = internal.Target
+
+// Extractor exported to be used in listener package
+type Extractor = internal.Extractor
+
+// ExtractedItem exported to be used in listener package
+type ExtractedItem = internal.ExtractedItem
+
+// ProcessedItem exported to be used in listener package
+type ProcessedItem = internal.ProcessedItem
+
+// Handler exported to be used in listener package
+type Handler = internal.Handler

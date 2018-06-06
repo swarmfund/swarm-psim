@@ -15,6 +15,7 @@ type Transaction = resources.Transaction
 type TransactionEvent = resources.TransactionEvent
 type TXPacket = listener.TXPacket
 type Request = resources.Request
+type RequestKYCDetails = resources.RequestKYCDetails
 type WithdrawRequest = resources.RequestWithdrawDetails
 type KYCRequest = resources.RequestKYCDetails
 type ReviewableRequestEvent = listener.ReviewableRequestEvent

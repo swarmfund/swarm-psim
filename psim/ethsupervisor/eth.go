@@ -8,11 +8,11 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
+	"gitlab.com/tokend/go/amount"
 )
 
 // TODO defer
