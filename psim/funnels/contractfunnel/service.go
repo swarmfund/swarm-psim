@@ -124,6 +124,7 @@ func (s *Service) Run(ctx context.Context) {
 						continue
 					}
 					tx, err := contract.WithdrawAllTokens(&bind.TransactOpts{
+						From:     s.Keypair.Address(),
 						GasPrice: eth.FromGwei(s.GasPrice),
 						GasLimit: 200000,
 						Signer: func(signer types.Signer, addresses common.Address, transaction *types.Transaction) (*types.Transaction, error) {
