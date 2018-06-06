@@ -6,6 +6,8 @@ import (
 
 	"fmt"
 
+	"strings"
+
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -214,13 +216,19 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 		}
 
 		accountAddress := s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, out.Address)
-		if app.IsCanceled(ctx) {
-			return nil
-		}
 
 		if accountAddress == nil {
-			// external address is not among our watch addresses, ignoring
-			continue
+			// there is weird case when address is lowercased in core,
+			// it's safe to check that, at least in ether
+			accountAddress = s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, strings.ToLower(out.Address))
+			if accountAddress == nil {
+				// external address is not among our watch addresses, ignoring
+				continue
+			}
+		}
+
+		if app.IsCanceled(ctx) {
+			return nil
 		}
 
 		fields := logan.F{
