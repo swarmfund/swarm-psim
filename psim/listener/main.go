@@ -63,7 +63,7 @@ func getHorizonConnector(ctx context.Context, config ServiceConfig) horizon.Conn
 }
 
 func (th *TokendHandler) withTokendProcessors(connector horizon.Connector) *TokendHandler {
-
+	th.HorizonConnector = connector
 	th.SetProcessor(xdr.OperationTypeCreateKycRequest, processKYCCreateUpdateRequestOp)
 	th.SetProcessor(xdr.OperationTypeReviewRequest, processReviewRequestOp(connector.Operations(), connector.Accounts()))
 	th.SetProcessor(xdr.OperationTypeCreateIssuanceRequest, processCreateIssuanceRequestOp)

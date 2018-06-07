@@ -126,24 +126,32 @@ type SalesforceAuthResponse struct {
 
 // SalesforceEvent contains both default salesforce and specific to a salesforce account fields defined as columns
 type SalesforceEvent struct {
-	Name                 string
-	PropertyColumn       string `json:"Property__c"`
-	SphereColumn         string `json:"Sphere__c"`
-	ActionColumn         string `json:"Action__c"`
-	ActionDateTimeColumn string `json:"Action_Date_Time__c"` // time.Format("2006-01-02T15:04:05.999-0700")
+	Name                    string
+	PropertyColumn          string `json:"Property__c"`
+	SphereColumn            string `json:"Sphere__c"`
+	ActionColumn            string `json:"Action__c"`
+	ActionDateTimeColumn    string `json:"Action_Date_Time__c"` // time.Format("2006-01-02T15:04:05.999-0700")
+	ActorNameColumn         string `json:"Actor_Name__c"`
+	ActorEmailColumn        string `json:"Actor_Email__c"`
+	InvestmentAmountColumn  int64  `json:"Investment_Amount__c"`
+	InvestmentCountryColumn string `json:"Investment_Country__c"`
 }
 
 const eventsEndpoint = "/services/data/v42.0/sobjects/Website_Action__c/"
 
 // PostEvent sends an event to predefined salesforce endpoint, uses now-time if failed to parse timeString
-func (sc *SalesforceClient) PostEvent(accessToken string, sphere string, actionName string, timeString string) (statusCode int, response []byte, err error) {
+func (sc *SalesforceClient) PostEvent(accessToken string, sphere string, actionName string, timeString string, actorName string, actorEmail string, investmentAmount int64, investmentCountry string) (statusCode int, response []byte, err error) {
 	endpointString := sc.base.String() + eventsEndpoint
 	requestStruct := &SalesforceEvent{
-		Name:                 "Action",
-		PropertyColumn:       "Swarm Invest",
-		SphereColumn:         sphere,
-		ActionColumn:         actionName,
-		ActionDateTimeColumn: timeString,
+		Name:                    "Action",
+		PropertyColumn:          "Swarm Invest",
+		SphereColumn:            sphere,
+		ActionColumn:            actionName,
+		ActionDateTimeColumn:    timeString,
+		ActorNameColumn:         actorName,
+		ActorEmailColumn:        actorEmail,
+		InvestmentAmountColumn:  investmentAmount,
+		InvestmentCountryColumn: investmentCountry,
 	}
 	return sc.PostJSON(endpointString, requestStruct, accessToken)
 }

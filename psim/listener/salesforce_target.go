@@ -95,7 +95,7 @@ var eventNameToActionName = map[BroadcastedEventName]string{
 
 // SendEvent tries to send an event, if auth token expired - get new, if error - retry
 func (st *SalesforceTarget) SendEvent(event BroadcastedEvent) error {
-	statusCode, resp, err := st.PostEvent(st.AccessToken, eventNameToSphere[event.Name], eventNameToActionName[event.Name], event.Time.Format(salesforceTimeLayout))
+	statusCode, resp, err := st.PostEvent(st.AccessToken, eventNameToSphere[event.Name], eventNameToActionName[event.Name], event.Time.Format(salesforceTimeLayout), event.ActorName, event.ActorEmail, event.InvestmentAmount, event.InvestmentCountry)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to post event")
