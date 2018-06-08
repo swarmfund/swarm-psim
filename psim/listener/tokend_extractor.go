@@ -10,6 +10,10 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
+var (
+	ErrNilTx = errors.New("empty tx received")
+)
+
 // TokendExtractor is responsible for taking Txs and extract data from them to be used by processors
 type TokendExtractor <-chan horizon.TXPacket
 
@@ -24,7 +28,6 @@ type TxData struct {
 
 func validateTx(extractedTx horizon.TXPacket) (TxData, error) {
 	extractedTxBody, err := extractedTx.Unwrap()
-
 	if err != nil {
 		return TxData{}, errors.Wrap(err, "failed to unwrap tx")
 	}
@@ -32,7 +35,7 @@ func validateTx(extractedTx horizon.TXPacket) (TxData, error) {
 	tx := extractedTxBody.Transaction
 
 	if tx == nil {
-		return TxData{}, errors.Wrap(err, "nil tx body")
+		return TxData{}, ErrNilTx
 	}
 
 	txEnvelope, err := tx.SafeEnvelope()
@@ -74,6 +77,7 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 
 	go func(chan ExtractedItem) {
 		defer func() {
+			// TODO recover
 			close(out)
 		}()
 
@@ -85,6 +89,9 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 			}
 
 			txData, err := validateTx(extractedTx)
+			if err == errors.Cause(ErrNilTx) {
+				continue
+			}
 
 			if err != nil {
 				out <- internal.InvalidExtractedItem(errors.Wrap(err, "invalid tx"))

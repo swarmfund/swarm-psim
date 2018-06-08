@@ -13,6 +13,8 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
+// TODO move salesforce and mixpanel
+
 func init() {
 	app.RegisterService(conf.ListenerService, setupService)
 }

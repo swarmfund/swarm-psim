@@ -1,82 +1,34 @@
-package listener
+package salesforce
 
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
-// SalesforceClient is a custom implementation of salesforce client derived from horizon client
-type SalesforceClient struct {
-	base   *url.URL
-	client *http.Client
+// Client is a custom salesforce client implementation
+type Client struct {
+	httpClient *http.Client
+	apiURL     *url.URL
+	username   string
+	password   string
+	secret     string
 }
 
-// NewSalesforceClient constructs a SalesforceClient with base url using httpClient
-func NewSalesforceClient(client *http.Client, base *url.URL) *SalesforceClient {
-	return &SalesforceClient{
-		base, client,
+// NewClient constructs a salesforce Client from arguments and
+func NewClient(apiURL *url.URL, username string, password string, secret string) *Client {
+	salesforceClient := &Client{
+		httpClient: http.DefaultClient,
+		apiURL:     apiURL,
+		username:   username,
+		password:   password,
+		secret:     secret,
 	}
-}
-
-func (sc *SalesforceClient) resolveURL(endpoint string) (string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to parse endpoint into URL")
-	}
-
-	return sc.base.ResolveReference(u).String(), nil
-}
-
-func ignoreError(err error) {
-	_ = err
-}
-
-func (sc *SalesforceClient) do(request *http.Request, contentType string) (int, []byte, error) {
-	request.Header.Set("content-type", contentType)
-	request.Header.Set("accept", "application/json")
-
-	response, err := sc.client.Do(request)
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "Failed to perform http request")
-	}
-	if response == nil {
-		return 0, nil, errors.New("nil response received")
-	}
-	defer func() {
-		ignoreError(response.Body.Close())
-	}()
-
-	respBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "Failed to read response body")
-	}
-
-	return response.StatusCode, respBytes, nil
-}
-
-// PostURLEncoded sends an x-www-form-urlencoded request using data from req to endpoint
-func (sc *SalesforceClient) PostURLEncoded(endpoint string, req []byte) (statusCode int, response []byte, err error) {
-	endpoint, err = sc.resolveURL(endpoint)
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "Failed to resolve url")
-	}
-
-	request, err := http.NewRequest("POST", endpoint, bytes.NewReader(req))
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "Failed to create POST http.Request")
-	}
-
-	statusCode, responseBytes, err := sc.do(request, "application/x-www-form-urlencoded")
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "Failed to do the request")
-	}
-
-	return statusCode, responseBytes, nil
+	return salesforceClient
 }
 
 // PostJSON sends json data to endpoint
@@ -108,14 +60,33 @@ func (sc *SalesforceClient) PostJSON(endpoint string, req interface{}, accessTok
 	return statusCode, responseBB, nil
 }
 
+const urlEncodedContentType = "application/x-www-form-urlencoded"
+
 const authEndpoint = "services/oauth2/token"
 
 const clientID = "3MVG9RHx1QGZ7OsjxpWOBJ4UsJLqMgjd8FcZ8K9fCEY0YhJ5Av_FbGhmSQLfWoaDj3AQO9rcxwvbQNLDF_LH5"
 
+// TODO last visited - return
+
 // PostAuthRequest sends auth request to salesforce api using username, password and clientSecret from arguments and hardcoded clientId
-func (sc *SalesforceClient) PostAuthRequest(username string, password string, clientSecret string) (statusCode int, response []byte, err error) {
-	endpointString := sc.base.String() + authEndpoint
-	requestString := "username=" + username + "&client_secret=" + clientSecret + "&password=" + password + "&grant_type=password&client_id=" + clientID
+func (c *Client) PostAuthRequest() (statusCode int, response []byte, err error) {
+	requestString := "username=" + c.username +
+		"&client_secret=" + c.secret +
+		"&password=" + c.password +
+		"&grant_type=" + "password" +
+		"&client_id=" + clientID
+
+	/*url.Values{}.Set("","")
+
+		"client_secret": c.secret
+
+	}.Encode()*/
+
+	response, err := c.httpClient.Post(c.apiURL+authEndpoint, urlEncodedContentType, strings.NewReader(requestString))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to post")
+	}
+
 	return sc.PostURLEncoded(endpointString, []byte(requestString))
 }
 

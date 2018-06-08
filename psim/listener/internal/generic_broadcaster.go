@@ -23,32 +23,33 @@ func NewGenericBroadcaster() *GenericBroadcaster {
 	return &GenericBroadcaster{[]BufferedTarget{}}
 }
 
+// TODO target buffer size
+
 // AddTarget adds a target to broadcaster and initializes a channel for it
 func (b *GenericBroadcaster) AddTarget(target Target) {
-	b.BufferedTargets = append(b.BufferedTargets, BufferedTarget{target, make(chan MaybeBroadcastedEvent)})
+	b.BufferedTargets = append(b.BufferedTargets, BufferedTarget{target, make(chan MaybeBroadcastedEvent, 1000)})
 }
 
 func putEventsToBufferedTargets(ctx context.Context, targets []BufferedTarget, processedItems <-chan ProcessedItem) {
-	for _, target := range targets {
-		go func(target BufferedTarget) {
-			defer func() {
-				close(target.Data)
-			}()
-			for item := range processedItems {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
 
-				if item.Error != nil {
-					target.Data <- MaybeBroadcastedEvent{BroadcastedEvent{}, item.Error}
-					continue
-				}
+	for item := range processedItems {
+		item := item
+		for _, target := range targets {
+			target := target
 
-				target.Data <- MaybeBroadcastedEvent{item.BroadcastedEvent, item.Error}
+			select {
+			case <-ctx.Done():
+				return
+			default:
 			}
-		}(target)
+
+			select {
+			case target.Data <- MaybeBroadcastedEvent{item.BroadcastedEvent, item.Error}:
+				continue
+			default:
+				// TODO report err
+			}
+		}
 	}
 }
 
@@ -88,8 +89,6 @@ func sendEventsToBufferedTargets(ctx context.Context, targets []BufferedTarget) 
 						errs <- errors.Wrap(err, "second try failed, disabling target")
 						return
 					}
-
-					continue
 				}
 			}
 		}(target)
