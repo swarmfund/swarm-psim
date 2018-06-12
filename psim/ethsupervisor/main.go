@@ -14,6 +14,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
+	internal2 "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
 )
@@ -34,8 +35,10 @@ func init() {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", conf.ServiceETHSupervisor))
 		}
 
-		if config.FixedDepositFee == nil {
-			return nil, errors.New("'fixed_deposit_fee' cannot be empty")
+		horizon := app.Config(ctx).Horizon().WithSigner(config.Supervisor.SignerKP)
+
+		if config.ExternalSystem == 0 {
+			config.ExternalSystem = internal2.MustGetExternalSystemType(horizon.Assets(), config.DepositAsset)
 		}
 
 		commonSupervisor, err := supervisor.InitNew(ctx, conf.ServiceETHSupervisor, config.Supervisor)
@@ -44,8 +47,6 @@ func init() {
 		}
 
 		ethClient := app.Config(ctx).Ethereum()
-
-		horizon := app.Config(ctx).Horizon().WithSigner(config.Supervisor.SignerKP)
 
 		state := addrstate.New(
 			ctx,
