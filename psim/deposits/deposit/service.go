@@ -190,7 +190,7 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 	}
 
 	for _, tx := range block.TXs {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 
@@ -213,7 +213,7 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 		}
 
 		accountAddress := s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, out.Address)
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 

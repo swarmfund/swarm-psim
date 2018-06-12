@@ -43,6 +43,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 
 	for newRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		s.log.WithField("new_request_id", newRequest.ID).
+			// TODO sleep period in message - into var or const
 			Debugf("WithdrawRequest still hasn't changed type to Withdraw(%d). Sleeping for 3 seconds.", xdr.ReviewableRequestTypeWithdraw)
 		// TODO Incremental
 		time.Sleep(3 * time.Second)

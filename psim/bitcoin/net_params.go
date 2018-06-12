@@ -39,7 +39,6 @@ func getDASHNetParams(blockchain string) (*chaincfg.Params, error) {
 	switch blockchain {
 	case MainnetBlockchain:
 		return &chaincfg.Params{
-			DefaultPort:      "9999",
 			PubKeyHashAddrID: 0x4c,
 			ScriptHashAddrID: 0x10,
 			PrivateKeyID:     0xcc,
@@ -48,7 +47,6 @@ func getDASHNetParams(blockchain string) (*chaincfg.Params, error) {
 		}, nil
 	case TestnetBlockchain:
 		return &chaincfg.Params{
-			DefaultPort:      "19999",
 			PubKeyHashAddrID: 0x8c,
 			ScriptHashAddrID: 0x13,
 			PrivateKeyID:     0xef,

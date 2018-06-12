@@ -24,7 +24,7 @@ var (
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
-	WithdrawalRequests(result chan<- horizon.Request) <-chan error
+	StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
 // RequestsConnector is the interface implemented in HorizonConnector,
@@ -115,8 +115,7 @@ type Service struct {
 	discovery      *discovery.Client
 	offchainHelper OffchainHelper
 
-	requests              chan horizon.Request
-	requestListenerErrors <-chan error
+	requestEvents <-chan horizon.ReviewableRequestEvent
 }
 
 // New is constructor for Service.
@@ -143,8 +142,6 @@ func New(
 		xdrbuilder:          builder,
 		discovery:           discoveryClient,
 		offchainHelper:      helper,
-
-		requests: make(chan horizon.Request),
 	}
 }
 
@@ -152,24 +149,32 @@ func New(
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
-	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
+	s.requestEvents = s.requestListener.StreamWithdrawalRequestsOfAsset(ctx, s.offchainHelper.GetAsset(), false, true)
 
-	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second, 10*time.Minute)
+	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 10*time.Minute)
 }
 
-func (s *Service) listenAndProcessRequests(ctx context.Context) error {
+func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
-	case request := <-s.requests:
-		err := s.processRequest(ctx, request)
+	case requestEvent := <-s.requestEvents:
+		if running.IsCancelled(ctx) {
+			return nil
+		}
+
+		request, err := requestEvent.Unwrap()
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{"request": request})
+			return errors.Wrap(err, "RequestsStreamer sent error")
+		}
+		fields := logan.F{"request": request}
+
+		err = s.processRequest(ctx, *request)
+		if err != nil {
+			return errors.Wrap(err, "Failed to process Withdraw Request", fields)
 		}
 
 		return nil
-	case err := <-s.requestListenerErrors:
-		return errors.Wrap(err, "RequestListener sent error")
 	}
 }
 
@@ -245,6 +250,7 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
 	}
 
+	// TODO Fix: Submit method is deprecated
 	submitResult := s.txSubmitter.Submit(ctx, envelopeBase64)
 	if submitResult.Err != nil {
 		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})

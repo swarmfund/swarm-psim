@@ -110,14 +110,13 @@ func ProvePendingRequest(request horizon.Request, asset string, neededRequestTyp
 		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
 	}
 
-	var isTypeValid bool
+	var isTypeAppropriate bool
 	for _, neededRequestType := range neededRequestTypes {
 		if request.Details.RequestType == neededRequestType {
-			//return fmt.Sprintf("Invalid RequestType (%d) expected (%d).", request.Details.RequestType, neededRequestType)
-			isTypeValid = true
+			isTypeAppropriate = true
 		}
 	}
-	if !isTypeValid {
+	if !isTypeAppropriate {
 		return fmt.Sprintf("Invalid RequestType (%d) expected (%v).", request.Details.RequestType, neededRequestTypes)
 	}
 
@@ -128,6 +127,7 @@ func ProvePendingRequest(request horizon.Request, asset string, neededRequestTyp
 	if request.Details.Withdraw != nil {
 		destAsset = request.Details.Withdraw.DestinationAsset
 	}
+	// TODO If not Withdraw and not TSW - consider returning specific error (switch request.Details.RequestType)
 
 	if destAsset != asset {
 		// Withdraw not to BTC.
