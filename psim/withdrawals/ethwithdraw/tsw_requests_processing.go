@@ -50,6 +50,7 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 			}
 			logger := s.log.WithField("request", request)
 
+			// TODO is it safe to skip requests we could not fulfill ATM
 			requestIsInteresting := isProcessablePendingRequest(*request)
 			if !requestIsInteresting {
 				// Not a pending TwoStepWithdrawRequests
