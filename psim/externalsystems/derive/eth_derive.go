@@ -2,6 +2,7 @@ package derive
 
 import (
 	"encoding/hex"
+	"math"
 
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,8 +21,11 @@ func NewETHDeriver(src string) (*ETHDeriver, error) {
 	return &ETHDeriver{key}, nil
 }
 
-func (s *ETHDeriver) ChildAddress(i uint32) (string, error) {
-	child, err := s.key.Child(i)
+func (s *ETHDeriver) ChildAddress(i uint64) (string, error) {
+	if i >= math.MaxUint32 {
+		panic("child overflow")
+	}
+	child, err := s.key.Child(uint32(i))
 	if err != nil {
 		return "", err
 	}

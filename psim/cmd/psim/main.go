@@ -10,6 +10,7 @@ import (
 
 	// derivers
 	_ "gitlab.com/swarmfund/psim/psim/externalsystems/btc"
+	_ "gitlab.com/swarmfund/psim/psim/externalsystems/eth"
 
 	// deposits
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"

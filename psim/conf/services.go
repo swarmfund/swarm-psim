@@ -4,6 +4,7 @@ package conf
 const (
 	// external deployers
 	ServiceBTCDeployer = "external_btc_deployer"
+	ServiceETHDeployer = "external_eth_deployer"
 
 	// deposits
 	ServiceBTCDeposit         = "btc_deposit"
