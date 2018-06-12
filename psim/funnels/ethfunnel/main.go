@@ -27,6 +27,9 @@ func init() {
 			return nil, errors.Wrap(err, "failed to figure out")
 		}
 
+		config.GasPrice = eth.FromGwei(config.GasPrice)
+		config.Threshold = eth.FromGwei(config.Threshold)
+
 		wallet, err := eth.NewHDWallet(config.Seed, config.AccountsToDerive)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init wallet")
