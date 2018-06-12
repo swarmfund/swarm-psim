@@ -27,10 +27,12 @@ func setupService(ctx context.Context) (app.Service, error) {
 
 	logger := app.Log(ctx).WithField("service", conf.ListenerService)
 
+	//app.Config(ctx).Salesforce().WithUserData(username, password)
+
 	horizonConnector := getHorizonConnector(ctx, serviceConfig)
 	extractor := getExtractor(ctx, horizonConnector, serviceConfig.TxhistoryCursor)
 	handler := setupHandler(horizonConnector)
-	targets := setupBroadcasterTargets(serviceConfig.MixpanelToken, serviceConfig.SalesforceUsername, serviceConfig.SalesforcePassword, serviceConfig.SalesforceClientSecret, serviceConfig.SalesforceAPIUrl)
+	targets := setupBroadcasterTargets(serviceConfig.MixpanelToken, serviceConfig.SalesforceUsername, serviceConfig.SalesforcePassword)
 	broadcaster, err := setupBroadcaster(targets)
 
 	if err != nil {
@@ -83,11 +85,9 @@ type MaybeTarget struct {
 	error
 }
 
-func setupBroadcasterTargets(mixpanelToken string, salesforceUsername string, salesforcePassword string, salesforceClientSecret string, salesforceAPIUrl string) (targets []MaybeTarget) {
-	salesforceTarget, err := NewSalesforceTarget(salesforceUsername, salesforcePassword, salesforceClientSecret, salesforceAPIUrl)
-	if err != nil {
-		targets = append(targets, MaybeTarget{nil, errors.Wrap(err, "failed to create salesforce target")})
-	}
+func setupBroadcasterTargets(mixpanelToken string, salesforceUsername string, salesforcePassword string) (targets []MaybeTarget) {
+	salesforceConnector := NewSalesforceConnector(app.Config(nil).Salesforce().WithUserData(salesforceUsername, salesforcePassword))
+	salesforceTarget := salesforceConnector.GetTarget()
 	targets = append(targets, MaybeTarget{salesforceTarget, nil})
 	mixpanelTarget := NewMixpanelTarget(mixpanelToken)
 	targets = append(targets, MaybeTarget{mixpanelTarget, nil})

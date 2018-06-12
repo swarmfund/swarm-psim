@@ -13,13 +13,11 @@ import (
 
 // ServiceConfig holds signer for horizon connector and some data for targets
 type ServiceConfig struct {
-	Signer                 keypair.Full `fig:"signer,required"`
-	MixpanelToken          string       `fig:"mixpanel_token"`
-	SalesforceUsername     string       `fig:"salesforce_username"`
-	SalesforcePassword     string       `fig:"salesforce_password"`
-	SalesforceClientSecret string       `fig:"salesforce_client_secret"`
-	SalesforceAPIUrl       string       `fig:"salesforce_api_url"`
-	TxhistoryCursor        string       `fig:"txhistory_cursor"`
+	Signer             keypair.Full `fig:"signer,required"`
+	MixpanelToken      string       `fig:"mixpanel_token"`
+	SalesforceUsername string       `fig:"salesforce_username"`
+	SalesforcePassword string       `fig:"salesforce_password"`
+	TxhistoryCursor    string       `fig:"txhistory_cursor"`
 }
 
 // Service consists config, logger, broadcaster and dependent components - extractor and handler
