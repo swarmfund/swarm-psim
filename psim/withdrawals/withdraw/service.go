@@ -99,6 +99,13 @@ type OffchainHelper interface {
 	SendTX(ctx context.Context, tx string) (txHash string, err error)
 }
 
+type VerificationConfig struct {
+	Verify              bool
+	SourceKP            keypair.Address // Needed only if Verify is false.
+	VerifierServiceName string
+	Discovery           *discovery.Client
+}
+
 // Service is abstract withdraw service, which approves or rejects WithdrawRequest,
 // communicating with withdraw verify service for multisig.
 //
@@ -111,34 +118,23 @@ type Service struct {
 	requestsConnector RequestsConnector
 	txSubmitter       TXSubmitter
 	xdrbuilder        *xdrbuild.Builder
-
-	// verification
-	verify              bool
-	sourceKP            keypair.Address
-	verifierServiceName string
-	discovery           *discovery.Client
-
-	offchainHelper OffchainHelper
+	verification      VerificationConfig
+	offchainHelper    OffchainHelper
 
 	requestEvents <-chan horizon.ReviewableRequestEvent
 }
 
 // New is constructor for Service.
-// TODO Make some struct for verification
 func New(
 	serviceName string,
-	verifierServiceName string,
 	signerKP keypair.Full,
 	log *logan.Entry,
 	requestListener RequestListener,
 	requestsConnector RequestsConnector,
 	txSubmitter TXSubmitter,
 	builder *xdrbuild.Builder,
-	discoveryClient *discovery.Client,
+	verification VerificationConfig,
 	helper OffchainHelper,
-
-	dontVerify bool,
-	sourceKP keypair.Address, // Needed if dontVerify is true
 ) *Service {
 
 	return &Service{
@@ -148,14 +144,8 @@ func New(
 		requestsConnector: requestsConnector,
 		txSubmitter:       txSubmitter,
 		xdrbuilder:        builder,
-
-		// The parameter is accepted in negative form intentionally, as by default we work with verification (dontVerify=false)
-		verify:              !dontVerify,
-		sourceKP:            sourceKP,
-		verifierServiceName: verifierServiceName,
-		discovery:           discoveryClient,
-
-		offchainHelper: helper,
+		verification:      verification,
+		offchainHelper:    helper,
 	}
 }
 
@@ -206,8 +196,8 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		s.log.WithField("request", request).Debugf("Found pending %s Withdraw Request.", s.offchainHelper.GetAsset())
 	}
 
-	isRejectable := (s.verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal)) ||
-		(!s.verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeWithdraw))
+	isRejectable := (s.verification.Verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal)) ||
+		(!s.verification.Verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeWithdraw))
 
 	if isRejectable {
 		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
@@ -274,9 +264,9 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 
 func (s *Service) getVerifierURL() (string, error) {
 	time.Sleep(15 * time.Second)
-	services, err := s.discovery.DiscoverService(s.verifierServiceName)
+	services, err := s.verification.Discovery.DiscoverService(s.verification.VerifierServiceName)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
+		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verification.VerifierServiceName))
 	}
 	if len(services) == 0 {
 		return "", ErrNoVerifierServices

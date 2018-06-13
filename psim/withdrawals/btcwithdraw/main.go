@@ -9,7 +9,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/keypair"
 )
 
 func init() {
@@ -50,29 +49,19 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to create CommonBTCHelper")
 	}
 
-	// FIXME
-	// FIXME
-	// FIXME
-	kp, err := keypair.ParseAddress("GDF6CDA63MU2IW6CQJPNOYEHQBHFF2XNHAPLR6ZUOJP3SBQRKROZFO7Z")
-	if err != nil {
-		panic(errors.Wrap(err, "failed to parse kp"))
-	}
-
 	return withdraw.New(
 		conf.ServiceBTCWithdraw,
-		conf.ServiceBTCWithdrawVerify,
 		config.SignerKP,
 		log,
 		horizonConnector.Listener(),
 		horizonConnector.Operations(),
 		horizonConnector.Submitter(),
 		builder,
-		globalConfig.Discovery(),
+		withdraw.VerificationConfig{
+			Verify:              true,
+			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
+			Discovery:           globalConfig.Discovery(),
+		},
 		btcHelper,
-		// FIXME
-		// FIXME
-		// FIXME
-		true,
-		kp,
 	), nil
 }

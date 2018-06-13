@@ -51,17 +51,18 @@ func init() {
 
 		return withdraw.New(
 			conf.ServiceETHWithdraw,
-			config.VerifierServiceName,
 			config.Signer,
 			log.WithField("service_name", config.VerifierServiceName),
 			horizon.Listener(),
 			horizon.Operations(),
 			horizon.Submitter(),
 			builder,
-			app.Config(ctx).Discovery(),
+			withdraw.VerificationConfig{
+				Verify: true,
+				VerifierServiceName: config.VerifierServiceName,
+				Discovery: app.Config(ctx).Discovery(),
+			},
 			internal.NewHelper(config.Asset, config.Threshold, ethClient, address, wallet, config.GasPrice, token, log),
-			false,
-			nil,
 		), nil
 	})
 }

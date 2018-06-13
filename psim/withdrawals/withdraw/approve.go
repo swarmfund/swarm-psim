@@ -79,7 +79,7 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 	var resultEnvelope *xdr.TransactionEnvelope
 	var err error
 
-	if s.verify {
+	if s.verification.Verify {
 		resultEnvelope, err = s.sendRequestToVerifier(VerifyPreliminaryApproveURLSuffix, NewApprove(request.ID, request.Hash, offchainTXHex))
 		if err != nil {
 			return errors.Wrap(err, "Failed to send preliminary Approve to Verify")
@@ -98,7 +98,7 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 			return errors.Wrap(err, "Failed to marshal ExternalDetails struct into bytes")
 		}
 
-		txB64, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
+		txB64, err := s.xdrbuilder.Transaction(s.verification.SourceKP).Op(xdrbuild.ReviewRequestOp{
 			ID:     request.ID,
 			Hash:   request.Hash,
 			Action: xdr.ReviewRequestOpActionApprove,
@@ -134,7 +134,7 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount int64) error {
 	var resultEnvelope *xdr.TransactionEnvelope
 	var fullySignedOffchainTX string
-	if s.verify {
+	if s.verification.Verify {
 		envelope, err := s.sendRequestToVerifier(VerifyApproveURLSuffix, NewApprove(request.ID, request.Hash, partlySignedOffchainTX))
 		if err != nil {
 			return errors.Wrap(err, "Failed to send Approve to Verify")
@@ -163,7 +163,7 @@ func (s *Service) processApprove(ctx context.Context, request horizon.Request, p
 			return errors.Wrap(err, "Failed to marshal ExternalDetails struct into bytes")
 		}
 
-		txB64, err := s.xdrbuilder.Transaction(s.sourceKP).Op(xdrbuild.ReviewRequestOp{
+		txB64, err := s.xdrbuilder.Transaction(s.verification.SourceKP).Op(xdrbuild.ReviewRequestOp{
 			ID:     request.ID,
 			Hash:   request.Hash,
 			Action: xdr.ReviewRequestOpActionApprove,
