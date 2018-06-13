@@ -60,6 +60,8 @@ func init() {
 			builder,
 			app.Config(ctx).Discovery(),
 			internal.NewHelper(config.Asset, config.Threshold, ethClient, address, wallet, config.GasPrice, token, log),
+			false,
+			nil,
 		), nil
 	})
 }

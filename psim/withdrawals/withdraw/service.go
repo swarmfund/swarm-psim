@@ -104,21 +104,27 @@ type OffchainHelper interface {
 //
 // To do all the Offchain(BTC or ETH) stuff, Service uses offchainHelper (implementor of the OffchainHelper interface).
 type Service struct {
-	verifierServiceName string
-	signerKP            keypair.Full
-	log                 *logan.Entry
-	requestListener     RequestListener
-	requestsConnector   RequestsConnector
-	txSubmitter         TXSubmitter
+	signerKP keypair.Full
 
-	xdrbuilder     *xdrbuild.Builder
-	discovery      *discovery.Client
+	log               *logan.Entry
+	requestListener   RequestListener
+	requestsConnector RequestsConnector
+	txSubmitter       TXSubmitter
+	xdrbuilder        *xdrbuild.Builder
+
+	// verification
+	verify              bool
+	sourceKP            keypair.Address
+	verifierServiceName string
+	discovery           *discovery.Client
+
 	offchainHelper OffchainHelper
 
 	requestEvents <-chan horizon.ReviewableRequestEvent
 }
 
 // New is constructor for Service.
+// TODO Make some struct for verification
 func New(
 	serviceName string,
 	verifierServiceName string,
@@ -130,18 +136,26 @@ func New(
 	builder *xdrbuild.Builder,
 	discoveryClient *discovery.Client,
 	helper OffchainHelper,
+
+	dontVerify bool,
+	sourceKP keypair.Address, // Needed if dontVerify is true
 ) *Service {
 
 	return &Service{
+		signerKP:          signerKP,
+		log:               log.WithField("service", serviceName),
+		requestListener:   requestListener,
+		requestsConnector: requestsConnector,
+		txSubmitter:       txSubmitter,
+		xdrbuilder:        builder,
+
+		// The parameter is accepted in negative form intentionally, as by default we work with verification (dontVerify=false)
+		verify:              !dontVerify,
+		sourceKP:            sourceKP,
 		verifierServiceName: verifierServiceName,
-		signerKP:            signerKP,
-		log:                 log.WithField("service", serviceName),
-		requestListener:     requestListener,
-		requestsConnector:   requestsConnector,
-		txSubmitter:         txSubmitter,
-		xdrbuilder:          builder,
 		discovery:           discoveryClient,
-		offchainHelper:      helper,
+
+		offchainHelper: helper,
 	}
 }
 
@@ -159,10 +173,6 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	case <-ctx.Done():
 		return nil
 	case requestEvent := <-s.requestEvents:
-		if running.IsCancelled(ctx) {
-			return nil
-		}
-
 		request, err := requestEvent.Unwrap()
 		if err != nil {
 			return errors.Wrap(err, "RequestsStreamer sent error")
@@ -196,12 +206,15 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		s.log.WithField("request", request).Debugf("Found pending %s Withdraw Request.", s.offchainHelper.GetAsset())
 	}
 
-	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+	isRejectable := (s.verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal)) ||
+		(!s.verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeWithdraw))
+
+	if isRejectable {
 		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
 		rejectReason := s.getRejectReason(request)
 		if rejectReason != "" {
 			s.log.WithField("reject_reason", rejectReason).WithField("request", request).
-				Warn("Got Withdraw Request which is invalid due to the RejectReason.")
+				Warn("Got WithdrawalRequest which is invalid due to the RejectReason.")
 
 			err := s.processRequestReject(ctx, request, rejectReason)
 			if err != nil {

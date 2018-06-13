@@ -17,7 +17,7 @@ const (
 var (
 	ErrMissingWithdraw         = errors.New("Missing WithdrawRequest in the RequestDetails.")
 	ErrMissingTwoStepWithdraw  = errors.New("Missing TwoStepWithdrawRequest in the RequestDetails.")
-	ErrMissingRequestInDetails = errors.New("Missing both TwoStepWithdrawRequest and WithdrawRequest.")
+	ErrMissingRequestInDetails = errors.New("Missing both TwoStepWithdrawRequest and WithdrawRequest in the Request.")
 
 	ErrMissingAddress    = errors.New("Missing address field in the ExternalDetails json.")
 	ErrAddressNotAString = errors.New("Address field in ExternalDetails is not a string.")
@@ -26,15 +26,17 @@ var (
 	ErrTXHexNotAString = errors.New("Offchain TX (tx_hex field) in ExternalDetails of WithdrawRequest is not a string.")
 )
 
-// GetWithdrawAddress obtains withdraw Address from the `address` field of the ExternalDetails
+// GetWithdrawalAddress obtains withdrawal Address from the `address` field of the ExternalDetails
 // of Withdraw in Request Details.
+//
+// GetWithdrawalAddress does work well with both Withdraw and TwoStepWithdraw Requests.
 //
 // Returns error if no `address` field in the ExternalDetails map or if the field is not a string.
 // Only returns errors with causes:
 // - ErrMissingRequestInDetails
 // - ErrMissingAddress
 // - ErrAddressNotAString.
-func GetWithdrawAddress(request horizon.Request) (string, error) {
+func GetWithdrawalAddress(request horizon.Request) (string, error) {
 	if request.Details.TwoStepWithdraw != nil {
 		return getWithdrawAddress(request.Details.TwoStepWithdraw.ExternalDetails)
 	}
