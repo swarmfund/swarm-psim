@@ -58,9 +58,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Submitter(),
 		builder,
 		withdraw.VerificationConfig{
-			Verify:              true,
+			Verify: true,
 			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
-			Discovery:           globalConfig.Discovery(),
+			Discovery: globalConfig.Discovery(),
 		},
 		btcHelper,
 	), nil

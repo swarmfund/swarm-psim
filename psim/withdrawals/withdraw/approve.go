@@ -15,6 +15,7 @@ import (
 )
 
 // ProcessValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
+// TODO Make me smaller
 func (s *Service) processValidPendingRequest(ctx context.Context, request horizon.Request) error {
 	withdrawAddress, err := GetWithdrawalAddress(request)
 	if err != nil {
@@ -39,27 +40,37 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		}
 	}
 
-	newRequest, err := s.requestsConnector.GetRequestByID(request.ID)
-	if err != nil {
-		return errors.Wrap(err, "Failed to obtain Request from Horizon")
-	}
-
-	for newRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
-		s.log.WithField("new_request_id", newRequest.ID).
-			// TODO sleep period in message - into var or const
-			Debugf("WithdrawalRequest still hasn't changed type to Withdraw(%d). Sleeping for 3 seconds.", xdr.ReviewableRequestTypeWithdraw)
-
-		// TODO Incremental
-		time.Sleep(3 * time.Second)
+	var newRequest *horizon.Request
+	var unsignedOffchainTX string
+	if s.verification.Verify {
 		newRequest, err = s.requestsConnector.GetRequestByID(request.ID)
 		if err != nil {
 			return errors.Wrap(err, "Failed to obtain Request from Horizon")
 		}
-	}
 
-	unsignedOffchainTX, err := GetTXHex(*newRequest)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get TX hex from the WithdrawRequest")
+		for newRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+			s.log.WithField("new_request_id", newRequest.ID).
+				// TODO sleep period in message - into var or const
+				Debugf("WithdrawalRequest still hasn't changed type to Withdraw(%d). Sleeping for 3 seconds.", xdr.ReviewableRequestTypeWithdraw)
+
+			// TODO Incremental
+			time.Sleep(3 * time.Second)
+			newRequest, err = s.requestsConnector.GetRequestByID(request.ID)
+			if err != nil {
+				return errors.Wrap(err, "Failed to obtain Request from Horizon")
+			}
+		}
+
+		unsignedOffchainTX, err = GetTXHex(*newRequest)
+		if err != nil {
+			return errors.Wrap(err, "Failed to get TX hex from the WithdrawRequest")
+		}
+	} else {
+		// Without verification
+		unsignedOffchainTX, err = s.offchainHelper.CreateTX(ctx, withdrawAddress, withdrawAmount)
+		if err != nil {
+			return errors.Wrap(err, "Failed to create Offchain TX with OffchainHelper")
+		}
 	}
 
 	partlySignedOffchainTX, err := s.offchainHelper.SignTX(unsignedOffchainTX)

@@ -196,10 +196,12 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		s.log.WithField("request", request).Debugf("Found pending %s Withdraw Request.", s.offchainHelper.GetAsset())
 	}
 
-	isRejectable := (s.verification.Verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal)) ||
-		(!s.verification.Verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeWithdraw))
+	if !s.verification.Verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+		// TwoStepWithdraw Request is unprocessable by withdraw service without Verify.
+		return nil
+	}
 
-	if isRejectable {
+	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
 		rejectReason := s.getRejectReason(request)
 		if rejectReason != "" {

@@ -27,7 +27,7 @@ func init() {
 
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
-		info, err := horizon.Info()
+		info, err := horizon.System().Info()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get horizon info")
 		}
