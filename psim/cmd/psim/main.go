@@ -18,6 +18,8 @@ import (
 	// withdrawals
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdveri"
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/dashwithdraw"
+
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/ethwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/ethwithdveri"
 

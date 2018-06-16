@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/distributed_lab/running"
 )
 
 // ProcessValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
@@ -32,6 +33,9 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		unsignedOffchainTXHex, err := s.offchainHelper.CreateTX(ctx, withdrawAddress, withdrawAmount)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Offchain TX")
+		}
+		if running.IsCancelled(ctx) {
+			return nil
 		}
 
 		err = s.processPreliminaryApprove(ctx, request, unsignedOffchainTXHex)

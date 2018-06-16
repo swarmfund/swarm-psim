@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/amount"
+	"context"
 )
 
 type Helper struct {
@@ -25,6 +26,11 @@ func NewHelper(
 		NewConfigHelper(asset, withdrawThreshold),
 		NewETHHelper(eth, address, wallet, gasPrice, token, log),
 	}
+}
+
+// Run method is needed for withdraw.OffchainHelper interface.
+func (h Helper) Run(context.Context) {
+	return
 }
 
 type Converter struct {

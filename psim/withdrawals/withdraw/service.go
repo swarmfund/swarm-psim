@@ -35,6 +35,7 @@ type RequestsConnector interface {
 }
 
 type TXSubmitter interface {
+	// TODO Change deprecated Submit
 	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
@@ -91,6 +92,10 @@ type CommonOffchainHelper interface {
 // and parametrise the Service.
 type OffchainHelper interface {
 	CommonOffchainHelper
+	// Those Helpers which have background threads must start them on call of this method.
+	// Run must be blocking. Only if ctx is cancelled
+	// For those Helpers, which don't need any background threads - just return immediately.
+	Run(context.Context)
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
 	// This offchain TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
@@ -222,11 +227,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// processValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
 	err := s.processValidPendingRequest(ctx, request)
-	if err != nil {
-		return errors.Wrap(err, "Failed to process valid pending Request")
-	}
-
-	return nil
+	return errors.Wrap(err, "Failed to process valid pending Request")
 }
 
 func (s *Service) sendRequestToVerifier(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
