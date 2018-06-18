@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdrbuild"
 )
 
@@ -43,24 +44,19 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to create CommonDashHelper")
 	}
 
-	// FIXME
-	// FIXME
-	// FIXME
-	//return withdraw.New(
-	//	conf.ServiceDashWithdraw,
-	//	config.SignerKP,
-	//	log,
-	//	horizonConnector.Listener(),
-	//	horizonConnector.Operations(),
-	//	horizonConnector.Submitter(),
-	//	builder,
-	//	withdraw.VerificationConfig{
-	//		Verify:   false,
-	//		SourceKP: config.SourceKP,
-	//	},
-	//	btcHelper,
-	//), nil
-
-	builder = builder
-	return btcHelper, nil
+	return withdraw.New(
+		conf.ServiceDashWithdraw,
+		config.SignerKP,
+		log,
+		horizonConnector.Listener(),
+		horizonConnector.Operations(),
+		horizonConnector.Submitter(),
+		builder,
+		withdraw.VerificationConfig{
+			Verify:              true,
+			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
+			Discovery:           globalConfig.Discovery(),
+		},
+		btcHelper,
+	), nil
 }
