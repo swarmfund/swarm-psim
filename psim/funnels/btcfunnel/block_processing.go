@@ -16,9 +16,12 @@ import (
 // into `s.outsCh`.
 func (s *Service) fetchExistingBlocks(ctx context.Context) (bool, error) {
 	s.log.Info("Started fetching existing Blocks.")
-	lastExistingBlock, err := s.btcClient.GetBlockCount()
+	lastExistingBlock, err := s.btcClient.GetBlockCount(ctx)
 	if err != nil {
 		return false, errors.Wrap(err, "Failed to GetBlockCount")
+	}
+	if running.IsCancelled(ctx) {
+		return false, nil
 	}
 
 	outsCh := make(chan bitcoin.Out, outChanSize)
@@ -54,9 +57,12 @@ func (s *Service) fetchExistingBlocks(ctx context.Context) (bool, error) {
 }
 
 func (s *Service) fetchNewBlock(ctx context.Context) error {
-	lastKnownBlock, err := s.btcClient.GetBlockCount()
+	lastKnownBlock, err := s.btcClient.GetBlockCount(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Failed to GetBlockCount")
+	}
+	if running.IsCancelled(ctx) {
+		return nil
 	}
 
 	if lastKnownBlock <= s.lastProcessedBlock {

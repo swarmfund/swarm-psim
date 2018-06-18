@@ -28,7 +28,7 @@ type BTCClient interface {
 	// EstimateFee returns fee per KB in BTC
 	EstimateFee(blocksToBeIncluded uint) (float64, error)
 
-	GetBlockCount() (uint64, error)
+	GetBlockCount(context.Context) (uint64, error)
 	GetBlock(blockNumber uint64) (*btcutil.Block, error)
 
 	GetTxUTXO(txHash string, outNumber uint32) (*bitcoin.UTXO, error)

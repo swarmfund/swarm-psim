@@ -13,9 +13,11 @@ import (
 
 	"strconv"
 
+	"context"
+	"encoding/base64"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"encoding/base64"
 )
 
 var (
@@ -28,7 +30,7 @@ type Connector interface {
 	IsTestnet() bool
 
 	// GetBlockCount must return index of last known Block
-	GetBlockCount() (uint64, error)
+	GetBlockCount(context.Context) (uint64, error)
 	// TODO Handle absent Block
 	GetBlockHash(blockNumber uint64) (string, error)
 	// GetBlock must return hex of Block
@@ -51,16 +53,16 @@ type Connector interface {
 // NodeConnector is implementor of Connector interface,
 // which requests Bitcoin core RPC to get the blockchain info
 type NodeConnector struct {
-	config ConnectorConfig
+	config  ConnectorConfig
 	authKey string
-	client *http.Client
+	client  *http.Client
 }
 
 // NewNodeConnector returns new NodeConnector instance,
 // created with provided ConnectorConfig.
 func NewNodeConnector(config ConnectorConfig) Connector {
 	return &NodeConnector{
-		config: config,
+		config:  config,
 		authKey: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`%s:%s`, config.Node.User, config.Node.Password))),
 		client: &http.Client{
 			Timeout: time.Duration(config.RequestTimeout) * time.Second,
@@ -74,13 +76,13 @@ func (c *NodeConnector) IsTestnet() bool {
 }
 
 // GetBlockCount returns index of a last known Block.
-func (c *NodeConnector) GetBlockCount() (uint64, error) {
+func (c *NodeConnector) GetBlockCount(ctx context.Context) (uint64, error) {
 	var response struct {
 		Response
 		Result uint64 `json:"result"`
 	}
 
-	err := c.sendRequest("getblockcount", "", &response)
+	err := c.sendRequestWithCtx(ctx, "getblockcount", "", &response)
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to send or parse get Block count request")
 	}
@@ -413,7 +415,12 @@ func (c *NodeConnector) ListUnspent(minConfirmations, maxConfirmations int, addr
 	return response.Result, nil
 }
 
+// DEPRECATED: use with ctx only
 func (c *NodeConnector) sendRequest(methodName, params string, response interface{}) error {
+	return c.sendRequestWithCtx(context.TODO(), methodName, params, response)
+}
+
+func (c *NodeConnector) sendRequestWithCtx(ctx context.Context, methodName, params string, response interface{}) error {
 	bodyStr := c.buildRequestBody("hardcoded_request_id", methodName, params)
 	fields := logan.F{
 		"node_url":     c.getNodeURL(),
@@ -427,6 +434,11 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 	}
 
 	request.Header.Set("Authorization", "Basic "+c.authKey)
+	if ctx != nil {
+		request = request.WithContext(ctx)
+	} else {
+		request = request.WithContext(context.Background())
+	}
 
 	resp, err := c.client.Do(request)
 	if err != nil {

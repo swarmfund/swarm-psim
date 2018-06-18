@@ -14,12 +14,13 @@ import (
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/tokend/go/amount"
+	"context"
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
 // to parametrise the Service.
 type BTCClient interface {
-	GetBlockCount() (uint64, error)
+	GetBlockCount(context.Context) (uint64, error)
 	GetBlock(blockIndex uint64) (*btcutil.Block, error)
 
 	IsTestnet() bool
@@ -68,8 +69,9 @@ func NewBTCHelper(
 	}, nil
 }
 
+// TODO Add context as argument + into interface
 func (h CommonBTCHelper) GetLastKnownBlockNumber() (uint64, error) {
-	return h.btcClient.GetBlockCount()
+	return h.btcClient.GetBlockCount(context.TODO())
 }
 
 func (h CommonBTCHelper) GetBlock(number uint64) (*deposit.Block, error) {

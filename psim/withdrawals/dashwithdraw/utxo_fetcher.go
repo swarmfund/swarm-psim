@@ -29,7 +29,7 @@ func (h *CommonDashHelper) fetchUTXOsInfinitely(ctx context.Context, blockToStar
 
 	running.UntilSuccess(ctx, h.log, "last_known_block_getter", func(ctx context.Context) (bool, error) {
 		var err error
-		lastKnownBlock, err = h.btcClient.GetBlockCount()
+		lastKnownBlock, err = h.btcClient.GetBlockCountWithCtx(ctx)
 		if err != nil {
 			return false, errors.Wrap(err, "Failed to GetBlockCount (last known Block)")
 		}
@@ -104,7 +104,7 @@ func (h *CommonDashHelper) streamOffchainBlocks(ctx context.Context, blockToStar
 	}, 0, 5*time.Second, time.Hour)
 
 	running.WithBackOff(ctx, h.log, "blocks_streamer", func(ctx context.Context) error {
-		lastKnownBlock, err := h.btcClient.GetBlockCount()
+		lastKnownBlock, err := h.btcClient.GetBlockCountWithCtx(ctx)
 		if err != nil {
 			return errors.Wrap(err, "Failed to GetBlockCount (last known Block)")
 		}

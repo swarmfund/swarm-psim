@@ -3,6 +3,8 @@ package bitcoin
 import (
 	"encoding/hex"
 
+	"context"
+
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -21,12 +23,11 @@ func NewClient(connector Connector) *Client {
 	}
 }
 
-// GetBlockCount returns the number of the last known Block.
-func (c Client) GetBlockCount() (uint64, error) {
-	return c.connector.GetBlockCount()
-}
-
 // TODO Handle absent Block
+// GetBlockCount returns the number of the last known Block.
+func (c Client) GetBlockCount(ctx context.Context) (uint64, error) {
+	return c.connector.GetBlockCount(ctx)
+}
 
 // GetBlock gets Block hash by provided blockNumber via Connector,
 // gets raw Block(in hex) by the hash from Connector

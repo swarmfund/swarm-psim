@@ -3,8 +3,8 @@ package dashwithdraw
 import (
 	"sync"
 
-	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 type RandomCoinSelector struct {
