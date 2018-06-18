@@ -27,7 +27,6 @@ const (
 // to parametrise the Service.
 type BTCClient interface {
 	GetBlockCount(ctx context.Context) (uint64, error)
-
 	GetBlock(blockNumber uint64) (*btcutil.Block, error)
 
 	CreateRawTX(inputUTXOs []bitcoin.Out, addrToAmount map[string]float64) (resultTXHex string, err error)
