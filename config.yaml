@@ -253,11 +253,12 @@ eth_contract_funnel:
 
 #withdrawals
 btc_withdraw:
-  btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
+  btc_private_key: hot_wallet_multisig_private_key_1
 
   hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
   hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
   offchain_currency: BTC # is used to build network params (version bytes)
   offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
 
@@ -291,6 +292,26 @@ eth_withdraw:
   token_address: 0xaddres_of_the_erc_20_token_hex # for not 'ETH' TokenD asset, optional and unused field if 'ETH' in asset
   min_withdraw_amount: 1000000000000000 # 0.001 (in Wei)
   gas_price: 50000000000 # 50 GWei (in Wei)
+
+dash_withdraw:
+  offchain_private_key: hot_wallet_multisig_private_key_1
+
+  hot_wallet_address: HotWalletAddress
+  hot_wallet_script_pub_key: script_pub_key
+  hot_wallet_redeem_script: redeem_script_of_the_hot_wallet_p2sh_address
+  fetch_utxo_from: 0 # Block number
+
+  max_fee_per_kb: 0.00000001 # in satoshi (float in Dash)
+  dust_output_threshold: 50000 # (int64 in satoshi) # 0.0005 Dash
+  blocks_to_be_included: 4 # from 2 to 25
+
+  offchain_currency: DASH # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
+
+  min_withdraw_amount: 10000 # satoshis 0.0001 BTC
+
+  source: G_SOME_VALID_PULIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
 
 eth_withdraw_verify:
   source: G_SOME_VALID_PUBLIC_KEY
