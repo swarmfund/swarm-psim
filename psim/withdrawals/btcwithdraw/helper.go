@@ -30,6 +30,7 @@ type BTCClient interface {
 type CommonBTCHelper struct {
 	log *logan.Entry
 
+	tokendAsset string
 	minWithdrawAmount     int64
 	hotWalletAddress      string
 	hotWalletScriptPubKey string
@@ -43,6 +44,7 @@ type CommonBTCHelper struct {
 // NewBTCHelper is constructor for CommonBTCHelper.
 func NewBTCHelper(
 	log *logan.Entry,
+	tokendAsset string,
 	minWithdrawAmount int64,
 	hotWalletAddress,
 	hotWalletScriptPubKey,
@@ -63,6 +65,7 @@ func NewBTCHelper(
 		// TODO Not actually a helper, but if you suggest a better name - tell me.
 		log: log.WithField("service", "btc_helper"),
 
+		tokendAsset: tokendAsset,
 		minWithdrawAmount:     minWithdrawAmount,
 		hotWalletAddress:      hotWalletAddress,
 		hotWalletScriptPubKey: hotWalletScriptPubKey,
@@ -79,11 +82,9 @@ func (h CommonBTCHelper) Run(context.Context) {
 	return
 }
 
-// TODO Config
 // GetAsset is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) GetAsset() string {
-	// TODO Config
-	return "BTC"
+	return h.tokendAsset
 }
 
 // GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.

@@ -20,6 +20,7 @@ type Config struct {
 
 	OffchainCurrency   string `fig:"offchain_currency,required"`
 	OffchainBlockchain string `fig:"offchain_blockchain,required"`
+	TokendAsset        string `fig:"tokend_asset,required"`
 
 	MinWithdrawAmount int64 `fig:"min_withdraw_amount,required"`
 
@@ -29,17 +30,17 @@ type Config struct {
 
 func (c Config) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"host":        c.Host,
-		"port":        c.Port,
+		"host": c.Host,
+		"port": c.Port,
 
 		"hot_wallet_address":        c.HotWalletAddress,
 		"hot_wallet_script_pub_key": c.HotWalletScriptPubKey,
 		"hot_wallet_redeem_script":  c.HotWalletRedeemScript,
 
-		"offchain_currency":         c.OffchainCurrency,
-		"offchain_blockchain":       c.OffchainBlockchain,
+		"offchain_currency":   c.OffchainCurrency,
+		"offchain_blockchain": c.OffchainBlockchain,
 
-		"min_withdraw_amount":       c.MinWithdrawAmount,
+		"min_withdraw_amount": c.MinWithdrawAmount,
 	}
 }
 

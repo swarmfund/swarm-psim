@@ -36,6 +36,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 	btcHelper, err := NewBTCHelper(
 		log,
+		// TODO Config
+		"BTC",
 		config.MinWithdrawAmount,
 		config.HotWalletAddress,
 		config.HotWalletScriptPubKey,

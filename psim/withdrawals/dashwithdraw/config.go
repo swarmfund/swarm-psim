@@ -26,8 +26,7 @@ type Config struct {
 
 	MinWithdrawAmount int64 `fig:"min_withdraw_amount,required"`
 
-	SignerKP keypair.Full    `fig:"signer,required" mapstructure:"signer"`
-	SourceKP keypair.Address `fig:"source,required"`
+	SignerKP keypair.Full `fig:"signer,required" mapstructure:"signer"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {

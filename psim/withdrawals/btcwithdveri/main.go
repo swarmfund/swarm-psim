@@ -43,6 +43,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	btcHelper, err := btcwithdraw.NewBTCHelper(
 		log,
+		config.TokendAsset,
 		config.MinWithdrawAmount,
 		config.HotWalletAddress,
 		config.HotWalletScriptPubKey,
