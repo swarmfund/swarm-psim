@@ -65,7 +65,7 @@ func (s RandomCoinSelector) Fund(amount int64) (utxos []bitcoin.Out, change int6
 		delete(activeUTXOSCopy, chosenOut)
 	}
 
-	return nil, 0, errors.New("Not implemented.")
+	return result, totalFunded - amount, nil
 }
 
 func (s RandomCoinSelector) chooseUTXO(utxos map[bitcoin.Out]UTXO, amountToFill int64) (bitcoin.Out, UTXO) {

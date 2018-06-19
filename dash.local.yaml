@@ -1,0 +1,34 @@
+log:
+  level: info
+  sentry_dsn: "https://06ed77cf4c564db0bcbfd62acad20e93:0ce55e85c4c24c0e95df2bf1aaa9e7d6@staging.forum.sun.swarm.fund/4"
+
+horizon:
+  addr: "https://api-stage.swarm.fund"
+
+bitcoin:
+  node:
+    host: "10.23.129.65"
+    port: 9998
+    user: dash
+    password: dash
+  testnet: false
+  request_timeout_s: 30
+
+services:
+  - dash_withdraw
+
+dash_withdraw:
+  offchain_private_key: XDC83MqRrgRt1f3sj15Betgks6VqCYccoCvRSyCGuni1tcVzf1Ck
+  hot_wallet_address: 7icudGCd4jh9mXm9wwPjFXCw8TYmJEwhk5
+  hot_wallet_script_pub_key: a914b1d36af91cd3d3574981f51da3487b76a19cb5d987
+  hot_wallet_redeem_script: 52210299745e5e078aace0782dee0b13fa59574d3ff41c22de77dddd672adfb7f89a2021034c0b6f01044eb766ada6b02df83864532e373164769f3566b8ddb401e1db41a052ae
+  fetch_utxo_from: 889683
+  max_fee_per_kb: 0.00011006 # in satoshi (float in Dash)
+  dust_output_threshold: 50000 # (int64 in satoshi) # 0.0005 Dash
+  blocks_to_be_included: 4 # from 2 to 25
+  tokend_asset: DASH
+  offchain_currency: DASH # is used to build network params (version bytes)
+  offchain_blockchain: mainnet # you usually can only use 'testnet' or 'mainnet'
+  min_withdraw_amount: 10000 # satoshis 0.0001 BTC
+  source: "GD7AHJHCDSQI6LVMEJEE2FTNCA2LJQZ4R64GUI3PWANSVEO4GEOWB636"
+  signer: "SCDMOOXVNMO6SA22AYUMZDIGLDJMBUTVEGB73FFNTLFJILBJWIU4NQ3D"

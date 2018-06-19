@@ -171,9 +171,9 @@ func (h *CommonDashHelper) saveUTXOIfOurs(out wire.TxOut, txHash string, outNumb
 		return
 	}
 
-	if scriptClass != txscript.PubKeyHashTy {
-		// Output, which pays not to a pub-key-hash Address - just ignoring.
-		// We only funnel BTC from our Addresses, which are all actually pay-to-pub-key-hash Addresses.
+	if scriptClass != txscript.ScriptHashTy {
+		// Output, which pays not to a script-hash Address - just ignoring.
+		// We only funnel BTC from our HotWallet Address, which is actually pay-to-script-hash Address.
 		return
 	}
 

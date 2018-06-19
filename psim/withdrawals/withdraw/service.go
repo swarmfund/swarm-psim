@@ -158,6 +158,9 @@ func New(
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
+	// TODO Wait
+	go s.offchainHelper.Run(ctx)
+
 	s.requestEvents = s.requestListener.StreamWithdrawalRequestsOfAsset(ctx, s.offchainHelper.GetAsset(), false, true)
 
 	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 10*time.Minute)
