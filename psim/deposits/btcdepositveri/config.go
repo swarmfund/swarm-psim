@@ -17,6 +17,7 @@ type Config struct {
 	MinDepositAmount   uint64 `fig:"min_deposit_amount,required"`
 	FixedDepositFee    uint64 `fig:"fixed_deposit_fee,required"`
 	LastBlocksNotWatch uint64 `fig:"last_blocks_not_watch,required"`
+	ExternalSystem     int32  `fig:"external_system,required"`
 
 	Signer keypair.Full `fig:"signer,required"`
 }

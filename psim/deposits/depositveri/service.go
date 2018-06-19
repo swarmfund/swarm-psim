@@ -14,7 +14,7 @@ import (
 )
 
 func New(
-	externalSystem string,
+	externalSystem int,
 	serviceName string,
 	log *logan.Entry,
 	signer keypair.Full,
@@ -26,7 +26,7 @@ func New(
 	discoveryClient *discovery.Client,
 	offchainHelper deposit.OffchainHelper) app.Service {
 
-	v := newVerifier(
+	v := newDepositVerifier(
 		serviceName,
 		externalSystem,
 		log,

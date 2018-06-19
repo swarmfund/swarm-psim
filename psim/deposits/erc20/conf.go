@@ -26,7 +26,8 @@ type VerifyConfig struct {
 	Signer        keypair.Full `fig:"signer,required"`
 	Confirmations uint64       `fig:"confirmations"`
 	// DepositAsset swarm asset to deposit
-	DepositAsset string `fig:"deposit_asset,required"`
+	DepositAsset   string `fig:"deposit_asset,required"`
+	ExternalSystem int32  `fig:"external_system,required"`
 	// Token deposit token contract address
 	Token common.Address `fig:"token,required"`
 }

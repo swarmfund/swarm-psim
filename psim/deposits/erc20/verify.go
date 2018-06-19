@@ -35,7 +35,7 @@ func init() {
 
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
-		info, err := horizon.Info()
+		info, err := horizon.System().Info()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get horizon info")
 		}
@@ -44,7 +44,7 @@ func init() {
 		eth := app.Config(ctx).Ethereum()
 
 		return depositveri.New(
-			config.DepositAsset,
+			int(config.ExternalSystem),
 			conf.ServiceERC20DepositVerify,
 			app.Log(ctx),
 			config.Signer,
