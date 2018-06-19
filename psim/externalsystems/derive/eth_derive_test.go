@@ -10,7 +10,7 @@ import (
 func TestETHDeriver_ChildAddress(t *testing.T) {
 	cases := []struct {
 		key      string
-		child    uint32
+		child    uint64
 		expected string
 	}{
 		{
