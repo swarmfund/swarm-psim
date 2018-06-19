@@ -104,7 +104,7 @@ func (h *CommonDashHelper) streamOffchainBlocks(ctx context.Context, blockToStar
 	}, 0, 5*time.Second, time.Hour)
 
 	running.WithBackOff(ctx, h.log, "blocks_streamer", func(ctx context.Context) error {
-		lastKnownBlock, err := h.btcClient.GetBlockCountWithCtx(ctx)
+		lastKnownBlock, err := h.btcClient.GetBlockCount(ctx)
 		if err != nil {
 			return errors.Wrap(err, "Failed to GetBlockCount (last known Block)")
 		}
