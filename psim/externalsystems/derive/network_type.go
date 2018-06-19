@@ -2,6 +2,11 @@ package derive
 
 import "github.com/btcsuite/btcd/chaincfg"
 
+func init() {
+	chaincfg.Register(DashMainnetChainParams)
+	chaincfg.Register(DashTestnetChainParams)
+}
+
 type NetworkType int32
 
 const (

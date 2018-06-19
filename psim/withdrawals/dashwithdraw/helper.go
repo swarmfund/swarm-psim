@@ -73,7 +73,7 @@ func NewDashHelper(
 	}
 
 	return &CommonDashHelper{
-		log: log.WithField("helper", "btc_offchain_helper"),
+		log: log.WithField("helper", "dash_offchain_helper"),
 
 		config:    config,
 		netParams: netParams,
