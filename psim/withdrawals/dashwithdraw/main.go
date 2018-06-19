@@ -34,7 +34,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
-	btcHelper, err := NewDashHelper(
+	dashHelper, err := NewDashHelper(
 		log,
 		config,
 		globalConfig.Bitcoin(),
@@ -57,6 +57,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
 			Discovery:           globalConfig.Discovery(),
 		},
-		btcHelper,
+		dashHelper,
 	), nil
 }

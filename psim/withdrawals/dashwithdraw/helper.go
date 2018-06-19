@@ -20,7 +20,10 @@ import (
 const (
 	txTemplateSize = 20
 	inSize         = 260
-	outSize        = 21
+	//outSize        = 21
+	outSize = 28
+
+	minRelayFee = 0.00005000
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -190,6 +193,9 @@ func (h CommonDashHelper) CreateTX(ctx context.Context, addr string, amount int6
 	feePerKB, err := h.btcClient.EstimateFee(h.config.BlocksToBeIncluded)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to EstimateFee")
+	}
+	if feePerKB < minRelayFee {
+		feePerKB = minRelayFee
 	}
 	fields := logan.F{"fee_per_kb": feePerKB}
 
