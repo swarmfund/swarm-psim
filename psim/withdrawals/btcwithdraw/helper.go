@@ -107,7 +107,7 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 
 	tx, err := btcutil.NewTxFromBytes(txBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to create BTC TX from hex")
+		return "", errors.Wrap(err, "Failed to create BTC TX from bytes")
 	}
 
 	if len(tx.MsgTx().TxOut) == 0 {

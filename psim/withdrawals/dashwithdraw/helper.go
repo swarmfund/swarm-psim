@@ -113,7 +113,7 @@ func (h CommonDashHelper) ValidateTX(txHex string, withdrawAddress string, withd
 
 	tx, err := btcutil.NewTxFromBytes(txBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to create BTC TX from hex")
+		return "", errors.Wrap(err, "Failed to create BTC TX from bytes")
 	}
 
 	if len(tx.MsgTx().TxOut) == 0 {
@@ -186,7 +186,7 @@ func (h CommonDashHelper) ConvertAmount(destinationAmount int64) int64 {
 }
 
 // CreateTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonDashHelper) CreateTX(_ context.Context, addr string, amount int64) (txHex string, err error) {
+func (h CommonDashHelper) CreateTX(ctx context.Context, addr string, amount int64) (txHex string, err error) {
 	feePerKB, err := h.btcClient.EstimateFee(h.config.BlocksToBeIncluded)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to EstimateFee")
@@ -199,7 +199,19 @@ func (h CommonDashHelper) CreateTX(_ context.Context, addr string, amount int64)
 		}))
 	}
 
+	select {
+	case <-ctx.Done():
+		return "", nil
+	case <-h.utxoFetched:
+		// All existing Blocks are already processed - can continue
+		break
+	}
+
 	inputUTXOs, changeAmount, err := h.coinSelector.Fund(amount)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to fund requested amount by CoinSelector")
+	}
+
 	txSizeBytes := txTemplateSize + inSize*len(inputUTXOs) + outSize*2 // Always count that there are 2 outputs - just to be simpler
 	txFee := (feePerKB / 1000) * float64(txSizeBytes)
 

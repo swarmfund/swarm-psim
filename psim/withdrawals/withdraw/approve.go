@@ -76,6 +76,9 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 			return errors.Wrap(err, "Failed to create Offchain TX with OffchainHelper")
 		}
 	}
+	if running.IsCancelled(ctx) {
+		return nil
+	}
 
 	partlySignedOffchainTX, err := s.offchainHelper.SignTX(unsignedOffchainTX)
 	if err != nil {
