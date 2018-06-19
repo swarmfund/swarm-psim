@@ -1,4 +1,4 @@
-package btcwithdraw
+package dashwithdraw
 
 import (
 	"encoding/hex"
@@ -17,88 +17,95 @@ import (
 	"gitlab.com/tokend/go/amount"
 )
 
+const (
+	txTemplateSize = 20
+	inSize         = 260
+	outSize        = 21
+)
+
 // BTCClient is interface to be implemented by Bitcoin Core client
 // to parametrise the Service.
 type BTCClient interface {
-	// CreateAndFundRawTX sets Change position in Outputs to 1.
-	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error)
+	GetBlockCount(ctx context.Context) (uint64, error)
+	GetBlock(blockNumber uint64) (*btcutil.Block, error)
+
+	CreateRawTX(inputUTXOs []bitcoin.Out, addrToAmount map[string]float64) (resultTXHex string, err error)
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
+
+	EstimateFee(blocksToBeIncluded uint) (float64, error)
 }
 
-// CommonBTCHelper is BTC specific implementation of the OffchainHelper interface from package withdraw.
-type CommonBTCHelper struct {
+type CoinSelector interface {
+	// AddUTXO must ignore duplications without any exceptions.
+	AddUTXO(UTXO)
+	// Fund must deactivate (not delete) the UTXOs used for funding.
+	// Fund must wait until all existing Blocks are fetched.
+	Fund(amount int64) (utxos []bitcoin.Out, change int64, err error)
+	TryRemoveUTXO(bitcoin.Out) bool
+}
+
+// CommonDashHelper is BTC specific implementation of the OffchainHelper interface from package withdraw.
+type CommonDashHelper struct {
 	log *logan.Entry
 
-	minWithdrawAmount     int64
-	hotWalletAddress      string
-	hotWalletScriptPubKey string
-	hotWalletRedeemScript string
-	privateKey            string
-	netParams             *chaincfg.Params
+	config    Config
+	netParams *chaincfg.Params
 
-	btcClient BTCClient
+	utxoFetched  chan struct{}
+	btcClient    BTCClient
+	coinSelector CoinSelector
 }
 
-// NewBTCHelper is constructor for CommonBTCHelper.
-func NewBTCHelper(
+// NewDashHelper is constructor for CommonDashHelper.
+func NewDashHelper(
 	log *logan.Entry,
-	minWithdrawAmount int64,
-	hotWalletAddress,
-	hotWalletScriptPubKey,
-	hotWalletRedeemScript string,
-	privateKey string,
-	currency, blockchain string,
-	btcClient BTCClient) (*CommonBTCHelper, error) {
+	config Config,
+	btcClient BTCClient,
+	coinSelector CoinSelector) (*CommonDashHelper, error) {
 
-	netParams, err := bitcoin.GetNetParams(currency, blockchain)
+	netParams, err := bitcoin.GetNetParams(config.OffchainCurrency, config.OffchainBlockchain)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
-			"currency":   currency,
-			"blockchain": blockchain,
+			"currency":   config.OffchainCurrency,
+			"blockchain": config.OffchainBlockchain,
 		})
 	}
 
-	return &CommonBTCHelper{
-		// TODO Not actually a helper, but if you suggest a better name - tell me.
-		log: log.WithField("service", "btc_helper"),
+	return &CommonDashHelper{
+		log: log.WithField("helper", "btc_offchain_helper"),
 
-		minWithdrawAmount:     minWithdrawAmount,
-		hotWalletAddress:      hotWalletAddress,
-		hotWalletScriptPubKey: hotWalletScriptPubKey,
-		hotWalletRedeemScript: hotWalletRedeemScript,
-		privateKey:            privateKey,
-		netParams:             netParams,
+		config:    config,
+		netParams: netParams,
 
-		btcClient: btcClient,
+		utxoFetched:  make(chan struct{}),
+		btcClient:    btcClient,
+		coinSelector: coinSelector,
 	}, nil
 }
 
-// Run method is needed for withdraw.OffchainHelper interface.
-func (h CommonBTCHelper) Run(context.Context) {
-	return
+func (h CommonDashHelper) Run(ctx context.Context) {
+	h.fetchUTXOsInfinitely(ctx, h.config.FetchUTXOFrom)
 }
 
-// TODO Config
 // GetAsset is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) GetAsset() string {
-	// TODO Config
-	return "BTC"
+func (h CommonDashHelper) GetAsset() string {
+	return h.config.OffchainCurrency
 }
 
 // GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) GetMinWithdrawAmount() int64 {
-	return h.minWithdrawAmount
+func (h CommonDashHelper) GetMinWithdrawAmount() int64 {
+	return h.config.MinWithdrawAmount
 }
 
 // ValidateAddress is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) ValidateAddress(addr string) error {
+func (h CommonDashHelper) ValidateAddress(addr string) error {
 	_, err := btcutil.DecodeAddress(addr, h.netParams)
 	return err
 }
 
 // ValidateTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdrawAmount int64) (string, error) {
+func (h CommonDashHelper) ValidateTX(txHex string, withdrawAddress string, withdrawAmount int64) (string, error) {
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to decode txHex into bytes")
@@ -119,7 +126,7 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 
 	// TODO Move to separate method
 	// Addresses of TX Outputs
-	txOutAddresses, err := getBtcTXAddresses(tx, h.netParams)
+	txOutAddresses, err := getBtcTXOutAddresses(tx, h.netParams)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Address from Outputs of the BTC TX")
 	}
@@ -135,8 +142,8 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 	// Change Address
 	if len(txOutAddresses) == 2 {
 		// Have change
-		if txOutAddresses[1] != h.hotWalletAddress {
-			return fmt.Sprintf("Wrong BTC Address in the second Output of the TX - CahngeAddress (%s), expected (%s).", txOutAddresses[1], h.hotWalletAddress), nil
+		if txOutAddresses[1] != h.config.HotWalletAddress {
+			return fmt.Sprintf("Wrong BTC Address in the second Output of the TX - CahngeAddress (%s), expected (%s).", txOutAddresses[1], h.config.HotWalletAddress), nil
 		}
 	}
 
@@ -155,7 +162,7 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 	return "", nil
 }
 
-func getBtcTXAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, error) {
+func getBtcTXOutAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, error) {
 	var result []string
 
 	for i, out := range tx.MsgTx().TxOut {
@@ -174,37 +181,63 @@ func getBtcTXAddresses(tx *btcutil.Tx, netParams *chaincfg.Params) ([]string, er
 }
 
 // GetWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) ConvertAmount(destinationAmount int64) int64 {
+func (h CommonDashHelper) ConvertAmount(destinationAmount int64) int64 {
 	return destinationAmount * ((100000000) / amount.One)
 }
 
 // CreateTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) CreateTX(_ context.Context, addr string, amount int64) (txHex string, err error) {
-	floatAmount := float64(amount) / 100000000
-
-	txHex, err = h.btcClient.CreateAndFundRawTX(addr, floatAmount, h.hotWalletAddress, nil)
+func (h CommonDashHelper) CreateTX(_ context.Context, addr string, amount int64) (txHex string, err error) {
+	feePerKB, err := h.btcClient.EstimateFee(h.config.BlocksToBeIncluded)
 	if err != nil {
-		if errors.Cause(err) == bitcoin.ErrInsufficientFunds {
-			return "", errors.Wrap(err, "Could not create raw TX - not enough BTC on hot wallet", logan.F{
-				"float_amount": floatAmount,
-			})
-		}
+		return "", errors.Wrap(err, "Failed to EstimateFee")
+	}
+	fields := logan.F{"fee_per_kb": feePerKB}
 
-		return "", errors.Wrap(err, "Failed to create or fund raw TX", logan.F{
-			"float_amount": floatAmount,
+	if feePerKB > h.config.MaxFeePerKB {
+		return "", errors.From(NewErrTooBigFeePerKB(feePerKB, h.config.MaxFeePerKB), fields.Merge(logan.F{
+			"config_max_fee_per_kb": h.config.MaxFeePerKB,
+		}))
+	}
+
+	inputUTXOs, changeAmount, err := h.coinSelector.Fund(amount)
+	txSizeBytes := txTemplateSize + inSize*len(inputUTXOs) + outSize*2 // Always count that there are 2 outputs - just to be simpler
+	txFee := (feePerKB / 1000) * float64(txSizeBytes)
+
+	floatAmount := (float64(amount) / 100000000) - txFee
+
+	addrToAmount := map[string]float64{addr: floatAmount}
+	if changeAmount > h.config.DustThreshold {
+		addrToAmount[h.config.HotWalletAddress] = float64(changeAmount) / 100000000
+	}
+
+	txHex, err = h.btcClient.CreateRawTX(inputUTXOs, addrToAmount)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to create raw TX", logan.F{
+			"withdraw_address":      addr,
+			"withdraw_float_amount": floatAmount,
+			"tx_outputs":            addrToAmount,
+			"input_utxos":           inputUTXOs,
+			"fee_per_kb":            feePerKB,
+			"tx_size":               txSizeBytes,
+			"fee":                   txFee,
 		})
+	}
+
+	if (len(txHex) / 2) > txSizeBytes {
+		panic(errors.Errorf("TX size calculation is broken: precalculated (%d), real TX size (%d).",
+			txSizeBytes, len(txHex)/2))
 	}
 
 	return txHex, nil
 }
 
 // SignTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) SignTX(txHex string) (string, error) {
-	return h.btcClient.SignAllTXInputs(txHex, h.hotWalletScriptPubKey, h.hotWalletRedeemScript, h.privateKey)
+func (h CommonDashHelper) SignTX(txHex string) (string, error) {
+	return h.btcClient.SignAllTXInputs(txHex, h.config.HotWalletScriptPubKey, h.config.HotWalletRedeemScript, h.config.PrivateKey)
 }
 
 // SendTX is implementation of OffchainHelper interface from package withdraw.
-func (h CommonBTCHelper) SendTX(ctx context.Context, txHex string) (txHash string, err error) {
+func (h CommonDashHelper) SendTX(ctx context.Context, txHex string) (txHash string, err error) {
 	txHash, err = h.btcClient.SendRawTX(txHex)
 
 	if errors.Cause(err) == bitcoin.ErrAlreadyInChain {
@@ -229,7 +262,7 @@ func (h CommonBTCHelper) SendTX(ctx context.Context, txHex string) (txHash strin
 	return txHash, err
 }
 
-func (h CommonBTCHelper) GetHash(txHex string) (string, error) {
+func (h CommonDashHelper) GetHash(txHex string) (string, error) {
 	fmt.Println(txHex)
 
 	txBB, err := hex.DecodeString(txHex)

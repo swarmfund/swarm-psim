@@ -23,7 +23,6 @@ import (
 )
 
 var (
-	ErrNoBalanceID        = errors.New("No BalanceID for the Account.")
 	ErrNoVerifierServices = errors.New("No Deposit Verify services were found.")
 )
 
@@ -88,7 +87,7 @@ type Service struct {
 	serviceName         string
 	verifierServiceName string
 	lastProcessedBlock  uint64
-	lastBlocksNotWatch  uint64
+	lastBlocksNotWatch  uint64 // confirmations
 	externalSystem      int32
 	disableVerify       bool
 
@@ -193,7 +192,7 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 	}
 
 	for _, tx := range block.TXs {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 
@@ -216,6 +215,9 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 		}
 
 		accountAddress := s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, out.Address)
+		if running.IsCancelled(ctx) {
+			return nil
+		}
 
 		if accountAddress == nil {
 			// there is weird case when address is lowercased in core,
@@ -227,7 +229,7 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 			}
 		}
 
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 

@@ -140,7 +140,7 @@ func (s *Service) obtainAndCheckRequestWithTXHex(requestID uint64, requestHash s
 		return checkErr, nil
 	}
 
-	addr, err := withdraw.GetWithdrawAddress(*request)
+	addr, err := withdraw.GetWithdrawalAddress(*request)
 	if err != nil {
 		return err.Error(), nil
 	}

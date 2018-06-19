@@ -22,6 +22,8 @@ const (
 	// withdrawals
 	ServiceBTCWithdraw       = "btc_withdraw"
 	ServiceBTCWithdrawVerify = "btc_withdraw_verify"
+	ServiceDashWithdraw      = "dash_withdraw"
+
 	ServiceETHWithdraw       = "eth_withdraw"
 	ServiceETHWithdrawVerify = "eth_withdraw_verify"
 

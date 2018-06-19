@@ -1,4 +1,4 @@
-package btcwithdraw
+package dashwithdraw
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ServiceBTCWithdraw, setupFn)
+	app.RegisterService(conf.ServiceDashWithdraw, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx)
 
-	config, err := NewConfig(app.Config(ctx).GetRequired(conf.ServiceBTCWithdraw))
+	config, err := NewConfig(app.Config(ctx).GetRequired(conf.ServiceDashWithdraw))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create config", logan.F{
-			"service": conf.ServiceBTCWithdraw,
+			"service": conf.ServiceDashWithdraw,
 		})
 	}
 
@@ -34,23 +34,18 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
-	btcHelper, err := NewBTCHelper(
+	btcHelper, err := NewDashHelper(
 		log,
-		config.MinWithdrawAmount,
-		config.HotWalletAddress,
-		config.HotWalletScriptPubKey,
-		config.HotWalletRedeemScript,
-		config.PrivateKey,
-		config.OffchainCurrency,
-		config.OffchainBlockchain,
+		config,
 		globalConfig.Bitcoin(),
+		NewRandomCoinSelector(config.DustThreshold),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create CommonBTCHelper")
+		return nil, errors.Wrap(err, "Failed to create CommonDashHelper")
 	}
 
 	return withdraw.New(
-		conf.ServiceBTCWithdraw,
+		conf.ServiceDashWithdraw,
 		config.SignerKP,
 		log,
 		horizonConnector.Listener(),
@@ -58,9 +53,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Submitter(),
 		builder,
 		withdraw.VerificationConfig{
-			Verify: true,
+			Verify:              true,
 			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
-			Discovery: globalConfig.Discovery(),
+			Discovery:           globalConfig.Discovery(),
 		},
 		btcHelper,
 	), nil

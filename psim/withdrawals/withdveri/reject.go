@@ -67,7 +67,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.RejectReason) string {
 	var gettingAddressErr withdraw.RejectReason
-	addr, err := withdraw.GetWithdrawAddress(request)
+	addr, err := withdraw.GetWithdrawalAddress(request)
 	if err != nil {
 		switch errors.Cause(err) {
 		case withdraw.ErrMissingTwoStepWithdraw, withdraw.ErrMissingAddress:

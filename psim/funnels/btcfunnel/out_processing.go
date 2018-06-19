@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
@@ -22,7 +22,7 @@ var (
 	errTooBigFeePerKB    = errors.New("Too big fee per KB was suggested.")
 )
 
-func (s Service) listenOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out) {
+func (s Service) listenOurOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out) {
 	s.log.Debug("Started listening to stream of our Outputs.")
 	var ourUTXOs []UTXO
 
@@ -35,10 +35,10 @@ func (s Service) listenOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out
 				// No more Outs will come
 				s.log.Debug("Stopped listening to stream of our Outputs - channel has been closed.")
 
-				app.RunUntilSuccess(ctx, s.log, "utxo_funnelling", func(ctx context.Context) error {
+				running.UntilSuccess(ctx, s.log, "utxo_funnelling", func(ctx context.Context) (bool, error) {
 					return s.funnelUTXOs(ctx, ourUTXOs)
-				}, 5*time.Second)
-				if app.IsCanceled(ctx) {
+				}, 5*time.Second, time.Hour)
+				if running.IsCancelled(ctx) {
 					return
 				}
 
@@ -47,10 +47,10 @@ func (s Service) listenOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out
 
 			s.log.WithField("out", out).Debug("Processing our TX Output.")
 
-			app.RunUntilSuccess(ctx, s.log, "checking_our_out", func(ctx context.Context) error {
+			running.UntilSuccess(ctx, s.log, "checking_our_out", func(ctx context.Context) (bool, error) {
 				utxo, err := s.btcClient.GetTxUTXO(out.TXHash, out.Vout)
 				if err != nil {
-					return errors.Wrap(err, "Failed to Get TX UTXO")
+					return false, errors.Wrap(err, "Failed to Get TX UTXO")
 				}
 
 				if utxo != nil {
@@ -62,18 +62,19 @@ func (s Service) listenOutsStream(ctx context.Context, outsCh <-chan bitcoin.Out
 					})
 				}
 
-				return nil
-			}, 5*time.Second)
+				return true, nil
+			}, 5*time.Second, 10*time.Minute)
 		}
 	}
 }
 
-func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
+// TODO Try to refactor method to make in shorter
+func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) (bool, error) {
 	if len(utxos) == 0 {
-		return nil
+		return true, nil
 	}
 
-	s.log.WithField("utxo_length", len(utxos)).Info("Started funnelling batch of our UTXOs.")
+	s.log.WithField("utxos_length", len(utxos)).Info("Started funnelling batch of our UTXOs.")
 
 	var utxoOuts []bitcoin.Out
 	var inputUTXOs []bitcoin.InputUTXO
@@ -92,7 +93,7 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 		totalInAmount += utxo.Value
 
 		if len(utxo.ScriptPubKey.Addresses) == 0 {
-			return errors.From(errNoScriptAddresses, logan.F{"utxo": utxo})
+			return false, errors.From(errNoScriptAddresses, logan.F{"utxo": utxo})
 		}
 		privateKeys = append(privateKeys, s.addrToPriv[utxo.ScriptPubKey.Addresses[0]])
 	}
@@ -103,7 +104,7 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 
 	hotBalance, err := s.getHotBalance()
 	if err != nil {
-		return errors.Wrap(err, "Failed to get hot balance", fields)
+		return false, errors.Wrap(err, "Failed to get hot balance", fields)
 	}
 	fields["hot_balance"] = hotBalance
 
@@ -112,12 +113,12 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 
 	feePerKB, err := s.btcClient.EstimateFee(s.config.BlocksToBeIncluded)
 	if err != nil {
-		return errors.Wrap(err, "Failed to EstimateFee", fields)
+		return false, errors.Wrap(err, "Failed to EstimateFee", fields)
 	}
 	fields["fee_per_kb"] = feePerKB
 
 	if feePerKB > s.config.MaxFeePerKB {
-		return errors.From(errTooBigFeePerKB, fields.Merge(logan.F{
+		return false, errors.From(errTooBigFeePerKB, fields.Merge(logan.F{
 			"config_max_fee_per_kb": s.config.MaxFeePerKB,
 		}))
 	}
@@ -130,12 +131,12 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) error {
 
 	txHash, err := s.craftAndSendTX(utxoOuts, funnelOuts, inputUTXOs, privateKeys)
 	if err != nil {
-		return errors.Wrap(err, "Failed to craft and send TX")
+		return false, errors.Wrap(err, "Failed to craft and send TX")
 	}
 	fields["tx_hash"] = txHash
 
 	s.log.WithFields(fields).Info("Funneled BTC successfully.")
-	return nil
+	return true, nil
 }
 
 func (s Service) getHotBalance() (float64, error) {
@@ -184,7 +185,10 @@ func (s *Service) countAmounts(totalOutAmount, hotBalance float64) (amountToHot,
 	return totalOutAmount, 0
 }
 
-func (s *Service) craftAndSendTX(utxoOuts []bitcoin.Out, funnelOuts map[string]float64, inputUTXOs []bitcoin.InputUTXO,
+func (s *Service) craftAndSendTX(
+	utxoOuts []bitcoin.Out,
+	funnelOuts map[string]float64,
+	inputUTXOs []bitcoin.InputUTXO,
 	privateKeys []string) (txHash string, err error) {
 
 	unsignedTX, err := s.btcClient.CreateRawTX(utxoOuts, funnelOuts)
