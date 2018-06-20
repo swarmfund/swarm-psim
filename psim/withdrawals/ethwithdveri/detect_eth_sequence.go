@@ -26,7 +26,7 @@ func (s *Service) detectNewETHSequence(ctx context.Context) (uint64, error) {
 	running.UntilSuccess(ctx, s.log, "pending_nonce_obtainer", func(ctx context.Context) (bool, error) {
 		nonce, err := s.ethClient.PendingNonceAt(ctx, s.ethAddress)
 		if err != nil {
-			return false, errors.Wrap(err, "Failed to obtain PendingNonce for ETH Address", logan.F{
+			return false, errors.Wrap(err, "Failed to obtain PendingNonce for ETH Address from the ETH blockchain", logan.F{
 				"eth_address": s.ethAddress.String(),
 			})
 		}
@@ -38,14 +38,14 @@ func (s *Service) detectNewETHSequence(ctx context.Context) (uint64, error) {
 		return 0, nil
 	}
 
-	if lastUsedSequenceFromCore == 0 {
+	if lastUsedSequenceFromCore == nil {
 		// No ETH TX sequence in Core
 		s.log.WithField("new_eth_sequence", newETHSequence).Info("Successfully found ETH sequence(nonce) in ETH blockchain" +
 			" (not found among raw TXs from PreConfirmationDetails of WithdrawRequests in Core).")
 		return newETHSequence, nil
 	}
 
-	if lastUsedSequenceFromCore+1 < newETHSequence {
+	if *lastUsedSequenceFromCore+1 < newETHSequence {
 		// There are some Transactions in ETH blockchain, which are not known for Core.
 		return 0, errors.From(errors.New("Last used sequence found in ETH blockchain is grater than last used sequence from Core."), logan.F{
 			"last_used_sequence_from_core": lastUsedSequenceFromCore,
@@ -54,17 +54,20 @@ func (s *Service) detectNewETHSequence(ctx context.Context) (uint64, error) {
 	}
 
 	// Success info log about finding ETH sequence in Core is inside the `obtainETHSequenceFromCore()`.
-	return lastUsedSequenceFromCore + 1, nil
+	return *lastUsedSequenceFromCore + 1, nil
 }
 
 // TODO think of making some common helpers for ethwithdraw and ethwithveri services, as only difference is getTX1/getTX2 function
 // ObtainETHSequenceFromCore returns last used ETH TX sequence.
-func (s *Service) obtainETHSequenceFromCore(ctx context.Context) uint64 {
+// If not found sequence in Core nil will be returned.
+func (s *Service) obtainETHSequenceFromCore(ctx context.Context) *uint64 {
 	s.log.Info("Starting looking for ETH TXs sequence(nonce) among all WithdrawalRequests from Core.")
 	requestsEvents := s.withdrawRequestsStreamer.StreamWithdrawalRequestsOfAsset(ctx, s.config.Asset, true, false)
 
 	logger := s.log.WithField("runner", "last_eth_sequence_detector")
-	var ethSequence uint64
+	var ethSequence *uint64
+	// If not found sequence in core: -1 must be returned.
+	ethSequence = nil
 	// TODO Change to WithBackOff and exit it by closing new ctx from inside of WithBackOff
 	running.UntilSuccess(ctx, s.log, "last_eth_sequence_detector", func(ctx context.Context) (bool, error) {
 		select {
@@ -103,7 +106,8 @@ func (s *Service) obtainETHSequenceFromCore(ctx context.Context) uint64 {
 			}
 
 			if addr == s.ethAddress {
-				ethSequence = tx.Nonce()
+				t := tx.Nonce()
+				ethSequence = &t
 				logger.WithFields(fields).WithField("eth_sequence", ethSequence).Info("Successfully found ETH sequence(nonce) among WithdrawalRequest from Core.")
 				return true, nil
 			}
