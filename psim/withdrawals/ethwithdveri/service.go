@@ -105,11 +105,11 @@ func (s *Service) Run(ctx context.Context) {
 
 	wg := sync.WaitGroup{}
 
-	//wg.Add(1)
-	//go func() {
-	//	s.submitETHTransactionsInfinitely(ctx)
-	//	wg.Done()
-	//}()
+	wg.Add(1)
+	go func() {
+		s.submitETHTransactionsInfinitely(ctx)
+		wg.Done()
+	}()
 
 	var err error
 	// blocking call here intentionally - we don't start approving requests until get proper ETH sequence
