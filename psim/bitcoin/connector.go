@@ -421,6 +421,7 @@ func (c *NodeConnector) sendRequest(methodName, params string, response interfac
 }
 
 func (c *NodeConnector) sendRequestWithCtx(ctx context.Context, methodName, params string, response interface{}) error {
+	// FIXME: stepko
 	bodyStr := c.buildRequestBody("hardcoded_request_id", methodName, params)
 	fields := logan.F{
 		"node_url":     c.getNodeURL(),

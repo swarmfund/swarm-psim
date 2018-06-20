@@ -9,10 +9,10 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/distributed_lab/running"
 )
 
 // ProcessValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
@@ -163,6 +163,7 @@ func (s *Service) processApprove(ctx context.Context, request horizon.Request, p
 		if checkErr != "" {
 			return errors.Wrap(err, "Envelope returned by Verify is invalid")
 		}
+		resultEnvelope = envelope
 	} else {
 		// Working without multisig if no verify
 		fullySignedOffchainTX = partlySignedOffchainTX
