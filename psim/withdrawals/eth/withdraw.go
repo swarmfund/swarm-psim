@@ -15,6 +15,7 @@ import (
 
 func init() {
 	app.RegisterService(conf.ServiceETHWithdraw, func(ctx context.Context) (app.Service, error) {
+		// FIXME
 		config, err := NewWithdrawConfig(app.Config(ctx).GetRequired(conf.ServiceETHWithdraw))
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to create config", logan.F{
@@ -22,9 +23,11 @@ func init() {
 			})
 		}
 
+		log := app.Log(ctx)
+
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
 
-		info, err := horizon.Info()
+		info, err := horizon.System().Info()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get horizon info")
 		}
@@ -48,15 +51,18 @@ func init() {
 
 		return withdraw.New(
 			conf.ServiceETHWithdraw,
-			config.VerifierServiceName,
 			config.Signer,
-			app.Log(ctx).WithField("service_name", config.VerifierServiceName),
+			log.WithField("service_name", config.VerifierServiceName),
 			horizon.Listener(),
 			horizon.Operations(),
 			horizon.Submitter(),
 			builder,
-			app.Config(ctx).Discovery(),
-			internal.NewHelper(config.Asset, config.Threshold, ethClient, address, wallet, config.GasPrice, token, app.Log(ctx)),
+			withdraw.VerificationConfig{
+				Verify: true,
+				VerifierServiceName: config.VerifierServiceName,
+				Discovery: app.Config(ctx).Discovery(),
+			},
+			internal.NewHelper(config.Asset, config.Threshold, ethClient, address, wallet, config.GasPrice, token, log),
 		), nil
 	})
 }

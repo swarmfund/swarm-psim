@@ -5,8 +5,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DEPRECATED
 // FromPanic extracts the err from the result of a recover() call.
+//
+// DEPRECATED
+// Use logan/v3 instead
 func FromPanic(rec interface{}) error {
 	err, ok := rec.(error)
 	if !ok {
@@ -17,6 +19,7 @@ func FromPanic(rec interface{}) error {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 type FieldedErrorI interface {
 	// DEPRECATED
 	Error() string
@@ -29,12 +32,15 @@ type FieldedErrorI interface {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 type Stackable interface {
 	Stack() []byte
 }
 
-// DEPRECATED
 // If base is nil, Wrap returns nil.
+//
+// DEPRECATED
+// Use logan/v3 instead
 func Wrap(base error, msg string) FieldedErrorI {
 	if base == nil {
 		return nil
@@ -53,6 +59,7 @@ func Wrap(base error, msg string) FieldedErrorI {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func NewError(msg string) FieldedErrorI {
 	return &FError{
 		err:    errors.New(msg),
@@ -61,23 +68,28 @@ func NewError(msg string) FieldedErrorI {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 type FError struct {
 	err    error
 	fields F
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func (e *FError) Error() string {
 	return e.err.Error()
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func (e *FError) Fields() F {
 	return e.fields
 }
 
-// DEPRECATED
 // WithField returns the same instance
+//
+// DEPRECATED
+// Use logan/v3 instead
 func (e *FError) WithField(key string, value interface{}) FieldedErrorI {
 	if e == nil {
 		return nil
@@ -94,8 +106,10 @@ func (e *FError) WithField(key string, value interface{}) FieldedErrorI {
 	return e
 }
 
-// DEPRECATED
 // WithFields returns the same instance
+//
+// DEPRECATED
+// Use logan/v3 instead
 func (e *FError) WithFields(fields F) FieldedErrorI {
 	if e == nil {
 		return nil
@@ -108,6 +122,7 @@ func (e *FError) WithFields(fields F) FieldedErrorI {
 }
 
 // DEPRECATED
+// Use logan/v3 instead
 func (e *FError) Cause() error {
 	return errors.Cause(e.err)
 }

@@ -19,15 +19,15 @@ type Config struct {
 	ExternalTypes []string       `fig:"external_types,required"`
 	ETHPrivateKey string         `fig:"eth_private_key,required"`
 	ContractOwner common.Address `fig:"contract_owner,required"`
-	// GasPrice in gwei
+	// GasPrice in GWei
 	GasPrice *big.Int `fig:"gas_price,required"`
-	// GasLimit in gwei
+	// GasLimit in GWei
 	GasLimit *big.Int `fig:"gas_limit"`
 }
 
 func NewConfig(raw map[string]interface{}) (*Config, error) {
 	config := &Config{
-		GasLimit: big.NewInt(5),
+		GasLimit: big.NewInt(420000),
 	}
 	err := figure.
 		Out(config).

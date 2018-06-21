@@ -24,18 +24,19 @@ type BTCClient interface {
 	CreateAndFundRawTX(goalAddress string, amount float64, changeAddress string, feeRate *float64) (resultTXHex string, err error)
 	SignAllTXInputs(txHex, scriptPubKey string, redeemScript string, privateKey string) (resultTXHex string, err error)
 	SendRawTX(txHex string) (txHash string, err error)
-	GetNetParams() *chaincfg.Params
 }
 
 // CommonBTCHelper is BTC specific implementation of the OffchainHelper interface from package withdraw.
 type CommonBTCHelper struct {
 	log *logan.Entry
 
+	tokendAsset string
 	minWithdrawAmount     int64
 	hotWalletAddress      string
 	hotWalletScriptPubKey string
 	hotWalletRedeemScript string
 	privateKey            string
+	netParams             *chaincfg.Params
 
 	btcClient BTCClient
 }
@@ -43,32 +44,47 @@ type CommonBTCHelper struct {
 // NewBTCHelper is constructor for CommonBTCHelper.
 func NewBTCHelper(
 	log *logan.Entry,
+	tokendAsset string,
 	minWithdrawAmount int64,
 	hotWalletAddress,
 	hotWalletScriptPubKey,
 	hotWalletRedeemScript string,
 	privateKey string,
-	btcClient BTCClient) *CommonBTCHelper {
+	currency, blockchain string,
+	btcClient BTCClient) (*CommonBTCHelper, error) {
+
+	netParams, err := bitcoin.GetNetParams(currency, blockchain)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
+			"currency":   currency,
+			"blockchain": blockchain,
+		})
+	}
 
 	return &CommonBTCHelper{
 		// TODO Not actually a helper, but if you suggest a better name - tell me.
 		log: log.WithField("service", "btc_helper"),
 
+		tokendAsset: tokendAsset,
 		minWithdrawAmount:     minWithdrawAmount,
 		hotWalletAddress:      hotWalletAddress,
 		hotWalletScriptPubKey: hotWalletScriptPubKey,
 		hotWalletRedeemScript: hotWalletRedeemScript,
 		privateKey:            privateKey,
+		netParams:             netParams,
 
 		btcClient: btcClient,
-	}
+	}, nil
 }
 
-// TODO Config
+// Run method is needed for withdraw.OffchainHelper interface.
+func (h CommonBTCHelper) Run(context.Context) {
+	return
+}
+
 // GetAsset is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) GetAsset() string {
-	// TODO Config
-	return "BTC"
+	return h.tokendAsset
 }
 
 // GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.
@@ -78,7 +94,7 @@ func (h CommonBTCHelper) GetMinWithdrawAmount() int64 {
 
 // ValidateAddress is implementation of OffchainHelper interface from package withdraw.
 func (h CommonBTCHelper) ValidateAddress(addr string) error {
-	_, err := btcutil.DecodeAddress(addr, h.btcClient.GetNetParams())
+	_, err := btcutil.DecodeAddress(addr, h.netParams)
 	return err
 }
 
@@ -91,7 +107,7 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 
 	tx, err := btcutil.NewTxFromBytes(txBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to create BTC TX from hex")
+		return "", errors.Wrap(err, "Failed to create BTC TX from bytes")
 	}
 
 	if len(tx.MsgTx().TxOut) == 0 {
@@ -104,7 +120,7 @@ func (h CommonBTCHelper) ValidateTX(txHex string, withdrawAddress string, withdr
 
 	// TODO Move to separate method
 	// Addresses of TX Outputs
-	txOutAddresses, err := getBtcTXAddresses(tx, h.btcClient.GetNetParams())
+	txOutAddresses, err := getBtcTXAddresses(tx, h.netParams)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Address from Outputs of the BTC TX")
 	}

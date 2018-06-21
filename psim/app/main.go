@@ -167,7 +167,7 @@ func (app *App) Run() {
 			defer func() {
 				if rec := recover(); rec != nil {
 					err := errors.FromPanic(rec)
-					entry.WithStack(errors.WithStack(err)).WithError(err).Error("service panicked")
+					entry.WithStack(errors.WithStack(err)).WithError(err).Error("Service panicked during initialization or executing.")
 				}
 				wg.Done()
 			}()
@@ -201,6 +201,7 @@ func (app *App) isServiceEnabled(name string) bool {
 	return false
 }
 
+// DEPRECATED: Use running package instead
 func IsCanceled(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():

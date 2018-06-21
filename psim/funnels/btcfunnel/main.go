@@ -8,6 +8,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"gitlab.com/distributed_lab/logan/v3"
 )
 
 func init() {
@@ -35,7 +37,14 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	if config.MaxFeePerKB <= 0 {
 		return nil, errors.Errorf("Invalid MaxFeePerKB value (%.8f), must be grater than zero.", config.MaxFeePerKB)
 	}
-	// TODO Validate config. Some values can't be zero.
 
-	return New(config, log, globalConfig.Bitcoin(), globalConfig.NotificationSender()), nil
+	netParams, err := bitcoin.GetNetParams(config.OffchainCurrency, config.OffchainBlockchain)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
+			"currency":   config.OffchainCurrency,
+			"blockchain": config.OffchainBlockchain,
+		})
+	}
+
+	return New(config, log, globalConfig.Bitcoin(), netParams, globalConfig.NotificationSender()), nil
 }

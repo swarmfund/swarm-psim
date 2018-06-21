@@ -16,7 +16,7 @@ func (c *ViperConfig) Bitcoin() *bitcoin.Client {
 
 	config := bitcoin.ConnectorConfig{}
 
-	err := figure.Out(&config).From(c.GetRequired("bitcoin")).With(figure.BaseHooks).Please()
+	err := figure.Out(&config).From(c.GetRequired("bitcoin")).With(figure.BaseHooks, bitcoin.FigureHooks).Please()
 	if err != nil {
 		panic(errors.Wrap(err, "Failed to parse bitcoin config entry"))
 	}

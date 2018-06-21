@@ -24,7 +24,7 @@ var (
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
-	WithdrawalRequests(result chan<- horizon.Request) <-chan error
+	StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder, endlessly bool) <-chan horizon.ReviewableRequestEvent
 }
 
 // RequestsConnector is the interface implemented in HorizonConnector,
@@ -35,6 +35,7 @@ type RequestsConnector interface {
 }
 
 type TXSubmitter interface {
+	// TODO Change deprecated Submit
 	Submit(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
@@ -91,6 +92,10 @@ type CommonOffchainHelper interface {
 // and parametrise the Service.
 type OffchainHelper interface {
 	CommonOffchainHelper
+	// Those Helpers which have background threads must start them on call of this method.
+	// Run must be blocking. Only if ctx is cancelled
+	// For those Helpers, which don't need any background threads - just return immediately.
+	Run(context.Context)
 
 	// CreateTX must prepare full transaction, without only signatures, everything else must be ready.
 	// This offchain TX is used to put into core when transforming a TowStepWithdraw into Withdraw.
@@ -99,52 +104,53 @@ type OffchainHelper interface {
 	SendTX(ctx context.Context, tx string) (txHash string, err error)
 }
 
+type VerificationConfig struct {
+	Verify              bool
+	SourceKP            keypair.Address // Needed only if Verify is false.
+	VerifierServiceName string
+	Discovery           *discovery.Client
+}
+
 // Service is abstract withdraw service, which approves or rejects WithdrawRequest,
 // communicating with withdraw verify service for multisig.
 //
 // To do all the Offchain(BTC or ETH) stuff, Service uses offchainHelper (implementor of the OffchainHelper interface).
 type Service struct {
-	verifierServiceName string
-	signerKP            keypair.Full
-	log                 *logan.Entry
-	requestListener     RequestListener
-	requestsConnector   RequestsConnector
-	txSubmitter         TXSubmitter
+	signerKP keypair.Full
 
-	xdrbuilder     *xdrbuild.Builder
-	discovery      *discovery.Client
-	offchainHelper OffchainHelper
+	log               *logan.Entry
+	requestListener   RequestListener
+	requestsConnector RequestsConnector
+	txSubmitter       TXSubmitter
+	xdrbuilder        *xdrbuild.Builder
+	verification      VerificationConfig
+	offchainHelper    OffchainHelper
 
-	requests              chan horizon.Request
-	requestListenerErrors <-chan error
+	requestEvents <-chan horizon.ReviewableRequestEvent
 }
 
 // New is constructor for Service.
 func New(
 	serviceName string,
-	verifierServiceName string,
 	signerKP keypair.Full,
 	log *logan.Entry,
 	requestListener RequestListener,
 	requestsConnector RequestsConnector,
 	txSubmitter TXSubmitter,
 	builder *xdrbuild.Builder,
-	discoveryClient *discovery.Client,
+	verification VerificationConfig,
 	helper OffchainHelper,
 ) *Service {
 
 	return &Service{
-		verifierServiceName: verifierServiceName,
-		signerKP:            signerKP,
-		log:                 log.WithField("service", serviceName),
-		requestListener:     requestListener,
-		requestsConnector:   requestsConnector,
-		txSubmitter:         txSubmitter,
-		xdrbuilder:          builder,
-		discovery:           discoveryClient,
-		offchainHelper:      helper,
-
-		requests: make(chan horizon.Request),
+		signerKP:          signerKP,
+		log:               log.WithField("service", serviceName),
+		requestListener:   requestListener,
+		requestsConnector: requestsConnector,
+		txSubmitter:       txSubmitter,
+		xdrbuilder:        builder,
+		verification:      verification,
+		offchainHelper:    helper,
 	}
 }
 
@@ -152,24 +158,31 @@ func New(
 func (s *Service) Run(ctx context.Context) {
 	s.log.Info("Starting.")
 
-	s.requestListenerErrors = s.requestListener.WithdrawalRequests(s.requests)
+	// TODO Wait
+	go s.offchainHelper.Run(ctx)
 
-	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequests, 0, 5*time.Second, 10*time.Minute)
+	s.requestEvents = s.requestListener.StreamWithdrawalRequestsOfAsset(ctx, s.offchainHelper.GetAsset(), false, true)
+
+	running.WithBackOff(ctx, s.log, "request_processor", s.listenAndProcessRequest, 0, 5*time.Second, 10*time.Minute)
 }
 
-func (s *Service) listenAndProcessRequests(ctx context.Context) error {
+func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return nil
-	case request := <-s.requests:
-		err := s.processRequest(ctx, request)
+	case requestEvent := <-s.requestEvents:
+		request, err := requestEvent.Unwrap()
 		if err != nil {
-			return errors.Wrap(err, "Failed to process Withdraw Request", logan.F{"request": request})
+			return errors.Wrap(err, "RequestsStreamer sent error")
+		}
+		fields := logan.F{"request": request}
+
+		err = s.processRequest(ctx, *request)
+		if err != nil {
+			return errors.Wrap(err, "Failed to process Withdraw Request", fields)
 		}
 
 		return nil
-	case err := <-s.requestListenerErrors:
-		return errors.Wrap(err, "RequestListener sent error")
 	}
 }
 
@@ -191,12 +204,17 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		s.log.WithField("request", request).Debugf("Found pending %s Withdraw Request.", s.offchainHelper.GetAsset())
 	}
 
+	if !s.verification.Verify && request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
+		// TwoStepWithdraw Request is unprocessable by withdraw service without Verify.
+		return nil
+	}
+
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// Only TwoStepWithdrawal can be rejected. If RequestType is already Withdraw - it means that it was PreliminaryApproved and needs Approve.
 		rejectReason := s.getRejectReason(request)
 		if rejectReason != "" {
 			s.log.WithField("reject_reason", rejectReason).WithField("request", request).
-				Warn("Got Withdraw Request which is invalid due to the RejectReason.")
+				Warn("Got WithdrawalRequest which is invalid due to the RejectReason.")
 
 			err := s.processRequestReject(ctx, request, rejectReason)
 			if err != nil {
@@ -212,11 +230,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// processValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
 	err := s.processValidPendingRequest(ctx, request)
-	if err != nil {
-		return errors.Wrap(err, "Failed to process valid pending Request")
-	}
-
-	return nil
+	return errors.Wrap(err, "Failed to process valid pending Request")
 }
 
 func (s *Service) sendRequestToVerifier(urlSuffix string, request interface{}) (*xdr.TransactionEnvelope, error) {
@@ -245,6 +259,7 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 		return errors.Wrap(err, "Failed to marshal fully signed Envelope")
 	}
 
+	// TODO Fix: Submit method is deprecated
 	submitResult := s.txSubmitter.Submit(ctx, envelopeBase64)
 	if submitResult.Err != nil {
 		return errors.Wrap(submitResult.Err, "Error submitting signed Envelope to Horizon", logan.F{"submit_result": submitResult})
@@ -255,9 +270,9 @@ func (s *Service) signAndSubmitEnvelope(ctx context.Context, envelope xdr.Transa
 
 func (s *Service) getVerifierURL() (string, error) {
 	time.Sleep(15 * time.Second)
-	services, err := s.discovery.DiscoverService(s.verifierServiceName)
+	services, err := s.verification.Discovery.DiscoverService(s.verification.VerifierServiceName)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
+		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verification.VerifierServiceName))
 	}
 	if len(services) == 0 {
 		return "", ErrNoVerifierServices

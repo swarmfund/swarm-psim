@@ -9,6 +9,10 @@ import (
 	// import services for side effects
 
 	_ "gitlab.com/swarmfund/psim/psim/listener"
+	// derivers
+	_ "gitlab.com/swarmfund/psim/psim/externalsystems/btc"
+	_ "gitlab.com/swarmfund/psim/psim/externalsystems/eth"
+
 	// deposits
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	_ "gitlab.com/swarmfund/psim/psim/deposits/btcdepositveri"
@@ -19,7 +23,10 @@ import (
 	// withdrawals
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
 	_ "gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdveri"
-	_ "gitlab.com/swarmfund/psim/psim/withdrawals/eth"
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/dashwithdraw"
+
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/ethwithdraw"
+	_ "gitlab.com/swarmfund/psim/psim/withdrawals/ethwithdveri"
 
 	// funnels
 	_ "gitlab.com/swarmfund/psim/psim/funnels/btcfunnel"

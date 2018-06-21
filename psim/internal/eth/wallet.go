@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
-	"github.com/tyler-smith/go-bip32"
+	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
 )
 
 var (
@@ -20,27 +20,14 @@ var (
 
 type Wallet struct {
 	hd     bool
-	master *bip32.Key
+	master *derive.ETHDeriver
 	keys   map[common.Address]ecdsa.PrivateKey
 }
 
-func NewHDWallet(hexseed string, n uint64) (*Wallet, error) {
-	seed, err := hex.DecodeString(hexseed)
+func NewHDWallet(hdprivate string, n uint64) (*Wallet, error) {
+	master, err := derive.NewETHDeriver(hdprivate)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode seed")
-	}
-
-	master, err := bip32.NewMasterKey(seed)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to init master")
-	}
-	master, err = master.NewChildKey(bip32.FirstHardenedChild)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to derive m/0`")
-	}
-	master, err = master.NewChildKey(bip32.FirstHardenedChild)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to derive m/0`/0`")
+		return nil, errors.Wrap(err, "failed to init key deriver")
 	}
 
 	wallet := &Wallet{
@@ -83,12 +70,17 @@ func (wallet *Wallet) Import(raw []byte) (common.Address, error) {
 
 func (wallet *Wallet) extend(i uint64) error {
 	for uint64(len(wallet.keys)) < i {
-		child, err := wallet.master.NewChildKey(uint32(len(wallet.keys)))
+		child, err := wallet.master.ChildPrivate(uint32(len(wallet.keys)))
 		if err != nil {
 			return errors.Wrap(err, "failed to extend child")
 		}
 
-		if _, err := wallet.Import(child.Key); err != nil {
+		raw, err := hex.DecodeString(child)
+		if err != nil {
+			return errors.Wrap(err, "failed to decode private key")
+		}
+
+		if _, err := wallet.Import(raw); err != nil {
 			return errors.Wrap(err, "failed to import key")
 		}
 	}

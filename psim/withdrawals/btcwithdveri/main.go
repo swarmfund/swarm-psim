@@ -6,12 +6,12 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/btcwithdraw"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdveri"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -41,6 +41,22 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
+	btcHelper, err := btcwithdraw.NewBTCHelper(
+		log,
+		config.TokendAsset,
+		config.MinWithdrawAmount,
+		config.HotWalletAddress,
+		config.HotWalletScriptPubKey,
+		config.HotWalletRedeemScript,
+		config.PrivateKey,
+		config.OffchainCurrency,
+		config.OffchainBlockchain,
+		globalConfig.Bitcoin(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create CommonBTCHelper")
+	}
+
 	return withdveri.New(
 		conf.ServiceBTCWithdrawVerify,
 		log,
@@ -50,14 +66,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
 		listener,
 		globalConfig.Discovery(),
-		btcwithdraw.NewBTCHelper(
-			log,
-			config.MinWithdrawAmount,
-			config.HotWalletAddress,
-			config.HotWalletScriptPubKey,
-			config.HotWalletRedeemScript,
-			config.PrivateKey,
-			globalConfig.Bitcoin(),
-		),
+		btcHelper,
 	), nil
 }

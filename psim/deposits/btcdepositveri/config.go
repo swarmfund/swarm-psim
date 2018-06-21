@@ -12,9 +12,12 @@ type Config struct {
 	Port int    `fig:"port"`
 
 	DepositAsset       string `fig:"deposit_asset,required"`
+	OffchainCurrency   string `fig:"offchain_currency,required"`
+	OffchainBlockchain string `fig:"offchain_blockchain,required"`
 	MinDepositAmount   uint64 `fig:"min_deposit_amount,required"`
 	FixedDepositFee    uint64 `fig:"fixed_deposit_fee,required"`
 	LastBlocksNotWatch uint64 `fig:"last_blocks_not_watch,required"`
+	ExternalSystem     int32  `fig:"external_system,required"`
 
 	Signer keypair.Full `fig:"signer,required"`
 }

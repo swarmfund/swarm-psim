@@ -16,7 +16,7 @@ import (
 var errNoExtAccount = errors.New("External system Account was not found.")
 
 type Verifier struct {
-	externalSystem     string
+	externalSystem     int
 	log                *logan.Entry
 	lastBlocksNotWatch uint64
 	// TODO Interface
@@ -24,9 +24,9 @@ type Verifier struct {
 	offchainHelper deposit.OffchainHelper
 }
 
-func newVerifier(
+func newDepositVerifier(
 	serviceName string,
-	externalSystem string,
+	externalSystem int,
 	log *logan.Entry,
 	lastBlocksNotWatch uint64,
 	horizon *horizon.Connector,
@@ -120,14 +120,14 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 	return v.verifyOffchainBlock(*block, extDetails, uint64(req.Amount), offchainAddress), nil
 }
 
-func (v *Verifier) getOffchainAddress(accountAddress, assetName string) (string, error) {
+func (v *Verifier) getOffchainAddress(accountAddress string, externalSystem int) (string, error) {
 	account, err := v.horizon.Accounts().ByAddress(accountAddress)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Account by Address")
 	}
 
 	for _, extSysAccount := range account.ExternalSystemAccounts {
-		if extSysAccount.AssetCode == assetName {
+		if extSysAccount.Type.Value == externalSystem {
 			return extSysAccount.Address, nil
 		}
 	}

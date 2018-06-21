@@ -15,7 +15,27 @@ type Config struct {
 	DustOutputLimit    float64 `fig:"dust_output_limit,required"`
 	BlocksToBeIncluded uint    `fig:"blocks_to_be_included,required"` // From 2 to 25
 	MaxFeePerKB        float64 `fig:"max_fee_per_kb,required"`
+	OffchainCurrency   string `fig:"offchain_currency,required"`
+	OffchainBlockchain string  `fig:"offchain_blockchain,required"`
 
 	MinBalanceAlarmThreshold float64       `fig:"min_balance_alarm_threshold,required"`
 	MinBalanceAlarmPeriod    time.Duration `fig:"min_balance_alarm_period,required"`
+}
+
+func (c Config) GetLoganFields() map[string]interface{} {
+	return map[string]interface{} {
+		"keys_to_derive": c.KeysToDerive,
+		"hot_address": c.HotAddress,
+		"cold_address": c.ColdAddress,
+		"last_processed_block": c.LastProcessedBlock,
+		"min_funnel_amount": c.MinFunnelAmount,
+		"max_hot_stock": c.MaxHotStock,
+		"dust_output_limit": c.DustOutputLimit,
+		"blocks_to_be_included": c.BlocksToBeIncluded,
+		"max_fee_per_kb": c.MaxFeePerKB,
+		"offchain_currency": c.OffchainCurrency,
+		"offchain_blockchain": c.OffchainBlockchain,
+		"min_balance_alarm_threshold": c.MinBalanceAlarmThreshold,
+		"min_balance_alarm_period": c.MinBalanceAlarmPeriod,
+	}
 }

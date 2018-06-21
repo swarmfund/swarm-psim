@@ -7,12 +7,14 @@ import (
 
 	"time"
 
+	"sync"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
@@ -23,12 +25,10 @@ const (
 // BTCClient is the interface to be implemented by a
 // Bitcoin client to parametrize the Service.
 type BTCClient interface {
-	GetNetParams() *chaincfg.Params
-	GetNetworkName() string
 	// EstimateFee returns fee per KB in BTC
 	EstimateFee(blocksToBeIncluded uint) (float64, error)
 
-	GetBlockCount() (uint64, error)
+	GetBlockCount(context.Context) (uint64, error)
 	GetBlock(blockNumber uint64) (*btcutil.Block, error)
 
 	GetTxUTXO(txHash string, outNumber uint32) (*bitcoin.UTXO, error)
@@ -53,8 +53,10 @@ type Service struct {
 	config Config
 	log    *logan.Entry
 
-	lastProcessedBlock    uint64
-	addrToPriv            map[string]string
+	lastProcessedBlock uint64
+	addrToPriv         map[string]string
+	netParams          *chaincfg.Params
+
 	lastMinBalanceAlarmAt time.Time
 
 	btcClient          BTCClient
@@ -62,13 +64,14 @@ type Service struct {
 }
 
 // New is constructor for btcfunnel Service.
-func New(config Config, log *logan.Entry, btcClient BTCClient, notificationSender NotificationSender) *Service {
+func New(config Config, log *logan.Entry, btcClient BTCClient, netParams *chaincfg.Params, notificationSender NotificationSender) *Service {
 	return &Service{
 		config: config,
 		log:    log,
 
 		lastProcessedBlock: config.LastProcessedBlock,
 		addrToPriv:         make(map[string]string),
+		netParams:          netParams,
 
 		btcClient:          btcClient,
 		notificationSender: notificationSender,
@@ -78,9 +81,14 @@ func New(config Config, log *logan.Entry, btcClient BTCClient, notificationSende
 // Run is implementation of app.Service, Run is called by the app.
 // Run will return only when work is finished.
 func (s *Service) Run(ctx context.Context) {
-	s.log.Info("Starting.")
+	s.log.WithField("", s.config).Info("Starting.")
 
-	go s.monitorLowBalance(ctx)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		s.monitorLowBalance(ctx)
+		wg.Done()
+	}()
 
 	err := s.deriveKeys()
 	if err != nil {
@@ -89,13 +97,19 @@ func (s *Service) Run(ctx context.Context) {
 		return
 	}
 
-	app.RunUntilSuccess(ctx, s.log, "existing_blocks_fetcher", s.fetchExistingBlocks, 5*time.Second)
-	if app.IsCanceled(ctx) {
+	running.UntilSuccess(ctx, s.log, "existing_blocks_fetcher", s.fetchExistingBlocks, 5*time.Second, 10*time.Minute)
+	if running.IsCancelled(ctx) {
+		wg.Wait()
+		s.log.Info("Service stopped smoothly before starting to fetch new Blocks.")
 		return
 	}
 
+	// All existing Blocks are now fetched
 	s.log.Info("Started listening to newly appeared Blocks.")
-	app.RunOverIncrementalTimer(ctx, s.log, "new_blocks_fetcher", s.fetchNewBlock, 10*time.Second, 5*time.Second)
+	running.WithBackOff(ctx, s.log, "new_blocks_fetcher", s.fetchNewBlock, 10*time.Second, 5*time.Second, time.Hour)
+
+	wg.Wait()
+	s.log.Info("Service stopped smoothly.")
 }
 
 func (s *Service) deriveKeys() error {
@@ -106,7 +120,7 @@ func (s *Service) deriveKeys() error {
 		return errors.Wrap(err, "Failed to create new ExtendedPrivateKey from the string representation")
 	}
 
-	extKey.SetNet(s.btcClient.GetNetParams())
+	extKey.SetNet(s.netParams)
 
 	for i := uint64(0); i < s.config.KeysToDerive; i++ {
 		fields := logan.F{
@@ -123,13 +137,13 @@ func (s *Service) deriveKeys() error {
 			return errors.Wrap(err, "Failed to get ECPrivKey from the Child", fields)
 		}
 
-		wif, err := btcutil.NewWIF(priv, s.btcClient.GetNetParams(), true)
+		wif, err := btcutil.NewWIF(priv, s.netParams, true)
 		if err != nil {
 			return errors.Wrap(err, "Failed to get WIF key from the PrivKey", fields)
 		}
 
 		pubKeyHash := btcutil.Hash160(priv.PubKey().SerializeCompressed())
-		addr, err := btcutil.NewAddressPubKeyHash(pubKeyHash, s.btcClient.GetNetParams())
+		addr, err := btcutil.NewAddressPubKeyHash(pubKeyHash, s.netParams)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create P2PKH Address of the PrivKey", fields.Merge(logan.F{
 				"pub_key_hash": hex.EncodeToString(pubKeyHash),

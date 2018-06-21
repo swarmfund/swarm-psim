@@ -28,31 +28,42 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.SignerKP)
 
-	horizonInfo, err := horizonConnector.Info()
+	horizonInfo, err := horizonConnector.System().Info()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
+	btcHelper, err := NewBTCHelper(
+		log,
+		// TODO Config
+		"BTC",
+		config.MinWithdrawAmount,
+		config.HotWalletAddress,
+		config.HotWalletScriptPubKey,
+		config.HotWalletRedeemScript,
+		config.PrivateKey,
+		config.OffchainCurrency,
+		config.OffchainBlockchain,
+		globalConfig.Bitcoin(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create CommonBTCHelper")
+	}
 
 	return withdraw.New(
 		conf.ServiceBTCWithdraw,
-		conf.ServiceBTCWithdrawVerify,
 		config.SignerKP,
 		log,
 		horizonConnector.Listener(),
 		horizonConnector.Operations(),
 		horizonConnector.Submitter(),
 		builder,
-		globalConfig.Discovery(),
-		NewBTCHelper(
-			log,
-			config.MinWithdrawAmount,
-			config.HotWalletAddress,
-			config.HotWalletScriptPubKey,
-			config.HotWalletRedeemScript,
-			config.PrivateKey,
-			globalConfig.Bitcoin(),
-		),
+		withdraw.VerificationConfig{
+			Verify: true,
+			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
+			Discovery: globalConfig.Discovery(),
+		},
+		btcHelper,
 	), nil
 }

@@ -112,7 +112,7 @@ func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
 	}
 
 	if opBody.Amount == 0 {
-		return internal.InvalidBroadcastedEvent(errors.New("receive manage offer op has 0 order book amount")).Alone()
+		return internal.InvalidBroadcastedEvent(errors.New("receive manage offer op has 0 amount")).Alone()
 	}
 
 	validEvent := internal.ValidBroadcastedEvent(txSourceAccount.Address(), BroadcastedEventNameFundsInvested, opData.CreatedAt)

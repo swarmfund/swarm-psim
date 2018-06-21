@@ -6,6 +6,7 @@ const (
 	RejectReasonAddressNotAString RejectReason = "address_not_a_string"
 	RejectReasonInvalidAddress    RejectReason = "invalid_address"
 	RejectReasonTooLittleAmount   RejectReason = "too_little_amount"
+	RejectReasonMissingAmount     RejectReason = "missing_amount"
 )
 
 type RejectReason string

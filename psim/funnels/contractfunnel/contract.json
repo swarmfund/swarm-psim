@@ -76,14 +76,14 @@
       "type": "function"
     }
   ],
-  "bytecode": "0x6060604052341561000f57600080fd5b60405160208061057c83398101604052808051906020019091905050336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550506104c1806100bb6000396000f300606060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806350f760e91461005c5780638da5cb5b146100b4578063f2fde38b14610109575b600080fd5b341561006757600080fd5b6100b2600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803573ffffffffffffffffffffffffffffffffffffffff16906020019091905050610142565b005b34156100bf57600080fd5b6100c761031b565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b341561011457600080fd5b610140600480803573ffffffffffffffffffffffffffffffffffffffff16906020019091905050610340565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561019f57600080fd5b8173ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001915050602060405180830381600087803b151561023957600080fd5b5af1151561024657600080fd5b5050506040518051905090508173ffffffffffffffffffffffffffffffffffffffff1663a9059cbb84836040518363ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b15156102f457600080fd5b5af1151561030157600080fd5b50505060405180519050151561031657600080fd5b505050565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561039b57600080fd5b600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff16141515156103d757600080fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e060405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550505600a165627a7a723058204e58ae04f40aa9e4349c8fcc03299f0bc837fa27014c6cbd07f944e6716353110029",
-  "deployedBytecode": "0x606060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806350f760e91461005c5780638da5cb5b146100b4578063f2fde38b14610109575b600080fd5b341561006757600080fd5b6100b2600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803573ffffffffffffffffffffffffffffffffffffffff16906020019091905050610142565b005b34156100bf57600080fd5b6100c761031b565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b341561011457600080fd5b610140600480803573ffffffffffffffffffffffffffffffffffffffff16906020019091905050610340565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561019f57600080fd5b8173ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001915050602060405180830381600087803b151561023957600080fd5b5af1151561024657600080fd5b5050506040518051905090508173ffffffffffffffffffffffffffffffffffffffff1663a9059cbb84836040518363ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b15156102f457600080fd5b5af1151561030157600080fd5b50505060405180519050151561031657600080fd5b505050565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561039b57600080fd5b600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff16141515156103d757600080fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e060405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550505600a165627a7a723058204e58ae04f40aa9e4349c8fcc03299f0bc837fa27014c6cbd07f944e6716353110029",
-  "sourceMap": "357:490:0:-;;;444:78;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;509:10:5;501:5;;:18;;;;;;;;;;;;;;;;;;509:6:0;501:5;;:14;;;;;;;;;;;;;;;;;;444:78;357:490;;;;;;",
-  "deployedSourceMap": "357:490:0:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;669:176;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;238:20:5;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;832:169;;;;;;;;;;;;;;;;;;;;;;;;;;;;669:176:0;753:15;653:5:5;;;;;;;;;;;639:19;;:10;:19;;;631:28;;;;;;;;771:5:0;:15;;;787:4;771:21;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;753:39;;810:5;:14;;;825:2;829:7;810:27;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;802:36;;;;;;;;669:176;;;:::o;238:20:5:-;;;;;;;;;;;;;:::o;832:169::-;653:5;;;;;;;;;;;639:19;;:10;:19;;;631:28;;;;;;;;928:1;908:22;;:8;:22;;;;900:31;;;;;;;;965:8;937:37;;958:5;;;;;;;;;;;937:37;;;;;;;;;;;;988:8;980:5;;:16;;;;;;;;;;;;;;;;;;832:169;:::o",
+  "bytecode": "0x608060405234801561001057600080fd5b506040516020806105e583398101806040528101908080519060200190929190505050336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050610522806100c36000396000f300608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806350f760e91461005c5780638da5cb5b146100bf578063f2fde38b14610116575b600080fd5b34801561006857600080fd5b506100bd600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610159565b005b3480156100cb57600080fd5b506100d461037c565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561012257600080fd5b50610157600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506103a1565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161415156101b657600080fd5b8173ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001915050602060405180830381600087803b15801561025157600080fd5b505af1158015610265573d6000803e3d6000fd5b505050506040513d602081101561027b57600080fd5b810190808051906020019092919050505090508173ffffffffffffffffffffffffffffffffffffffff1663a9059cbb84836040518363ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b15801561033157600080fd5b505af1158015610345573d6000803e3d6000fd5b505050506040513d602081101561035b57600080fd5b8101908080519060200190929190505050151561037757600080fd5b505050565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161415156103fc57600080fd5b600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff161415151561043857600080fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e060405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550505600a165627a7a72305820a4abe2f5c1562a09b3102c9625da320cab55354cd97dc06929d2047c0be553590029",
+  "deployedBytecode": "0x608060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806350f760e91461005c5780638da5cb5b146100bf578063f2fde38b14610116575b600080fd5b34801561006857600080fd5b506100bd600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610159565b005b3480156100cb57600080fd5b506100d461037c565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801561012257600080fd5b50610157600480360381019080803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506103a1565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161415156101b657600080fd5b8173ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001915050602060405180830381600087803b15801561025157600080fd5b505af1158015610265573d6000803e3d6000fd5b505050506040513d602081101561027b57600080fd5b810190808051906020019092919050505090508173ffffffffffffffffffffffffffffffffffffffff1663a9059cbb84836040518363ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200182815260200192505050602060405180830381600087803b15801561033157600080fd5b505af1158015610345573d6000803e3d6000fd5b505050506040513d602081101561035b57600080fd5b8101908080519060200190929190505050151561037757600080fd5b505050565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161415156103fc57600080fd5b600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff161415151561043857600080fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e060405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550505600a165627a7a72305820a4abe2f5c1562a09b3102c9625da320cab55354cd97dc06929d2047c0be553590029",
+  "sourceMap": "357:490:0:-;;;444:78;8:9:-1;5:2;;;30:1;27;20:12;5:2;444:78:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;509:10:5;501:5;;:18;;;;;;;;;;;;;;;;;;509:6:0;501:5;;:14;;;;;;;;;;;;;;;;;;444:78;357:490;;;;;;",
+  "deployedSourceMap": "357:490:0:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;669:176;;8:9:-1;5:2;;;30:1;27;20:12;5:2;669:176:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;238:20:5;;8:9:-1;5:2;;;30:1;27;20:12;5:2;238:20:5;;;;;;;;;;;;;;;;;;;;;;;;;;;832:174;;8:9:-1;5:2;;;30:1;27;20:12;5:2;832:174:5;;;;;;;;;;;;;;;;;;;;;;;;;;;;669:176:0;753:15;653:5:5;;;;;;;;;;;639:19;;:10;:19;;;631:28;;;;;;;;771:5:0;:15;;;787:4;771:21;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;771:21:0;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;771:21:0;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;771:21:0;;;;;;;;;;;;;;;;753:39;;810:5;:14;;;825:2;829:7;810:27;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;810:27:0;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;810:27:0;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;810:27:0;;;;;;;;;;;;;;;;802:36;;;;;;;;669:176;;;:::o;238:20:5:-;;;;;;;;;;;;;:::o;832:174::-;653:5;;;;;;;;;;;639:19;;:10;:19;;;631:28;;;;;;;;928:1;908:22;;:8;:22;;;;900:31;;;;;;;;970:8;942:37;;963:5;;;;;;;;;;;942:37;;;;;;;;;;;;993:8;985:5;;:16;;;;;;;;;;;;;;;;;;832:174;:::o",
   "source": "pragma solidity ^0.4.21;\n\nimport \"zeppelin-solidity/contracts/ownership/Ownable.sol\";\n\n/**\n * @title ERC20Basic\n * @dev Simpler version of ERC20 interface\n */\ninterface ERC20Basic {\n    function balanceOf(address who) public view returns (uint256);\n    function transfer(address to, uint256 value) public returns (bool);\n}\n\n/**\n* @title ERC20 Hot Wallet\n*/\ncontract Erc20HotWallet is Ownable {\n    /**\n    * The contract constructor\n    */\n    function Erc20HotWallet(address _owner) public {\n        owner = _owner;\n    }\n\n    /**\n    * @dev withdraw  all available amount of a ERC20 token to a specified address\n    * @param to The address to transfer to.\n    */\n    function withdrawAllTokens(address to, ERC20Basic token) public onlyOwner {\n        uint256 balance = token.balanceOf(this);\n        require(token.transfer(to, balance));\n    }\n}\n",
-  "sourcePath": "/Users/andstepko/swarmfund/erc20-hot-wallet/contracts/ERC20HotWallet.sol",
+  "sourcePath": "/home/awsum/go/src/gitlab.com/tokend/erc20-hot-wallet/contracts/ERC20HotWallet.sol",
   "ast": {
-    "absolutePath": "/Users/andstepko/swarmfund/erc20-hot-wallet/contracts/ERC20HotWallet.sol",
+    "absolutePath": "/home/awsum/go/src/gitlab.com/tokend/erc20-hot-wallet/contracts/ERC20HotWallet.sol",
     "exportedSymbols": {
       "ERC20Basic": [
         19
@@ -112,7 +112,7 @@
         "id": 2,
         "nodeType": "ImportDirective",
         "scope": 58,
-        "sourceUnit": 316,
+        "sourceUnit": 312,
         "src": "26:59:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -329,16 +329,16 @@
       {
         "baseContracts": [
           {
-            "arguments": [],
+            "arguments": null,
             "baseName": {
               "contractScope": null,
               "id": 20,
               "name": "Ownable",
               "nodeType": "UserDefinedTypeName",
-              "referencedDeclaration": 315,
+              "referencedDeclaration": 311,
               "src": "384:7:0",
               "typeDescriptions": {
-                "typeIdentifier": "t_contract$_Ownable_$315",
+                "typeIdentifier": "t_contract$_Ownable_$311",
                 "typeString": "contract Ownable"
               }
             },
@@ -348,7 +348,7 @@
           }
         ],
         "contractDependencies": [
-          315
+          311
         ],
         "contractKind": "contract",
         "documentation": "@title ERC20 Hot Wallet",
@@ -356,7 +356,7 @@
         "id": 57,
         "linearizedBaseContracts": [
           57,
-          315
+          311
         ],
         "name": "Erc20HotWallet",
         "nodeType": "ContractDefinition",
@@ -381,7 +381,7 @@
                       "name": "owner",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 263,
+                      "referencedDeclaration": 259,
                       "src": "501:5:0",
                       "typeDescriptions": {
                         "typeIdentifier": "t_address",
@@ -673,8 +673,11 @@
                       "id": 47,
                       "name": "require",
                       "nodeType": "Identifier",
-                      "overloadedDeclarations": [],
-                      "referencedDeclaration": 748,
+                      "overloadedDeclarations": [
+                        746,
+                        747
+                      ],
+                      "referencedDeclaration": 746,
                       "src": "802:7:0",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_require_pure$_t_bool_$returns$__$",
@@ -708,7 +711,7 @@
             "isDeclaredConst": false,
             "modifiers": [
               {
-                "arguments": [],
+                "arguments": null,
                 "id": 38,
                 "modifierName": {
                   "argumentTypes": null,
@@ -716,7 +719,7 @@
                   "name": "onlyOwner",
                   "nodeType": "Identifier",
                   "overloadedDeclarations": [],
-                  "referencedDeclaration": 289,
+                  "referencedDeclaration": 285,
                   "src": "733:9:0",
                   "typeDescriptions": {
                     "typeIdentifier": "t_modifier$__$",
@@ -811,7 +814,7 @@
     "src": "0:848:0"
   },
   "legacyAST": {
-    "absolutePath": "/Users/andstepko/swarmfund/erc20-hot-wallet/contracts/ERC20HotWallet.sol",
+    "absolutePath": "/home/awsum/go/src/gitlab.com/tokend/erc20-hot-wallet/contracts/ERC20HotWallet.sol",
     "exportedSymbols": {
       "ERC20Basic": [
         19
@@ -840,7 +843,7 @@
         "id": 2,
         "nodeType": "ImportDirective",
         "scope": 58,
-        "sourceUnit": 316,
+        "sourceUnit": 312,
         "src": "26:59:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -1057,16 +1060,16 @@
       {
         "baseContracts": [
           {
-            "arguments": [],
+            "arguments": null,
             "baseName": {
               "contractScope": null,
               "id": 20,
               "name": "Ownable",
               "nodeType": "UserDefinedTypeName",
-              "referencedDeclaration": 315,
+              "referencedDeclaration": 311,
               "src": "384:7:0",
               "typeDescriptions": {
-                "typeIdentifier": "t_contract$_Ownable_$315",
+                "typeIdentifier": "t_contract$_Ownable_$311",
                 "typeString": "contract Ownable"
               }
             },
@@ -1076,7 +1079,7 @@
           }
         ],
         "contractDependencies": [
-          315
+          311
         ],
         "contractKind": "contract",
         "documentation": "@title ERC20 Hot Wallet",
@@ -1084,7 +1087,7 @@
         "id": 57,
         "linearizedBaseContracts": [
           57,
-          315
+          311
         ],
         "name": "Erc20HotWallet",
         "nodeType": "ContractDefinition",
@@ -1109,7 +1112,7 @@
                       "name": "owner",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 263,
+                      "referencedDeclaration": 259,
                       "src": "501:5:0",
                       "typeDescriptions": {
                         "typeIdentifier": "t_address",
@@ -1401,8 +1404,11 @@
                       "id": 47,
                       "name": "require",
                       "nodeType": "Identifier",
-                      "overloadedDeclarations": [],
-                      "referencedDeclaration": 748,
+                      "overloadedDeclarations": [
+                        746,
+                        747
+                      ],
+                      "referencedDeclaration": 746,
                       "src": "802:7:0",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_require_pure$_t_bool_$returns$__$",
@@ -1436,7 +1442,7 @@
             "isDeclaredConst": false,
             "modifiers": [
               {
-                "arguments": [],
+                "arguments": null,
                 "id": 38,
                 "modifierName": {
                   "argumentTypes": null,
@@ -1444,7 +1450,7 @@
                   "name": "onlyOwner",
                   "nodeType": "Identifier",
                   "overloadedDeclarations": [],
-                  "referencedDeclaration": 289,
+                  "referencedDeclaration": 285,
                   "src": "733:9:0",
                   "typeDescriptions": {
                     "typeIdentifier": "t_modifier$__$",
@@ -1540,9 +1546,9 @@
   },
   "compiler": {
     "name": "solc",
-    "version": "0.4.21+commit.dfe3193c.Emscripten.clang"
+    "version": "0.4.24+commit.e67f0147.Emscripten.clang"
   },
   "networks": {},
   "schemaVersion": "2.0.0",
-  "updatedAt": "2018-04-18T14:18:18.631Z"
+  "updatedAt": "2018-05-25T15:35:02.477Z"
 }

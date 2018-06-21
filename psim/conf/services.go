@@ -3,6 +3,9 @@ package conf
 // All services existing in PSIM
 const (
 	ListenerService = "listener"
+	// external deployers
+	ServiceBTCDeployer = "external_btc_deployer"
+	ServiceETHDeployer = "external_eth_deployer"
 
 	// deposits
 	ServiceBTCDeposit         = "btc_deposit"
@@ -20,6 +23,8 @@ const (
 	// withdrawals
 	ServiceBTCWithdraw       = "btc_withdraw"
 	ServiceBTCWithdrawVerify = "btc_withdraw_verify"
+	ServiceDashWithdraw      = "dash_withdraw"
+
 	ServiceETHWithdraw       = "eth_withdraw"
 	ServiceETHWithdrawVerify = "eth_withdraw_verify"
 

@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	// Seems like constant value
-	gasPerTX = uint64(21000)
+	// hopefully a constant value for multisig wallet
+	gasPerTX = uint64(22507)
 )
 
 type Service struct {
@@ -184,8 +184,11 @@ func (s *Service) processAddr(ctx context.Context, address common.Address) (err 
 		return errors.Wrap(err, "Failed to get ETH balance of the Address from node")
 	}
 
-	if balance.Cmp(s.config.Threshold) == -1 {
-		if balance.Cmp(big.NewInt(0)) == 1 {
+	gas := new(big.Int).Mul(big.NewInt(int64(gasPerTX)), s.config.GasPrice)
+	amount := new(big.Int).Sub(balance, gas)
+
+	if amount.Cmp(s.config.Threshold) == -1 {
+		if amount.Cmp(big.NewInt(0)) == 1 {
 			// Balance is bigger than 0
 			s.log.WithFields(logan.F{
 				"addr":      address.String(),
@@ -206,7 +209,7 @@ func (s *Service) processAddr(ctx context.Context, address common.Address) (err 
 		types.NewTransaction(
 			nonce,
 			s.config.Destination,
-			new(big.Int).Sub(balance, new(big.Int).Mul(big.NewInt(int64(gasPerTX)), s.config.GasPrice)),
+			amount,
 			gasPerTX,
 			s.config.GasPrice,
 			nil),

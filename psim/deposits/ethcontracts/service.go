@@ -6,8 +6,6 @@ import (
 
 	"time"
 
-	"fmt"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -49,7 +47,6 @@ func NewService(
 	entityCount EntityCountGetter,
 	eth *ethclient.Client,
 ) *Service {
-
 	return &Service{
 		log:         log,
 		config:      config,
@@ -73,6 +70,7 @@ func (s *Service) Run(ctx context.Context) {
 				err = errors.Wrap(errors.FromPanic(rvr), "service panicked")
 			}
 		}()
+
 		for _, systemType := range s.config.ExternalTypes {
 			current, err := s.entityCount(systemType)
 			if err != nil {
@@ -80,10 +78,15 @@ func (s *Service) Run(ctx context.Context) {
 			}
 
 			for current <= s.config.TargetCount {
-				fmt.Println(current, s.config.TargetCount)
 				if running.IsCancelled(ctx) {
 					return nil
 				}
+
+				s.log.WithFields(logan.F{
+					"current_contract":       current,
+					"target_contracts_total": s.config.TargetCount,
+				}).Info("Deploying one more Contract.")
+
 				fields := logan.F{}
 				contract, err := s.deployContract()
 				if err != nil {
@@ -91,6 +94,7 @@ func (s *Service) Run(ctx context.Context) {
 				}
 				fields["contract"] = contract.Hex()
 				s.log.WithFields(fields).Info("contract deployed")
+
 				// critical section. contract has been deployed, we need to create entity at any cost
 				running.UntilSuccess(context.Background(), s.log, "create-pool-entity", func(i context.Context) (bool, error) {
 					if err := s.createPoolEntities(contract.Hex()); err != nil {
@@ -145,7 +149,7 @@ func (s *Service) deployContract() (*common.Address, error) {
 		},
 		Value:    big.NewInt(0),
 		GasPrice: eth.FromGwei(s.config.GasPrice),
-		GasLimit: eth.FromGwei(s.config.GasLimit).Uint64(),
+		GasLimit: s.config.GasLimit.Uint64(),
 		Context:  context.TODO(),
 	}, s.eth, s.config.ContractOwner)
 
@@ -160,6 +164,51 @@ func (s *Service) deployContract() (*common.Address, error) {
 		return nil, errors.Wrap(err, "failed to get tx receipt", logan.F{
 			"tx_hash": tx.Hash().String(),
 		})
+	}
+
+	// TODO check transaction state/status to see if contract actually was deployed
+	// TODO panic if we are not sure if contract is valid
+
+	return &receipt.ContractAddress, nil
+}
+
+// This method is not used by service, but it's needed to run once manually to deploy MultisigWallet contract.
+// Signers - addresses in hex.
+// 500000 GasLimit was not enough on Ropsten testnet, 900000 was enough.
+func (s *Service) deployMultisigWalletContract(
+	ctx context.Context,
+	signers []string,
+	requiredSignatures uint8,
+	gasLimit uint64) (*common.Address, error) {
+
+	var signersAddresses []common.Address
+	for _, signer := range signers {
+		signersAddresses = append(signersAddresses, common.HexToAddress(signer))
+	}
+
+	_, tx, _, err := DeployMultisigWallet(&bind.TransactOpts{
+		From:  s.keypair.Address(),
+		Nonce: nil,
+		Signer: func(signer types.Signer, addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			return s.keypair.SignTX(tx)
+		},
+		Value:    big.NewInt(0),
+		GasPrice: eth.FromGwei(s.config.GasPrice),
+		GasLimit: gasLimit,
+		Context:  ctx,
+	}, s.eth, signersAddresses, requiredSignatures)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to submit contract TX")
+	}
+	fields := logan.F{
+		"tx_hash": tx.Hash().String(),
+	}
+
+	eth.EnsureHashMined(ctx, s.log, s.eth, tx.Hash())
+
+	receipt, err := s.eth.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get TX receipt", fields)
 	}
 
 	// TODO check transaction state/status to see if contract actually was deployed

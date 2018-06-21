@@ -3,124 +3,145 @@ package contractfunnel
 import (
 	"context"
 
-	"crypto/ecdsa"
+	"time"
 
 	"math/big"
 
-	"time"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/addrstate"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
 )
 
 type ETHClient bind.ContractBackend
 
-type Service struct {
-	log    *logan.Entry
-	config Config
-
-	ethClient  ETHClient
-	privateKey *ecdsa.PrivateKey
-
-	erc20Contract *ERC20
-	contracts     map[common.Address]*Contract
+type Opts struct {
+	Log             *logan.Entry
+	Config          Config
+	Eth             *ethclient.Client
+	Keypair         *eth.Keypair
+	AddressProvider *addrstate.Watcher
+	ExternalSystems []int32
+	Tokens          []common.Address
+	HotWallet       common.Address
+	Threshold       *big.Int
+	GasPrice        *big.Int
 }
 
-func NewService(
-	log *logan.Entry,
-	config Config,
-	ethClient ETHClient,
-	//ethWallet ETHWallet,
-) (*Service, error) {
+type Service struct {
+	Opts
+	// instantiated ERC20 tokens
+	tokens []ERC20
+	// instantiated deposit contracts
+	contracts map[string]Contract
+}
 
-	privKey, err := crypto.HexToECDSA(config.ETHPrivateKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create PrivateKey from eth_private_key string from config")
-	}
-
-	erc20Contract, err := NewERC20(config.TokenToFunnelContractAddress, ethClient)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create new ERC20Contract")
-	}
-
-	contracts := make(map[common.Address]*Contract)
-	for _, addr := range config.ContractsAddresses {
-		contract, err := NewContract(addr, ethClient)
+func (s *Service) initTokens() error {
+	for _, address := range s.Tokens {
+		token, err := NewERC20(address, s.Eth)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to create new Contract")
+			return errors.Wrap(err, "failed to init token contract", logan.F{
+				"token_address": address,
+			})
 		}
+		s.tokens = append(s.tokens, *token)
+	}
+	return nil
+}
 
-		contracts[addr] = contract
+// return deposit contract instance by address, doing some checks.
+// not safe for concurrent use
+func (s *Service) getContract(address common.Address) (*Contract, error) {
+	if s.contracts == nil {
+		s.contracts = map[string]Contract{}
 	}
 
-	return &Service{
-		log:    log,
-		config: config,
+	if contract, ok := s.contracts[address.Hex()]; ok {
+		return &contract, nil
+	}
 
-		ethClient:  ethClient,
-		privateKey: privKey,
+	contract, err := NewContract(address, s.Eth)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init contract", logan.F{
+			"contract_addr": address.Hex(),
+		})
+	}
 
-		erc20Contract: erc20Contract,
-		contracts:     contracts,
-	}, nil
+	s.contracts[address.Hex()] = *contract
+
+	return contract, nil
+}
+
+func (s *Service) isOwner(contract *Contract) (bool, error) {
+	owner, err := contract.Owner(nil)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get contract owner")
+	}
+	return owner.Hex() == s.Keypair.Address().Hex(), nil
 }
 
 func (s *Service) Run(ctx context.Context) {
-	s.log.WithField("", s.config).Info("Started.")
-
-	if s.config.OnlyViewBalances {
-		s.printBalancesReport()
-		return
+	if err := s.initTokens(); err != nil {
+		panic(errors.Wrap(err, "failed to init tokens"))
 	}
-
-	running.WithBackOff(ctx, s.log, "all_contracts_funnel_iteration", func(ctx context.Context) error {
-		s.log.Info("Started iteration of funnelling tokens from all the Contracts.")
-
-		for addr, contract := range s.contracts {
-			if running.IsCancelled(ctx) {
-				return nil
+	do := func(ctx context.Context) error {
+		for _, system := range s.ExternalSystems {
+			fields := logan.F{
+				"external_system": system,
+				"eth_signer":      s.Keypair.Address().Hex(),
 			}
+			entities := s.AddressProvider.BindedExternalSystemEntities(ctx, system)
+			for _, entity := range entities {
+				address := common.HexToAddress(entity)
+				fields["contract_address"] = address.Hex()
+				contract, err := s.getContract(address)
+				if err != nil {
+					return errors.Wrap(err, "failed to get contract", fields)
+				}
+				ok, err := s.isOwner(contract)
+				if err != nil {
+					return errors.Wrap(err, "failed to check owner", fields)
+				}
+				if !ok {
+					s.Log.WithFields(fields).Warn("not an owner")
+					continue
+				}
+				for i, token := range s.tokens {
+					tokenaddr := s.Tokens[i]
+					fields["tokend_addr"] = tokenaddr.Hex()
+					balance, err := token.BalanceOf(nil, address)
+					if err != nil {
+						return errors.Wrap(err, "failed to get balance of", fields)
+					}
+					fields["balance"] = balance.String()
+					if balance.Cmp(eth.FromGwei(s.Threshold)) == -1 {
+						s.Log.WithFields(fields).Info("lower than threshold")
+						continue
+					}
+					tx, err := contract.WithdrawAllTokens(&bind.TransactOpts{
+						From:     s.Keypair.Address(),
+						GasPrice: eth.FromGwei(s.GasPrice),
+						GasLimit: 200000,
+						Signer: func(signer types.Signer, addresses common.Address, transaction *types.Transaction) (*types.Transaction, error) {
+							return s.Keypair.SignTX(transaction)
+						},
+					}, s.HotWallet, tokenaddr)
+					if err != nil {
+						return errors.Wrap(err, "failed to withdraw token", fields)
+					}
+					fields["tx_hash"] = tx.Hash()
 
-			_, err := s.withdrawAllTokens(contract, addr)
-			if err != nil {
-				return errors.Wrap(err, "Failed to withdraw all tokens", logan.F{
-					"contract_address": addr,
-				})
+					eth.EnsureHashMined(ctx, s.Log.WithFields(fields), s.Eth, tx.Hash())
+				}
 			}
 		}
-
 		return nil
-	}, s.config.FunnelPeriod, 10*time.Second, time.Hour)
-
-	s.log.Info("Received ctx cancel - service stopped cleanly.")
-}
-
-// WithdrawAllTokens can return empty txHash with nil error, if no tokens to funnel (thus no tx)
-func (s *Service) withdrawAllTokens(contract *Contract, contractAddress common.Address) (txHash string, err error) {
-	logger := s.log.WithField("contract_address", contractAddress.String())
-
-	contractBalance, err := s.erc20Contract.BalanceOf(nil, contractAddress)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to get balance of the Contract")
 	}
 
-	if contractBalance.Cmp(big.NewInt(0)) == 0 {
-		logger.Info("No tokens to funnel from this Contract.")
-		return "", nil
-	}
-
-	tx, err := contract.WithdrawAllTokens(bind.NewKeyedTransactor(s.privateKey), s.config.TokenReceiverAddress, s.config.TokenToFunnelContractAddress)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to Withdraw all tokens")
-	}
-
-	logger.WithFields(logan.F{
-		"tx_hash":          txHash,
-		"funnelled_amount": contractBalance.String(),
-	}).Info("Funneled tokens from the Contract successfully.")
-	return tx.Hash().String(), nil
+	running.WithBackOff(ctx, s.Log, "funnel-iteration", do, 10*time.Second, 10*time.Second, 1*time.Hour)
 }

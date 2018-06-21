@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) getRejectReason(request horizon.Request) RejectReason {
-	address, err := GetWithdrawAddress(request)
+	address, err := GetWithdrawalAddress(request)
 	if err != nil {
 		switch errors.Cause(err) {
 		case ErrMissingTwoStepWithdraw, ErrMissingAddress:
@@ -24,7 +24,12 @@ func (s *Service) getRejectReason(request horizon.Request) RejectReason {
 		return RejectReasonInvalidAddress
 	}
 
-	amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestinationAmount))
+	destAmount, err := GetWithdrawAmount(request)
+	if err != nil {
+		return RejectReasonMissingAmount
+	}
+
+	amount := s.offchainHelper.ConvertAmount(destAmount)
 	if amount < s.offchainHelper.GetMinWithdrawAmount() {
 		return RejectReasonTooLittleAmount
 	}

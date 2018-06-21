@@ -35,13 +35,26 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
-	horizonInfo, err := horizonConnector.Info()
+	horizonInfo, err := horizonConnector.System().Info()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Horizon info")
 	}
 
+	btcHelper, err := btcdeposit.NewBTCHelper(
+		log,
+		config.DepositAsset,
+		config.MinDepositAmount,
+		config.FixedDepositFee,
+		config.OffchainCurrency,
+		config.OffchainBlockchain,
+		globalConfig.Bitcoin(),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create BTCHelper")
+	}
+
 	return depositveri.New(
-		"BTC",
+		int(config.ExternalSystem),
 		conf.ServiceBTCDepositVerify,
 		log,
 		config.Signer,
@@ -50,12 +63,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
 		listener,
 		globalConfig.Discovery(),
-		btcdeposit.NewBTCHelper(
-			log,
-			config.DepositAsset,
-			config.MinDepositAmount,
-			config.FixedDepositFee,
-			globalConfig.Bitcoin(),
-		),
+		btcHelper,
 	), nil
 }

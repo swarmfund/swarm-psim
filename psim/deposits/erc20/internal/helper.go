@@ -8,13 +8,16 @@ import (
 	"math/big"
 	"time"
 
+	"strings"
+
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
+	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/hash"
-	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 )
 
 func NewERC20Helper(eth *ethclient.Client, depositAsset string, token common.Address) *ERC20Helper {
@@ -86,8 +89,10 @@ func NewReferenceBuilder() *ReferenceBuilder {
 	return &ReferenceBuilder{}
 }
 
-func (h *ReferenceBuilder) BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
-	base := fmt.Sprintf("%d:%s:%s:%d", blockNumber, txHash, offchainAddress, outIndex)
+func (h *ReferenceBuilder) BuildReference(_ uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
+	// block number is not included in reference to mitigate chain branching
+	base := strings.ToLower(fmt.Sprintf("%s:%s:%d", txHash, offchainAddress, outIndex))
+	fmt.Println(base)
 	hash := hash.Hash([]byte(base))
 	return hex.EncodeToString(hash[:])
 }
@@ -147,7 +152,7 @@ func (h *ETHHelper) GetBlock(number uint64) (*deposit.Block, error) {
 		// third indexed topic is 20 bytes receiver address packed in 40 bytes, big-endian layout
 		receiver := common.BytesToAddress(log.Topics[2][len(log.Topics[2])-20:])
 		amount := new(big.Int).SetBytes(log.Data)
-		gweiAmount := toGwei(amount)
+		gweiAmount := eth.ToGwei(amount)
 		if !gweiAmount.IsUint64() {
 			panic("overflow")
 		}
@@ -165,9 +170,4 @@ func (h *ETHHelper) GetBlock(number uint64) (*deposit.Block, error) {
 	}
 
 	return &block, nil
-}
-
-// TODO move to utils
-func toGwei(amount *big.Int) *big.Int {
-	return new(big.Int).Div(amount, new(big.Int).SetInt64(1000000000))
 }

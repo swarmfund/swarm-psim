@@ -31,10 +31,11 @@ notificator:
   public: string
 
 bitcoin:
-  # move node to separate object?
-  node_host: swarm
-  node_port: 8332
-  node_auth_key: dTAwM2IwNGVmOTUwMWJiZjA2YjpwMDA2NWUyN2MxNWY1NTBiOTJh
+  node:
+    host: swarm
+    port: 8332
+    user: user
+    password: password
   testnet: true
   request_timeout_s: 30
 
@@ -179,23 +180,27 @@ btc_deposit:
   # Should actually by 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # satoshis (0.005 BTC)
-  deposit_asset: BTC
+  deposit_asset: BTC #TokenD asset code
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
+  external_system: 1
   fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
+  disable_verify: false # optional field
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-
-  # TODO Remove after moving logic of the second signature to the verifier.
-  additional_signer: S_SOME_VALID_PRIVATE_KEY
 
 btc_deposit_verify:
   host: localhost
   port: 8102
 
-  # Should actually by 5 (6+ confirmations for transactions)
+  # Should actually be 5 (6+ confirmations for transactions)
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
-  deposit_asset: BTC
+  deposit_asset: BTC #TokenD asset code
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
+  external_system: 1
   fixed_deposit_fee: 100000 # 0.001 BTC (integer in satoshis)
 
   signer: S_SOME_VALID_PRIVATE_KEY
@@ -217,7 +222,7 @@ eth_contracts_deploy:
   signer: SBQ3YVRINQOJDT6FQD3EFMZ5THZFWVSQ37RZYTFZBF3TEE5GPBS6NNXD
   eth_private_key: "1E2E09CC58A8CA23217C8559AA4BA58CD34379EB9F1716DB422DC0BA6E701F18"
   contract_owner: "0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF" # 0002
-  gas_price: 1000000000 # TODO Add comment
+  gas_price: 1 # In GWei
   external_types:
     - 9
     - 10
@@ -237,6 +242,8 @@ btc_funnel:
   dust_output_limit: 0.005 # (float in BTC)
   max_fee_per_kb: 0.00024 # 24000 satoshi (float in BTC)
   blocks_to_be_included: 4 # from 2 to 25
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
 
   min_balance_alarm_threshold: 100 # (float in BTC)
   min_balance_alarm_period: 1h
@@ -262,11 +269,14 @@ eth_contract_funnel:
 
 #withdrawals
 btc_withdraw:
-  btc_private_key: cVaoN6CiScaWB8KJCP8cBP3CjEgFfdK6tf3N5gDow499Xr5AZB8N
+  btc_private_key: hot_wallet_multisig_private_key_1
 
   hot_wallet_address: 2N1w4RzejEWkCyumsZY8prvmRxAPFkcwehb
   hot_wallet_script_pub_key: a9145f49aacdc4f9a50e71073e8ed3c449a27759517687
   hot_wallet_redeem_script: 522102cff9f17973e0b1d3468ae29532156f43e42d213fa85e1df40154d7f5748fab6221037afc702c97360f5bd534e6e7eeec0963fd71f9e873e31720ba200c131cfc1f1152ae
+
+  offchain_currency: BTC # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
 
   min_withdraw_amount: 10000 # 0.0001 BTC (integer in satoshis)
 
@@ -288,11 +298,48 @@ btc_withdraw_verify:
   signer: S_SOME_VALID_PRIVATE_KEY
 
 eth_withdraw:
-  key: "hot_wallet_private_key"
-  asset: "ETH"
-  gas_price: 1000000000
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
+
+  private_key: first_signer_of_multisig_wallet_private_key
+  multisig_wallet_contract_address: 0xcontract_address_hex
+  asset: SWM # TokenD asset code
+  asset_precision: 18 # 18 for ETH and most ERC20 tokens
+  token_address: 0xaddres_of_the_erc_20_token_hex # for not 'ETH' TokenD asset, optional and unused field if 'ETH' in asset
+  min_withdraw_amount: 1000000000000000 # 0.001 (in Wei)
+  gas_price: 50000000000 # 50 GWei (in Wei)
+
+dash_withdraw:
+  offchain_private_key: hot_wallet_multisig_private_key_1
+
+  hot_wallet_address: HotWalletAddress
+  hot_wallet_script_pub_key: script_pub_key
+  hot_wallet_redeem_script: redeem_script_of_the_hot_wallet_p2sh_address
+  fetch_utxo_from: 0 # Block number
+
+  max_fee_per_kb: 0.00000001 # in satoshi (float in Dash)
+  dust_output_threshold: 50000 # (int64 in satoshi) # 0.0005 Dash
+  blocks_to_be_included: 4 # from 2 to 25
+
+  offchain_currency: DASH # is used to build network params (version bytes)
+  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
+
+  min_withdraw_amount: 10000 # satoshis 0.0001 BTC
+
+  source: G_SOME_VALID_PULIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+eth_withdraw_verify:
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  private_key: second_signer_of_multisig_wallet_private_key
+  multisig_wallet_contract_address: 0xcontract_address_hex
+  asset: SWM # TokenD asset code
+  asset_precision: 18 # 18 for ETH and most ERC20 tokens
+  token_address: 0xaddres_of_the_erc_20_token_hex # for not 'ETH' TokenD asset, optional and unused field if 'ETH' in asset
+  min_withdraw_amount: 1000000000000000 # 0.001 (in Wei)
+  gas_price: 50000000000 # 50 GWei (in Wei)
 
 # prices
 price_setter:

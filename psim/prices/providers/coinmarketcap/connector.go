@@ -1,8 +1,8 @@
 package coinmarketcap
 
 import (
-	"gitlab.com/swarmfund/psim/psim/prices/types"
 	"gitlab.com/swarmfund/psim/psim/prices/providers/base"
+	"gitlab.com/swarmfund/psim/psim/prices/types"
 )
 
 const (
@@ -23,6 +23,7 @@ func New() *Connector {
 				"BTC/USD": "https://api.coinmarketcap.com/v1/ticker/bitcoin/?convert=USD",
 				"ETH/USD": "https://api.coinmarketcap.com/v1/ticker/ethereum/?convert=USD",
 				"SWM/USD": "https://api.coinmarketcap.com/v1/ticker/swarm-fund/?convert=USD",
+				"DAI/USD": "https://api.coinmarketcap.com/v1/ticker/dai/?convert=USD",
 			},
 		},
 	}

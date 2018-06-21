@@ -3,15 +3,11 @@ package bitcoin
 import (
 	"encoding/hex"
 
-	"github.com/btcsuite/btcd/chaincfg"
+	"context"
+
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-)
-
-const (
-	MainnetName = "Mainnet"
-	TestnetName = "Testnet"
 )
 
 // Client uses Connector to request some Bitcoin Node
@@ -27,12 +23,11 @@ func NewClient(connector Connector) *Client {
 	}
 }
 
-// GetBlockCount returns the number of the last known Block.
-func (c Client) GetBlockCount() (uint64, error) {
-	return c.connector.GetBlockCount()
-}
-
 // TODO Handle absent Block
+// GetBlockCount returns the number of the last known Block.
+func (c Client) GetBlockCount(ctx context.Context) (uint64, error) {
+	return c.connector.GetBlockCount(ctx)
+}
 
 // GetBlock gets Block hash by provided blockNumber via Connector,
 // gets raw Block(in hex) by the hash from Connector
@@ -232,22 +227,6 @@ func (c Client) parseTX(txHex string) (*btcutil.Tx, error) {
 
 func (c Client) IsTestnet() bool {
 	return c.connector.IsTestnet()
-}
-
-func (c Client) GetNetParams() *chaincfg.Params {
-	if c.connector.IsTestnet() {
-		return &chaincfg.TestNet3Params
-	} else {
-		return &chaincfg.MainNetParams
-	}
-}
-
-func (c Client) GetNetworkName() string {
-	if c.connector.IsTestnet() {
-		return TestnetName
-	} else {
-		return MainnetName
-	}
 }
 
 func (c Client) GetTxUTXO(txHash string, outNumber uint32) (*UTXO, error) {

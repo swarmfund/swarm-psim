@@ -58,14 +58,14 @@ func WithBackOff(
 			return
 		}
 
-		err := RunSafely(ctx, runnerName, runner)
+		err := runSafely(ctx, runnerName, runner)
 
 		if err != nil {
 			log.Log(uint32(logan.ErrorLevel), fields, err, true, fmt.Sprintf("Runner '%s' returned error.", runnerName))
 
 			runAbnormalExecution(ctx, log, runnerName, runner, minAbnormalPeriod, maxAbnormalPeriod)
 			if IsCancelled(ctx) {
-				log.Log(uint32(logan.InfoLevel), fields, nil, false, fmt.Sprintf("Context is canceled - stopping '%s' runner.", runnerName))
+				log.Log(uint32(logan.InfoLevel), fields, nil, false, "Context is canceled - stopping runner.")
 				return
 			}
 		}
@@ -158,7 +158,7 @@ func runAbnormalExecution(
 				return
 			}
 
-			err := RunSafely(ctx, runnerName, runner)
+			err := runSafely(ctx, runnerName, runner)
 			if err == nil {
 				log.Log(uint32(logan.InfoLevel), logan.F{
 					"runner": runnerName,
@@ -176,10 +176,7 @@ func runAbnormalExecution(
 }
 
 // RunSafely handles panic using defer.
-//
-// If no panic happens - RunSafely does nothing except
-// calling the provided runner with the provided context.
-func RunSafely(ctx context.Context, runnerName string, runner func(context.Context) error) (err error) {
+func runSafely(ctx context.Context, runnerName string, runner func(context.Context) error) (err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			err = errors.Wrap(errors.WithStack(errors.FromPanic(rec)), fmt.Sprintf("Runner '%s' panicked", runnerName))
