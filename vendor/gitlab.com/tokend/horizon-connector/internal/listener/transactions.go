@@ -140,11 +140,11 @@ func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyP
 			if r := recover(); r != nil {
 				txStream <- TXPacket{
 					body: nil,
-					err: errors.Wrap(errors.FromPanic(r), "panic happened, stopping work, leaving channel unclosed")
+					err:  errors.Wrap(errors.FromPanic(r), "panic happened, stopping work, leaving channel unclosed"),
 				}
 			} else {
-			close(txStream)
-		}
+				close(txStream)
+			}
 		}()
 
 		for {

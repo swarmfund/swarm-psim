@@ -606,7 +606,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "0a2472a16e7f49fd5f2cec7691a1eeec1fcc2d8d"
+  revision = "889fdbdfdb207c713ac19661387af85950cf766d"
 
 [[projects]]
   branch = "master"
