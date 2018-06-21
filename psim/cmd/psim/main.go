@@ -60,7 +60,9 @@ var (
 			if err != nil {
 				entry.WithError(err).Fatal("failed to init app instance")
 			}
+
 			instance.Run()
+
 		},
 	}
 )
@@ -71,11 +73,13 @@ func main() {
 		if err := configInstance.Init(); err != nil {
 			entry.WithField("config", configFile).WithError(err).Fatal("failed to init config")
 		}
+
 	})
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "config.yaml", "config file")
 	rootCmd.AddCommand(runCmd)
 	err := rootCmd.Execute()
 	if err != nil {
+
 		entry.WithError(err).Fatal("something bad happened")
 	}
 

@@ -1,6 +1,10 @@
 package salesforce
 
-import "net/url"
+import (
+	"net/url"
+
+	"github.com/pkg/errors"
+)
 
 // EmptyConnector is used for signalizing about special conditions
 var EmptyConnector = &Connector{}
@@ -11,22 +15,21 @@ type Connector struct {
 }
 
 // NewConnector construct a connector from arguments and gets accessToken
-func NewConnector(apiURL *url.URL, secret string, id string) (*Connector, error) {
+func NewConnector(apiURL *url.URL, secret string, id string, username string, password string) (*Connector, error) {
 	client := NewClient(apiURL, secret, id)
-	authResponse, err := client.PostAuthRequest()
+	authResponse, err := client.PostAuthRequest(username, password)
 	if err != nil {
-		return EmptyConnector, err
+		return nil, errors.Wrap(err, "failed to authenticate while constructing salesforce connector")
 	}
-	client.accessToken = authResponse.AccessToken
 	return &Connector{
-		client,
+		client: &Client{
+			httpClient:  client.httpClient,
+			apiURL:      client.apiURL,
+			secret:      client.secret,
+			accessToken: authResponse.AccessToken,
+			id:          client.id,
+		},
 	}, nil
-}
-
-func (c *Connector) WithUserData(username string, password string) *Connector {
-	return &Connector{
-		c.client.WithUserData(username, password),
-	}
 }
 
 // SendEvent sends an event from arguments to salesforce

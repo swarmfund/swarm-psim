@@ -8,7 +8,7 @@ import (
 
 // ProcessedItem holds events generated while processing transactions by an extractor to be emitted by a broadcaster
 type ProcessedItem struct {
-	BroadcastedEvent BroadcastedEvent
+	BroadcastedEvent *BroadcastedEvent
 	Error            error
 }
 
@@ -20,10 +20,10 @@ type Handler interface {
 
 // InvalidProcessedItem returns ProcessedItem only with specified error
 func InvalidProcessedItem(err error) *ProcessedItem {
-	return &ProcessedItem{BroadcastedEvent: BroadcastedEvent{}, Error: err}
+	return &ProcessedItem{BroadcastedEvent: nil, Error: err}
 }
 
 // ValidProcessedItem returns ProcessedItem without error, but with specified body
-func ValidProcessedItem(event BroadcastedEvent) *ProcessedItem {
+func ValidProcessedItem(event *BroadcastedEvent) *ProcessedItem {
 	return &ProcessedItem{BroadcastedEvent: event, Error: nil}
 }

@@ -38,7 +38,7 @@ func (tx *Transaction) GroupedLedgerChanges() ([][]xdr.LedgerEntryChange, error)
 	}
 	var result [][]xdr.LedgerEntryChange
 	for opIndex, op := range meta.MustOperations() {
-		result = append(result, []xdr.LedgerEntryChange {})
+		result = append(result, []xdr.LedgerEntryChange{})
 		for _, change := range op.Changes {
 			result[opIndex] = append(result[opIndex], change)
 		}
@@ -71,8 +71,8 @@ func (tx *Transaction) Result() (*xdr.TransactionResult, error) {
 }
 
 func (tx Transaction) GetLoganFields() map[string]interface{} {
-	return map[string]interface{} {
-		"created_at": tx.CreatedAt,
+	return map[string]interface{}{
+		"created_at":   tx.CreatedAt,
 		"paging_token": tx.PagingToken,
 	}
 }

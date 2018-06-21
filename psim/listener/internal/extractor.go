@@ -24,6 +24,6 @@ func InvalidExtractedItem(err error) ExtractedItem {
 }
 
 // ValidExtractedItem constructs an ExtractedItem with body and without error
-func ValidExtractedItem(currentOp xdr.Operation, sourceAccount xdr.AccountId, opLedgerChanges []xdr.LedgerEntryChange, opResultTr xdr.OperationResultTr, txTime time.Time) ExtractedItem {
+func ValidExtractedItem(currentOp xdr.Operation, sourceAccount xdr.AccountId, opLedgerChanges []xdr.LedgerEntryChange, opResultTr xdr.OperationResultTr, txTime *time.Time) ExtractedItem {
 	return ExtractedItem{OpData{Op: currentOp, SourceAccount: sourceAccount, OpLedgerChanges: opLedgerChanges, OpResult: opResultTr, CreatedAt: txTime}, nil}
 }

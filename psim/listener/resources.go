@@ -22,9 +22,6 @@ type OpData = internal.OpData
 // Broadcaster exported to be used in listener package
 type Broadcaster = internal.Broadcaster
 
-// GenericBroadcaster exported to be used in listener package
-type GenericBroadcaster = internal.GenericBroadcaster
-
 // Target exported to be used in listener package
 type Target = internal.Target
 

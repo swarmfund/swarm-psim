@@ -12,18 +12,18 @@ type OpData struct {
 	SourceAccount   xdr.AccountId
 	OpLedgerChanges []xdr.LedgerEntryChange
 	OpResult        xdr.OperationResultTr
-	CreatedAt       time.Time
+	CreatedAt       *time.Time
 }
 
 // MaybeBroadcastedEvent can contain BroadcastedEvent OR Error
 type MaybeBroadcastedEvent struct {
-	BroadcastedEvent BroadcastedEvent
+	BroadcastedEvent *BroadcastedEvent
 	Error            error
 }
 
 // AppendedBy returns array of the receiver and new event from arguments.
-func (mbe *MaybeBroadcastedEvent) AppendedBy(Account string, Name BroadcastedEventName, Time time.Time) (outputEvents []MaybeBroadcastedEvent) {
-	outputEvents = append([]MaybeBroadcastedEvent{*mbe}, MaybeBroadcastedEvent{*NewBroadcastedEvent(Account, Name, Time), nil})
+func (mbe *MaybeBroadcastedEvent) AppendedBy(Account string, Name BroadcastedEventName, Time *time.Time) (outputEvents []MaybeBroadcastedEvent) {
+	outputEvents = append([]MaybeBroadcastedEvent{*mbe}, MaybeBroadcastedEvent{NewBroadcastedEvent(Account, Name, Time), nil})
 	return
 }
 
@@ -35,13 +35,13 @@ func (mbe *MaybeBroadcastedEvent) Alone() (outputEvents []MaybeBroadcastedEvent)
 
 // InvalidBroadcastedEvent constructs MaybeBroadcastedEvent with error
 func InvalidBroadcastedEvent(err error) *MaybeBroadcastedEvent {
-	return &MaybeBroadcastedEvent{BroadcastedEvent{}, err}
+	return &MaybeBroadcastedEvent{nil, err}
 }
 
 // ValidBroadcastedEvent constructs MaybeBroadcastedEvent with body
-func ValidBroadcastedEvent(Account string, Name BroadcastedEventName, Time time.Time) *MaybeBroadcastedEvent {
-	return &MaybeBroadcastedEvent{*NewBroadcastedEvent(Account, Name, Time), nil}
+func ValidBroadcastedEvent(Account string, Name BroadcastedEventName, Time *time.Time) *MaybeBroadcastedEvent {
+	return &MaybeBroadcastedEvent{NewBroadcastedEvent(Account, Name, Time), nil}
 }
 
 // Processor emits events based on data passed in
-type Processor func(d OpData) []MaybeBroadcastedEvent
+type Processor func(data OpData) []MaybeBroadcastedEvent

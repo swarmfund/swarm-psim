@@ -10,6 +10,7 @@ import (
 
 // TODO use figure out
 
+// Salesforce returns a ready-to-use salesforce connector
 func (c *ViperConfig) Salesforce() *salesforce.Connector {
 	c.Lock()
 	defer c.Unlock()
@@ -23,17 +24,20 @@ func (c *ViperConfig) Salesforce() *salesforce.Connector {
 		apiRawURL := v.GetString("api_url")
 		apiURL, err := url.Parse(apiRawURL)
 		if err != nil {
-			panic(errors.Wrap(err, "failed to parse api url", logan.F{
+			panic(errors.Wrap(err, "failed to parse salesforce api url", logan.F{
 				"api_url": apiRawURL,
 			}))
 		}
 		secret := v.GetString("client_secret")
 		id := v.GetString("client_id")
+		username := v.GetString("username")
+		password := v.GetString("password")
 
-		c.salesforce, err = salesforce.NewConnector(apiURL, secret, id)
+		salesforce, err := salesforce.NewConnector(apiURL, secret, id, username, password)
 		if err != nil {
 			panic(errors.Wrap(err, "failed to create connector"))
 		}
+		c.salesforce = salesforce
 	}
 
 	return c.salesforce

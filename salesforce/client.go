@@ -13,8 +13,6 @@ var authEndpointURL = &url.URL{
 type Client struct {
 	httpClient  *http.Client
 	apiURL      *url.URL
-	username    string
-	password    string
 	secret      string
 	accessToken string
 	id          string
@@ -29,16 +27,4 @@ func NewClient(apiURL *url.URL, secret string, id string) *Client {
 		id:         id,
 	}
 	return salesforceClient
-}
-
-func (c *Client) WithUserData(username string, password string) *Client {
-	return &Client{
-		httpClient:  c.httpClient,
-		apiURL:      c.apiURL,
-		username:    username,
-		password:    password,
-		secret:      c.secret,
-		accessToken: c.accessToken,
-		id:          c.id,
-	}
 }

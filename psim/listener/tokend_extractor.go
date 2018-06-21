@@ -4,44 +4,52 @@ import (
 	"context"
 	"time"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
 
-var (
-	ErrNilTx = errors.New("empty tx received")
-)
-
 // TokendExtractor is responsible for taking Txs and extract data from them to be used by processors
-type TokendExtractor <-chan horizon.TXPacket
+type TokendExtractor struct {
+	logger *logan.Entry
+	Source <-chan horizon.TXPacket
+}
+
+// NewTokendExtractor constructs a TokendExtractor using provided source
+func NewTokendExtractor(logger *logan.Entry, source <-chan horizon.TXPacket) *TokendExtractor {
+	return &TokendExtractor{
+		logger: logger,
+		Source: source,
+	}
+}
 
 // TxData holds all data to be processed for broadcasting events
 type TxData struct {
 	Operations    []xdr.Operation
 	OpsResults    []xdr.OperationResult
 	LedgerChanges [][]xdr.LedgerEntryChange
-	Time          time.Time
+	Time          *time.Time
 	SourceAccount xdr.AccountId
 }
 
-func validateTx(extractedTx horizon.TXPacket) (TxData, error) {
+func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 	extractedTxBody, err := extractedTx.Unwrap()
 	if err != nil {
-		return TxData{}, errors.Wrap(err, "failed to unwrap tx")
+		return nil, errors.Wrap(err, "failed to unwrap tx")
 	}
 
 	tx := extractedTxBody.Transaction
 
 	if tx == nil {
-		return TxData{}, ErrNilTx
+		return nil, nil
 	}
 
 	txEnvelope, err := tx.SafeEnvelope()
 
 	if err != nil {
-		return TxData{}, errors.Wrap(err, "failed to get tx envelope")
+		return nil, errors.Wrap(err, "failed to get tx envelope")
 	}
 
 	txEnvelopeBody := txEnvelope.Tx
@@ -49,7 +57,7 @@ func validateTx(extractedTx horizon.TXPacket) (TxData, error) {
 	txLedgerChanges, err := tx.GroupedLedgerChanges()
 
 	if err != nil {
-		return TxData{}, errors.Wrap(err, "failed to get grouped ledger changes")
+		return nil, errors.Wrap(err, "failed to get grouped ledger changes")
 	}
 
 	operations := txEnvelopeBody.Operations
@@ -57,18 +65,18 @@ func validateTx(extractedTx horizon.TXPacket) (TxData, error) {
 	txResult, err := tx.Result()
 
 	if err != nil {
-		return TxData{}, errors.Wrap(err, "failed to unmarshal results")
+		return nil, errors.Wrap(err, "failed to unmarshal results")
 	}
 
 	opsResults, ok := txResult.Result.GetResults()
 
 	if !ok {
-		return TxData{}, errors.Wrap(err, "failed to get results")
+		return nil, errors.Wrap(err, "failed to get results")
 	}
 
-	txTime := tx.CreatedAt
+	txTime := &tx.CreatedAt
 
-	return TxData{operations, opsResults, txLedgerChanges, txTime, txEnvelopeBody.SourceAccount}, nil
+	return &TxData{operations, opsResults, txLedgerChanges, txTime, txEnvelopeBody.SourceAccount}, nil
 }
 
 // Extract safely gathers all the stuff from each tx and puts it as ExtractedItem to a channel
@@ -77,11 +85,13 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 
 	go func(chan ExtractedItem) {
 		defer func() {
-			// TODO recover
+			if r := recover(); r != nil {
+				extractor.logger.WithRecover(r).Warn("panic while extracting txdata	")
+			}
 			close(out)
 		}()
 
-		for extractedTx := range extractor {
+		for extractedTx := range extractor.Source {
 			select {
 			case <-ctx.Done():
 				return
@@ -89,12 +99,12 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 			}
 
 			txData, err := validateTx(extractedTx)
-			if err == errors.Cause(ErrNilTx) {
-				continue
-			}
-
 			if err != nil {
-				out <- internal.InvalidExtractedItem(errors.Wrap(err, "invalid tx"))
+				extractor.logger.WithError(err).Warn("got invalid tx")
+			}
+			if txData == nil {
+				extractor.logger.Info("got empty tx data")
+				continue
 			}
 
 			for constructedData := range constructOpData(txData) {
@@ -106,8 +116,7 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 	return out
 }
 
-func constructOpData(txData TxData) <-chan ExtractedItem {
-
+func constructOpData(txData *TxData) <-chan ExtractedItem {
 	operations := txData.Operations
 	txSourceAccount := txData.SourceAccount
 	opsResults := txData.OpsResults

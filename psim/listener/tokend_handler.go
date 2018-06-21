@@ -3,6 +3,7 @@ package listener
 import (
 	"context"
 
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
@@ -13,12 +14,25 @@ import (
 // TokendHandler is a Handler implementation to be used with tokend stuff
 type TokendHandler struct {
 	processorByOpType map[xdr.OperationType]Processor
-	HorizonConnector  horizon.Connector
+	HorizonConnector  *horizon.Connector
+	logger            *logan.Entry
 }
 
 // NewTokendHandler constructs a TokendHandler without any binded processors
-func NewTokendHandler() *TokendHandler {
-	return &TokendHandler{make(map[xdr.OperationType]Processor), horizon.Connector{}}
+func NewTokendHandler(logger *logan.Entry, connector *horizon.Connector) *TokendHandler {
+	return &TokendHandler{make(map[xdr.OperationType]Processor), connector, logger}
+}
+
+func (th *TokendHandler) withTokendProcessors() *TokendHandler {
+	th.SetProcessor(xdr.OperationTypeCreateKycRequest, processKYCCreateUpdateRequestOp)
+	th.SetProcessor(xdr.OperationTypeReviewRequest, processReviewRequestOp(th.HorizonConnector.Operations(), th.HorizonConnector.Accounts()))
+	th.SetProcessor(xdr.OperationTypeCreateIssuanceRequest, processCreateIssuanceRequestOp)
+	th.SetProcessor(xdr.OperationTypeManageOffer, processManageOfferOp)
+	th.SetProcessor(xdr.OperationTypePayment, processPayment)
+	th.SetProcessor(xdr.OperationTypePaymentV2, processPaymentV2)
+	th.SetProcessor(xdr.OperationTypeCreateWithdrawalRequest, processWithdrawRequest)
+	th.SetProcessor(xdr.OperationTypeCreateAccount, processCreateAccountOp)
+	return th
 }
 
 // SetProcessor binds a processor to specified opType
@@ -33,39 +47,48 @@ type UserData struct {
 	Country string
 }
 
-func (th TokendHandler) lookupUserData(event MaybeBroadcastedEvent) (UserData, error) {
-	user, err := th.HorizonConnector.Users().User(event.BroadcastedEvent.Account)
+func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, error) {
+	user, err := th.HorizonConnector.Users().User(event.Account)
 	if err != nil {
-		return UserData{}, errors.Wrap(event.Error, "failed to lookup user by id")
+		return nil, errors.Wrap(err, "failed to lookup user by id")
 	}
-	if user != nil {
-		return UserData{}, errors.Wrap(event.Error, "user not found")
+	if user == nil {
+		return nil, errors.Wrap(err, "user not found")
+	}
+	account, err := th.HorizonConnector.Accounts().ByAddress(event.Account)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to lookup account by address")
+	}
+	if account == nil {
+		return nil, errors.Wrap(err, "account not found")
 	}
 
-	account, err := th.HorizonConnector.Accounts().ByAddress(event.BroadcastedEvent.Account)
-	if err != nil {
-		return UserData{}, errors.Wrap(event.Error, "failed to lookup account by address")
-	}
-	if account != nil {
-		return UserData{}, errors.Wrap(event.Error, "account not found")
+	blobs := th.HorizonConnector.Blobs()
+
+	accountKycData := account.KYC.Data
+	if accountKycData == nil {
+		return nil, errors.New("nil account kyc data")
 	}
 
-	blob, err := th.HorizonConnector.Blobs().Blob(account.KYC.Data.BlobID)
+	blob, err := blobs.Blob(accountKycData.BlobID)
 	if err != nil {
-		return UserData{}, errors.Wrap(event.Error, "failed to lookup blob by id")
+		return nil, errors.Wrap(err, "failed to lookup blob by id")
 	}
-	if blob != nil {
-		return UserData{}, errors.Wrap(event.Error, "blob not found")
+	if blob == nil {
+		return nil, errors.Wrap(err, "blob not found")
 	}
 
 	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
-		return UserData{}, errors.Wrap(event.Error, "failed to parse kyc data")
+		return nil, errors.Wrap(err, "failed to parse kyc data")
+	}
+	if kycData == nil {
+		return nil, errors.Wrap(err, "no kyc data")
 	}
 
 	name := kycData.FirstName + " " + kycData.LastName
 
-	return UserData{name, user.Attributes.Email, kycData.Address.Country}, nil
+	return &UserData{name, user.Attributes.Email, kycData.Address.Country}, nil
 }
 
 // Process starts processing all op using processors in the map
@@ -74,18 +97,15 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 
 	go func() {
 		defer func() {
+			if r := recover(); r != nil {
+				th.logger.WithRecover(r).Error("panic while processing event")
+			}
 			close(broadcastedEvents)
 		}()
 
 		for extractedItem := range extractedItems {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
 			if extractedItem.Error != nil {
-				broadcastedEvents <- *internal.InvalidProcessedItem(errors.Wrap(extractedItem.Error, "received invalid extracted item"))
+				th.logger.WithError(extractedItem.Error).Warn("got invalid extracted item, skipping")
 				continue
 			}
 
@@ -100,14 +120,29 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 			events := process(opData)
 
 			for _, event := range events {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				if event.Error != nil {
-					broadcastedEvents <- *internal.InvalidProcessedItem(errors.Wrap(event.Error, "failed to process op data from extracted item"))
+					th.logger.WithError(event.Error).Warn("got invalid event, skipping")
+					continue
+				}
+				if event.BroadcastedEvent == nil {
+					th.logger.Info("got empty event")
 					continue
 				}
 
-				userData, err := th.lookupUserData(event)
+				userData, err := th.lookupUserData(event.BroadcastedEvent)
 				if err != nil {
-					broadcastedEvents <- *internal.InvalidProcessedItem(errors.Wrap(err, "failed to lookup user data"))
+					th.logger.WithError(err).Warn("userdata lookup failed")
+					continue
+				}
+
+				if userData == nil {
+					th.logger.Info("no userdata, skipping")
 					continue
 				}
 

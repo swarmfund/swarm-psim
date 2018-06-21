@@ -29,9 +29,6 @@ type EventResponse struct {
 	Errors       []string `json:"errors"`
 }
 
-// EmptyEventResponse is used for signaling about special conditions
-var EmptyEventResponse = &EventResponse{}
-
 var eventsEndpointURL = &url.URL{
 	Path: "/services/data/v42.0/sobjects/Website_Action__c/",
 }
@@ -53,38 +50,41 @@ func (c *Client) PostEvent(sphere string, actionName string, timeString string, 
 
 	requestBytes, err := json.Marshal(requestStruct)
 	if err != nil {
-		return EmptyEventResponse, err
+		return nil, err
 	}
 
-	// TODO set access token in header
-	// TODO reduce string -> url -> string -> url overhead
-	response, err := c.httpClient.Post(endpointURL.String(), "application/json", bytes.NewReader(requestBytes))
+	req, err := http.NewRequest("POST", endpointURL.String(), bytes.NewReader(requestBytes))
 	if err != nil {
-		return EmptyEventResponse, err
+		return nil, err
 	}
-
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("authorization", "Bearer "+c.accessToken)
+	response, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	// TODO auth.go
 	switch response.StatusCode {
 	case http.StatusCreated:
-		return EmptyEventResponse, nil
+		responseBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		var eventResponse *EventResponse
+		err = json.Unmarshal(responseBytes, &eventResponse)
+		if err != nil {
+			return nil, err
+		}
+
+		return eventResponse, nil
+
 	case http.StatusUnauthorized:
-		return EmptyEventResponse, nil
+		return nil, errors.New("unauthorized")
 	case http.StatusBadRequest:
-		return EmptyEventResponse, errors.New("malformed request sent")
-	default:
-		return EmptyEventResponse, nil
+		return nil, errors.New("malformed request sent")
 	}
 
-	defer response.Body.Close()
-	responseBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return EmptyEventResponse, err
-	}
-
-	var eventResponse EventResponse
-	err = json.Unmarshal(responseBytes, eventResponse)
-	if err != nil {
-		return EmptyEventResponse, err
-	}
-
-	return EmptyEventResponse, nil
+	return nil, errors.New("unknown status code")
 }

@@ -29,8 +29,7 @@ func (q *Q) AllRequests(cursor string) ([]resources.Request, error) {
 	return q.getRequests(url)
 }
 
-// DEPRECATED
-// Instead use Requests() method providing specific ReviewableRequestType
+// DEPRECATED: Instead use Requests() method providing specific ReviewableRequestType
 func (q *Q) WithdrawalRequests(cursor string) ([]resources.Request, error) {
 	url := fmt.Sprintf("/request/withdrawals?limit=200&cursor=%s", cursor)
 	return q.getRequests(url)

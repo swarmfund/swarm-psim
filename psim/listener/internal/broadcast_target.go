@@ -5,5 +5,5 @@ package internal
 // If err != nil - handle error - can be ignored or fixed and retried. Success doesn't matter
 // If success == true - event sent
 type Target interface {
-	SendEvent(event BroadcastedEvent) (err error)
+	SendEvent(event *BroadcastedEvent) (err error)
 }

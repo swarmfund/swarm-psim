@@ -13,11 +13,8 @@ import (
 
 // ServiceConfig holds signer for horizon connector and some data for targets
 type ServiceConfig struct {
-	Signer             keypair.Full `fig:"signer,required"`
-	MixpanelToken      string       `fig:"mixpanel_token"`
-	SalesforceUsername string       `fig:"salesforce_username"`
-	SalesforcePassword string       `fig:"salesforce_password"`
-	TxhistoryCursor    string       `fig:"txhistory_cursor"`
+	Signer          keypair.Full `fig:"signer,required"`
+	TxHistoryCursor string       `fig:"txhistory_cursor"`
 }
 
 // Service consists config, logger, broadcaster and dependent components - extractor and handler
@@ -53,10 +50,6 @@ func (s *Service) Run(ctx context.Context) {
 func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {
 	extractedTxData := s.extractor.Extract(ctx)
 	emittedEvents := s.handler.Process(ctx, extractedTxData)
-	// s.broadcaster.BroadcastEvents(ctx, emittedEvents)
-	for e := range s.broadcaster.BroadcastEvents(ctx, emittedEvents) {
-		s.logger.Warn(e)
-	}
-
-	return false, nil
+	s.broadcaster.BroadcastEvents(ctx, emittedEvents)
+	return true, nil
 }

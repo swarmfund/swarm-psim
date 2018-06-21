@@ -252,6 +252,9 @@ func handleKYCReview(opData OpData, requestsProvider RequestProvider, accountsPr
 	var outputEvents []MaybeBroadcastedEvent
 
 	reviewableRequest := findRemoval(ledgerChanges)
+	if reviewableRequest == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("removal not found")).Alone()
+	}
 	if opBody.RequestId == reviewableRequest.RequestId {
 		outputEvents = append(outputEvents, *internal.ValidBroadcastedEvent(kycRequestDetails.AccountToUpdateKYC, BroadcastedEventNameKycApproved, time))
 	}
