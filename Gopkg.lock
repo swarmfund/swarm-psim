@@ -106,6 +106,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dukex/mixpanel"
+  packages = ["."]
+  revision = "88b7bfd34643dce0c28a6b797652d6b5026091af"
+
+[[projects]]
   name = "github.com/ethereum/go-ethereum"
   packages = [
     ".",
@@ -138,8 +144,8 @@
 [[projects]]
   name = "github.com/evalphobia/logrus_sentry"
   packages = ["."]
-  revision = "57846a82817615f185b10cc40de8dc60c1ca5ae1"
-  version = "v0.4.5"
+  revision = "b78b27461c8163c45abf4ab3a8330d2b1ee9456a"
+  version = "v0.4.6"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -161,6 +167,12 @@
   ]
   revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
   version = "v3.3.2"
+
+[[projects]]
+  name = "github.com/go-errors/errors"
+  packages = ["."]
+  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -528,6 +540,7 @@
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
   packages = [
+    ".",
     "v3",
     "v3/errors",
     "v3/fields"
@@ -593,7 +606,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "d8655a4c6cb3cc63f11c97eb5a4295fa12623586"
+  revision = "0a2472a16e7f49fd5f2cec7691a1eeec1fcc2d8d"
 
 [[projects]]
   branch = "master"
@@ -699,6 +712,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b3a8e18b881ccc65808a61146addf19f7671913d85577ff87901d96ef83d5c0b"
+  inputs-digest = "fbb0ef7b6c889a6f6e2d8348081ddb1385bb3e30a5be7711ed14bd9f03302204"
   solver-name = "gps-cdcl"
   solver-version = 1
