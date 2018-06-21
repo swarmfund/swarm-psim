@@ -3,7 +3,8 @@ package listener
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
-	"gitlab.com/tokend/horizon-connector"
+
+	horizon "gitlab.com/tokend/horizon-connector"
 
 	"gitlab.com/tokend/go/xdr"
 )

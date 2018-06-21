@@ -38,6 +38,7 @@ type CreateKYCRequestOp = operations.CreateKYCRequest
 type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
 type ReviewRequestOp = operations.ReviewRequest
 type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
+type RequestKYCDetails = resources.RequestKYCDetails
 
 type ReviewableRequestType = operation.ReviewableRequestType
 

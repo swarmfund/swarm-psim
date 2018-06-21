@@ -8,6 +8,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/swarmfund/psim/psim/listener/internal"
 	"gitlab.com/tokend/go/xdr"
+	horizon "gitlab.com/tokend/horizon-connector"
 )
 
 // TokendHandler is a Handler implementation to be used with tokend stuff
@@ -84,7 +85,7 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 
 	var name string
 	if kycData != nil {
-		name := kycData.FirstName + " " + kycData.LastName
+		name = kycData.FirstName + " " + kycData.LastName
 	}
 
 	return &UserData{name, user.Attributes.Email, kycData.Address.Country}, nil
