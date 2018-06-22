@@ -13,6 +13,7 @@ type OpData struct {
 	OpLedgerChanges []xdr.LedgerEntryChange
 	OpResult        xdr.OperationResultTr
 	CreatedAt       *time.Time
+	PagingToken     string
 }
 
 // MaybeBroadcastedEvent can contain BroadcastedEvent OR Error

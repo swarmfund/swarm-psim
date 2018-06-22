@@ -32,6 +32,7 @@ type TxData struct {
 	LedgerChanges [][]xdr.LedgerEntryChange
 	Time          *time.Time
 	SourceAccount xdr.AccountId
+	PagingToken   string
 }
 
 func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
@@ -76,7 +77,9 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 
 	txTime := &tx.CreatedAt
 
-	return &TxData{operations, opsResults, txLedgerChanges, txTime, txEnvelopeBody.SourceAccount}, nil
+	pagingToken := tx.PagingToken
+
+	return &TxData{operations, opsResults, txLedgerChanges, txTime, txEnvelopeBody.SourceAccount, pagingToken}, nil
 }
 
 // Extract safely gathers all the stuff from each tx and puts it as ExtractedItem to a channel
@@ -122,6 +125,7 @@ func constructOpData(txData *TxData) <-chan ExtractedItem {
 	opsResults := txData.OpsResults
 	txLedgerChanges := txData.LedgerChanges
 	txTime := txData.Time
+	pagingToken := txData.PagingToken
 
 	out := make(chan ExtractedItem)
 
@@ -146,7 +150,7 @@ func constructOpData(txData *TxData) <-chan ExtractedItem {
 
 			opLedgerChanges := txLedgerChanges[currentOpIndex]
 
-			out <- internal.ValidExtractedItem(currentOp, sourceAccount, opLedgerChanges, *opResultTr, txTime)
+			out <- internal.ValidExtractedItem(currentOp, sourceAccount, opLedgerChanges, *opResultTr, txTime, pagingToken)
 		}
 	}(out)
 

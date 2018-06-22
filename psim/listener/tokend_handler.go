@@ -127,7 +127,10 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 				}
 
 				if event.Error != nil {
-					th.logger.WithError(event.Error).Warn("got invalid event, skipping")
+					th.logger.WithError(event.Error).WithFields(logan.F{
+						"txPagingToken": extractedItem.ExtractedOpData.PagingToken,
+						"opType":        opType,
+					}).Warn("got invalid event, skipping")
 					continue
 				}
 				if event.BroadcastedEvent == nil {
