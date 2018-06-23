@@ -63,5 +63,5 @@ var hooks = figure.Merge(figure.Hooks{
 			return reflect.ValueOf(config), nil
 		},
 	},
-	listener.ConfigHooks,
+	listener.ConfigFigureHooks,
 )

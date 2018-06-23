@@ -80,6 +80,7 @@ services:
 #  - airdrop_kyc
 #  - airdrop_march_referrals
 #  - airdrop_march_20_20
+#  - airdrop_telegram
 
 #  - identity_mind
 #  - invest_ready

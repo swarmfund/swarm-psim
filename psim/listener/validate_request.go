@@ -10,9 +10,19 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
-// TODO Comment
+// ValidateHTTPRequest checks that:
+//   - Request method equals to provided `requestMethod` argument,
+//   - Request body is not nil,
+//   - Request body is readable and
+//   - (if doorman is not nil) - that request is properly signed.
+//
+// If any of the checks is not passed - appropriate warn log appears and appropriate response is written (true will be returned).
+//
 // Provide nil doorman if signature check is not needed.
-func ValidateHTTPRequest(w http.ResponseWriter, r *http.Request, log *logan.Entry, requestMethod string, doormanChecker doorman.Doorman) (respBody []byte, errResponseWritten bool) {
+//
+// Note: ValidateHTTPRequest reads the body of the provided Request, so
+// use returned `requestBody` bytes to parse request body.
+func ValidateHTTPRequest(w http.ResponseWriter, r *http.Request, log *logan.Entry, requestMethod string, doormanChecker doorman.Doorman) (requestBody []byte, errResponseWritten bool) {
 	if r.Method != requestMethod {
 		log.WithField("request_method", r.Method).Warn("Received request with wrong method.")
 		WriteError(w, http.StatusMethodNotAllowed, fmt.Sprintf("Only method %s is allowed.", requestMethod))
@@ -55,7 +65,9 @@ func ValidateHTTPRequest(w http.ResponseWriter, r *http.Request, log *logan.Entr
 	return bb, false
 }
 
-// TODO Comment
+// WriteError takes the errorMessage string, puts it into `error` field of a JSON,
+// marshals this JSON and writes it into the response.
+// Possible errors of marshal or response writer write can be returned.
 func WriteError(w http.ResponseWriter, statusCode int, errorMessage string) error {
 	resp := struct {
 		Error string `json:"error"`

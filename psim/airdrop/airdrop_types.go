@@ -15,4 +15,5 @@ const (
 	KYCReferenceSuffix            = "-air-kyc"
 	MarchReferralsReferenceSuffix = "-air-ref"
 	March20b20ReferenceSuffix     = "-air-20/"
+	TelegramReferenceSuffix       = "telegram"
 )

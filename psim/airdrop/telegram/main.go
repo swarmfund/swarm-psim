@@ -1,4 +1,4 @@
-package kycairdrop
+package telegram
 
 import (
 	"context"
@@ -6,18 +6,16 @@ import (
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
-// KYCAirdrop service's goal is to issue 10 SWM to users who have successfully passed KYC.
-
 func init() {
-	app.RegisterService(conf.ServiceAirdropKYC, setupFn)
+	app.RegisterService(conf.ServiceAirdropTelegram, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -27,17 +25,18 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceAirdropKYC)).
-		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks).
+		From(app.Config(ctx).GetRequired(conf.ServiceAirdropTelegram)).
+		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks, listener.ConfigFigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceAirdropKYC,
+			"service": conf.ServiceAirdropTelegram,
 		})
 	}
 
-	if len(config.RequestTokenSuffix) == 0 {
-		return nil, errors.New("'email_request_token_suffix' in config must not be empty")
+	validateErr := config.Validate()
+	if validateErr != nil {
+		return nil, errors.Wrap(validateErr, "Config is invalid")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
@@ -50,26 +49,17 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
-		config.Asset,
-		airdrop.KYCReferenceSuffix,
+		config.Issuance.Asset,
+		airdrop.TelegramReferenceSuffix,
 		config.Source,
 		config.Signer,
 		builder,
 		horizonConnector.Submitter())
 
-	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
-
-	ledgerChangesStreamer := lchanges.NewStreamer(log, horizonConnector.Listener(), false)
-
 	return NewService(
 		log,
 		config,
 		issuanceSubmitter,
-		ledgerChangesStreamer,
-		horizonConnector.Accounts(),
-		horizonConnector.Users(),
-		airdrop.NewUSAChecker(horizonConnector.Blobs()),
-		horizonConnector.Accounts(),
-		emailProcessor,
+		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
 	), nil
 }

@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-var ConfigHooks = figure.Hooks{
+var ConfigFigureHooks = figure.Hooks{
 	"listener.Config": func(raw interface{}) (reflect.Value, error) {
 		rawRedirectsConfig, err := cast.ToStringMapE(raw)
 		if err != nil {
