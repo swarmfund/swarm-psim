@@ -18,6 +18,7 @@ import (
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/swarmfund/psim/psim/listener"
 )
 
 const (
@@ -30,7 +31,7 @@ type KYCRequestsConnector interface {
 
 type RedirectsListener struct {
 	log    *logan.Entry
-	config RedirectsConfig
+	config listener.Config
 
 	kycRequestsConnector KYCRequestsConnector
 	requestPerformer     RequestPerformer
@@ -42,7 +43,7 @@ type RedirectsListener struct {
 
 func NewRedirectsListener(
 	log *logan.Entry,
-	config RedirectsConfig,
+	config listener.Config,
 	kycRequestsConnector KYCRequestsConnector,
 	investReady InvestReady,
 	doorman doorman.Doorman,

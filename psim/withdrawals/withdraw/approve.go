@@ -149,9 +149,11 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 	return nil
 }
 
+// TODO Refactor me
 func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount int64) error {
 	var resultEnvelope *xdr.TransactionEnvelope
 	var fullySignedOffchainTX string
+
 	if s.verification.Verify {
 		envelope, err := s.sendRequestToVerifier(VerifyApproveURLSuffix, NewApprove(request.ID, request.Hash, partlySignedOffchainTX))
 		if err != nil {
