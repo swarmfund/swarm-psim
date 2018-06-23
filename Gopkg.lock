@@ -3,18 +3,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/FactomProject/basen"
-  packages = ["."]
-  revision = "fe3947df716ebfda9847eb1b9a48f9592e06478c"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/FactomProject/btcutilecc"
-  packages = ["."]
-  revision = "d3a63a5752ecf3fbc06bd97365da752111c263df"
-
-[[projects]]
-  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [
     ".",
@@ -499,12 +487,6 @@
   revision = "714f901b98fdb3aa954b4193d8cbd64a28d80cad"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/tyler-smith/go-bip32"
-  packages = ["."]
-  revision = "2c9cfd17756470a0b7c3e4b7954bae7d11035504"
-
-[[projects]]
   name = "gitlab.com/distributed_lab/ape"
   packages = [
     ".",
@@ -699,6 +681,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "27817dd1f449e85be494aea63748230202d8385c0e6cf313be4daa63dd2990fc"
+  inputs-digest = "9b39ad8fa7ce59229b6d67140db177f63e7412d7c224600f0616eb6cb9a23134"
   solver-name = "gps-cdcl"
   solver-version = 1
