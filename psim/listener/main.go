@@ -31,7 +31,7 @@ func setupService(ctx context.Context) (app.Service, error) {
 	broadcaster := NewGenericBroadcaster(logger)
 
 	broadcaster.AddTarget(NewSalesforceTarget(app.Config(ctx).Salesforce()))
-	// TODO broadcaster.AddTarget(NewMixpanelTarget(app.Config(ctx).Mixpanel()))
+	broadcaster.AddTarget(NewMixpanelTarget(app.Config(ctx).Mixpanel()))
 
 	return NewService(serviceConfig, extractor, handler, broadcaster, logger), nil
 }
