@@ -3,15 +3,12 @@ package investready
 import (
 	"context"
 	"net/http"
-	"time"
-
 	"fmt"
 
 	"encoding/json"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/tokend/go/doorman"
@@ -65,26 +62,7 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 	mux.HandleFunc("/", l.redirectsHandler)
 	mux.HandleFunc("/user_hash", l.userHashHandler)
 
-	go running.UntilSuccess(ctx, l.log, "redirects_listening_server", func(ctx context.Context) (bool, error) {
-		l.server = &http.Server{
-			Addr:         fmt.Sprintf("%s:%d", l.config.Host, l.config.Port),
-			Handler:      mux,
-			WriteTimeout: l.config.Timeout,
-		}
-
-		err := l.server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			return false, errors.Wrap(err, "Failed to ListenAndServe (Server stopped with error)")
-		}
-
-		return false, nil
-	}, time.Second, time.Hour)
-
-	<-ctx.Done()
-
-	shutdownCtx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	l.server.Shutdown(shutdownCtx)
-	l.log.Info("Server stopped cleanly.")
+	listener.RunServer(ctx, l.log, mux, l.config)
 }
 
 func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Request) {
