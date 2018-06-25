@@ -86,7 +86,7 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 
 	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
-		logan.WithError(errors.Wrap(err, "failed to parse kyc data", logan.F{
+		th.logger.WithError(errors.Wrap(err, "failed to parse kyc data", logan.F{
 			"kyc_attributes": blob.Attributes.Value,
 		})).Warn("got event with old kyc")
 	}
