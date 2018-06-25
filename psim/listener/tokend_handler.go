@@ -124,12 +124,14 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 
 			process := th.processorByOpType[opType]
 			if process == nil {
+				th.logger.Debug("no suitable event processor")
 				continue
 			}
 
 			events := process(opData)
 
 			if events == nil {
+				th.logger.Debug("no events produced after processing")
 				continue
 			}
 
@@ -148,7 +150,7 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 					continue
 				}
 				if event.BroadcastedEvent == nil {
-					th.logger.Info("got empty event")
+					th.logger.Debug("got empty event")
 					continue
 				}
 
@@ -161,15 +163,16 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 					continue
 				}
 
+				var broadcastedEvent *ProcessedItem
 				if userData == nil {
-					continue
+					th.logger.Debug("no user data found")
+					broadcastedEvent = internal.ValidProcessedItem(event.BroadcastedEvent)
+				} else {
+					broadcastedEvent = internal.ValidProcessedItem(event.BroadcastedEvent.WithActor(userData.Name, userData.Email))
+					if broadcastedEvent.BroadcastedEvent.Name == BroadcastedEventNameFundsInvested {
+						broadcastedEvent.BroadcastedEvent.InvestmentCountry = userData.Country
+					}
 				}
-
-				broadcastedEvent := internal.ValidProcessedItem(event.BroadcastedEvent.WithActor(userData.Name, userData.Email))
-				if broadcastedEvent.BroadcastedEvent.Name == BroadcastedEventNameFundsInvested {
-					broadcastedEvent.BroadcastedEvent.InvestmentCountry = userData.Country
-				}
-
 				broadcastedEvents <- *broadcastedEvent
 			}
 		}
