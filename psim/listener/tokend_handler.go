@@ -127,6 +127,10 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 
 			events := process(opData)
 
+			if events == nil {
+				continue
+			}
+
 			for _, event := range events {
 				select {
 				case <-ctx.Done():
