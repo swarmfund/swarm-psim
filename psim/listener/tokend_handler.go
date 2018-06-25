@@ -136,8 +136,8 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 
 				if event.Error != nil {
 					th.logger.WithError(event.Error).WithFields(logan.F{
-						"txPagingToken": extractedItem.ExtractedOpData.PagingToken,
-						"opType":        opType,
+						"tx_paging_token": extractedItem.ExtractedOpData.PagingToken,
+						"op_type":         opType,
 					}).Warn("got invalid event, skipping")
 					continue
 				}
@@ -149,8 +149,8 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 				userData, err := th.lookupUserData(event.BroadcastedEvent)
 				if err != nil {
 					th.logger.WithError(err).WithFields(logan.F{
-						"txPagingToken": extractedItem.ExtractedOpData.PagingToken,
-						"opType":        opType,
+						"tx_paging_token": extractedItem.ExtractedOpData.PagingToken,
+						"op_type":         opType,
 					}).Warn("userdata lookup failed")
 					continue
 				}
