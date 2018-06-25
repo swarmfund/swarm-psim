@@ -45,13 +45,13 @@ func processCreateAccountOp(opData OpData) []MaybeBroadcastedEvent {
 	referrer := opBody.Referrer
 
 	if referrer == nil {
-		return internal.InvalidBroadcastedEvent(errors.New("received nil create account op referer")).Alone()
+		return nil
 	}
 
 	referrerAddress := referrer.Address()
 
 	if referrerAddress == "" {
-		return internal.InvalidBroadcastedEvent(errors.New("received empty create account referrer op address")).Alone()
+		return nil
 	}
 
 	return internal.ValidBroadcastedEvent(referrerAddress, BroadcastedEventNameUserReferred, opData.CreatedAt).Alone()
@@ -108,11 +108,11 @@ func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
 	}
 
 	if opBody.OrderBookId == 0 {
-		return internal.InvalidBroadcastedEvent(errors.New("receive manage offer op has 0 order book id")).Alone()
+		return nil
 	}
 
 	if opBody.Amount == 0 {
-		return internal.InvalidBroadcastedEvent(errors.New("receive manage offer op has 0 amount")).Alone()
+		return nil
 	}
 
 	validEvent := internal.ValidBroadcastedEvent(txSourceAccount.Address(), BroadcastedEventNameFundsInvested, opData.CreatedAt)
@@ -131,11 +131,11 @@ func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
 	opSuccess := opResult.CreateIssuanceRequestResult.Success
 
 	if opSuccess == nil {
-		return internal.InvalidBroadcastedEvent(errors.New("received nil create issuance req op result")).Alone()
+		return nil
 	}
 
 	if !opSuccess.Fulfilled {
-		return internal.InvalidBroadcastedEvent(errors.New("received 'not fulfilled' create issuance request result")).Alone()
+		return nil
 	}
 
 	return internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
@@ -168,7 +168,7 @@ func processReviewRequestOp(requestsProvider RequestProvider, accountsProvider A
 			return handleIssuanceCreateReq(opData)
 		}
 
-		return internal.InvalidBroadcastedEvent(errors.New("no suitable processor for review request type")).Alone()
+		return nil
 	}
 }
 
@@ -201,7 +201,7 @@ func getRequestKYCDetailsByID(id xdr.Uint64, requestsProvider RequestProvider) (
 	}
 
 	if request == nil {
-		return nil, errors.Wrap(err, "request not found")
+		return nil, nil
 	}
 
 	return request.Details.KYC, nil
@@ -219,7 +219,7 @@ func findReferrer(accountsProvider AccountProvider, kycRequestDetails *horizon.R
 	}
 
 	if account.Referrer == "" {
-		return "", errors.New("account has no referrer")
+		return "", nil
 	}
 
 	return account.Referrer, nil
@@ -237,9 +237,12 @@ func handleKYCReview(opData OpData, requestsProvider RequestProvider, accountsPr
 	if err != nil {
 		return internal.InvalidBroadcastedEvent(errors.Wrap(err, "failed to get kyc details")).Alone()
 	}
+	if kycRequestDetails == nil {
+		return internal.InvalidBroadcastedEvent(errors.Wrap(err, "kyc request details not found")).Alone()
+	}
 
 	if kycRequestDetails.AccountToUpdateKYC == "" {
-		return internal.InvalidBroadcastedEvent(errors.New("account to update kyc is empty")).Alone()
+		return nil
 	}
 
 	if opBody.Action == xdr.ReviewRequestOpActionReject || opBody.Action == xdr.ReviewRequestOpActionPermanentReject {
@@ -254,7 +257,7 @@ func handleKYCReview(opData OpData, requestsProvider RequestProvider, accountsPr
 
 	reviewableRequest := findRemoval(ledgerChanges)
 	if reviewableRequest == nil {
-		return internal.InvalidBroadcastedEvent(errors.New("removal not found")).Alone()
+		return nil
 	}
 	if opBody.RequestId == reviewableRequest.RequestId {
 		outputEvents = append(outputEvents, *internal.ValidBroadcastedEvent(kycRequestDetails.AccountToUpdateKYC, BroadcastedEventNameKycApproved, time))
@@ -265,9 +268,7 @@ func handleKYCReview(opData OpData, requestsProvider RequestProvider, accountsPr
 		outputEvents = append(outputEvents, *internal.InvalidBroadcastedEvent(errors.Wrap(err, "failed to find referrer")))
 	}
 
-	if referrer == "" {
-		outputEvents = append(outputEvents, *internal.InvalidBroadcastedEvent(errors.New("empty referrer")))
-	} else {
+	if referrer != "" {
 		outputEvents = append(outputEvents, *internal.ValidBroadcastedEvent(referrer, BroadcastedEventNameReferredUserPassedKyc, time))
 	}
 
