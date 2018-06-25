@@ -463,6 +463,24 @@ airdrop_march_20_20:
 "G_SOME_VALID_ACCOUNT_ADDRESS_1",
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
 
+airdrop_telegram:
+  listener:
+    host: localhost
+    port: 8007
+    timeout: 30s
+    check_signature: true # check request signature
+  issuance:
+    asset: SWM
+    amount: 5000000 # 5 SWM (in stroops)
+
+  telegram_secret_key: some_long_hex_string
+  source: G_SOME_VALID_PUBLIC_KEY
+  signer: S_SOME_VALID_PRIVATE_KEY
+
+  black_list: [
+"G_SOME_VALID_ACCOUNT_ADDRESS_1",
+"G_SOME_VALID_ACCOUNT_ADDRESS_2"]
+
 
 template_provider:
   host: localhost
