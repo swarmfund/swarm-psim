@@ -151,7 +151,7 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 					th.logger.WithError(err).WithFields(logan.F{
 						"tx_paging_token": extractedItem.ExtractedOpData.PagingToken,
 						"op_type":         opType,
-					}).Warn("userdata lookup failed")
+					}).Error("userdata lookup failed")
 					continue
 				}
 
