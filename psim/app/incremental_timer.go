@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 )
 
 type incrementalTimer struct {
@@ -76,7 +77,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 			log.Info("Context is canceled - stopping runner.")
 			return
 		case <-normalTicker.C:
-			if IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				log.Info("Context is canceled - stopping runner.")
 				return
 			}
@@ -87,7 +88,7 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 				log.WithStack(err).WithError(err).Errorf("Runner '%s' returned error.", runnerName)
 
 				runAbnormalExecution(ctx, log, runnerName, runner, abnormalPeriod)
-				if IsCanceled(ctx) {
+				if running.IsCancelled(ctx) {
 					log.Info("Context is canceled - stopping runner.")
 					return
 				}
@@ -105,7 +106,7 @@ func runAbnormalExecution(ctx context.Context, log *logan.Entry, runnerName stri
 		case <-ctx.Done():
 			return
 		case <-incrementalTimer.next():
-			if IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				return
 			}
 

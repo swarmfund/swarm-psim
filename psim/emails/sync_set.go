@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/distributed_lab/notificator-server/client"
+	"gitlab.com/distributed_lab/running"
 )
 
 func (t Task) toPayload() notificator.EmailRequestPayload {
@@ -74,7 +74,7 @@ func (s *TaskSyncSet) rangeThrough(ctx context.Context, f func(task Task)) {
 	defer s.mu.Unlock()
 
 	for key := range s.data {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return
 		}
 

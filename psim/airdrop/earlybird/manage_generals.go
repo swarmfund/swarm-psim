@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 )
 
 var (
@@ -23,7 +24,7 @@ func (s *Service) consumeGeneralAccounts(ctx context.Context) {
 		case <-ctx.Done():
 			return nil
 		case acc := <-s.generalAccountsCh:
-			if app.IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				return nil
 			}
 

@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 )
 
 const (
@@ -23,7 +24,7 @@ func (s *Service) processPendingGeneralAccounts(ctx context.Context) {
 		s.log.WithField("number_of_pending_accounts", s.pendingGeneralAccounts.Length()).Info("Started Processing pending GeneralAccounts batch.")
 
 		processedAccounts := s.getAndProcessAPIUsers(ctx)
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 

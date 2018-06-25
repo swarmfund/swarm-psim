@@ -8,6 +8,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/distributed_lab/running"
 )
 
 type TXStreamer interface {
@@ -66,7 +67,7 @@ func (s *Streamer) Run(ctx context.Context, cursor string) {
 		case <-ctx.Done():
 			return
 		case txPacket, ok := <-txStream:
-			if app.IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				s.log.Info("Received cancel - stopping.")
 				return
 			}
