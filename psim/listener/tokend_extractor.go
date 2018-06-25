@@ -58,7 +58,9 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 	txLedgerChanges, err := tx.GroupedLedgerChanges()
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get grouped ledger changes")
+		return nil, errors.Wrap(err, "failed to get grouped ledger changes", logan.F{
+			"tx_source_account": txEnvelopeBody.SourceAccount,
+		})
 	}
 
 	operations := txEnvelopeBody.Operations
@@ -66,13 +68,17 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 	txResult, err := tx.Result()
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal results")
+		return nil, errors.Wrap(err, "failed to unmarshal results", logan.F{
+			"tx_source_account": txEnvelopeBody.SourceAccount,
+		})
 	}
 
 	opsResults, ok := txResult.Result.GetResults()
 
 	if !ok {
-		return nil, errors.Wrap(err, "failed to get results")
+		return nil, errors.Wrap(err, "failed to get results", logan.F{
+			"tx_source_account": txEnvelopeBody.SourceAccount,
+		})
 	}
 
 	txTime := &tx.CreatedAt
@@ -103,9 +109,7 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 
 			txData, err := validateTx(extractedTx)
 			if err != nil {
-				extractor.logger.WithError(err).WithFields(logan.F{
-					// TODO
-				}).Warn("got invalid tx")
+				extractor.logger.WithError(err).Warn("got invalid tx")
 			}
 			if txData == nil {
 				continue
