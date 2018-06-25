@@ -19,10 +19,15 @@ type BalanceIDProvider interface {
 	GetBalanceID(accAddress, asset string) (*string, error)
 }
 
+type Connector interface {
+	CheckUsername(ctx context.Context, username string) (bool, error)
+}
+
 type Service struct {
 	log    *logan.Entry
 	config Config
 
+	connector         Connector
 	issuanceSubmitter IssuanceSubmitter
 	balanceIDProvider BalanceIDProvider
 	doorman           doorman.Doorman
@@ -33,6 +38,7 @@ type Service struct {
 func NewService(
 	log *logan.Entry,
 	config Config,
+	connector Connector,
 	issuanceSubmitter IssuanceSubmitter,
 	balanceIDProvider BalanceIDProvider,
 	doorman doorman.Doorman) *Service {
@@ -41,6 +47,7 @@ func NewService(
 		log:    log,
 		config: config,
 
+		connector:         connector,
 		issuanceSubmitter: issuanceSubmitter,
 		balanceIDProvider: balanceIDProvider,
 		doorman:           doorman,

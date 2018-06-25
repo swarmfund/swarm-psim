@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 
+	"github.com/andstepko/mtproto"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -11,8 +12,8 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -62,9 +63,24 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		d = doorman.New(!config.Listener.CheckSignature, horizonConnector.Accounts())
 	}
 
+	storage, err := mtproto.NewStringSecretsStorage(config.TelegramSecretKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Telegram secrets storage from hex string")
+	}
+
+	telegram, err := mtproto.NewMTProto(storage)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Telegram connector")
+	}
+	err = telegram.Connect()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to connect to Telegram")
+	}
+
 	return NewService(
 		log,
 		config,
+		telegram,
 		issuanceSubmitter,
 		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
 		d,

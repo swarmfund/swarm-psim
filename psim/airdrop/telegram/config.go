@@ -12,8 +12,9 @@ type Config struct {
 	Issuance  airdrop.IssuanceConfig `fig:"issuance,required"`
 	BlackList []string               `fig:"black_list"`
 
-	Source keypair.Address `fig:"source,required"`
-	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
+	TelegramSecretKey string          `json:"telegram_secret_key,required"`
+	Source            keypair.Address `fig:"source,required"`
+	Signer            keypair.Full    `fig:"signer,required" mapstructure:"signer"`
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {

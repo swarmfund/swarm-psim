@@ -12,6 +12,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/andstepko/mtproto"
+  packages = ["."]
+  revision = "bfdb1d49b8d1f81aca200275a449c7cf52d48944"
+
+[[projects]]
+  branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
   revision = "7744847ed4e70ed5e50090f9094ed621b4f305d6"
@@ -681,6 +687,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b39ad8fa7ce59229b6d67140db177f63e7412d7c224600f0616eb6cb9a23134"
+  inputs-digest = "889a2a5d442c171465d908fd86d7ab0273ab97ba3fe7e8b427f3452818a7e69f"
   solver-name = "gps-cdcl"
   solver-version = 1
