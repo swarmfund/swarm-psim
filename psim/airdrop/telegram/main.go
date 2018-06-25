@@ -1,21 +1,23 @@
-package mrefairdrop
+package telegram
 
 import (
 	"context"
 
+	"github.com/andstepko/mtproto"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
-	app.RegisterService(conf.ServiceAirdropMarchReferrals, setupFn)
+	app.RegisterService(conf.ServiceAirdropTelegram, setupFn)
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
@@ -25,13 +27,18 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	var config Config
 	err := figure.
 		Out(&config).
-		From(app.Config(ctx).GetRequired(conf.ServiceAirdropMarchReferrals)).
-		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks).
+		From(app.Config(ctx).GetRequired(conf.ServiceAirdropTelegram)).
+		With(figure.BaseHooks, utils.ETHHooks, airdrop.FigureHooks, listener.ConfigFigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
-			"service": conf.ServiceAirdropMarchReferrals,
+			"service": conf.ServiceAirdropTelegram,
 		})
+	}
+
+	validateErr := config.Validate()
+	if validateErr != nil {
+		return nil, errors.Wrap(validateErr, "Config is invalid")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
@@ -44,27 +51,38 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
-		config.IssuanceAsset,
-		airdrop.MarchReferralsReferenceSuffix,
+		config.Issuance.Asset,
+		airdrop.TelegramReferenceSuffix,
 		config.Source,
 		config.Signer,
 		builder,
 		horizonConnector.Submitter())
 
-	// TODO pass true
-	ledgerStreamer := lchanges.NewStreamer(log, horizonConnector.Listener(), false)
+	var d doorman.Doorman
+	if config.Listener.CheckSignature {
+		d = doorman.New(!config.Listener.CheckSignature, horizonConnector.Accounts())
+	}
 
-	emailProcessor := airdrop.NewEmailsProcessor(log, config.EmailsConfig, globalConfig.Notificator())
+	storage, err := mtproto.NewStringSecretsStorage(config.TelegramSecretKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Telegram secrets storage from hex string")
+	}
+
+	telegram, err := mtproto.NewMTProto(storage)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Telegram connector")
+	}
+	err = telegram.Connect()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to connect to Telegram")
+	}
 
 	return NewService(
 		log,
 		config,
+		telegram,
 		issuanceSubmitter,
-		ledgerStreamer,
 		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
-		horizonConnector.Users(),
-		horizonConnector.Accounts(),
-		airdrop.NewUSAChecker(horizonConnector.Blobs()),
-		emailProcessor,
+		d,
 	), nil
 }

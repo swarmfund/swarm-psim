@@ -3,18 +3,14 @@ package investready
 import (
 	"context"
 	"net/http"
-	"time"
-
 	"fmt"
 
 	"encoding/json"
 
-	"io/ioutil"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
@@ -30,7 +26,7 @@ type KYCRequestsConnector interface {
 
 type RedirectsListener struct {
 	log    *logan.Entry
-	config RedirectsConfig
+	config listener.Config
 
 	kycRequestsConnector KYCRequestsConnector
 	requestPerformer     RequestPerformer
@@ -42,7 +38,7 @@ type RedirectsListener struct {
 
 func NewRedirectsListener(
 	log *logan.Entry,
-	config RedirectsConfig,
+	config listener.Config,
 	kycRequestsConnector KYCRequestsConnector,
 	investReady InvestReady,
 	doorman doorman.Doorman,
@@ -66,30 +62,15 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 	mux.HandleFunc("/", l.redirectsHandler)
 	mux.HandleFunc("/user_hash", l.userHashHandler)
 
-	go running.UntilSuccess(ctx, l.log, "redirects_listening_server", func(ctx context.Context) (bool, error) {
-		l.server = &http.Server{
-			Addr:         fmt.Sprintf("%s:%d", l.config.Host, l.config.Port),
-			Handler:      mux,
-			WriteTimeout: l.config.Timeout,
-		}
-
-		err := l.server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			return false, errors.Wrap(err, "Failed to ListenAndServe (Server stopped with error)")
-		}
-
-		return false, nil
-	}, time.Second, time.Hour)
-
-	<-ctx.Done()
-
-	shutdownCtx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	l.server.Shutdown(shutdownCtx)
-	l.log.Info("Server stopped cleanly.")
+	listener.RunServer(ctx, l.log, mux, l.config)
 }
 
 func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Request) {
-	bb, errResponseWritten := l.validateHTTPRequest(w, r, http.MethodPost)
+	var d doorman.Doorman
+	if l.config.CheckSignature {
+		d = l.doorman
+	}
+	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, l.log, http.MethodPost, d)
 	if errResponseWritten {
 		return
 	}
@@ -98,7 +79,7 @@ func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Requ
 	err := json.Unmarshal(bb, &request)
 	if err != nil {
 		l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to unmarshal request bytes into struct.")
-		writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
+		listener.WriteError(w, http.StatusBadRequest, "Cannot parse JSON request.")
 		return
 	}
 
@@ -110,26 +91,26 @@ func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.R
 
 	if validationErr := request.Validate(); validationErr != "" {
 		logger.WithField("validation_err", validationErr).Warn("Received invalid request.")
-		writeError(w, http.StatusBadRequest, validationErr)
+		listener.WriteError(w, http.StatusBadRequest, validationErr)
 		return
 	}
 
 	kycRequest, forbiddenErr, err := l.getKYCRequest(ctx, request.AccountID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get KYCRequest by AccountID.")
-		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
+		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
 		return
 	}
 	if forbiddenErr != nil {
 		logger.WithField("forbidden_reason", forbiddenErr).Warn("User is forbidden to add InvestReady UserHash to the KYCRequest.")
-		writeError(w, http.StatusForbidden, forbiddenErr.Error())
+		listener.WriteError(w, http.StatusForbidden, forbiddenErr.Error())
 		return
 	}
 
 	err = l.obtainAndSaveUserHash(ctx, *kycRequest, request.AccountID, request.OauthCode)
 	if err != nil {
 		logger.WithError(err).Error("Failed to obtain and save UserHash.")
-		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
+		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
 		return
 	}
 
@@ -205,72 +186,5 @@ func (l *RedirectsListener) saveUserHash(ctx context.Context, kycRequest horizon
 		"account_id": accID,
 		"user_hash":  userHash,
 	}).Info("Saved UserHash into Core successfully.")
-	return nil
-}
-
-func (l *RedirectsListener) validateHTTPRequest(w http.ResponseWriter, r *http.Request, requestMethod string) (respBody []byte, errResponseWritten bool) {
-	if r.Method != requestMethod {
-		l.log.WithField("request_method", r.Method).Warn("Received request with wrong method.")
-		writeError(w, http.StatusMethodNotAllowed, fmt.Sprintf("Only method %s is allowed.", requestMethod))
-		return nil, true
-	}
-
-	if r.Body == nil {
-		l.log.Warn("Received request with empty body.")
-		writeError(w, http.StatusBadRequest, "Empty request body.")
-		return nil, true
-	}
-
-	bb, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		l.log.WithError(err).Warn("Failed to read bytes from request body Reader.")
-		writeError(w, http.StatusBadRequest, "Cannot read request body.")
-		return nil, true
-	}
-
-	if l.config.CheckSignature {
-		var request struct {
-			AccountID string `json:"account_id"`
-		}
-		err = json.Unmarshal(bb, &request)
-		if err != nil {
-			l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to preliminary unmarshal request bytes into struct(with only AccountID).")
-			writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
-			return nil, true
-		}
-
-		err := l.doorman.Check(r, doorman.SignatureOf(request.AccountID))
-		if err != nil {
-			l.log.WithError(err).Warn("Request signature is invalid.")
-			writeError(w, http.StatusUnauthorized, err.Error())
-			return nil, true
-		}
-	}
-
-	return bb, false
-}
-
-func writeError(w http.ResponseWriter, statusCode int, errorMessage string) error {
-	resp := struct {
-		Error string `json:"error"`
-	}{
-		Error: errorMessage,
-	}
-
-	bb, err := json.Marshal(resp)
-	if err != nil {
-		return errors.Wrap(err, "Failed to marshal response to bytes")
-	}
-
-	w.Header()["Content-Type"] = append(w.Header()["Content-Type"], "application/json")
-	w.WriteHeader(statusCode)
-
-	_, err = w.Write(bb)
-	if err != nil {
-		return errors.Wrap(err, "Failed to write marshaled response to the ResponseWriter", logan.F{
-			"marshaled_response": string(bb),
-		})
-	}
-
 	return nil
 }

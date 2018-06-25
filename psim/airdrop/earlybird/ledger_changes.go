@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 )
 
 func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
@@ -20,7 +21,7 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 		case <-ctx.Done():
 			return nil
 		case txEvent := <-txStream:
-			if app.IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				return nil
 			}
 

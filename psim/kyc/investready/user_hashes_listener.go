@@ -1,13 +1,20 @@
 package investready
 
 import (
-	"net/http"
 	"context"
 	"encoding/json"
+	"net/http"
+
+	"gitlab.com/swarmfund/psim/psim/listener"
+	"gitlab.com/tokend/go/doorman"
 )
 
 func (l *RedirectsListener) userHashHandler(w http.ResponseWriter, r *http.Request) {
-	bb, errResponseWritten := l.validateHTTPRequest(w, r, http.MethodPut)
+	var d doorman.Doorman
+	if l.config.CheckSignature {
+		d = l.doorman
+	}
+	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, l.log, http.MethodPut, d)
 	if errResponseWritten {
 		return
 	}
@@ -16,7 +23,7 @@ func (l *RedirectsListener) userHashHandler(w http.ResponseWriter, r *http.Reque
 	err := json.Unmarshal(bb, &request)
 	if err != nil {
 		l.log.WithField("raw_request", string(bb)).WithError(err).Warn("Failed to unmarshal UserHash request bytes into struct.")
-		writeError(w, http.StatusBadRequest, "Cannot parse JSON request.")
+		listener.WriteError(w, http.StatusBadRequest, "Cannot parse JSON request.")
 		return
 	}
 
@@ -28,26 +35,26 @@ func (l *RedirectsListener) processUserHashRequest(ctx context.Context, w http.R
 
 	if validationErr := request.Validate(); validationErr != "" {
 		logger.WithField("validation_err", validationErr).Warn("Received invalid request.")
-		writeError(w, http.StatusBadRequest, validationErr)
+		listener.WriteError(w, http.StatusBadRequest, validationErr)
 		return
 	}
 
 	kycRequest, forbiddenErr, err := l.getKYCRequest(ctx, request.AccountID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get KYCRequest by AccountID.")
-		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
+		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
 		return
 	}
 	if forbiddenErr != nil {
 		logger.WithField("forbidden_reason", forbiddenErr).Warn("User is forbidden to add InvestReady UserHash to the KYCRequest.")
-		writeError(w, http.StatusForbidden, forbiddenErr.Error())
+		listener.WriteError(w, http.StatusForbidden, forbiddenErr.Error())
 		return
 	}
 
 	l.saveUserHash(ctx, *kycRequest, request.AccountID, request.UserHash)
 	if err != nil {
 		logger.WithError(err).Error("Failed to save UserHash.")
-		writeError(w, http.StatusInternalServerError, "Internal error occurred.")
+		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
 		return
 	}
 

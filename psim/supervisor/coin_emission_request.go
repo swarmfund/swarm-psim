@@ -10,8 +10,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/distributed_lab/running"
 )
 
 type IssuanceRequestOpt struct {
@@ -40,7 +40,7 @@ func (s *Service) SendCoinEmissionRequestForVerify(ctx context.Context, verifyRe
 	ticker := time.NewTicker(5 * time.Second)
 
 	for ; true; <-ticker.C {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return
 		}
 
