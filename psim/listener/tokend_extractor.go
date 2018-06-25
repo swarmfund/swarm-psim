@@ -103,10 +103,11 @@ func (extractor TokendExtractor) Extract(ctx context.Context) <-chan ExtractedIt
 
 			txData, err := validateTx(extractedTx)
 			if err != nil {
-				extractor.logger.WithError(err).Warn("got invalid tx")
+				extractor.logger.WithError(err).WithFields(logan.F{
+					// TODO
+				}).Warn("got invalid tx")
 			}
 			if txData == nil {
-				extractor.logger.Info("got empty tx data")
 				continue
 			}
 

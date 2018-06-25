@@ -12,7 +12,8 @@ import (
 )
 
 // ServiceConfig holds signer for horizon connector and some data for targets
-type ServiceConfig struct {
+type 
+ServiceConfig struct {
 	Signer          keypair.Full `fig:"signer,required"`
 	TxHistoryCursor string       `fig:"txhistory_cursor"`
 }
