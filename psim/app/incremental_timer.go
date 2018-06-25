@@ -96,46 +96,6 @@ func RunOverIncrementalTimer(ctx context.Context, log *logan.Entry, runnerName s
 	}
 }
 
-// RunUntilSuccess calls the runner again and again while the runner returns error.
-// The time pause before the retry calling the runner is at first equal to initialRetryPeriod
-// and becomes twice bigger each retry.
-//
-// If runner panics, the panic value will be converted to error and logged with stack.
-//
-// You are generally not supposed to log error inside the runner,
-// you should return error instead - errors returned from runner will be logged with stack.
-//
-// RunUntilSuccess returns only if the runner returns nil or ctx canceled.
-// TODO pass maxPausePeriod
-// DEPRECATED, use package distributed_lab/running instead
-func RunUntilSuccess(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, initialRetryPeriod time.Duration) {
-	log = log.WithField("runner", runnerName)
-
-	err := runner(ctx)
-	if err == nil {
-		// Brief success!
-		return
-	}
-
-	incrementalTimer := newIncrementalTimer(initialRetryPeriod, 10*time.Minute, 2)
-
-	for err != nil {
-		log.WithField("retry_number", incrementalTimer.iteration).WithField("next_retry_after", incrementalTimer.currentPeriod).
-			WithStack(err).WithError(err).Errorf("Runner '%s' returned error.", runnerName)
-
-		select {
-		case <-ctx.Done():
-			return
-		case <-incrementalTimer.next():
-			if IsCanceled(ctx) {
-				return
-			}
-
-			err = runSafely(ctx, runner)
-		}
-	}
-}
-
 // RunAbnormalExecution Only returns if runner returned nil error or ctx was canceled.
 func runAbnormalExecution(ctx context.Context, log *logan.Entry, runnerName string, runner func(context.Context) error, initialRetryPeriod time.Duration) {
 	incrementalTimer := newIncrementalTimer(initialRetryPeriod, 10*time.Minute, 2)
