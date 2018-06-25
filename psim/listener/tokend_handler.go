@@ -92,11 +92,13 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 	}
 
 	var name string
+	var country string
 	if kycData != nil {
 		name = kycData.FirstName + " " + kycData.LastName
+		country = kycData.Address.Country
 	}
 
-	return &UserData{name, user.Attributes.Email, kycData.Address.Country}, nil
+	return &UserData{name, user.Attributes.Email, country}, nil
 }
 
 // Process starts processing all op using processors in the map
