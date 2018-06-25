@@ -149,7 +149,9 @@ func constructOpData(txData *TxData) <-chan ExtractedItem {
 
 			opResultTr := opsResults[currentOpIndex].Tr
 			if opResultTr == nil {
-				out <- internal.InvalidExtractedItem(errors.New("failed to get tx envelope"))
+				out <- internal.InvalidExtractedItem(errors.New("failed to get tx result tr", logan.F{
+					"source_account": txSourceAccount,
+				}))
 				continue
 			}
 

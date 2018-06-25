@@ -50,14 +50,18 @@ type UserData struct {
 func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, error) {
 	user, err := th.HorizonConnector.Users().User(event.Account)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to lookup user by id")
+		return nil, errors.Wrap(err, "failed to lookup user by id", logan.F{
+			"event_account": event.Account,
+		})
 	}
 	if user == nil {
 		return nil, nil
 	}
 	account, err := th.HorizonConnector.Accounts().ByAddress(event.Account)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to lookup account by address")
+		return nil, errors.Wrap(err, "failed to lookup account by address", logan.F{
+			"event_account": event.Account,
+		})
 	}
 	if account == nil {
 		return nil, nil
@@ -72,7 +76,9 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 
 	blob, err := blobs.Blob(accountKycData.BlobID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to lookup blob by id")
+		return nil, errors.Wrap(err, "failed to lookup blob by id", logan.F{
+			"account_kyc_blob_id": accountKycData.BlobID,
+		})
 	}
 	if blob == nil {
 		return nil, nil
