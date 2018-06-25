@@ -26,13 +26,12 @@ func setupService(ctx context.Context) (app.Service, error) {
 	logger := app.Log(ctx)
 
 	horizonConnector := app.Config(ctx).Horizon().WithSigner(serviceConfig.Signer)
-
 	extractor := NewTokendExtractor(logger, horizonConnector.Listener().StreamTXsFromCursor(ctx, serviceConfig.TxHistoryCursor, false))
 	handler := NewTokendHandler(logger, horizonConnector).withTokendProcessors()
 	broadcaster := NewGenericBroadcaster(logger)
 
 	broadcaster.AddTarget(NewSalesforceTarget(app.Config(ctx).Salesforce()))
-	broadcaster.AddTarget(NewMixpanelTarget(app.Config(ctx).Mixpanel()))
+	// TODO broadcaster.AddTarget(NewMixpanelTarget(app.Config(ctx).Mixpanel()))
 
 	return NewService(serviceConfig, extractor, handler, broadcaster, logger), nil
 }

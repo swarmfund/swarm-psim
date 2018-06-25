@@ -53,21 +53,21 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 		return nil, errors.Wrap(err, "failed to lookup user by id")
 	}
 	if user == nil {
-		return nil, errors.Wrap(err, "user not found")
+		return nil, nil
 	}
 	account, err := th.HorizonConnector.Accounts().ByAddress(event.Account)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to lookup account by address")
 	}
 	if account == nil {
-		return nil, errors.Wrap(err, "account not found")
+		return nil, nil
 	}
 
 	blobs := th.HorizonConnector.Blobs()
 
 	accountKycData := account.KYC.Data
 	if accountKycData == nil {
-		return nil, errors.New("nil account kyc data")
+		return nil, nil
 	}
 
 	blob, err := blobs.Blob(accountKycData.BlobID)
@@ -75,12 +75,14 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 		return nil, errors.Wrap(err, "failed to lookup blob by id")
 	}
 	if blob == nil {
-		return nil, errors.Wrap(err, "blob not found")
+		return nil, nil
 	}
 
 	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse kyc data")
+		return nil, errors.Wrap(err, "failed to parse kyc data", logan.F{
+			"kyc_attributes": blob.Attributes.Value,
+		})
 	}
 
 	var name string
@@ -140,12 +142,14 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 
 				userData, err := th.lookupUserData(event.BroadcastedEvent)
 				if err != nil {
-					th.logger.WithError(err).Warn("userdata lookup failed")
+					th.logger.WithError(err).WithFields(logan.F{
+						"txPagingToken": extractedItem.ExtractedOpData.PagingToken,
+						"opType":        opType,
+					}).Warn("userdata lookup failed")
 					continue
 				}
 
 				if userData == nil {
-					th.logger.Info("no userdata, skipping")
 					continue
 				}
 
