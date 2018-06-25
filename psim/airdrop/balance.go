@@ -42,7 +42,7 @@ func (p *BalanceIDProvider) GetBalanceID(accAddress, asset string) (*string, err
 	return nil, nil
 }
 
-// DEPRECATED use BalanceIDProvider instead
+// DEPRECATED: use BalanceIDProvider instead
 func GetBalanceID(accAddress, asset string, accConnector AccountsConnector) (string, error) {
 	balances, err := accConnector.Balances(accAddress)
 	if err != nil {

@@ -1,13 +1,13 @@
 package listener
 
 import (
-	"net/http"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"encoding/json"
-	"gitlab.com/tokend/go/doorman"
-	"gitlab.com/distributed_lab/logan/v3/errors"
+	"net/http"
+
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/tokend/go/doorman"
 )
 
 // ValidateHTTPRequest checks that:
@@ -63,32 +63,4 @@ func ValidateHTTPRequest(w http.ResponseWriter, r *http.Request, log *logan.Entr
 	}
 
 	return bb, false
-}
-
-// WriteError takes the errorMessage string, puts it into `error` field of a JSON,
-// marshals this JSON and writes it into the response.
-// Possible errors of marshal or response writer write can be returned.
-func WriteError(w http.ResponseWriter, statusCode int, errorMessage string) error {
-	resp := struct {
-		Error string `json:"error"`
-	}{
-		Error: errorMessage,
-	}
-
-	bb, err := json.Marshal(resp)
-	if err != nil {
-		return errors.Wrap(err, "Failed to marshal response to bytes")
-	}
-
-	w.Header()["Content-Type"] = append(w.Header()["Content-Type"], "application/json")
-	w.WriteHeader(statusCode)
-
-	_, err = w.Write(bb)
-	if err != nil {
-		return errors.Wrap(err, "Failed to write marshaled response to the ResponseWriter", logan.F{
-			"marshaled_response": string(bb),
-		})
-	}
-
-	return nil
 }

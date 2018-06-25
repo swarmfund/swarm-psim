@@ -12,6 +12,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/go/doorman"
 )
 
 func init() {
@@ -56,10 +57,16 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		builder,
 		horizonConnector.Submitter())
 
+	var d doorman.Doorman
+	if config.Listener.CheckSignature {
+		d = doorman.New(!config.Listener.CheckSignature, horizonConnector.Accounts())
+	}
+
 	return NewService(
 		log,
 		config,
 		issuanceSubmitter,
 		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
+		d,
 	), nil
 }
