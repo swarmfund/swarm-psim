@@ -29,22 +29,22 @@ const (
 	TX2HashReviewerDetailsKey   = "eth_tx_2_hash"
 
 	WithdrawAddressExtDetailsKey = "address"
-	VersionExtDetailsKey         = "version"
+	VersionPreConfirmDetailsKey  = "version"
 )
 
 // GetTX2 can return nil,nil if:
-// - WithdrawRequest version is not 2, or
+// - Request version is not 3, or
 // - The Request is not of type Withdraw
 // - WithdrawRequest is not approved
 // in all other cases - nil error means non-nil Transaction and vice versa.
 func getTX2(request horizon.Request) (string, *types.Transaction, error) {
-	version, err := getVersion(request)
+	version, err := getPreConfirmationVersion(request)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Failed to get version of the Request")
 	}
 	// Change following if, if supported versions change.
-	if version != 2 {
-		// Not a v2 WithdrawRequests, this service is unable to process them.
+	if version != 3 {
+		// Not a v3 WithdrawRequests, this service is unable to process them.
 		return "", nil, nil
 	}
 
@@ -83,21 +83,15 @@ func getTX2(request horizon.Request) (string, *types.Transaction, error) {
 }
 
 // TODO Avoid duplication with ethwithdraw service.
-func getVersion(request horizon.Request) (float64, error) {
-	var extDetails map[string]interface{}
-
-	switch request.Details.RequestType {
-	case int32(xdr.ReviewableRequestTypeWithdraw):
-		extDetails = request.Details.Withdraw.ExternalDetails
-	case int32(xdr.ReviewableRequestTypeTwoStepWithdrawal):
-		extDetails = request.Details.TwoStepWithdraw.ExternalDetails
-	default:
-		return 0, errors.New("Unexpected RequestType, only TwoStepWithdraw(7) and Withdraw(4) are expected.")
+func getPreConfirmationVersion(request horizon.Request) (float64, error) {
+	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+		// Not a WithdrawRequest - either still TSWRequest or not a WithdrawalRequest at all.
+		return 0, nil
 	}
 
-	versionI, ok := extDetails[VersionExtDetailsKey]
+	versionI, ok := request.Details.Withdraw.PreConfirmationDetails[VersionPreConfirmDetailsKey]
 	if !ok {
-		// Not a v2 - old-style WithdrawRequests, this service is unable to process them.
+		// Not a v3 - old-style WithdrawRequests, this service is unable to process them.
 		return 0, nil
 	}
 	version, ok := versionI.(float64)
