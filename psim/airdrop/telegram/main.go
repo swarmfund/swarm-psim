@@ -13,7 +13,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/listener"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/go/doorman"
-	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -36,19 +35,17 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	validateErr := config.Validate()
-	if validateErr != nil {
-		return nil, errors.Wrap(validateErr, "Config is invalid")
+	err = config.Validate()
+	if err != nil {
+		return nil, errors.Wrap(err, "Config is invalid")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
-	horizonInfo, err := horizonConnector.System().Info()
+	builder, err := horizonConnector.TXBuilder()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Horizon info")
+		return nil, errors.Wrap(err, "Failed to get Horizon TXBuilder")
 	}
-
-	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
 		config.Issuance.Asset,
@@ -57,11 +54,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.Signer,
 		builder,
 		horizonConnector.Submitter())
-
-	var d doorman.Doorman
-	if config.Listener.CheckSignature {
-		d = doorman.New(!config.Listener.CheckSignature, horizonConnector.Accounts())
-	}
 
 	storage, err := mtproto.NewStringSecretsStorage(config.TelegramSecretKey)
 	if err != nil {
@@ -83,6 +75,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		telegram,
 		issuanceSubmitter,
 		airdrop.NewBalanceIDProvider(horizonConnector.Accounts()),
-		d,
+		doorman.New(!config.Listener.CheckSignature, horizonConnector.Accounts()),
 	), nil
 }

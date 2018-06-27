@@ -14,6 +14,7 @@ import (
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"github.com/go-chi/chi"
 )
 
 const (
@@ -58,19 +59,15 @@ func NewRedirectsListener(
 func (l *RedirectsListener) Run(ctx context.Context) {
 	l.log.WithField("config", l.config).Info("Starting listening to redirects.")
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", l.redirectsHandler)
-	mux.HandleFunc("/user_hash", l.userHashHandler)
+	r := chi.NewRouter()
+	r.Post("/", l.redirectsHandler)
+	r.Put("/user_hash", l.userHashHandler)
 
-	listener.RunServer(ctx, l.log, mux, l.config)
+	listener.RunServer(ctx, l.log, r, l.config)
 }
 
 func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Request) {
-	var d doorman.Doorman
-	if l.config.CheckSignature {
-		d = l.doorman
-	}
-	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, l.log, http.MethodPost, d)
+	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, l.log, l.doorman)
 	if errResponseWritten {
 		return
 	}

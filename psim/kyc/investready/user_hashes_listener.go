@@ -6,15 +6,10 @@ import (
 	"net/http"
 
 	"gitlab.com/swarmfund/psim/psim/listener"
-	"gitlab.com/tokend/go/doorman"
 )
 
 func (l *RedirectsListener) userHashHandler(w http.ResponseWriter, r *http.Request) {
-	var d doorman.Doorman
-	if l.config.CheckSignature {
-		d = l.doorman
-	}
-	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, l.log, http.MethodPut, d)
+	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, l.log, l.doorman)
 	if errResponseWritten {
 		return
 	}

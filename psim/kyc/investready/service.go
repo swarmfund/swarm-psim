@@ -8,10 +8,10 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/keypair"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/keypair"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -52,11 +52,11 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
-	requestListener  RequestListener
-	requestPerformer RequestPerformer
-	blobsConnector   BlobsConnector
+	requestListener   RequestListener
+	requestPerformer  RequestPerformer
+	blobsConnector    BlobsConnector
 	blobDataRetriever BlobDataRetriever
-	usersConnector   UsersConnector
+	usersConnector    UsersConnector
 
 	investReady InvestReady
 
@@ -78,22 +78,29 @@ func NewService(
 	blobDataRetriever BlobDataRetriever,
 	userProvider UsersConnector,
 	investReady InvestReady,
-	doorman doorman.Doorman,
-) *Service {
+	doorman doorman.Doorman) *Service {
 
 	logger := log.WithField("service", conf.ServiceInvestReady)
+	redirectsListener := NewRedirectsListener(
+		logger,
+		config.RedirectsConfig,
+		kycRequestsConnector,
+		investReady,
+		doorman,
+		requestPerformer)
+
 	return &Service{
 		log:    logger,
 		config: config,
 
-		requestListener:  requestListener,
-		requestPerformer: requestPerformer,
-		blobsConnector:   blobProvider,
+		requestListener:   requestListener,
+		requestPerformer:  requestPerformer,
+		blobsConnector:    blobProvider,
 		blobDataRetriever: blobDataRetriever,
-		usersConnector:   userProvider,
-		investReady:      investReady,
+		usersConnector:    userProvider,
+		investReady:       investReady,
 
-		redirectsListener: NewRedirectsListener(logger, config.RedirectsConfig, kycRequestsConnector, investReady, doorman, requestPerformer),
+		redirectsListener: redirectsListener,
 	}
 }
 

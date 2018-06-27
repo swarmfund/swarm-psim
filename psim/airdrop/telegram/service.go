@@ -3,8 +3,7 @@ package telegram
 import (
 	"context"
 
-	"net/http"
-
+	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/listener"
@@ -64,7 +63,7 @@ func (s *Service) Run(ctx context.Context) {
 		s.blackList[accID] = struct{}{}
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.requestHandler)
-	listener.RunServer(ctx, s.log, mux, s.config.Listener)
+	r := chi.NewRouter()
+	r.Post("/", s.requestHandler)
+	listener.RunServer(ctx, s.log, r, s.config.Listener)
 }

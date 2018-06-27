@@ -7,19 +7,12 @@ import (
 
 	"fmt"
 
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
-	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/listener"
 )
 
-var (
-	errNoBalance = errors.New("No Balance was found.")
-)
-
 func (s *Service) requestHandler(w http.ResponseWriter, r *http.Request) {
-	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, s.log, http.MethodPost, s.doorman)
+	bb, errResponseWritten := listener.ValidateHTTPRequest(w, r, s.log, s.doorman)
 	if errResponseWritten {
 		return
 	}
@@ -38,9 +31,9 @@ func (s *Service) requestHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Service) processUserRequest(ctx context.Context, w http.ResponseWriter, request UserRequest) {
 	logger := s.log.WithField("request", request)
 
-	if validationErr := request.Validate(); validationErr != "" {
-		logger.WithField("validation_err", validationErr).Warn("Received invalid request.")
-		listener.WriteError(w, http.StatusBadRequest, validationErr)
+	if err := request.Validate(); err != "" {
+		logger.WithField("validation_err", err).Warn("Received invalid request.")
+		listener.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -62,48 +55,38 @@ func (s *Service) processUserRequest(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
-	issuanceOpt, issuanceHappened, err := s.issueSWM(ctx, request.AccountID)
+	balanceID, err := s.balanceIDProvider.GetBalanceID(request.AccountID, s.config.Issuance.Asset)
 	if err != nil {
-		if err == errNoBalance {
-			logger.Warn("No Balance was found.")
-			listener.WriteError(w, http.StatusNotFound, "No Balance was found.")
-			return
-		}
+		logger.WithError(err).Error("Failed to get BalanceID.")
+		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
+		return
+	}
+	if balanceID == nil {
+		// It can also happen if no Account was found.
+		logger.Warn("No Balance was found.")
+		listener.WriteError(w, http.StatusNotFound, "No Balance was found.")
+		return
+	}
+	logger = logger.WithField("balance_id", balanceID)
 
+	//issuanceOpt, issuanceHappened, err := s.issueSWM(ctx, request.AccountID)
+	opDetails := fmt.Sprintf(`{"cause": "%s"}`, airdrop.TelegramIssuanceCause)
+	issuanceOpt, issuanceHappened, err := s.issuanceSubmitter.Submit(ctx, request.AccountID, *balanceID, s.config.Issuance.Amount, opDetails)
+	if err != nil {
 		logger.WithError(err).Error("Failed to fulfill SWM issuance request.")
 		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
 		return
 	}
 
-	if issuanceHappened {
-		logger.WithField("issuance", issuanceOpt).Info("New issuance happened.")
-		response := fmt.Sprintf(`{"issuance_reference":"%s"}`, issuanceOpt.Reference)
-		bb := []byte(response)
-		listener.WriteResponse(w, http.StatusCreated, bb)
-		return
-	} else {
+	if !issuanceHappened {
 		logger.WithField("issuance", issuanceOpt).Info("Reference duplication.")
 		listener.WriteResponse(w, http.StatusNoContent, nil)
 		return
 	}
-}
 
-func (s *Service) issueSWM(ctx context.Context, accountID string) (*issuance.RequestOpt, bool, error) {
-	balanceID, err := s.balanceIDProvider.GetBalanceID(accountID, s.config.Issuance.Asset)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to get BalanceID of the Account")
-	}
-	if balanceID == nil {
-		// It can also happen if no Account was found.
-		return nil, false, errNoBalance
-	}
-	fields := logan.F{"balance_id": balanceID}
-
-	opDetails := fmt.Sprintf(`{"cause": "%s"}`, airdrop.TelegramIssuanceCause)
-	issuanceOpt, ok, err := s.issuanceSubmitter.Submit(ctx, accountID, *balanceID, s.config.Issuance.Amount, opDetails)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to process Issuance", fields)
-	}
-
-	return issuanceOpt, ok, nil
+	logger.WithField("issuance", issuanceOpt).Info("New issuance happened.")
+	response := fmt.Sprintf(`{"issuance_reference":"%s"}`, issuanceOpt.Reference)
+	bb := []byte(response)
+	listener.WriteResponse(w, http.StatusCreated, bb)
+	return
 }
