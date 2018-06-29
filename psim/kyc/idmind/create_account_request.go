@@ -82,7 +82,7 @@ func (r CreateAccountRequest) validate() error {
 
 // fileBack can be nil
 func buildCreateAccountRequest(
-	data kyc.Data,
+	data *kyc.Data,
 	emailAddr string,
 	ipAddr string,
 	docType DocType,
