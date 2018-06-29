@@ -57,7 +57,7 @@ func Router(
 	r.Get("/templates/{template}", handlers.GetTemplate)
 	r.Put("/templates/{template}", handlers.PutTemplate)
 
-	//r.Get("/templates/v2/{template}", handlers.GetTemplateWithSubject)
+	r.Get("/templates/v2/{template}", handlers.GetTemplateWithSubject)
 	r.Put("/templates/v2/{template}", handlers.PutTemplateWithSubject)
 
 	return r
