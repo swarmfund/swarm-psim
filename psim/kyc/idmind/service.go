@@ -29,10 +29,6 @@ type BlobSubmitter interface {
 	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
 }
 
-type BlobDataRetriever interface {
-	RetrieveKYCBlob(kycRequest horizon.KYCRequest) (*horizon.Blob, error)
-}
-
 type DocumentsConnector interface {
 	Document(docID string) (*horizon.Document, error)
 }
@@ -62,10 +58,10 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
+	horizon            *horizon.Connector
 	requestListener    RequestListener
 	requestPerformer   RequestPerformer
 	blobSubmitter      BlobSubmitter
-	blobDataRetriever  BlobDataRetriever
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
 	accountsConnector  AccountsConnector
@@ -79,10 +75,10 @@ type Service struct {
 func NewService(
 	log *logan.Entry,
 	config Config,
+	horizon *horizon.Connector,
 	requestListener RequestListener,
 	requestPerformer RequestPerformer,
 	blobSubmitter BlobSubmitter,
-	blobDataRetriever BlobDataRetriever,
 	usersConnector UsersConnector,
 	accountsConnector AccountsConnector,
 	documentProvider DocumentsConnector,
@@ -94,10 +90,10 @@ func NewService(
 		log:    log.WithField("service", conf.ServiceIdentityMind),
 		config: config,
 
+		horizon:            horizon,
 		requestListener:    requestListener,
 		requestPerformer:   requestPerformer,
 		blobSubmitter:      blobSubmitter,
-		blobDataRetriever:  blobDataRetriever,
 		usersConnector:     usersConnector,
 		accountsConnector:  accountsConnector,
 		documentsConnector: documentProvider,
