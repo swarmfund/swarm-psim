@@ -16,18 +16,17 @@ import (
 	"gitlab.com/tokend/go/doorman"
 )
 
-type (
-	GetTemplateWSubjectResponse struct {
-		Subject   string `json:"subject"`
-		Body      string `json:"body"`
-		CreatedAt string `json:"created_at"`
+func NewGetTemplateV2(r *http.Request) (BucketKey, error) {
+	request := BucketKey{
+		Key: chi.URLParam(r, "template"),
 	}
-)
+	return request, request.Validate()
+}
 
-func GetTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "template")
-	if len(key) == 0 {
-		ape.RenderErr(w, problems.BadRequest(errors.New("invalid key"))...)
+func GetTemplateV2(w http.ResponseWriter, r *http.Request) {
+	request, err := NewGetTemplateV2(r)
+	if err != nil {
+		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
 
@@ -40,10 +39,10 @@ func GetTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 	downloader := Downloader(r)
 
 	file := &aws.WriteAtBuffer{}
-	_, err := downloader.Download(file,
+	_, err = downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: &bucket,
-			Key:    &key,
+			Key:    &request.Key,
 		})
 	if err != nil {
 		cause := errors.Cause(err)
@@ -58,20 +57,28 @@ func GetTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		Log(r).WithFields(logan.F{"bucket": bucket, "key": key}).WithError(err).Error("Failed to download")
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": request.Key}).WithError(err).Error("Failed to download")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	raw := file.Bytes()
-	var response GetTemplateWSubjectResponse
-	err = json.Unmarshal(raw, &response)
+	var template TemplateV2
+	err = json.Unmarshal(raw, &template)
 	if err != nil {
 		Log(r).WithError(err).Error("Can't unmarshal template")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
+	err = template.Validate()
+	if err != nil {
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": request.Key}).
+			WithError(err).
+			Error("Incorrect template format")
+		ape.RenderErr(w, problems.Conflict())
+		return
+	}
 
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(template)
 
 }
