@@ -31,13 +31,12 @@ func GetTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucket := Bucket(r)
-
 	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {
 		RenderDoormanErr(w, err)
 		return
 	}
 
+	bucket := Bucket(r)
 	downloader := Downloader(r)
 
 	file := &aws.WriteAtBuffer{}
@@ -68,10 +67,11 @@ func GetTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 	var response GetTemplateWSubjectResponse
 	err = json.Unmarshal(raw, &response)
 	if err != nil {
+		Log(r).WithError(err).Error("Can't unmarshal template")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	json.NewEncoder(w).Encode(response)
-	return
+
 }

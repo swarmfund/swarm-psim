@@ -20,10 +20,8 @@ import (
 
 type (
 	PutTemplateWSubjectRequest struct {
-		Key      string                  `json:"key"`
-		Data     PutTemplateWSubjectData `json:"data"`
-		Bucket   string
-		Uploader *s3.S3
+		Key  string                  `json:"key"`
+		Data PutTemplateWSubjectData `json:"data"`
 	}
 	PutTemplateWSubjectData struct {
 		Subject   string `json:"subject"`
@@ -36,11 +34,13 @@ func NewPutTemplateWSubjectRequest(r *http.Request) (PutTemplateWSubjectRequest,
 	request := PutTemplateWSubjectRequest{
 		Key: chi.URLParam(r, "template"),
 	}
+	if len(request.Key) == 0 {
+		return request, errors.New("invalid key")
+	}
 	if err := json.NewDecoder(r.Body).Decode(&request.Data); err != nil {
 		return request, errors.Wrap(err, "failed to unmarshal")
 	}
-	request.Bucket = Bucket(r)
-	request.Uploader = Uploader(r)
+
 	request.Data.CreatedAt = time.Now().String()
 	return request, request.Validate()
 }
@@ -74,18 +74,21 @@ func PutTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(request.Data)
 	if err != nil {
+		Log(r).WithError(err).Error("Can't unmarshal request")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
-	_, err = request.Uploader.PutObject(&s3.PutObjectInput{
+	bucket := Bucket(r)
+	uploader := Uploader(r)
+	_, err = uploader.PutObject(&s3.PutObjectInput{
 		Body:   strings.NewReader(string(body)),
-		Bucket: &request.Bucket,
+		Bucket: &bucket,
 		Key:    &request.Key,
 	})
 
 	if err != nil {
-		Log(r).WithFields(logan.F{"bucket": request.Bucket, "key": request.Key}).WithError(err).Error("Failed to download")
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": request.Key}).WithError(err).Error("Failed to download")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
