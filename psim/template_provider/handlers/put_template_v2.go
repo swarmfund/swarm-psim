@@ -19,19 +19,23 @@ import (
 )
 
 type (
-	PutTemplateWSubjectRequest struct {
-		Key  string                  `json:"key"`
-		Data PutTemplateWSubjectData `json:"data"`
+	PutTemplateV2 struct {
+		Key  string
+		Data TemplateV2Data `json:"data"`
 	}
-	PutTemplateWSubjectData struct {
+	TemplateV2Data struct {
+		Type       string               `json:"type"`
+		Attributes TemplateV2Attributes `json:"attributes"`
+	}
+	TemplateV2Attributes struct {
 		Subject   string `json:"subject"`
 		Body      string `json:"body"`
-		CreatedAt string `json:"created_at"`
+		CreatedAt string `json:"created_at,omitempty"`
 	}
 )
 
-func NewPutTemplateWSubjectRequest(r *http.Request) (PutTemplateWSubjectRequest, error) {
-	request := PutTemplateWSubjectRequest{
+func NewPutTemplateV2Req(r *http.Request) (PutTemplateV2, error) {
+	request := PutTemplateV2{
 		Key: chi.URLParam(r, "template"),
 	}
 	if len(request.Key) == 0 {
@@ -41,26 +45,33 @@ func NewPutTemplateWSubjectRequest(r *http.Request) (PutTemplateWSubjectRequest,
 		return request, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	request.Data.CreatedAt = time.Now().String()
+	request.Data.Attributes.CreatedAt = time.Now().String()
 	return request, request.Validate()
 }
 
-func (r PutTemplateWSubjectRequest) Validate() error {
+func (r PutTemplateV2) Validate() error {
 	return ValidateStruct(&r,
 		Field(&r.Key, Required),
 		Field(&r.Data, Required),
 	)
 }
-func (d PutTemplateWSubjectData) Validate() error {
+func (d TemplateV2Data) Validate() error {
 	return ValidateStruct(&d,
-		Field(&d.Body, Required),
-		Field(&d.Subject, Required),
+		Field(&d.Type, Required),
+		Field(&d.Attributes, Required),
+	)
+}
+
+func (a TemplateV2Attributes) Validate() error {
+	return ValidateStruct(&a,
+		Field(&a.Subject, Required),
+		Field(&a.Body, Required),
 	)
 }
 
 func PutTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 
-	request, err := NewPutTemplateWSubjectRequest(r)
+	request, err := NewPutTemplateV2Req(r)
 
 	if err != nil {
 		ape.RenderErr(w, problems.BadRequest(err)...)
@@ -72,7 +83,7 @@ func PutTemplateWithSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := json.Marshal(request.Data)
+	body, err := json.Marshal(request.Data.Attributes)
 	if err != nil {
 		Log(r).WithError(err).Error("Can't unmarshal request")
 		ape.RenderErr(w, problems.InternalError())
