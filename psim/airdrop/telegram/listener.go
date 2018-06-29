@@ -45,9 +45,9 @@ func (s *Service) processUserRequest(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
-	if ok := s.checkHandle(ctx, w, request); !ok {
-		return
-	}
+	//if ok := s.checkHandle(ctx, w, request); !ok {
+	//	return
+	//}
 
 	balanceID, err := s.balanceIDProvider.GetBalanceID(request.AccountID, s.config.Issuance.Asset)
 	if err != nil {
