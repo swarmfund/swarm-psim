@@ -155,12 +155,13 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 }
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	proveErr := proveInterestingRequest(request)
-	if proveErr != nil {
-		// No need to process the Request for now.
+	fields := logan.F{
+		"request": request.GetLoganFields(),
+	}
 
-		// I found this log useless
-		//s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
+	// check if request should be processed
+	if ok := isInterestingRequest(request); !ok {
+		s.log.WithFields(fields).Debug("skipping not interesting request")
 		return nil
 	}
 
