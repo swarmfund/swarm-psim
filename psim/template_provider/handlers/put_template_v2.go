@@ -6,8 +6,6 @@ import (
 
 	"encoding/json"
 
-	"time"
-
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/ape"
@@ -15,17 +13,17 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/go/doorman"
+	"time"
 )
 
 func NewTemplateV2(r *http.Request) (PutTemplateV2Req, error) {
 	request := PutTemplateV2Req{
 		Key: chi.URLParam(r, "template"),
 	}
-	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return request, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	request.Data.Attributes.CreatedAt = time.Now().String()
 	return request, request.Validate()
 }
 
@@ -43,9 +41,11 @@ func PutTemplateV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
+	template.Data.Attributes.CreatedAt = time.Now().Format(time.RFC3339)
 	body, err := json.Marshal(template)
 	if err != nil {
-		Log(r).WithError(err).Error("Can't unmarshal request")
+		Log(r).WithError(err).Error("Can't marshal template")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
@@ -63,6 +63,7 @@ func PutTemplateV2(w http.ResponseWriter, r *http.Request) {
 			WithError(err).
 			Error("Failed to Upload")
 		ape.RenderErr(w, problems.InternalError())
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
