@@ -15,7 +15,7 @@ import (
 
 var (
 	// hopefully a constant value for multisig wallet
-	gasPerTX = uint64(22507)
+	gasPerTX = uint64(32123)
 )
 
 type Service struct {
