@@ -7,8 +7,8 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 // TODO Try to refactor - make method shorter.
@@ -46,7 +46,7 @@ func (s *Service) processNotChecked(ctx context.Context, request horizon.Request
 
 	rejectReason, details := s.getCheckRespRejectReason(*checkResp)
 	if rejectReason != "" {
-		blobID, err := s.rejectCheckKYC(ctx, request.ID, request.Hash, *checkResp, rejectReason, details)
+		blobID, err := s.reject(ctx, request, *checkResp, rejectReason, details)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest due to reject reason from CheckResponse")
 		}

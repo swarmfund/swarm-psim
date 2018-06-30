@@ -14,26 +14,6 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
-func (s *Service) approveWithoutSubmit(ctx context.Context, request horizon.Request, isUSA bool, firstName string) error {
-	err := s.approveBothTasks(ctx, request.ID, request.Hash, isUSA)
-	if err != nil {
-		return errors.Wrap(err, "Failed to approve both Tasks")
-	}
-
-	var logDetail string
-	if isUSA {
-		logDetail = "USA User"
-	} else {
-		logDetail = "nonLatin docs"
-	}
-	s.log.WithFields(logan.F{
-		"is_usa":  isUSA,
-		"request": request,
-	}).Infof("Successfully approved without sending to IDMind - %s.", logDetail)
-
-	return nil
-}
-
 func (s *Service) processNewKYCApplication(ctx context.Context, kycData *kyc.Data, request horizon.Request) error {
 	idDoc := kycData.Documents.IDDocument
 	docType := getDocType(idDoc.Type)
@@ -64,7 +44,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData *kyc.Dat
 		docType, faceFile, backFile,
 	)
 	if err != nil {
-		err := s.rejectInvalidKYCData(ctx, request.ID, request.Hash, kycData.IsUSA(), err)
+		err := s.rejectInvalidKYCData(ctx, request, err)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData", fields)
 		}
@@ -146,7 +126,7 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 	rejectReason, details := s.getAppRespRejectReason(appResponse)
 	if rejectReason != "" {
 		// Need to reject
-		blobID, err := s.rejectSubmitKYC(ctx, request.ID, request.Hash, appResponse, rejectReason, details, kycData.IsUSA())
+		blobID, err := s.reject(ctx, request, appResponse, rejectReason, details)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest due to reason from immediate ApplicationResponse")
 		}

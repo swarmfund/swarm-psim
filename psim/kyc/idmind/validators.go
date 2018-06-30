@@ -1,6 +1,7 @@
 package idmind
 
 import (
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
@@ -8,6 +9,13 @@ import (
 
 const (
 	TxIDExtDetailsKey = "tx_id"
+)
+
+var (
+	errMissingDetails  = errors.New("KYC details are missing")
+	errInvalidDetails  = errors.New("KYC details are invalid")
+	errBlobNotFound    = errors.New("blob does not exist")
+	errInvalidBlobType = errors.New("invalid blob type")
 )
 
 // isInterestingRequest checks if service should process request further
@@ -32,33 +40,35 @@ func isInterestingRequest(request horizon.Request) bool {
 		return false
 	}
 
+	return true
+}
+
+func isValidRequest(request horizon.Request) error {
 	// valid UpdateKYC request has KYC details set
 	if request.Details.KYC == nil {
-		// TODO consider rejecting invalid requests
-		return false
+		return errMissingDetails
 	}
 
 	// we expected specific KYC data format to be able perform validation
 	if request.Details.KYC.KYCDataStruct.BlobID == "" {
-		// TODO consider rejecting invalid requests
-		return false
+		return errInvalidDetails
 	}
 
-	return true
+	return nil
 }
 
-func isBlobValid(blob *horizon.Blob) bool {
+func isBlobValid(blob *horizon.Blob) error {
 	// blob should exists
 	if blob == nil {
-		return false
+		return errBlobNotFound
 	}
 
 	// service expects specific blob type
 	if blob.Type != kyc.KYCFormBlobType {
-		return false
+		return errInvalidBlobType
 	}
 
-	return true
+	return nil
 }
 
 func isGeneral(account *horizon.Account) bool {
@@ -74,5 +84,5 @@ func isUpdateToGeneral(request horizon.Request) bool {
 }
 
 func isUpdateToVerified(request horizon.Request) bool {
-	panic("not implemented")
+	return request.Details.KYC.AccountTypeToSet.Int == int(xdr.AccountTypeVerified)
 }

@@ -13,6 +13,10 @@ import (
 	"gitlab.com/tokend/keypair"
 )
 
+var (
+	errInvalidState = errors.New("service got into unknown state")
+)
+
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
@@ -161,6 +165,11 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		return nil
 	}
 
+	// check if request is valid
+	if err := isValidRequest(request); err != nil {
+		return errors.Wrap(err, "request is invalid in some way")
+	}
+
 	kycDetails := request.Details.KYC
 
 	// check if account we are going to review is blocked
@@ -171,6 +180,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		})
 	}
 	if account.IsBlocked {
+		s.log.WithFields(fields).Debug("skipping since account is blocked")
 		return nil
 	}
 
@@ -181,10 +191,8 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 			"blob_id": kycDetails.KYCDataStruct.BlobID,
 		})
 	}
-	if ok := isBlobValid(blob); !ok {
-		// TODO consider rejecting invalid requests
-		s.log.WithFields(fields).Debug("skipping request with malformed blob")
-		return nil
+	if err := isBlobValid(blob); err != nil {
+		return errors.Wrap(err, "blob is invalid in some way")
 	}
 	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
 	if err != nil {
@@ -200,8 +208,10 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	case isGeneral(account) && isUpdateToVerified(request) && kycData.IsUSA():
 	case isGeneral(account) && isUpdateToGeneral(request) && !kycData.IsUSA():
 	default:
-		// TODO reject request as not valid
-		panic("not implemented")
+		err := s.rejectRequest(ctx, request, s.config.RejectReasons.KYCStateRejected, nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to reject request")
+		}
 	}
 
 	s.log.WithFields(fields).Debug("processing KYC request")
@@ -210,15 +220,16 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	switch {
 	// FIXME (stepko) why all instead of pending?
 	case kycDetails.AllTasks&kyc.TaskNonLatinDoc != 0:
-		// TODO approve our tasks w/o submit
-		panic("not implemented")
+		if err := s.approveRequest(ctx, request, nil); err != nil {
+			return errors.Wrap(err, "failed ")
+		}
 	case kycDetails.PendingTasks&kyc.TaskSubmitIDMind != 0:
 		err = s.processNewKYCApplication(ctx, kycData, request)
 	case kycDetails.PendingTasks&kyc.TaskCheckIDMind != 0:
 		err = s.processNotChecked(ctx, request)
 	default:
-		// unknown state, probably some one messed up isInterestingRequest call above
-		panic("not implemented")
+		// unknown state, probably someone messed up isInterestingRequest call above
+		return errInvalidState
 	}
 	if err != nil {
 		return errors.Wrap(err, "failed to process IDMind request", logan.F{
