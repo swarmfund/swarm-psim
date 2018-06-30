@@ -20,21 +20,23 @@ import (
 	"gitlab.com/tokend/go/doorman"
 )
 
-func NewPutTemplateV2(r *http.Request) (PutTemplateV2Req, error) {
+func NewTemplateV2(r *http.Request) (PutTemplateV2Req, error) {
 	request := PutTemplateV2Req{
-		Bucket: BucketKey{chi.URLParam(r, "template")},
+		Key: chi.URLParam(r, "template"),
 	}
-	if err := json.NewDecoder(r.Body).Decode(&request.Template); err != nil {
+	var template TemplateV2
+	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
 		return request, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	request.Template.Data.Attributes.CreatedAt = time.Now().String()
+	template.Data.Attributes.CreatedAt = time.Now().String()
+	request.Template = template
 	return request, request.Validate()
 }
 
 func PutTemplateV2(w http.ResponseWriter, r *http.Request) {
 
-	template, err := NewPutTemplateV2(r)
+	template, err := NewTemplateV2(r)
 
 	if err != nil {
 		ape.RenderErr(w, problems.BadRequest(err)...)
@@ -58,11 +60,11 @@ func PutTemplateV2(w http.ResponseWriter, r *http.Request) {
 	_, err = uploader.PutObject(&s3.PutObjectInput{
 		Body:   strings.NewReader(string(body)),
 		Bucket: &bucket,
-		Key:    &template.Bucket.Key,
+		Key:    &template.Key,
 	})
 
 	if err != nil {
-		Log(r).WithFields(logan.F{"bucket": bucket, "key": template.Bucket.Key}).WithError(err).Error("Failed to download")
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": template.Key}).WithError(err).Error("Failed to download")
 		ape.RenderErr(w, &jsonapi.ErrorObject{
 			Title:  http.StatusText(http.StatusSeeOther),
 			Status: fmt.Sprintf("%d", http.StatusSeeOther),

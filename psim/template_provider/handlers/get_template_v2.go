@@ -16,8 +16,8 @@ import (
 	"gitlab.com/tokend/go/doorman"
 )
 
-func NewGetTemplateV2(r *http.Request) (BucketKey, error) {
-	request := BucketKey{
+func NewGetTemplateV2(r *http.Request) (GetTemplateV2Req, error) {
+	request := GetTemplateV2Req{
 		Key: chi.URLParam(r, "template"),
 	}
 	return request, request.Validate()
