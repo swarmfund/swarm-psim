@@ -5,10 +5,13 @@ import (
 
 	"encoding/json"
 
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-chi/chi"
+	"github.com/google/jsonapi"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -66,8 +69,12 @@ func GetTemplateV2(w http.ResponseWriter, r *http.Request) {
 	var template TemplateV2
 	err = json.Unmarshal(raw, &template)
 	if err != nil {
-		Log(r).WithError(err).Error("Can't unmarshal template")
-		ape.RenderErr(w, problems.InternalError())
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": request.Key}).WithError(err).Error("Failed to download")
+		ape.RenderErr(w, &jsonapi.ErrorObject{
+			Title:  http.StatusText(http.StatusSeeOther),
+			Status: fmt.Sprintf("%d", http.StatusSeeOther),
+			Detail: "Resource not updated. Use /template endpoint",
+		})
 		return
 	}
 	err = template.Validate()

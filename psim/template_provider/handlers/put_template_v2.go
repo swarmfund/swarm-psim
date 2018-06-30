@@ -8,11 +8,8 @@ import (
 
 	"time"
 
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-chi/chi"
-	"github.com/google/jsonapi"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -24,13 +21,11 @@ func NewTemplateV2(r *http.Request) (PutTemplateV2Req, error) {
 	request := PutTemplateV2Req{
 		Key: chi.URLParam(r, "template"),
 	}
-	var template TemplateV2
-	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
 		return request, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	template.Data.Attributes.CreatedAt = time.Now().String()
-	request.Template = template
+	request.Data.Attributes.CreatedAt = time.Now().String()
 	return request, request.Validate()
 }
 
@@ -48,7 +43,7 @@ func PutTemplateV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := json.Marshal(template.Template)
+	body, err := json.Marshal(template)
 	if err != nil {
 		Log(r).WithError(err).Error("Can't unmarshal request")
 		ape.RenderErr(w, problems.InternalError())
@@ -64,13 +59,10 @@ func PutTemplateV2(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		Log(r).WithFields(logan.F{"bucket": bucket, "key": template.Key}).WithError(err).Error("Failed to download")
-		ape.RenderErr(w, &jsonapi.ErrorObject{
-			Title:  http.StatusText(http.StatusSeeOther),
-			Status: fmt.Sprintf("%d", http.StatusSeeOther),
-			Detail: "Resource not updated. Use old API to access the resource",
-		})
-		return
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": template.Key}).
+			WithError(err).
+			Error("Failed to Upload")
+		ape.RenderErr(w, problems.InternalError())
 	}
 
 	w.WriteHeader(http.StatusNoContent)

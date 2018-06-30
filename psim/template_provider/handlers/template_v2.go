@@ -9,8 +9,8 @@ type (
 		Key string `json:"-"`
 	}
 	PutTemplateV2Req struct {
-		Key      string     `json:"-"`
-		Template TemplateV2 `json:"template"`
+		Key  string         `json:"-"`
+		Data TemplateV2Data `json:"data"`
 	}
 
 	TemplateV2 struct {
@@ -30,7 +30,7 @@ type (
 func (p PutTemplateV2Req) Validate() error {
 	return ValidateStruct(&p,
 		Field(&p.Key, Required),
-		Field(&p.Template, Required),
+		Field(&p.Data, Required),
 	)
 }
 
