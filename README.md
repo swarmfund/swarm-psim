@@ -66,3 +66,5 @@ and listen to ctx.Done() so that to stop executing when latter is closed.
 
 - Named return arguments should only be used for non-obvious values being returned, especially for values of simple type (string, int, bool, etc);
 if named return arguments are used, return statements should return the variables explicitly, empty implicit returns should be avoided.
+
+- Use yaml string for *big.Int, viper will parse numerics as float64 if they are big enough
