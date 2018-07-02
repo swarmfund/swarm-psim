@@ -38,6 +38,11 @@ const (
 // - WithdrawRequest is not approved
 // in all other cases - nil error means non-nil Transaction and vice versa.
 func getTX2(request horizon.Request) (string, *types.Transaction, error) {
+	// FIXME (stepko) config?
+	if request.ID == 13449 || request.ID == 13453 {
+		return "", nil, nil
+	}
+
 	version, err := getPreConfirmationVersion(request)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Failed to get version of the Request")
