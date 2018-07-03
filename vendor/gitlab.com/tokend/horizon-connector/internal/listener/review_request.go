@@ -75,6 +75,7 @@ func (s *reviewRequestOpStreamer) send(ctx context.Context, body *operations.Rev
 		body: body,
 		err:  err,
 	}
+
 	select {
 	case <-ctx.Done():
 		return false

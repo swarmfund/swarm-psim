@@ -18,6 +18,7 @@ type Request = resources.Request
 type WithdrawRequest = resources.RequestWithdrawDetails
 type KYCRequest = resources.RequestKYCDetails
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
+type WithdrawalRequestStreamingOpts = listener.WithdrawalRequestStreamingOpts
 type Info = resources.Info
 type Signer = goresources.Signer
 type Sale = resources.Sale
@@ -37,7 +38,10 @@ type CreateKYCRequestOp = operations.CreateKYCRequest
 type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
 type ReviewRequestOp = operations.ReviewRequest
 type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
+type RequestKYCDetails = resources.RequestKYCDetails
+
 type ReviewableRequestType = operation.ReviewableRequestType
+type KYCData = resources.KYCData
 
 // DEPRECATED: use regources directly
 type Asset = regources.Asset

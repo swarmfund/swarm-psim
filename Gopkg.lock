@@ -157,6 +157,12 @@
   version = "v3.3.2"
 
 [[projects]]
+  name = "github.com/go-errors/errors"
+  packages = ["."]
+  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
+  version = "v1.0.1"
+
+[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
@@ -516,6 +522,7 @@
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
   packages = [
+    ".",
     "v3",
     "v3/errors",
     "v3/fields"
@@ -581,7 +588,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "d8655a4c6cb3cc63f11c97eb5a4295fa12623586"
+  revision = "717429f9cd6c33da154caf08bd345d744d3c2d00"
 
 [[projects]]
   branch = "master"
