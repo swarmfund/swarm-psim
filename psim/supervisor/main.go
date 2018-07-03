@@ -16,6 +16,7 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 )
 
 // Service is common Supervisor for using in different specific Supervisors.
@@ -155,7 +156,7 @@ func (s *Service) acquireLeadership(ctx context.Context) {
 	// FIXME Select from ticker and ctx.Done() simultaneously
 	ticker := time.NewTicker(5 * time.Second)
 	for ; true; <-ticker.C {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return
 		}
 

@@ -3,12 +3,30 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/FactomProject/basen"
+  packages = ["."]
+  revision = "fe3947df716ebfda9847eb1b9a48f9592e06478c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/FactomProject/btcutilecc"
+  packages = ["."]
+  revision = "d3a63a5752ecf3fbc06bd97365da752111c263df"
+
+[[projects]]
+  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [
     ".",
     "edwards25519"
   ]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/andstepko/mtproto"
+  packages = ["."]
+  revision = "bfdb1d49b8d1f81aca200275a449c7cf52d48944"
 
 [[projects]]
   branch = "master"
@@ -92,12 +110,6 @@
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/dukex/mixpanel"
-  packages = ["."]
-  revision = "88b7bfd34643dce0c28a6b797652d6b5026091af"
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
@@ -499,6 +511,12 @@
   revision = "714f901b98fdb3aa954b4193d8cbd64a28d80cad"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/tyler-smith/go-bip32"
+  packages = ["."]
+  revision = "2c9cfd17756470a0b7c3e4b7954bae7d11035504"
+
+[[projects]]
   name = "gitlab.com/distributed_lab/ape"
   packages = [
     ".",
@@ -588,7 +606,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "8644af0c68bd178b3e8625c14b410bfda4174733"
+  revision = "717429f9cd6c33da154caf08bd345d744d3c2d00"
 
 [[projects]]
   branch = "master"
@@ -694,6 +712,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "45d0373fc65b7b77173459085e4b7c6fc6a65aee0fa8acc60b9c9f2a11c2d277"
+  inputs-digest = "889a2a5d442c171465d908fd86d7ab0273ab97ba3fe7e8b427f3452818a7e69f"
   solver-name = "gps-cdcl"
   solver-version = 1

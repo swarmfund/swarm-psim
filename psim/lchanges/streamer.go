@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
@@ -66,7 +66,7 @@ func (s *Streamer) Run(ctx context.Context, cursor string) {
 		case <-ctx.Done():
 			return
 		case txPacket, ok := <-txStream:
-			if app.IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				s.log.Info("Received cancel - stopping.")
 				return
 			}

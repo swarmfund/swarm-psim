@@ -6,7 +6,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 )
 
 // ProcessChangesUpToSnapshotTime is a blocking method, returns if ctx canceled or all the Changes are processed.
@@ -20,7 +20,7 @@ func (s *Service) processChangesUpToSnapshotTime(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case timedLedger := <-ledgerStream:
-			if app.IsCanceled(ctx) {
+			if running.IsCancelled(ctx) {
 				return
 			}
 

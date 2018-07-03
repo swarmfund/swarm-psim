@@ -41,6 +41,7 @@ type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
 type RequestKYCDetails = resources.RequestKYCDetails
 
 type ReviewableRequestType = operation.ReviewableRequestType
+type KYCData = resources.KYCData
 
 // DEPRECATED: use regources directly
 type Asset = regources.Asset

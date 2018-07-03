@@ -43,6 +43,7 @@ const (
 	ServiceAirdropKYC            = "airdrop_kyc"
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
 	ServiceAirdropMarch20b20     = "airdrop_march_20_20"
+	ServiceAirdropTelegram       = "airdrop_telegram"
 
 	// kyc
 	ServiceIdentityMind = "identity_mind"

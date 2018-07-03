@@ -111,3 +111,7 @@
   [[prune.project]]
     name = "github.com/aws/aws-sdk-go"
     unused-packages = true
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/andstepko/mtproto"

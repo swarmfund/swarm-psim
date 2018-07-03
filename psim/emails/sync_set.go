@@ -4,15 +4,16 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/notificator-server/client"
+	"gitlab.com/distributed_lab/running"
 )
 
 func (t Task) toPayload() notificator.EmailRequestPayload {
-	return notificator.EmailRequestPayload{
+	return notificator.EmailRequestPayload {
 		Destination: t.Destination,
-		Subject:     t.Subject,
-		Message:     t.Message,
+		Subject: t.Subject,
+		Message: t.Message,
 	}
 }
 
@@ -69,12 +70,12 @@ func (s *TaskSyncSet) length() int {
 }
 
 func (s *TaskSyncSet) rangeThrough(ctx context.Context, f func(task Task)) {
-	// TODO Extract to ctx along with mutex
+	// TODO Listen to ctx along with mutex
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for key := range s.data {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return
 		}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 )
 
 type SyncSet struct {
@@ -73,7 +73,7 @@ func (s *SyncSet) Range(ctx context.Context, f func(s string)) {
 	defer s.mu.Unlock()
 
 	for key := range s.data {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return
 		}
 
