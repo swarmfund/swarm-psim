@@ -156,7 +156,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
 	fields := logan.F{
-		"request": request.GetLoganFields(),
+		"request": request,
 	}
 
 	// check if request should be processed
@@ -218,10 +218,9 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// finally process request
 	switch {
-	// FIXME (stepko) why all instead of pending?
-	case kycDetails.AllTasks&kyc.TaskNonLatinDoc != 0:
+	case kycDetails.PendingTasks&kyc.TaskNonLatinDoc != 0:
 		if err := s.approveRequest(ctx, request, nil); err != nil {
-			return errors.Wrap(err, "failed ")
+			return errors.Wrap(err, "failed to approve request with a non-latin-docs task set")
 		}
 	case kycDetails.PendingTasks&kyc.TaskSubmitIDMind != 0:
 		err = s.processNewKYCApplication(ctx, kycData, request)
@@ -237,7 +236,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		})
 	}
 
-	s.log.WithFields(fields).Debug("processed KYC request successfully")
+	s.log.WithFields(fields).Debug("Processed KYC request successfully.")
 
 	return nil
 }

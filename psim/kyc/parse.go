@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 // ParsingData describes the structure of KYC Blob retrieved form Horizon.
@@ -21,6 +22,10 @@ type parsingData struct {
 type DocumentsV1 struct {
 	KYCIdDocument     string `json:"kyc_id_document"`
 	KYCProofOfAddress string `json:"kyc_poa"`
+}
+
+func ParseKYCBlob(blob *horizon.Blob) (*Data, error) {
+
 }
 
 func ParseKYCData(data string) (*Data, error) {

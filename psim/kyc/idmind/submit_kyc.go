@@ -50,7 +50,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData *kyc.Dat
 		}
 
 		// This log is of level Warn intentionally, as it's not normal situation, front-end must always provide valid KYC data
-		s.log.WithField("request", request).Warn("Rejected KYCRequest during Submit Task successfully (invalid KYC data).")
+		s.log.WithField("request", request).Warn("Successfully rejected KYCRequest during Submit Task (invalid KYC data).")
 		return nil
 	}
 
@@ -138,7 +138,6 @@ func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse
 		return nil
 	}
 
-	// TODO Make sure we need TxID, not MTxID
 	err := s.approveSubmitKYC(ctx, request.ID, request.Hash, appResponse.TxID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve submit part of KYCRequest")

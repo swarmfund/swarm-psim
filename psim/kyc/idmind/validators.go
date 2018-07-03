@@ -49,7 +49,7 @@ func isValidRequest(request horizon.Request) error {
 		return errMissingDetails
 	}
 
-	// we expected specific KYC data format to be able perform validation
+	// we expected specific KYC data format to be able to perform validation
 	if request.Details.KYC.KYCDataStruct.BlobID == "" {
 		return errInvalidDetails
 	}
