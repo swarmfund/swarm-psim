@@ -3,14 +3,20 @@ package reporter
 import (
 	"context"
 	"sync"
+	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/tokend/regources"
 )
+
+type Target interface {
+	SendEvent(event *regources.BalancesReport, swmAmount int64, threshold int64, date *time.Time) (err error)
+}
 
 // BufferedTarget holds actual target and its events to broadcast
 type BufferedTarget struct {
 	Target Target
-	Data   chan MaybeBroadcastedEvent
+	Data   chan BroadcastedReport
 }
 
 // GenericBroadcaster is a general-purpose Broadcaster implementation
@@ -28,13 +34,12 @@ const defaultTargetBufferSize = 1000
 
 // AddTarget adds a target to broadcaster and initializes a channel for it
 func (gb *GenericBroadcaster) AddTarget(target Target) {
-	gb.BufferedTargets = append(gb.BufferedTargets, BufferedTarget{target, make(chan MaybeBroadcastedEvent, defaultTargetBufferSize)})
+	gb.BufferedTargets = append(gb.BufferedTargets, BufferedTarget{target, make(chan BroadcastedReport, defaultTargetBufferSize)})
 }
 
-func (gb *GenericBroadcaster) putEventsToBufferedTargets(ctx context.Context, processedItems <-chan ProcessedItem) {
+func (gb *GenericBroadcaster) putEventsToBufferedTargets(ctx context.Context, processedItems <-chan BroadcastedReport) {
 	targets := gb.BufferedTargets
 	for _, target := range targets {
-		target := target
 		defer func() {
 			close(target.Data)
 		}()
@@ -46,7 +51,7 @@ func (gb *GenericBroadcaster) putEventsToBufferedTargets(ctx context.Context, pr
 			select {
 			case <-ctx.Done():
 				return
-			case target.Data <- MaybeBroadcastedEvent{item.BroadcastedEvent, item.Error}:
+			case target.Data <- item:
 				continue
 			default:
 				gb.logger.Warn("buffer busy, skiping")
@@ -81,26 +86,27 @@ func (gb *GenericBroadcaster) sendEventsToBufferedTargets(ctx context.Context) {
 				default:
 				}
 
-				if event.Error != nil {
-					gb.logger.WithError(event.Error).Warn("received invalid event")
-					continue
-				}
-
-				err := target.Target.SendEvent(event.BroadcastedEvent)
+				err := target.Target.SendEvent(event.Report, event.SWMAmount, event.Threshold, event.Date)
 				if err != nil {
 					gb.logger.WithError(err).Error("failed to send event, skipping")
 					continue
 				}
 
-				gb.logger.WithField("event_source", event.BroadcastedEvent.Account).WithField("event_name", event.BroadcastedEvent.Name).Info("sent event")
 			}
 		}(target, ctx)
 	}
 	wg.Wait()
 }
 
+type BroadcastedReport struct {
+	Report    *regources.BalancesReport
+	SWMAmount int64
+	Threshold int64
+	Date      *time.Time
+}
+
 // BroadcastEvents launches two goroutines - one copies events to buffered targets - second actually sends them to targets
-func (gb *GenericBroadcaster) BroadcastEvents(ctx context.Context, items <-chan ProcessedItem) {
+func (gb *GenericBroadcaster) BroadcastEvents(ctx context.Context, items <-chan BroadcastedReport) {
 	go gb.putEventsToBufferedTargets(ctx, items)
 	gb.sendEventsToBufferedTargets(ctx)
 }

@@ -11,12 +11,12 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.BalancesReporterService, setupService)
+	app.RegisterService(conf.BalanceReporterService, setupService)
 }
 
 func setupService(ctx context.Context) (app.Service, error) {
 	var serviceConfig ServiceConfig
-	serviceConfigMap := app.Config(ctx).GetRequired(conf.BalancesReporterService)
+	serviceConfigMap := app.Config(ctx).GetRequired(conf.BalanceReporterService)
 
 	err := figure.Out(&serviceConfig).From(serviceConfigMap).With(figure.BaseHooks, utils.ETHHooks).Please()
 	if err != nil {
@@ -24,6 +24,7 @@ func setupService(ctx context.Context) (app.Service, error) {
 	}
 
 	logger := app.Log(ctx)
+	logger.Debug("starting reporter service")
 	horizon := app.Config(ctx).Horizon().WithSigner(serviceConfig.Signer)
 	broadcaster := NewGenericBroadcaster(logger)
 	broadcaster.AddTarget(NewSalesforceTarget(app.Config(ctx).Salesforce()))

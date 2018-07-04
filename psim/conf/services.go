@@ -2,7 +2,8 @@ package conf
 
 // All services existing in PSIM
 const (
-	ListenerService = "listener"
+	BalanceReporterService = "reporter"
+	ListenerService        = "listener"
 	// external deployers
 	ServiceBTCDeployer = "external_btc_deployer"
 	ServiceETHDeployer = "external_eth_deployer"
