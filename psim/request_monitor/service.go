@@ -68,7 +68,7 @@ func (s *Service) worker(ctx context.Context) error {
 }
 
 func (s *Service) updateStats() {
-	ch := s.connector.Listener().StreamAllReviewableRequestsUntilEmptyPage(s.ctx)
+	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(s.ctx)
 
 	for requestEvent := range ch {
 		request, err := requestEvent.Unwrap()
