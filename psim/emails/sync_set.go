@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/distributed_lab/notificator-server/client"
 	"gitlab.com/distributed_lab/running"
 )
