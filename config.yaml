@@ -65,6 +65,7 @@ s3:
 # services
 
 services:
+# - reporter
 #  - listener
 #  - bearer
 #  - notifier
@@ -98,6 +99,10 @@ services:
 
 #  - template_provider
 #  - wallet_cleaner
+
+reporter:
+  signer: SX
+  asset_code: "USD"
 
 listener:
   signer: SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
