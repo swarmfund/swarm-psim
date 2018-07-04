@@ -169,12 +169,6 @@
   version = "v3.3.2"
 
 [[projects]]
-  name = "github.com/go-errors/errors"
-  packages = ["."]
-  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
-  version = "v1.0.1"
-
-[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
@@ -540,7 +534,6 @@
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
   packages = [
-    ".",
     "v3",
     "v3/errors",
     "v3/fields"
@@ -579,7 +572,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "4c971c6d1e18a394763ace81ee67328da9bb137e"
+  revision = "64c4f30aa7ea912ccccfbf1ff2ae049491b58b4b"
 
 [[projects]]
   branch = "master"
@@ -606,7 +599,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "717429f9cd6c33da154caf08bd345d744d3c2d00"
+  revision = "f583944fa52fdd2565e4018c3736d92ce96219ae"
 
 [[projects]]
   branch = "master"
@@ -623,7 +616,7 @@
   branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "818aed2a97732eacd2e346b79233ebef38f0d90c"
+  revision = "8db9d3459e6f74bc3ac1b7b06ff179357e4c1e57"
 
 [[projects]]
   branch = "master"
@@ -712,6 +705,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "889a2a5d442c171465d908fd86d7ab0273ab97ba3fe7e8b427f3452818a7e69f"
+  inputs-digest = "4e044ba753b044010cef60e8bd24bc6189a908b9397f077068d37dcc8d4ad46d"
   solver-name = "gps-cdcl"
   solver-version = 1

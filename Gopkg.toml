@@ -84,6 +84,10 @@
   name = "gitlab.com/tokend/horizon-connector"
   branch = "master"
 
+[[override]]
+  branch = "master"
+  name = "gitlab.com/tokend/regources"
+
 [[constraint]]
   branch = "master"
   name = "github.com/evalphobia/logrus_sentry"

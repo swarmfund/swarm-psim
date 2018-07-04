@@ -75,7 +75,6 @@ func NewService(
 	kycRequestsConnector KYCRequestsConnector,
 	requestPerformer RequestPerformer,
 	blobProvider BlobsConnector,
-	blobDataRetriever BlobDataRetriever,
 	userProvider UsersConnector,
 	investReady InvestReady,
 	doorman doorman.Doorman) *Service {
@@ -93,12 +92,11 @@ func NewService(
 		log:    logger,
 		config: config,
 
-		requestListener:   requestListener,
-		requestPerformer:  requestPerformer,
-		blobsConnector:    blobProvider,
-		blobDataRetriever: blobDataRetriever,
-		usersConnector:    userProvider,
-		investReady:       investReady,
+		requestListener:  requestListener,
+		requestPerformer: requestPerformer,
+		blobsConnector:   blobProvider,
+		usersConnector:   userProvider,
+		investReady:      investReady,
 
 		redirectsListener: redirectsListener,
 	}

@@ -6,44 +6,29 @@ import (
 	"strconv"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/kyc"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 const (
 	RejectorName = "id_mind"
 )
 
-func (s *Service) rejectInvalidKYCData(ctx context.Context, requestID uint64, requestHash string, isUSA bool, validationErr error) error {
-	var tasksToAdd uint32
-	if isUSA {
-		tasksToAdd = kyc.TaskUSA
-	}
-
+func (s *Service) rejectInvalidKYCData(ctx context.Context, request horizon.Request, validationErr error) error {
 	extDetails := map[string]string{
 		"validation_error": validationErr.Error(),
 	}
 
-	_, err := s.reject(ctx, requestID, requestHash, nil, s.config.RejectReasons.InvalidKYCData, tasksToAdd, extDetails)
+	_, err := s.reject(ctx, request, nil, s.config.RejectReasons.InvalidKYCData, extDetails)
 	return err
 }
 
-// rejectReason must be absolutely human-readable, we show it to User
-func (s *Service) rejectSubmitKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, extDetails map[string]string, isUSA bool) (blobID string, err error) {
-	var tasksToAdd uint32
-	if isUSA {
-		tasksToAdd = kyc.TaskUSA
-	}
-
-	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, tasksToAdd, extDetails)
-}
-
-func (s *Service) rejectCheckKYC(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, extDetails map[string]string) (blobID string, err error) {
-	return s.reject(ctx, requestID, requestHash, idMindResp, rejectReason, 0, extDetails)
+func (s *Service) rejectRequest(ctx context.Context, request horizon.Request, rejectReason string, externalDetails map[string]string) error {
+	return s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, externalDetails, rejectReason, RejectorName)
 }
 
 // idMindResp can be nil (in this case blobID in return will be empty)
 // extDetails can be nil
-func (s *Service) reject(ctx context.Context, requestID uint64, requestHash string, idMindResp interface{}, rejectReason string, tasksToAdd uint32, extDetails map[string]string) (blobID string, err error) {
+func (s *Service) reject(ctx context.Context, request horizon.Request, idMindResp interface{}, rejectReason string, extDetails map[string]string) (blobID string, err error) {
 	if extDetails == nil {
 		extDetails = make(map[string]string)
 	}
@@ -56,8 +41,8 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		}
 
 		blobID, err = s.blobSubmitter.SubmitBlob(ctx, "kyc_form", string(idMindRespBB), map[string]string{
-			"request_id":   strconv.Itoa(int(requestID)),
-			"request_hash": requestHash,
+			"request_id":   strconv.Itoa(int(request.ID)),
+			"request_hash": request.Hash,
 		})
 		if err != nil {
 			return "", errors.Wrap(err, "Failed to submit Blob via BlobSubmitter")
@@ -66,7 +51,7 @@ func (s *Service) reject(ctx context.Context, requestID uint64, requestHash stri
 		extDetails["blob_id"] = blobID
 	}
 
-	err = s.requestPerformer.Reject(ctx, requestID, requestHash, tasksToAdd, extDetails, rejectReason, RejectorName)
+	err = s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, extDetails, rejectReason, RejectorName)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to sign or submit RejectRequest TX")
 	}

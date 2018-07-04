@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/distributed_lab/logan"
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/horizon-connector/internal"
-	"gitlab.com/tokend/horizon-connector/internal/errors"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/regources"
 )
