@@ -18,8 +18,6 @@ func init() {
 
 func setupFn(ctx context.Context) (app.Service, error) {
 	config := Config{
-		AbnormalPeriodMin: 1 * time.Minute,
-		AbnormalPeriodMax: 10 * time.Minute,
 		SleepPeriod: 1 * time.Minute,
 	}
 	err := figure.

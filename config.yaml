@@ -533,6 +533,4 @@ invest_ready:
 
 request_monitor:
   request_timeout: 24h
-  #abnormal_period_min:
-  #abnormal_period_max:
   #sleep_period:

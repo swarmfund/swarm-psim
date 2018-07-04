@@ -57,8 +57,8 @@ func (s *Service) Run(ctx context.Context) {
 		conf.ServiceRequestMonitor,
 		s.worker,
 		s.config.SleepPeriod,
-		s.config.AbnormalPeriodMin,
-		s.config.AbnormalPeriodMax)
+		10*time.Minute,
+		1*time.Hour)
 }
 
 func (s *Service) worker(ctx context.Context) error {
