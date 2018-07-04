@@ -5,28 +5,28 @@ import (
 
 	"time"
 
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"fmt"
+
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type Service struct {
-	config Config
-	logger *logan.Entry
+	config    Config
+	logger    *logan.Entry
 	connector *horizon.Connector
-	ctx context.Context
-	stats Stats
+	ctx       context.Context
+	stats     Stats
 }
 
 type RequestTypeToNumber map[xdr.ReviewableRequestType]int
 
 type Stats struct {
 	unresolvedRequestIDs []uint64
-	requestTypeToNumber RequestTypeToNumber
+	requestTypeToNumber  RequestTypeToNumber
 }
 
 func (st Stats) String() string {
@@ -40,10 +40,10 @@ func (st Stats) String() string {
 
 func New(config Config, log *logan.Entry, horizonConnector *horizon.Connector) *Service {
 	return &Service{
-		config: config,
-		logger: log.WithField("service", conf.ServiceRequestMonitor),
+		config:    config,
+		logger:    log.WithField("service", conf.ServiceRequestMonitor),
 		connector: horizonConnector,
-		stats: Stats{requestTypeToNumber: RequestTypeToNumber{}},
+		stats:     Stats{requestTypeToNumber: RequestTypeToNumber{}},
 	}
 }
 

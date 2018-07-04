@@ -3,12 +3,13 @@ package request_monitor
 import (
 	"context"
 
+	"time"
+
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"time"
 )
 
 func init() {
