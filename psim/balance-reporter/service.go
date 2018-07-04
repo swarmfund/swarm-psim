@@ -74,7 +74,15 @@ ticklabel:
 				continue ticklabel
 			}
 			date := time.Now()
-			emittedEvents <- BroadcastedReport{response, 0, tx, &date}
+			assets, err := s.horizon.Assets().ByCode("SWM")
+			if err != nil {
+				s.logger.WithError(err).Error("failed to get asset info from horizon")
+				continue ticklabel
+			}
+			if assets == nil {
+				s.logger.Error("asset not found")
+			}
+			emittedEvents <- BroadcastedReport{response, int64(assets.Issued), tx, &date}
 		}
 	}
 
