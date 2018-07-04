@@ -18,7 +18,6 @@ type Service struct {
 	config    Config
 	logger    *logan.Entry
 	connector *horizon.Connector
-	ctx       context.Context
 	stats     Stats
 }
 
@@ -48,8 +47,7 @@ func New(config Config, log *logan.Entry, horizonConnector *horizon.Connector) *
 }
 
 func (s *Service) Run(ctx context.Context) {
-	s.logger.Info("starting...")
-	s.ctx = ctx
+	s.logger.Info("Starting...")
 
 	running.WithBackOff(
 		ctx,
@@ -62,13 +60,13 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) worker(ctx context.Context) error {
-	s.updateStats()
+	s.updateStats(ctx)
 	s.logger.Info(s.stats)
 	return nil
 }
 
-func (s *Service) updateStats() {
-	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(s.ctx)
+func (s *Service) updateStats(ctx context.Context) {
+	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(ctx)
 
 	for requestEvent := range ch {
 		request, err := requestEvent.Unwrap()
