@@ -3,18 +3,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/FactomProject/basen"
-  packages = ["."]
-  revision = "fe3947df716ebfda9847eb1b9a48f9592e06478c"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/FactomProject/btcutilecc"
-  packages = ["."]
-  revision = "d3a63a5752ecf3fbc06bd97365da752111c263df"
-
-[[projects]]
-  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [
     ".",
@@ -112,6 +100,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dukex/mixpanel"
+  packages = ["."]
+  revision = "88b7bfd34643dce0c28a6b797652d6b5026091af"
+
+[[projects]]
   name = "github.com/ethereum/go-ethereum"
   packages = [
     ".",
@@ -167,6 +161,12 @@
   ]
   revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
   version = "v3.3.2"
+
+[[projects]]
+  name = "github.com/go-errors/errors"
+  packages = ["."]
+  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -505,12 +505,6 @@
   revision = "714f901b98fdb3aa954b4193d8cbd64a28d80cad"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/tyler-smith/go-bip32"
-  packages = ["."]
-  revision = "2c9cfd17756470a0b7c3e4b7954bae7d11035504"
-
-[[projects]]
   name = "gitlab.com/distributed_lab/ape"
   packages = [
     ".",
@@ -534,6 +528,7 @@
 [[projects]]
   name = "gitlab.com/distributed_lab/logan"
   packages = [
+    ".",
     "v3",
     "v3/errors",
     "v3/fields"
@@ -705,6 +700,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4e044ba753b044010cef60e8bd24bc6189a908b9397f077068d37dcc8d4ad46d"
+  inputs-digest = "c5ffe2fe1fe38377b3d56293764d962c20b0d8c55961ac9a259f2a54c70fb6df"
   solver-name = "gps-cdcl"
   solver-version = 1
