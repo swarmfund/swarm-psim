@@ -20,7 +20,7 @@ func NewQ(tx *transaction.Q, op *operation.Q) *Q {
 	}
 }
 
-// DEPRECATED use StreamAllReviewableRequests instead
+// DEPRECATED: use StreamAllReviewableRequests instead
 func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -43,8 +43,7 @@ func (q *Q) Requests(result chan<- resources.Request) <-chan error {
 	return errs
 }
 
-// TODO Consider working with *Withdrawal* specific types.
-// DEPRECATED Use StreamWithdrawalRequests instead
+// DEPRECATED: Use StreamWithdrawalRequests instead
 func (q *Q) WithdrawalRequests(result chan<- resources.Request) <-chan error {
 	errs := make(chan error)
 

@@ -16,6 +16,14 @@ func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableR
 	return streamReviewableRequests(ctx, reqGetter, "", false)
 }
 
+func (q *Q) StreamAllReviewableRequestsOnce(ctx context.Context) (<-chan ReviewableRequestEvent) {
+	reqGetter := func(cursor string) ([]resources.Request, error) {
+		return q.opQ.AllRequests(cursor)
+	}
+
+	return streamReviewableRequests(ctx, reqGetter, "", true)
+}
+
 // StreamAllKYCRequests streams all ReviewableRequests of type KYC from very beginning,
 // sorted by ID
 func (q *Q) StreamAllKYCRequests(ctx context.Context, endlessly bool) (<-chan ReviewableRequestEvent) {
@@ -29,23 +37,6 @@ func (q *Q) StreamKYCRequestsUpdatedAfter(ctx context.Context, updatedAfter time
 
 func (q *Q) streamKYCRequests(ctx context.Context, filters string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
 	return q.getAndStreamReviewableRequests(ctx, filters, "", operation.KYCReviewableRequestType, stopOnEmptyPage)
-}
-
-// StreamWithdrawalRequests streams all ReviewableRequests of type Withdraw and TwoStepWithdraw
-func (q *Q) StreamWithdrawalRequests(ctx context.Context) (<-chan ReviewableRequestEvent) {
-	return q.getAndStreamReviewableRequests(ctx, "", "", operation.WithdrawalsReviewableRequestType, false)
-}
-
-// StreamWithdrawalRequestsOfAsset streams all Withdraw and TwoStepWithdraw ReviewableRequests
-// with filter by provided destAssetCode
-func (q *Q) StreamWithdrawalRequestsOfAsset(ctx context.Context, destAssetCode string, reverseOrder, endlessly bool) (<-chan ReviewableRequestEvent) {
-	getParams := fmt.Sprintf("dest_asset_code=%s", destAssetCode)
-
-	if reverseOrder {
-		getParams += "&order=desc"
-	}
-
-	return q.getAndStreamReviewableRequests(ctx, getParams, "", operation.WithdrawalsReviewableRequestType, !endlessly)
 }
 
 func (q *Q) getAndStreamReviewableRequests(ctx context.Context, getParams, cursor string, reqType operation.ReviewableRequestType, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {

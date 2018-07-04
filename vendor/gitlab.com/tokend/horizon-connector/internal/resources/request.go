@@ -1,8 +1,10 @@
 package resources
 
 import (
-	"gitlab.com/tokend/horizon-connector/types"
+	"encoding/json"
 	"time"
+
+	"gitlab.com/tokend/horizon-connector/types"
 )
 
 type Request struct {
@@ -41,7 +43,7 @@ func (d RequestDetails) GetLoganFields() map[string]interface{} {
 		"request_type_i":      d.RequestType,
 		"withdraw":            d.Withdraw,
 		"two_step_withdrawal": d.TwoStepWithdraw,
-		"kyc":                 d.KYC,
+		"kyc": d.KYC,
 	}
 }
 
@@ -74,14 +76,35 @@ func (d RequestWithdrawDetails) GetLoganFields() map[string]interface{} {
 }
 
 type RequestKYCDetails struct {
-	AccountToUpdateKYC string                   `json:"account_to_update_kyc"`
-	AccountTypeToSet   AccountTypeToSet         `json:"account_type_to_set"`
-	KYCLevel           uint32                   `json:"kyc_level"`
-	KYCData            map[string]interface{}   `json:"kyc_data"`
-	AllTasks           uint32                   `json:"all_tasks"`
-	PendingTasks       uint32                   `json:"pending_tasks"`
-	SequenceNumber     uint32                   `json:"sequence_number"`
-	ExternalDetails    []map[string]interface{} `json:"external_details"`
+	AccountToUpdateKYC string           `json:"account_to_update_kyc"`
+	AccountTypeToSet   AccountTypeToSet `json:"account_type_to_set"`
+	KYCLevel           uint32           `json:"kyc_level"`
+	// DEPRECATED: migrate to KYCDataStruct -> delete KYCData -> mv KYCDataStruct KYCData
+	KYCData         map[string]interface{}   `json:"kyc_data"`
+	KYCDataStruct   KYCData                  `json:"-"`
+	AllTasks        uint32                   `json:"all_tasks"`
+	PendingTasks    uint32                   `json:"pending_tasks"`
+	SequenceNumber  uint32                   `json:"sequence_number"`
+	ExternalDetails []map[string]interface{} `json:"external_details"`
+}
+
+func (r *RequestKYCDetails) UnmarshalJSON(data []byte) error {
+	type t RequestKYCDetails
+	var tt t
+	if err := json.Unmarshal(data, &tt); err != nil {
+		return err
+	}
+	*r = RequestKYCDetails(tt)
+	// marshal map back to json
+	rawkyc, err := json.Marshal(r.KYCData)
+	if err != nil {
+		return err
+	}
+	// finally unmarshal to proper struct
+	if err := json.Unmarshal(rawkyc, &r.KYCDataStruct); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d RequestKYCDetails) GetLoganFields() map[string]interface{} {
