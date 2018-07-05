@@ -51,7 +51,6 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/kyc/idmind"
 	_ "gitlab.com/swarmfund/psim/psim/kyc/investready"
 
-	// request_monitor
 	_ "gitlab.com/swarmfund/psim/psim/request_monitor"
 )
 
