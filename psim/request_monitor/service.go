@@ -71,7 +71,7 @@ func (s *Service) updateStats(ctx context.Context) {
 	for requestEvent := range ch {
 		request, err := requestEvent.Unwrap()
 		if err != nil {
-			s.logger.Error(errors.Wrap(err, "Failed to unwrap request event"))
+			s.logger.WithError(err)
 			continue
 		}
 
