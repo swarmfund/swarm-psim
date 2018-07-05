@@ -1,3 +1,7 @@
+// request_monitor wakes up every SleepPeriod (see config),
+// figures out which requests haven't been resolved in a specified period
+// and how many requests of each type there are
+// and submits this info to console via logger
 package request_monitor
 
 import (
