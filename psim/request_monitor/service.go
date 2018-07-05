@@ -18,7 +18,6 @@ type Service struct {
 	config    Config
 	logger    *logan.Entry
 	connector *horizon.Connector
-	stats     Stats
 }
 
 type RequestTypeToNumber map[xdr.ReviewableRequestType]int
@@ -42,7 +41,6 @@ func New(config Config, log *logan.Entry, horizonConnector *horizon.Connector) *
 		config:    config,
 		logger:    log.WithField("service", conf.ServiceRequestMonitor),
 		connector: horizonConnector,
-		stats:     Stats{requestTypeToNumber: RequestTypeToNumber{}},
 	}
 }
 
@@ -60,12 +58,13 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) worker(ctx context.Context) error {
-	s.updateStats(ctx)
-	s.logger.Info(s.stats)
+	stats := s.generateStats(ctx)
+	s.logger.Info(stats)
 	return nil
 }
 
-func (s *Service) updateStats(ctx context.Context) {
+func (s *Service) generateStats(ctx context.Context) Stats {
+	stats := Stats{requestTypeToNumber: RequestTypeToNumber{}}
 	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(ctx)
 
 	for requestEvent := range ch {
@@ -76,12 +75,14 @@ func (s *Service) updateStats(ctx context.Context) {
 		}
 
 		if s.isUnresolvedBeforeTimeout(request.CreatedAt, request.State) {
-			s.stats.unresolvedRequestIDs = append(s.stats.unresolvedRequestIDs, request.ID)
+			stats.unresolvedRequestIDs = append(stats.unresolvedRequestIDs, request.ID)
 		}
 
 		requestType := xdr.ReviewableRequestType(request.Details.RequestType)
-		s.stats.requestTypeToNumber[requestType] += 1
+		stats.requestTypeToNumber[requestType] += 1
 	}
+
+	return stats
 }
 
 func (s *Service) isUnresolvedBeforeTimeout(createdAt time.Time, state int32) bool {
