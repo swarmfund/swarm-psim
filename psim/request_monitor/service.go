@@ -18,11 +18,17 @@ type Service struct {
 	connector *horizon.Connector
 }
 
-type RequestTypeToNumber map[xdr.ReviewableRequestType]int
-
 type Stats struct {
 	unresolvedRequestIDs []uint64
-	requestTypeToNumber  RequestTypeToNumber
+	requestTypeToNumber  map[xdr.ReviewableRequestType]int
+}
+
+func makeDefaultStats() Stats {
+	stats := Stats{requestTypeToNumber: make(map[xdr.ReviewableRequestType]int)}
+	for _, requestType := range xdr.ReviewableRequestTypeAll {
+		stats.requestTypeToNumber[requestType] = 0
+	}
+	return stats
 }
 
 func New(config Config, log *logan.Entry, horizonConnector *horizon.Connector) *Service {
@@ -56,7 +62,7 @@ func (s *Service) worker(ctx context.Context) error {
 }
 
 func (s *Service) generateStats(ctx context.Context) Stats {
-	stats := Stats{requestTypeToNumber: RequestTypeToNumber{}}
+	stats := makeDefaultStats()
 	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(ctx)
 
 	for requestEvent := range ch {
