@@ -5,8 +5,6 @@ import (
 
 	"time"
 
-	"fmt"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/conf"
@@ -25,15 +23,6 @@ type RequestTypeToNumber map[xdr.ReviewableRequestType]int
 type Stats struct {
 	unresolvedRequestIDs []uint64
 	requestTypeToNumber  RequestTypeToNumber
-}
-
-func (st Stats) String() string {
-	output := "Number of requests of each type:\n"
-	for key, value := range st.requestTypeToNumber {
-		output = fmt.Sprintf("%v%v: %v\n", output, key, value)
-	}
-	output = fmt.Sprintf("%v\nRequests with these IDs haven't been resolved before timeout:\n%v\n", output, st.unresolvedRequestIDs)
-	return output
 }
 
 func New(config Config, log *logan.Entry, horizonConnector *horizon.Connector) *Service {
@@ -59,7 +48,10 @@ func (s *Service) Run(ctx context.Context) {
 
 func (s *Service) worker(ctx context.Context) error {
 	stats := s.generateStats(ctx)
-	s.logger.Info(stats)
+	s.logger.WithFields(logan.F{
+		"number_of_requests_by_type": stats.requestTypeToNumber,
+		"unresolved_requests_IDs":    stats.unresolvedRequestIDs,
+	}).Info("Statistics")
 	return nil
 }
 
