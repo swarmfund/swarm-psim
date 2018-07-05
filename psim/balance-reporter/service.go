@@ -60,7 +60,7 @@ func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {
 		s.broadcaster.BroadcastEvents(ctx, emittedEvents)
 	}()
 
-	ticks := time.Tick(1 * time.Second)
+	ticks := time.Tick(1 * time.Hour)
 ticklabel:
 	for _ = range ticks {
 		for _, tx := range []int64{1000, 10000, 100000, 1000000} {
