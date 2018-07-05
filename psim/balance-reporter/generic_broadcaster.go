@@ -38,15 +38,9 @@ func (gb *GenericBroadcaster) AddTarget(target Target) {
 }
 
 func (gb *GenericBroadcaster) putEventsToBufferedTargets(ctx context.Context, processedItems <-chan BroadcastedReport) {
-	targets := gb.BufferedTargets
-	for _, target := range targets {
-		defer func() {
-			close(target.Data)
-		}()
-	}
 	for item := range processedItems {
 		item := item
-		for _, target := range targets {
+		for _, target := range gb.BufferedTargets {
 			target := target
 			select {
 			case <-ctx.Done():

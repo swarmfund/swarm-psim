@@ -24,7 +24,6 @@ func setupService(ctx context.Context) (app.Service, error) {
 	}
 
 	logger := app.Log(ctx)
-	logger.Debug("starting reporter service")
 	horizon := app.Config(ctx).Horizon().WithSigner(serviceConfig.Signer)
 	broadcaster := NewGenericBroadcaster(logger)
 	broadcaster.AddTarget(NewSalesforceTarget(app.Config(ctx).Salesforce()))

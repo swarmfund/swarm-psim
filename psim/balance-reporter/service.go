@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/psim/psim/conf"
 
 	"gitlab.com/distributed_lab/logan/v3"
@@ -29,7 +30,7 @@ func NewService(config ServiceConfig, horizon *horizon.Connector, broadcaster *G
 		config:      config,
 		horizon:     horizon,
 		broadcaster: broadcaster,
-		logger:      log,
+		logger:      log.WithField("service", conf.BalanceReporterService),
 	}
 }
 
@@ -39,10 +40,17 @@ const (
 )
 
 func (s *Service) Run(ctx context.Context) {
-	running.UntilSuccess(ctx, s.logger, conf.BalanceReporterService, s.dispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
+	s.logger.Debug("Starting.")
+	targets := s.broadcaster.BufferedTargets
+	for _, target := range targets {
+		defer func() {
+			close(target.Data)
+		}()
+	}
+	running.WithBackOff(ctx, s.logger, "event_dispatcher", s.dispatchEvents, 1*time.Hour, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
 }
 
-func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {
+func (s *Service) dispatchEvents(ctx context.Context) error {
 	emittedEvents := make(chan BroadcastedReport)
 	defer func() {
 		close(emittedEvents)
@@ -60,32 +68,28 @@ func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {
 		s.broadcaster.BroadcastEvents(ctx, emittedEvents)
 	}()
 
-	ticks := time.Tick(1 * time.Hour)
-ticklabel:
-	for _ = range ticks {
-		for _, tx := range []int64{1000, 10000, 100000, 1000000} {
-			if running.IsCancelled(ctx) {
-				break ticklabel
-			}
+	for _, threshold := range []int64{1000, 10000, 100000, 1000000} {
+		if running.IsCancelled(ctx) {
 
-			response, err := s.horizon.System().Balances(s.config.AssetCode, tx)
-			if err != nil {
-				s.logger.WithError(err).Error("failed to get balances from horizon")
-				continue ticklabel
-			}
-			date := time.Now()
-			assets, err := s.horizon.Assets().ByCode("SWM")
-			if err != nil {
-				s.logger.WithError(err).Error("failed to get asset info from horizon")
-				continue ticklabel
-			}
-			if assets == nil {
-				s.logger.Error("asset not found")
-			}
-			emittedEvents <- BroadcastedReport{response, int64(assets.Issued), tx, &date}
 		}
+
+		response, err := s.horizon.System().Balances(s.config.AssetCode, threshold)
+		if err != nil {
+			return errors.Wrap(err, "failed to get balances from horizon")
+		}
+
+		asset, err := s.horizon.Assets().ByCode("SWM")
+		if err != nil {
+			return errors.Wrap(err, "failed to get asset info from horizon")
+		}
+
+		if asset == nil {
+			return errors.New("SWM asset not found")
+		}
+
+		date := time.Now()
+		emittedEvents <- BroadcastedReport{response, int64(asset.Issued), threshold, &date}
 	}
 
-	s.logger.Debug("ticker cycle is stopped")
-	return false, nil
+	return nil
 }
