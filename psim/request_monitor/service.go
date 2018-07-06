@@ -38,13 +38,13 @@ func (s *Service) Run(ctx context.Context) {
 		ctx,
 		s.logger,
 		conf.ServiceRequestMonitor,
-		s.worker,
+		s.generateAndSendStats,
 		s.config.SleepPeriod,
 		1*time.Minute,
 		1*time.Hour)
 }
 
-func (s *Service) worker(ctx context.Context) error {
+func (s *Service) generateAndSendStats(ctx context.Context) error {
 	stats := s.generateStats(ctx)
 	s.logger.WithFields(logan.F{
 		"number_of_requests_by_type": stats.requestTypeToNumber,
