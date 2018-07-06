@@ -533,4 +533,4 @@ invest_ready:
 
 request_monitor:
   request_timeout: 24h
-  #sleep_period:
+  sleep_period: 1m # optional
