@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/go/xdr"
@@ -45,7 +46,11 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) generateAndSendStats(ctx context.Context) error {
-	stats := s.generateStats(ctx)
+	stats, err := s.generateStats(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Failed to collect stats")
+	}
+
 	s.logger.WithFields(logan.F{
 		"number_of_requests_by_type": stats.requestTypeToNumber,
 		"unresolved_requests_IDs":    stats.unresolvedRequestIDs,
@@ -53,15 +58,14 @@ func (s *Service) generateAndSendStats(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) generateStats(ctx context.Context) Stats {
+func (s *Service) generateStats(ctx context.Context) (Stats, error) {
 	stats := makeEmptyStats()
 	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(ctx)
 
 	for requestEvent := range ch {
 		request, err := requestEvent.Unwrap()
 		if err != nil {
-			s.logger.WithError(err)
-			continue
+			return stats, err
 		}
 
 		if s.isUnresolvedBeforeTimeout(request.CreatedAt, request.State) {
@@ -72,7 +76,7 @@ func (s *Service) generateStats(ctx context.Context) Stats {
 		stats.requestTypeToNumber[requestType] += 1
 	}
 
-	return stats
+	return stats, nil
 }
 
 func (s *Service) isUnresolvedBeforeTimeout(createdAt time.Time, state int32) bool {
