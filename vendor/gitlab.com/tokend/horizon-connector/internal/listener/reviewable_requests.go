@@ -16,6 +16,14 @@ func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableR
 	return streamReviewableRequests(ctx, reqGetter, "", false)
 }
 
+func (q *Q) StreamAllReviewableRequestsOnce(ctx context.Context) (<-chan ReviewableRequestEvent) {
+	reqGetter := func(cursor string) ([]resources.Request, error) {
+		return q.opQ.AllRequests(cursor)
+	}
+
+	return streamReviewableRequests(ctx, reqGetter, "", true)
+}
+
 // StreamAllKYCRequests streams all ReviewableRequests of type KYC from very beginning,
 // sorted by ID
 func (q *Q) StreamAllKYCRequests(ctx context.Context, endlessly bool) (<-chan ReviewableRequestEvent) {

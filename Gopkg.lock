@@ -581,7 +581,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "f583944fa52fdd2565e4018c3736d92ce96219ae"
+  revision = "979a58079a6254ede929724db48e10602483f936"
 
 [[projects]]
   branch = "master"
@@ -598,7 +598,7 @@
   branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "8db9d3459e6f74bc3ac1b7b06ff179357e4c1e57"
+  revision = "568e206ea3758696bc6a827569cc1a6d4c8b0482"
 
 [[projects]]
   branch = "master"

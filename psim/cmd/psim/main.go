@@ -50,6 +50,8 @@ import (
 	// kyc
 	_ "gitlab.com/swarmfund/psim/psim/kyc/idmind"
 	_ "gitlab.com/swarmfund/psim/psim/kyc/investready"
+
+	_ "gitlab.com/swarmfund/psim/psim/request_monitor"
 )
 
 var (
