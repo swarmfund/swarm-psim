@@ -40,7 +40,7 @@ func (s *Service) Run(ctx context.Context) {
 		conf.ServiceRequestMonitor,
 		s.worker,
 		s.config.SleepPeriod,
-		10*time.Minute,
+		1*time.Minute,
 		1*time.Hour)
 }
 
