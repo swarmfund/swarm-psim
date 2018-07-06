@@ -46,7 +46,7 @@ func (s *Service) processNewKYCApplication(ctx context.Context, kycData *kyc.Dat
 	if err != nil {
 		err := s.rejectInvalidKYCData(ctx, request, err)
 		if err != nil {
-			return errors.Wrap(err, "Failed to reject KYCRequest because of invalid KYCData", fields)
+			return errors.Wrap(err, "Failed to reject (because of invalid KYCData) KYCRequest", fields)
 		}
 
 		// This log is of level Warn intentionally, as it's not normal situation, front-end must always provide valid KYC data
