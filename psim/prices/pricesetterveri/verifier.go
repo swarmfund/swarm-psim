@@ -41,6 +41,7 @@ func NewVerifier(
 }
 
 func (v *Verifier) Run(ctx context.Context) {
+	v.log.WithField("c", v.config).Info("Starting verifier.")
 	running.WithBackOff(ctx, v.log, "price_points_cleaner", v.cleanPricePoints, pointsCleaningPeriod, 0, 0)
 }
 
