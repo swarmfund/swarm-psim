@@ -154,6 +154,7 @@ func New(
 		},
 
 		reviewedKYCRequestNotifier: ReviewedKYCRequestNotifier{
+			log: log,
 			approvedKYCEmailSender:   approvedKYCEmailSender,
 			rejectedKYCEmailSender:   rejectedKYCEmailSender,
 			usaKYCEmailSender:        usaKYCEmailSender,
