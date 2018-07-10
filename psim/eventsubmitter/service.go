@@ -1,4 +1,4 @@
-package listener
+package eventsubmitter
 
 import (
 	"context"
@@ -12,8 +12,7 @@ import (
 )
 
 // ServiceConfig holds signer for horizon connector and some data for targets
-type 
-ServiceConfig struct {
+type ServiceConfig struct {
 	Signer          keypair.Full `fig:"signer,required"`
 	TxHistoryCursor string       `fig:"txhistory_cursor"`
 }
@@ -45,7 +44,7 @@ const (
 
 // Run starts dispatching events to analytics services
 func (s *Service) Run(ctx context.Context) {
-	running.UntilSuccess(ctx, s.logger, conf.ListenerService, s.dispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
+	running.UntilSuccess(ctx, s.logger, conf.EventSubmitterService, s.dispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
 }
 
 func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {

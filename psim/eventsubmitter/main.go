@@ -1,4 +1,4 @@
-package listener
+package eventsubmitter
 
 import (
 	"context"
@@ -11,12 +11,12 @@ import (
 )
 
 func init() {
-	app.RegisterService(conf.ListenerService, setupService)
+	app.RegisterService(conf.EventSubmitterService, setupService)
 }
 
 func setupService(ctx context.Context) (app.Service, error) {
 	var serviceConfig ServiceConfig
-	serviceConfigMap := app.Config(ctx).GetRequired(conf.ListenerService)
+	serviceConfigMap := app.Config(ctx).GetRequired(conf.EventSubmitterService)
 
 	err := figure.Out(&serviceConfig).From(serviceConfigMap).With(figure.BaseHooks, utils.ETHHooks).Please()
 	if err != nil {
