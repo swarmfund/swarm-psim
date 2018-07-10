@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/psim/psim/conf"
-
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/running"
-	horizon "gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
 )
 
@@ -30,7 +28,7 @@ func NewService(config ServiceConfig, horizon *horizon.Connector, broadcaster *G
 		config:      config,
 		horizon:     horizon,
 		broadcaster: broadcaster,
-		logger:      log.WithField("service", conf.BalanceReporterService),
+		logger:      log,
 	}
 }
 
@@ -55,14 +53,14 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 	defer func() {
 		close(emittedEvents)
 		if r := recover(); r != nil {
-			s.logger.Error("got panic while closing target channel")
+			s.logger.WithRecover(r).Error("got panic while closing target channel")
 		}
 	}()
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				s.logger.Error("catched panic while dispatching events")
+				s.logger.WithRecover(r).Error("catched panic while dispatching events")
 			}
 		}()
 		s.broadcaster.BroadcastEvents(ctx, emittedEvents)
@@ -70,7 +68,7 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 
 	for _, threshold := range []int64{1000, 10000, 100000, 1000000} {
 		if running.IsCancelled(ctx) {
-
+			// TODO
 		}
 
 		response, err := s.horizon.System().Balances(s.config.AssetCode, threshold)
