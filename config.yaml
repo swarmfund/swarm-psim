@@ -1,7 +1,7 @@
 # common
 
 log:
-  level: info
+  level: warn
   env: not-provided # set dev/stage/prod here
   project: not-provided
 
@@ -13,6 +13,7 @@ log:
 
 horizon:
   #addr: http://swarm:8000
+  addr: http://localhost:8000
 
 mixpanel:
   api_url: "https://api.mixpanel.com"

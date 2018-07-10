@@ -43,6 +43,10 @@ func newDepositVerifier(
 
 // This method is to implement Verifier interface from package verifier.
 func (v *Verifier) Run(ctx context.Context) {
+	v.log.WithFields(logan.F{
+		"external_system":       v.externalSystem,
+		"last_blocks_not_watch": v.lastBlocksNotWatch,
+	}).Info("Starting verifier.")
 	<-ctx.Done()
 }
 
@@ -68,6 +72,9 @@ func (v *Verifier) VerifyOperation(envelope xdr.TransactionEnvelope) (verifyErr,
 // TODO Try make me smaller
 func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr, err error) {
 	req := op.Request
+	fields := logan.F{
+		"request": req,
+	}
 
 	if string(req.Asset) != v.offchainHelper.GetAsset() {
 		return errors.Errorf("Invalid asset - expected (%s), got (%s).", v.offchainHelper.GetAsset(), req.Asset), nil
@@ -75,24 +82,26 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 
 	accountID, err := v.horizon.Balances().AccountID(req.Receiver.AsString())
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get AccountID by Balance from Horizon")
+		return nil, errors.Wrap(err, "Failed to get AccountID by Balance from Horizon", fields)
 	}
 	if accountID == nil {
 		return errors.Errorf("No Account was found by provided BalanceID"), nil
 	}
+	fields["account_id"] = accountID
 
 	offchainAddress, err := v.getOffchainAddress(*accountID, v.externalSystem)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Offchain Address of the Account")
+		return nil, errors.Wrap(err, "Failed to get Offchain Address of the Account", fields.Merge(logan.F{"eternal_system": v.externalSystem}))
 	}
 
 	extDetails := deposit.ExternalDetails{}
 	err = json.Unmarshal([]byte(string(req.ExternalDetails)), &extDetails)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to unmarshal ExternalDetails of the request", logan.F{
+		return nil, errors.Wrap(err, "Failed to unmarshal ExternalDetails of the request", fields.Merge(logan.F{
 			"raw_external_details": req.ExternalDetails,
-		})
+		}))
 	}
+	fields["external_details"] = extDetails
 
 	expectedReference := v.offchainHelper.BuildReference(extDetails.BlockNumber, extDetails.TXHash, offchainAddress, extDetails.OutIndex, 64)
 	if expectedReference != string(op.Reference) {
@@ -105,7 +114,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 
 	lastKnownBlockNumber, err := v.offchainHelper.GetLastKnownBlockNumber()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get last known Block number")
+		return nil, errors.Wrap(err, "Failed to get last known Block number", fields)
 	}
 	if lastKnownBlockNumber-extDetails.BlockNumber < v.lastBlocksNotWatch {
 		return errors.Errorf("Too early to process this Deposit, last existing Offchain Block is (%d), we don't watch last (%d) Blocks",
@@ -114,7 +123,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 
 	block, err := v.offchainHelper.GetBlock(extDetails.BlockNumber)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Block")
+		return nil, errors.Wrap(err, "Failed to get Block", fields)
 	}
 
 	return v.verifyOffchainBlock(*block, extDetails, uint64(req.Amount), offchainAddress), nil
@@ -125,6 +134,9 @@ func (v *Verifier) getOffchainAddress(accountAddress string, externalSystem int)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get Account by Address")
 	}
+	fields := logan.F{
+		"account": account,
+	}
 
 	for _, extSysAccount := range account.ExternalSystemAccounts {
 		if extSysAccount.Type.Value == externalSystem {
@@ -132,7 +144,7 @@ func (v *Verifier) getOffchainAddress(accountAddress string, externalSystem int)
 		}
 	}
 
-	return "", errNoExtAccount
+	return "", errors.From(errNoExtAccount, fields)
 }
 
 func (v *Verifier) verifyOffchainBlock(block deposit.Block, opExtDetails deposit.ExternalDetails, emissionAmount uint64, offchainAddress string) (checkErr error) {
