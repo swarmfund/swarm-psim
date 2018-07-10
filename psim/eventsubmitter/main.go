@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
@@ -30,8 +31,16 @@ func setupService(ctx context.Context) (app.Service, error) {
 	handler := NewTokendHandler(logger, horizonConnector).withTokendProcessors()
 	broadcaster := NewGenericBroadcaster(logger)
 
-	broadcaster.AddTarget(NewSalesforceTarget(app.Config(ctx).Salesforce()))
-	broadcaster.AddTarget(NewMixpanelTarget(app.Config(ctx).Mixpanel()))
+	for _, target := range serviceConfig.Targets {
+		switch target {
+		case "salesforce":
+			broadcaster.AddTarget(NewSalesforceTarget(app.Config(ctx).Salesforce()))
+		case "mixpanel":
+			broadcaster.AddTarget(NewMixpanelTarget(app.Config(ctx).Mixpanel()))
+		default:
+			return nil, errors.From(errors.New("unknown target"), logan.F{"target": target})
+		}
+	}
 
 	return NewService(serviceConfig, extractor, handler, broadcaster, logger), nil
 }

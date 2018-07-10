@@ -15,6 +15,7 @@ import (
 type ServiceConfig struct {
 	Signer          keypair.Full `fig:"signer,required"`
 	TxHistoryCursor string       `fig:"txhistory_cursor"`
+	Targets         []string     `fig:"targets,required"`
 }
 
 // Service consists config, logger, broadcaster and dependent components - extractor and handler
@@ -44,6 +45,7 @@ const (
 
 // Run starts dispatching events to analytics services
 func (s *Service) Run(ctx context.Context) {
+	s.logger.Info("starting")
 	running.UntilSuccess(ctx, s.logger, conf.EventSubmitterService, s.dispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
 }
 
