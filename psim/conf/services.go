@@ -2,7 +2,7 @@ package conf
 
 // All services existing in PSIM
 const (
-	BalanceReporterService = "reporter"
+	BalanceReporterService = "balance_reporter"
 	EventSubmitterService  = "event_submitter"
 
 	// external deployers
