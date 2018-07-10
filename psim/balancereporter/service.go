@@ -1,11 +1,10 @@
-package reporter
+package balancereporter
 
 import (
 	"context"
 	"time"
 
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/psim/psim/conf"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/running"

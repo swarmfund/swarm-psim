@@ -66,8 +66,8 @@ s3:
 # services
 
 services:
-# - reporter
-#  - listener
+  - balance_reporter
+  - event_submitter
 #  - bearer
 #  - notifier
 #  - charger
@@ -101,11 +101,11 @@ services:
 #  - template_provider
 #  - wallet_cleaner
 
-reporter:
+balance_reporter:
   signer: SX
   asset_code: "USD"
 
-listener:
+event_submitter:
   signer: SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
   txhistory_cursor: ""
 
