@@ -1,4 +1,4 @@
-package reporter
+package balancereporter
 
 import (
 	"context"
@@ -10,13 +10,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/running"
 	horizon "gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/keypair"
 )
-
-type ServiceConfig struct {
-	Signer    keypair.Full `fig:"signer,required"`
-	AssetCode string       `fig:"asset_code,required"`
-}
 
 type Service struct {
 	config      ServiceConfig
@@ -34,11 +28,6 @@ func NewService(config ServiceConfig, horizon *horizon.Connector, broadcaster *G
 	}
 }
 
-const (
-	defaultServiceRetryTimeIncrement = 1 * time.Second
-	defaultMaxServiceRetryTime       = 30 * time.Second
-)
-
 func (s *Service) Run(ctx context.Context) {
 	s.logger.Debug("Starting.")
 	targets := s.broadcaster.BufferedTargets
@@ -47,7 +36,7 @@ func (s *Service) Run(ctx context.Context) {
 			close(target.Data)
 		}()
 	}
-	running.WithBackOff(ctx, s.logger, "event_dispatcher", s.dispatchEvents, 1*time.Hour, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
+	running.WithBackOff(ctx, s.logger, "event_dispatcher", s.dispatchEvents, 1*time.Hour, 1*time.Second, 30*time.Second)
 }
 
 func (s *Service) dispatchEvents(ctx context.Context) error {
@@ -55,14 +44,14 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 	defer func() {
 		close(emittedEvents)
 		if r := recover(); r != nil {
-			s.logger.Error("got panic while closing target channel")
+			s.logger.WithRecover(r).Error("got panic while closing target channel")
 		}
 	}()
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				s.logger.Error("catched panic while dispatching events")
+				s.logger.WithRecover(r).Error("catched panic while dispatching events")
 			}
 		}()
 		s.broadcaster.BroadcastEvents(ctx, emittedEvents)
@@ -70,7 +59,7 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 
 	for _, threshold := range []int64{1000, 10000, 100000, 1000000} {
 		if running.IsCancelled(ctx) {
-
+			return nil
 		}
 
 		response, err := s.horizon.System().Balances(s.config.AssetCode, threshold)
@@ -78,7 +67,7 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 			return errors.Wrap(err, "failed to get balances from horizon")
 		}
 
-		asset, err := s.horizon.Assets().ByCode("SWM")
+		asset, err := s.horizon.Assets().ByCode("ETH")
 		if err != nil {
 			return errors.Wrap(err, "failed to get asset info from horizon")
 		}
