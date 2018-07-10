@@ -1,12 +1,12 @@
-package listener
+package eventsubmitter
 
 import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/swarmfund/psim/psim/listener/internal"
 	"gitlab.com/tokend/go/xdr"
 	horizon "gitlab.com/tokend/horizon-connector"
 )

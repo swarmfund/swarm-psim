@@ -1,4 +1,4 @@
-package listener
+package eventsubmitter
 
 import (
 	"gitlab.com/swarmfund/psim/mixpanel"

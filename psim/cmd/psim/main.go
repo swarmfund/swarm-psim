@@ -9,7 +9,8 @@ import (
 	// import services for side effects
 
 	_ "gitlab.com/swarmfund/psim/psim/balancereporter"
-	_ "gitlab.com/swarmfund/psim/psim/listener"
+	_ "gitlab.com/swarmfund/psim/psim/eventsubmitter"
+
 	// derivers
 	_ "gitlab.com/swarmfund/psim/psim/externalsystems/btc"
 	_ "gitlab.com/swarmfund/psim/psim/externalsystems/eth"

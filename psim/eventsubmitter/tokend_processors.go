@@ -1,8 +1,8 @@
-package listener
+package eventsubmitter
 
 import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/listener/internal"
+	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
 
 	horizon "gitlab.com/tokend/horizon-connector"
 

@@ -1,7 +1,7 @@
-package listener
+package eventsubmitter
 
 import (
-	"gitlab.com/swarmfund/psim/psim/listener/internal"
+	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
 )
 
 // BroadcastedEvent exported to be used in listener package

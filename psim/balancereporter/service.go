@@ -1,4 +1,4 @@
-package balancereporter
+package reporter
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func NewService(config ServiceConfig, horizon *horizon.Connector, broadcaster *G
 		config:      config,
 		horizon:     horizon,
 		broadcaster: broadcaster,
-		logger:      log.WithField("service", conf.BalanceReporterService),
+		logger:      log,
 	}
 }
 
@@ -67,7 +67,7 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 			return errors.Wrap(err, "failed to get balances from horizon")
 		}
 
-		asset, err := s.horizon.Assets().ByCode("ETH")
+		asset, err := s.horizon.Assets().ByCode("SWM")
 		if err != nil {
 			return errors.Wrap(err, "failed to get asset info from horizon")
 		}
