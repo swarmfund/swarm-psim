@@ -11,9 +11,11 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
+	"gitlab.com/swarmfund/psim/mixpanel"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/notifications"
-	horizon "gitlab.com/tokend/horizon-connector"
+	"gitlab.com/swarmfund/psim/salesforce"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 // TODO: viper's Get* methods won't throw error if value is invalid
@@ -37,6 +39,8 @@ type Config interface {
 	Notificator() *notificator.Connector
 	NotificationSender() *notifications.SlackSender
 	S3() *session.Session
+	Mixpanel() *mixpanel.Connector // TODO
+	Salesforce() *salesforce.Connector
 }
 
 type ViperConfig struct {
@@ -52,6 +56,8 @@ type ViperConfig struct {
 	notificationSender *notifications.SlackSender
 	notificatorClient  *notificator.Connector
 	stripeClient       *client.API
+	salesforce         *salesforce.Connector
+	mixpanel           *mixpanel.Connector
 }
 
 func NewViperConfig(fn string) *ViperConfig {

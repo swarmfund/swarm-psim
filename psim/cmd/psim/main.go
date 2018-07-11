@@ -8,6 +8,9 @@ import (
 
 	// import services for side effects
 
+	_ "gitlab.com/swarmfund/psim/psim/balancereporter"
+	_ "gitlab.com/swarmfund/psim/psim/eventsubmitter"
+
 	// derivers
 	_ "gitlab.com/swarmfund/psim/psim/externalsystems/btc"
 	_ "gitlab.com/swarmfund/psim/psim/externalsystems/eth"
@@ -69,7 +72,9 @@ var (
 			if err != nil {
 				entry.WithError(err).Fatal("failed to init app instance")
 			}
+
 			instance.Run()
+
 		},
 	}
 )
@@ -80,11 +85,13 @@ func main() {
 		if err := configInstance.Init(); err != nil {
 			entry.WithField("config", configFile).WithError(err).Fatal("failed to init config")
 		}
+
 	})
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "config.yaml", "config file")
 	rootCmd.AddCommand(runCmd)
 	err := rootCmd.Execute()
 	if err != nil {
+
 		entry.WithError(err).Fatal("something bad happened")
 	}
 

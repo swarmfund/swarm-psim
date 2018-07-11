@@ -13,7 +13,8 @@ func (d Documents) GetLoganFields() map[string]interface{} {
 }
 
 type DocFile struct {
-	ID string `json:"key"`
+	Name string `json:"name"`
+	ID   string `json:"key"`
 }
 
 func (f DocFile) GetLoganFields() map[string]interface{} {
