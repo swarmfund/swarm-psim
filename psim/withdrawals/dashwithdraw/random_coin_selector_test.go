@@ -3,11 +3,8 @@ package dashwithdraw
 import (
 	"testing"
 
-	"gitlab.com/swarmfund/psim/psim/bitcoin"
-
-	//"github.com/magiconair/properties/assert"
-	//"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
 func TestRandomCoinSelector_Fund(t *testing.T) {
