@@ -3,8 +3,6 @@ package dashwithdraw
 import (
 	"sync"
 
-	"math/rand"
-
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
@@ -76,18 +74,14 @@ func (s RandomCoinSelector) chooseUTXO(utxos map[bitcoin.Out]UTXO, amountToFill 
 		}
 	}
 
-	// Ideal was not found - choosing just a random UTXO.
-	indexToChoose := rand.Intn(len(utxos))
-	var i int
+	var desired bitcoin.Out
 	for k, v := range utxos {
-		if i == indexToChoose {
-			return k, v
+		if v.Value > utxos[desired].Value {
+			desired = k
 		}
-
-		i++
 	}
 
-	panic("Can never happen, but won't compile without return at the end.")
+	return desired, utxos[desired]
 }
 
 func (s RandomCoinSelector) TryRemoveUTXO(out bitcoin.Out) bool {

@@ -1,8 +1,10 @@
 package dashwithdraw
 
 import (
-	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"testing"
+
+	"gitlab.com/swarmfund/psim/psim/bitcoin"
+
 	//"github.com/magiconair/properties/assert"
 	//"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/assert"
@@ -13,8 +15,7 @@ func TestRandomCoinSelector_Fund(t *testing.T) {
 		UTXOs    []UTXO
 		Expected []bitcoin.Out
 		Change   int64
-		Amount int64
-
+		Amount   int64
 	}{
 		"single utxo": {
 			UTXOs: []UTXO{
@@ -23,47 +24,47 @@ func TestRandomCoinSelector_Fund(t *testing.T) {
 					Value:      500000000,
 					Out: bitcoin.Out{
 						Vout:   0,
-						TXHash: "abc",
+						TXHash: "hash0",
 					},
 				},
 			},
 			Change: 0,
 			Expected: []bitcoin.Out{
 				{
-				Vout:   0,
-				TXHash: "abc",
+					Vout:   0,
+					TXHash: "hash0",
 				},
 			},
 			Amount: 500000000,
 		},
-		"double utxo":{
+		"double utxo": {
 			UTXOs: []UTXO{
 				{
 					IsInactive: false,
-					Value: 100000000,
+					Value:      100000000,
 					Out: bitcoin.Out{
-						Vout: 0,
-						TXHash:"hash0",
+						Vout:   0,
+						TXHash: "hash0",
 					},
 				},
 				{
 					IsInactive: false,
-					Value: 100000000,
+					Value:      100000000,
 					Out: bitcoin.Out{
-						Vout: 1,
-						TXHash:"hash1",
+						Vout:   1,
+						TXHash: "hash1",
 					},
 				},
 			},
 			Change: 0,
 			Expected: []bitcoin.Out{
 				{
-					Vout: 1,
-					TXHash:"hash1",
+					Vout:   1,
+					TXHash: "hash1",
 				},
 				{
-					Vout: 0,
-					TXHash:"hash0",
+					Vout:   0,
+					TXHash: "hash0",
 				},
 			},
 			Amount: 200000000,
@@ -98,17 +99,13 @@ func TestRandomCoinSelector_Fund(t *testing.T) {
 			Change: 0,
 			Expected: []bitcoin.Out{
 				{
-					Vout:   0,
-					TXHash: "hash0",
-				},
-				{
-					Vout:   1,
-					TXHash: "hash1",
+					Vout:   2,
+					TXHash: "hash2",
 				},
 			},
 			Amount: 300000000,
 		},
-		"multiple":{
+		"multiple": {
 			UTXOs: []UTXO{
 				{
 					IsInactive: false,
@@ -127,28 +124,26 @@ func TestRandomCoinSelector_Fund(t *testing.T) {
 					},
 				},
 			},
-			Change: 0,
+			Change: 50000000,
 			Expected: []bitcoin.Out{
 				{
 					Vout:   1,
 					TXHash: "hash1",
 				},
 			},
-			Amount: 200000000,
+			Amount: 150000000,
 		},
 	}
 
-
-
-	for _, test := range tests{
+	for k, test := range tests {
+		println(k)
 
 		s := NewRandomCoinSelector(0)
-		for _, u := range test.UTXOs{
+		for _, u := range test.UTXOs {
 			s.AddUTXO(u)
 		}
 
 		utxos, change, _ := s.Fund(test.Amount)
-
 		assert.ElementsMatch(t, utxos, test.Expected)
 		assert.EqualValues(t, test.Change, change)
 	}
