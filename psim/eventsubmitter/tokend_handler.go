@@ -70,25 +70,22 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 	blobs := th.HorizonConnector.Blobs()
 
 	accountKycData := account.KYC.Data
-	if accountKycData == nil {
-		return nil, nil
-	}
-
-	blob, err := blobs.Blob(accountKycData.BlobID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to lookup blob by id", logan.F{
-			"account_kyc_blob_id": accountKycData.BlobID,
-		})
-	}
-	if blob == nil {
-		return nil, nil
-	}
-
-	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
-	if err != nil {
-		th.logger.WithError(errors.Wrap(err, "failed to parse kyc data", logan.F{
-			"kyc_attributes": blob.Attributes.Value,
-		})).Warn("got event with old kyc")
+	var kycData *kyc.Data
+	if accountKycData != nil {
+		blob, err := blobs.Blob(accountKycData.BlobID)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to lookup blob by id", logan.F{
+				"account_kyc_blob_id": accountKycData.BlobID,
+			})
+		}
+		if blob != nil {
+			kycData, err = kyc.ParseKYCData(blob.Attributes.Value)
+			if err != nil {
+				th.logger.WithError(errors.Wrap(err, "failed to parse kyc data", logan.F{
+					"kyc_attributes": blob.Attributes.Value,
+				})).Warn("got event with old kyc")
+			}
+		}
 	}
 
 	var name string
