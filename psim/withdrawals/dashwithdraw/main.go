@@ -38,7 +38,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		log,
 		config,
 		globalConfig.Bitcoin(),
-		NewRandomCoinSelector(config.DustThreshold),
+		NewGreedyCoinSelector(config.DustThreshold),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create CommonDashHelper")
