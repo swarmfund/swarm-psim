@@ -73,18 +73,18 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 	var kycData *kyc.Data
 	if accountKycData != nil {
 		blob, err := blobs.Blob(accountKycData.BlobID)
+		// returns are omitted intentionally to make events event without kyc-data
 		if err != nil {
-			// returns are omitted intentionally to make events event without kyc-data
 			th.logger.WithError(errors.Wrap(err, "failed to lookup blob by id", logan.F{
 				"account_kyc_blob_id": accountKycData.BlobID,
-			})).Warn("failed to get blob from horizon")
+			})).Error("failed to get blob from horizon")
 		}
 		if blob != nil {
 			kycData, err = kyc.ParseKYCData(blob.Attributes.Value)
 			if err != nil {
 				th.logger.WithError(errors.Wrap(err, "failed to parse kyc data", logan.F{
 					"kyc_attributes": blob.Attributes.Value,
-				})).Warn("got event with old kyc")
+				})).Error("got event with old kyc")
 			}
 		}
 	}
