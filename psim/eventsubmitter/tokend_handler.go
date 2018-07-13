@@ -74,9 +74,10 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 	if accountKycData != nil {
 		blob, err := blobs.Blob(accountKycData.BlobID)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to lookup blob by id", logan.F{
+			// returns are omitted intentionally to make events event without kyc-data
+			th.logger.WithError(errors.Wrap(err, "failed to lookup blob by id", logan.F{
 				"account_kyc_blob_id": accountKycData.BlobID,
-			})
+			})).Warn("failed to get blob from horizon")
 		}
 		if blob != nil {
 			kycData, err = kyc.ParseKYCData(blob.Attributes.Value)
