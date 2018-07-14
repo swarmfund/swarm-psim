@@ -5,16 +5,14 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
+	"math/rand"
 )
 
 var (
 	ErrInsufficientFunds = errors.New("Insufficient funds.")
 )
 
-const (
-	greedy = iota
-	biggest = iota
-)
+
 
 type GreedyCoinSelector struct {
 	dustThreshold int64
@@ -47,50 +45,157 @@ func (s GreedyCoinSelector) Fund(amount int64) (utxos []bitcoin.Out, change int6
 	}
 
 	var totalFunded int64
-	var result []bitcoin.Out
-	mode := greedy
+	var result map[bitcoin.Out]UTXO
+
 	activeUTXOS := s.getActiveUTXOs()
-	for totalFunded < amount {
-		if len(activeUTXOS) == 0 {
-			// Just in case
-			return nil, 0, ErrInsufficientFunds
-		}
 
-		chosenOut, chosenUTXO := s.chooseUTXO(activeUTXOS, amount-totalFunded, mode)
-		//if went wrong way
-		if _, ok := activeUTXOS[chosenOut]; !ok{
-
-			mode = biggest
-			activeUTXOS = s.getActiveUTXOs()
-			result = make([]bitcoin.Out, 0)
-			totalFunded = 0
-			continue
-		}
-		result = append(result, chosenOut)
-		totalFunded += chosenUTXO.Value
-		delete(activeUTXOS, chosenOut)
+	if len(activeUTXOS) == 0 {
+		// Just in case
+		return nil, 0, ErrInsufficientFunds
 	}
 
-	return result, totalFunded - amount, nil
+	result, totalFunded = s.chooseUTXOs(activeUTXOS, amount)
+
+	return getKeys(result), totalFunded - amount, nil
 }
 
-func (s GreedyCoinSelector) chooseUTXO(utxos map[bitcoin.Out]UTXO, amountToFill int64, mode int) (bitcoin.Out, UTXO) {
-	var desired bitcoin.Out
-	switch  mode {
-	case greedy:
-		for k, v := range utxos {
-			if v.Value > utxos[desired].Value && v.Value < amountToFill {
-				desired = k
-			}
-		}
-	case biggest:
-		for k, v := range utxos {
-			if v.Value > utxos[desired].Value{
-				desired = k
-			}
+func (s GreedyCoinSelector) chooseUTXOs(utxos map[bitcoin.Out]UTXO, amountToFill int64) (map[bitcoin.Out]UTXO, int64) {
+	for k, v := range utxos {
+		if v.Value >= amountToFill && v.Value <= (amountToFill+s.dustThreshold) {
+			// Ideal UTXO found
+			result := make(map[bitcoin.Out]UTXO)
+			result[k] = v
+			return result, v.Value
 		}
 	}
-	return desired, utxos[desired]
+
+	//Ideal UTXO not found, splitting into 2 groups
+	lesser := make(map[bitcoin.Out]UTXO)
+	greater := make(map[bitcoin.Out]UTXO)
+	var lesserAmount int64
+
+	for k, v := range utxos{
+		if v.Value < amountToFill{
+			lesser[k] = v
+			lesserAmount += v.Value
+			continue
+		}
+		greater[k] = v
+	}
+
+	//If small UTXOs can fullfil amount
+	if lesserAmount >= amountToFill{
+		keys := getKeys(lesser)
+		permutations, isEmpty := s.getPermutations(lesser, keys, amountToFill)
+
+		if !isEmpty{
+			indexToChoose := rand.Intn(len(permutations))
+			sum := sumOfUTXOs(permutations[indexToChoose])
+			for i, p := range permutations{
+				newSum := sumOfUTXOs(p)
+				if newSum < sum {
+					sum = newSum
+					indexToChoose = i
+				}
+			}
+
+			return permutations[indexToChoose], sum
+		}
+	}
+
+	//choosing one minimal UTXO from the ones that greater than amount
+	minOut := chooseRandomInMap(greater)
+	for i, utxo := range greater{
+		if utxo.Value < greater[minOut].Value {
+			minOut = i
+		}
+	}
+	result := make(map[bitcoin.Out]UTXO)
+	result[minOut] = greater[minOut]
+
+	return result, result[minOut].Value
+}
+
+func sumOfUTXOs(utxos map[bitcoin.Out]UTXO) int64{
+	var sum int64
+	for _, v := range utxos{
+		sum += v.Value
+	}
+	return sum
+}
+
+
+func chooseRandomInMap(utxos map[bitcoin.Out]UTXO) bitcoin.Out{
+	indexToChoose := rand.Intn(len(utxos))
+	var i int
+	for k := range utxos {
+		if i == indexToChoose {
+			return k
+		}
+		i++
+	}
+	return bitcoin.Out{}
+}
+
+func (s GreedyCoinSelector) getPermutations(utxos map[bitcoin.Out]UTXO, keys []bitcoin.Out, amountToFill int64) ([]map[bitcoin.Out]UTXO, bool){
+	rounds := min(1 << uint(len(utxos)), 1000)
+
+	options := powerSet(rounds, keys)
+
+	result := make([]map[bitcoin.Out]UTXO, 0, rounds)
+
+	for _, option := range options{
+
+		combination := make(map[bitcoin.Out]UTXO)
+		var sum int64
+		for _, key := range option{
+			combination[key] = utxos[key]
+			sum += utxos[key].Value
+		}
+		if sum < amountToFill{
+			continue
+		}
+		result = append(result, combination)
+	}
+
+	var isEmpty bool
+	if len(result) == 0{
+		isEmpty = true
+	}
+	return result, isEmpty
+}
+
+func getKeys(utxos map[bitcoin.Out]UTXO) []bitcoin.Out{
+	keys := make([]bitcoin.Out, 0, len(utxos))
+	for k := range utxos {
+		keys = append(keys, k)
+	}
+
+	return keys
+}
+func powerSet(powerSetSize int, original []bitcoin.Out) [][]bitcoin.Out{
+	result := make([][]bitcoin.Out, 0, powerSetSize)
+
+	var index int
+	for index < powerSetSize {
+		var subSet []bitcoin.Out
+
+		for j, elem := range original {
+			if index& (1 << uint(j)) > 0 {
+				subSet = append(subSet, elem)
+			}
+		}
+		result = append(result, subSet)
+		index++
+	}
+	return result
+}
+
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
 }
 
 func (s GreedyCoinSelector) getActiveUTXOs() map[bitcoin.Out]UTXO{
