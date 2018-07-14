@@ -8,23 +8,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 	"gitlab.com/tokend/go/doorman"
 )
 
-func NewGetTemplateV2Req(r *http.Request) (GetTemplateV2Req, error) {
-	request := GetTemplateV2Req{
-		Key: chi.URLParam(r, "template"),
-	}
-	return request, request.Validate()
-}
-
 func GetTemplateV2(w http.ResponseWriter, r *http.Request) {
-	request, err := NewGetTemplateV2Req(r)
+	request, err := resources.NewGetTemplateRequest(r)
 	if err != nil {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return

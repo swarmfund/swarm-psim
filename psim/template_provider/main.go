@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-
 	"gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/tokend/go/doorman"
 )

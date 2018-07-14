@@ -1,18 +1,8 @@
-package handlers
+package resources
 
-import (
-	. "github.com/go-ozzo/ozzo-validation"
-)
+import . "github.com/go-ozzo/ozzo-validation"
 
 type (
-	GetTemplateV2Req struct {
-		Key string `json:"-"`
-	}
-	PutTemplateV2Req struct {
-		Key  string         `json:"-"`
-		Data TemplateV2Data `json:"data"`
-	}
-
 	TemplateV2 struct {
 		Data TemplateV2Data `json:"data"`
 	}
@@ -27,22 +17,9 @@ type (
 	}
 )
 
-func (p PutTemplateV2Req) Validate() error {
-	return ValidateStruct(&p,
-		Field(&p.Key, Required),
-		Field(&p.Data, Required),
-	)
-}
-
 func (p TemplateV2) Validate() error {
 	return ValidateStruct(&p,
 		Field(&p.Data, Required),
-	)
-}
-
-func (r GetTemplateV2Req) Validate() error {
-	return ValidateStruct(&r,
-		Field(&r.Key, Required),
 	)
 }
 

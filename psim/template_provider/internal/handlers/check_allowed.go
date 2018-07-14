@@ -9,6 +9,7 @@ import (
 	"gitlab.com/tokend/go/signcontrol"
 )
 
+// TODO move to ape
 func RenderDoormanErr(w http.ResponseWriter, err error) {
 	switch err {
 	case signcontrol.ErrNotSigned, signcontrol.ErrValidUntil, signcontrol.ErrExpired, signcontrol.ErrSignerKey, signcontrol.ErrSignature, signcontrol.ErrNotAllowed:

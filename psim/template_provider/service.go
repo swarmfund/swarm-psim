@@ -2,22 +2,18 @@ package template_provider
 
 import (
 	"context"
-
 	"fmt"
-
 	"net/http"
-
-	"github.com/go-chi/chi"
-
-	"gitlab.com/distributed_lab/ape"
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/template_provider/handlers"
-	"gitlab.com/swarmfund/psim/psim/template_provider/middlewares"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/go-chi/chi"
+	"gitlab.com/distributed_lab/ape"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/internal"
+	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers"
+	"gitlab.com/swarmfund/psim/psim/template_provider/internal/middlewares"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/horizon-connector"
