@@ -17,17 +17,26 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/horizon-connector"
 )
 
+// AccountQ interface for doorman initialization
+type AccountQ interface {
+	Signers(address string) ([]resources.Signer, error)
+}
+
 type Service struct {
-	API        Config
+	config     *Config
 	uploader   *s3.S3
 	downloader *s3manager.Downloader
 	log        *logan.Entry
-	horizon    *horizon.Connector
 	info       *horizon.Info
+
+	infoer  internal.Infoer
+	doorman doorman.Doorman
 }
 
 func Router(
@@ -63,31 +72,36 @@ func Router(
 	return r
 }
 
-func New(sess *session.Session, log *logan.Entry, api Config, info *horizon.Info, horizon *horizon.Connector) *Service {
+func New(
+	session *session.Session,
+	log *logan.Entry,
+	config *Config,
+	infoer internal.Infoer,
+	doorman doorman.Doorman,
+) *Service {
 	return &Service{
-		API:        api,
-		uploader:   s3.New(sess),
-		downloader: s3manager.NewDownloader(sess),
+		config:     config,
+		uploader:   s3.New(session),
+		downloader: s3manager.NewDownloader(session),
 		log:        log,
-		horizon:    horizon,
-		info:       info,
+		infoer:     infoer,
+		doorman:    doorman,
 	}
 }
 
 func (s *Service) Run(ctx context.Context) {
-
 	r := Router(
 		s.log,
 		s.uploader,
 		s.downloader,
-		s.API.Bucket,
+		s.config.Bucket,
 		s.info,
-		doorman.New(s.API.SkipSignatureCheck, s.horizon.Accounts()),
+		s.doorman,
 	)
 
-	addr := fmt.Sprintf("%s:%d", s.API.Host, s.API.Port)
+	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 	if err := http.ListenAndServe(addr, r); err != nil {
-		s.log.WithError(err).Error("failed to listen and serve")
+		s.log.WithError(err).Error("listen and serve died")
 		return
 	}
 }
