@@ -7,7 +7,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/horizon-connector/internal"
-	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/regources"
 )
 
@@ -21,7 +20,8 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
-func (q *Q) Info() (info *resources.Info, err error) {
+// Info returns basic information about the network
+func (q *Q) Info() (info *regources.Info, err error) {
 	response, err := q.client.Get("/")
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
