@@ -11,7 +11,6 @@ import (
 	"gitlab.com/distributed_lab/ape/problems"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/doorman"
 )
 
 func GetTemplate(w http.ResponseWriter, r *http.Request) {
@@ -23,15 +22,8 @@ func GetTemplate(w http.ResponseWriter, r *http.Request) {
 
 	bucket := Bucket(r)
 
-	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {
-		RenderDoormanErr(w, err)
-		return
-	}
-
-	downloader := Downloader(r)
-
 	file := &aws.WriteAtBuffer{}
-	_, err := downloader.Download(file,
+	_, err := Downloader(r).Download(file,
 		&s3.GetObjectInput{
 			Bucket: &bucket,
 			Key:    &key,
@@ -54,6 +46,5 @@ func GetTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template := file.Bytes()
-	w.Write(template)
+	w.Write(file.Bytes())
 }
