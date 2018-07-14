@@ -3,11 +3,11 @@ package template_provider
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-
-	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/internal"
+	"gitlab.com/tokend/go/doorman"
 )
 
 func init() {
@@ -15,23 +15,20 @@ func init() {
 }
 
 func setupFn(ctx context.Context) (app.Service, error) {
-	globalConfig := app.Config(ctx)
-
-	//default
-	api := Config{
-		Host: "localhost",
-		Port: 2323,
-	}
-	err := figure.Out(&api).From(globalConfig.Get(conf.ServiceTemplateProvider)).Please()
+	config, err := NewConfig(app.Config(ctx).Get(conf.ServiceTemplateProvider))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to figure out")
+		return nil, errors.Wrap(err, "failed to init config")
 	}
 
-	info, err := app.Config(ctx).Horizon().Info()
-	if err != nil {
-		app.Log(ctx).WithError(err).Error("failed to get horizon")
-		return nil, errors.Wrap(err, "Failed to get horizon info")
-	}
+	horizon := app.Config(ctx).Horizon()
+	infoer := internal.NewLazyInfo(ctx, app.Log(ctx), horizon.System())
+	doorman := doorman.New(config.SkipSignatureCheck, horizon.Accounts())
 
-	return New(app.Config(ctx).S3(), app.Log(ctx), api, info, app.Config(ctx).Horizon()), nil
+	return New(
+		app.Config(ctx).S3(),
+		app.Log(ctx),
+		config,
+		infoer,
+		doorman,
+	), nil
 }

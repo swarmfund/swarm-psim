@@ -3,38 +3,32 @@ package handlers
 import (
 	"net/http"
 
+	"encoding/json"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 )
 
-func GetTemplate(w http.ResponseWriter, r *http.Request) {
-	key := chi.URLParam(r, "template")
-	if len(key) == 0 {
-		ape.RenderErr(w, problems.BadRequest(errors.New("invalid key"))...)
+func GetTemplateV2(w http.ResponseWriter, r *http.Request) {
+	request, err := resources.NewGetTemplateRequest(r)
+	if err != nil {
+		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
 
 	bucket := Bucket(r)
 
-	if err := Doorman(r, doorman.SignerOf(Info(r).MasterAccountID)); err != nil {
-		RenderDoormanErr(w, err)
-		return
-	}
-
-	downloader := Downloader(r)
-
 	file := &aws.WriteAtBuffer{}
-	_, err := downloader.Download(file,
+	_, err = Downloader(r).Download(file,
 		&s3.GetObjectInput{
 			Bucket: &bucket,
-			Key:    &key,
+			Key:    &request.Key,
 		})
 	if err != nil {
 		cause := errors.Cause(err)
@@ -49,11 +43,23 @@ func GetTemplate(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		Log(r).WithFields(logan.F{"bucket": bucket, "key": key}).WithError(err).Error("Failed to download")
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": request.Key}).WithError(err).Error("Failed to download")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
-	template := file.Bytes()
-	w.Write(template)
+	raw := file.Bytes()
+	var template resources.TemplateV2
+	err = json.Unmarshal(raw, &template)
+	if err != nil {
+		Log(r).WithFields(logan.F{"bucket": bucket, "key": request.Key}).
+			WithError(err).
+			Error("Failed to unmarshal")
+		ape.RenderErr(w, problems.Conflict())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(template)
+
 }
