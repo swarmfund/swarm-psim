@@ -14,6 +14,7 @@ import (
 
 	"strings"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -170,11 +171,16 @@ func (s *Service) processPendingWithdrawRequest(ctx context.Context, request hor
 // WaitForTX is a blocking method, it only returns when TX1 has 12 confirmations or ctx is cancelled.
 func (s *Service) waitForTXWithTransfer(ctx context.Context, ethTX1Hash string) Transfer {
 	var transfer Transfer
+	runnerName := fmt.Sprintf("eth_tx_1_%dconfirmations_waiter", Confirmations)
 
-	running.UntilSuccess(ctx, s.log.WithField("eth_tx_hash", ethTX1Hash), "eth_tx_1_12confirmations_waiter", func(ctx context.Context) (bool, error) {
-		// TransactionReceipt returns error if TX is still pending
+	running.UntilSuccess(ctx, s.log.WithField("eth_tx_hash", ethTX1Hash), runnerName, func(ctx context.Context) (bool, error) {
 		receipt, err := s.ethClient.TransactionReceipt(ctx, common.HexToHash(ethTX1Hash))
 		if err != nil {
+			if err == ethereum.NotFound {
+				// Still pending
+				return false, nil
+			}
+
 			return false, errors.Wrap(err, "Failed to obtain TransactionReceipt")
 		}
 

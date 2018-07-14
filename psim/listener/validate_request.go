@@ -36,7 +36,7 @@ func ValidateHTTPRequest(w http.ResponseWriter, r *http.Request, log *logan.Entr
 		return nil, true
 	}
 
-	err = doormanChecker.Check(r, doorman.SignatureOf(request.AccountID))
+	err = doormanChecker.Check(r, doorman.SignerOf(request.AccountID))
 	if err != nil {
 		log.WithError(err).Warn("Request signature is invalid.")
 		WriteError(w, http.StatusUnauthorized, err.Error())

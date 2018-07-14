@@ -7,6 +7,8 @@ import (
 
 	"fmt"
 
+	"strings"
+
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/listener"
 )
@@ -43,17 +45,9 @@ func (s *Service) processUserRequest(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
-	handleDoesntExist, err := s.connector.CheckUsername(ctx, request.TelegramHandle)
-	if err != nil {
-		logger.WithError(err).Error("Failed to check existence of Telegram handle.")
-		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
-		return
-	}
-	if handleDoesntExist {
-		logger.Info("Telegram handle does not exist.")
-		listener.WriteError(w, http.StatusNotFound, fmt.Sprintf("Telegram handle '%s' does not exist.", request.TelegramHandle))
-		return
-	}
+	//if ok := s.checkHandle(ctx, w, request); !ok {
+	//	return
+	//}
 
 	balanceID, err := s.balanceIDProvider.GetBalanceID(request.AccountID, s.config.Issuance.Asset)
 	if err != nil {
@@ -89,4 +83,27 @@ func (s *Service) processUserRequest(ctx context.Context, w http.ResponseWriter,
 	bb := []byte(response)
 	listener.WriteResponse(w, http.StatusCreated, bb)
 	return
+}
+
+func (s *Service) checkHandle(ctx context.Context, w http.ResponseWriter, request UserRequest) bool {
+	logger := s.log.WithField("request", request)
+
+	handle := request.TelegramHandle
+	if strings.HasPrefix(handle, "@") {
+		handle = handle[:len(handle)-1]
+	}
+
+	handleDoesntExist, err := s.connector.CheckUsername(ctx, handle)
+	if err != nil {
+		logger.WithError(err).Error("Failed to check existence of Telegram handle.")
+		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
+		return false
+	}
+	if handleDoesntExist {
+		logger.Info("Telegram handle does not exist.")
+		listener.WriteError(w, http.StatusNotFound, fmt.Sprintf("Telegram handle '%s' does not exist.", request.TelegramHandle))
+		return false
+	}
+
+	return true
 }

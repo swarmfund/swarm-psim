@@ -2,9 +2,10 @@ package listener
 
 import (
 	"context"
-	"gitlab.com/tokend/horizon-connector/internal/resources"
-	"gitlab.com/distributed_lab/logan/v3/errors"
+
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/tokend/horizon-connector/internal/resources"
 )
 
 // DEPRECATED
@@ -48,7 +49,7 @@ func (q *Q) Transactions(result chan<- resources.TransactionEvent) <-chan error 
 
 // DEPRECATED
 // Use StreamTXs instead
-func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.TransactionEvent, <- chan error) {
+func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.TransactionEvent, <-chan error) {
 	txStream := make(chan resources.TransactionEvent)
 	errChan := make(chan error)
 
@@ -114,7 +115,7 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 // into returned channel (TransactionEvent + error).
 //
 // See StreamTXsFromCursor method for more details.
-func (q *Q) StreamTXs(ctx context.Context, stopOnEmptyPage bool) (<-chan TXPacket) {
+func (q *Q) StreamTXs(ctx context.Context, stopOnEmptyPage bool) <-chan TXPacket {
 	return q.StreamTXsFromCursor(ctx, "", stopOnEmptyPage)
 }
 
@@ -131,12 +132,19 @@ func (q *Q) StreamTXs(ctx context.Context, stopOnEmptyPage bool) (<-chan TXPacke
 //
 // Returned TransactionEvent can have nil Transaction with non-empty Meta,
 // such a TransactionEvent is sent at the end of every page of Transactions retrieved from Horizon.
-func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyPage bool) (<-chan TXPacket) {
+func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyPage bool) <-chan TXPacket {
 	txStream := make(chan TXPacket)
 
 	go func() {
 		defer func() {
-			close(txStream)
+			if r := recover(); r != nil {
+				txStream <- TXPacket{
+					body: nil,
+					err:  errors.Wrap(errors.FromPanic(r), "panic happened, stopping work, leaving channel unclosed"),
+				}
+			} else {
+				close(txStream)
+			}
 		}()
 
 		for {
@@ -181,7 +189,6 @@ func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyP
 					// Ctx was canceled
 					return
 				}
-
 				cursor = tx.PagingToken
 			}
 
@@ -204,7 +211,7 @@ func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyP
 
 func streamTxEvent(ctx context.Context, txEvent resources.TransactionEvent, txStream chan<- resources.TransactionEvent) bool {
 	select {
-	case <- ctx.Done():
+	case <-ctx.Done():
 		return false
 	case txStream <- txEvent:
 		return true
@@ -213,7 +220,7 @@ func streamTxEvent(ctx context.Context, txEvent resources.TransactionEvent, txSt
 
 func streamTxPacket(ctx context.Context, txPacket TXPacket, txStream chan<- TXPacket) bool {
 	select {
-	case <- ctx.Done():
+	case <-ctx.Done():
 		return false
 	case txStream <- txPacket:
 		return true

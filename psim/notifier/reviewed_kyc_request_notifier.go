@@ -7,9 +7,9 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 )
 
 type ReviewableRequestConnector interface {
@@ -17,6 +17,7 @@ type ReviewableRequestConnector interface {
 }
 
 type ReviewedKYCRequestNotifier struct {
+	log                    *logan.Entry
 	approvedKYCEmailSender EmailSender
 	usaKYCEmailSender      EmailSender
 	rejectedKYCEmailSender EmailSender
@@ -44,14 +45,16 @@ func (n *ReviewedKYCRequestNotifier) listenAndProcessReviewedKYCRequests(ctx con
 			return errors.Wrap(err, "ReviewRequestOpStreamer sent error")
 		}
 
-		if reviewRequestOp.RequestType != xdr.ReviewableRequestTypeUpdateKyc.ShortString() {
-			// Normally should never happen, but just in case. Ignoring.
-			return nil
-		}
-
 		fields := logan.F{
 			"request_id":   reviewRequestOp.RequestID,
 			"paging_token": reviewRequestOp.PT,
+		}
+
+		n.log.WithFields(fields).Debug("processing request")
+
+		if reviewRequestOp.RequestType != xdr.ReviewableRequestTypeUpdateKyc.ShortString() {
+			// Normally should never happen, but just in case. Ignoring.
+			return nil
 		}
 
 		cursor, err := strconv.ParseUint(reviewRequestOp.PT, 10, 64)
@@ -59,24 +62,31 @@ func (n *ReviewedKYCRequestNotifier) listenAndProcessReviewedKYCRequests(ctx con
 			return errors.Wrap(err, "Failed to parse PagingToken", fields)
 		}
 
-		if n.canNotifyAboutApprovedKYC(cursor) && n.isFullyApprovedKYC(*reviewRequestOp) {
+		isCanNotifyApproved := n.canNotifyAboutApprovedKYC(cursor)
+		isCanNotifyRejected := n.canNotifyAboutRejectedKYC(cursor)
+		isFullyApproved := n.isFullyApprovedKYC(*reviewRequestOp)
+		isRejected := n.isRejectedKYC(*reviewRequestOp)
+
+		fields.Merge(logan.F{
+			"is_can_notify_approved": isCanNotifyApproved,
+			"is_can_notify_rejected": isCanNotifyRejected,
+			"is_fully_approved":      isFullyApproved,
+			"is_rejected":            isRejected,
+		})
+
+		if isCanNotifyApproved && isFullyApproved {
+			n.log.WithFields(fields).Debug("notifying approve")
 			err := n.notifyAboutApprovedKYCRequest(ctx, reviewRequestOp.RequestID)
 			if err != nil {
 				return errors.Wrap(err, "failed to notify about approved KYC request", fields)
 			}
 		}
 
-		if n.canNotifyAboutRejectedKYC(cursor) && n.isRejectedKYC(*reviewRequestOp) {
+		if isCanNotifyRejected && isRejected {
+			n.log.WithFields(fields).Debug("notifying reject")
 			err := n.notifyAboutRejectedKYCRequest(ctx, reviewRequestOp.RequestID)
 			if err != nil {
 				return errors.Wrap(err, "Failed to notify about rejected KYCRequest", fields)
-			}
-		}
-
-		if n.canNotifyAboutUSAKyc(cursor) && reviewRequestOp.Action == xdr.ReviewRequestOpActionApprove.ShortString() {
-			err := n.tryNotifyAboutUSAKyc(ctx, reviewRequestOp.RequestID)
-			if err != nil {
-				return errors.Wrap(err, "Failed to notify about USA KYC request", fields)
 			}
 		}
 

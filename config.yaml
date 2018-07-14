@@ -15,6 +15,17 @@ horizon:
   #addr: http://swarm:8000
   addr: http://localhost:8000
 
+mixpanel:
+  api_url: "https://api.mixpanel.com"
+  token: "xxxxxxxxxxxxxxxxxxxxxxxxx"
+
+salesforce:
+  api_url: "https://xxxxxxxx.salesforce.com/"
+  client_secret: "123456789123"
+  client_id: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  username: "user@test.com"
+  password: "password"
+
 notificator:
   url: http://swarm:9009
   secret: string
@@ -55,6 +66,8 @@ s3:
 # services
 
 services:
+  - balance_reporter
+  - event_submitter
 #  - bearer
 #  - notifier
 #  - charger
@@ -87,6 +100,14 @@ services:
 
 #  - template_provider
 #  - wallet_cleaner
+
+balance_reporter:
+  signer: SX
+  asset_code: "USD"
+
+event_submitter:
+  signer: SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  txhistory_cursor: ""
 
 bearer:
   source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC

@@ -62,6 +62,7 @@ func (s *createKYCRequestOpStreamer) stream(ctx context.Context, cursor string) 
 func (s *createKYCRequestOpStreamer) startStream(ctx context.Context) {
 	defer close(s.results)
 	cursor := ""
+
 	for {
 		select {
 		case <-ctx.Done():

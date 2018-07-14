@@ -22,6 +22,21 @@ type Config struct {
 	VerifierServiceName string       `fig:"verifier_service_name,required"`
 }
 
+func (c Config) GetLoganFields() map[string]interface{} {
+	return map[string]interface{} {
+		"host": c.Host,
+		"port": c.Port,
+
+		"base_asset": c.BaseAsset,
+		"quote_asset": c.QuoteAsset,
+		"providers": c.Providers,
+		"providers_to_agree": c.ProvidersToAgree,
+		"max_price_delta_percent": c.MaxPriceDeltaPercent,
+
+		"verifier_service_name": c.VerifierServiceName,
+	}
+}
+
 func NewConfig(configData map[string]interface{}) (*Config, error) {
 	config := &Config{}
 	err := figure.

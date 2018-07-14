@@ -160,7 +160,8 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, addr string, amount *b
 
 // TSWRequest stands from TwoStepWithdraw Request
 func (s *Service) approveTSWRequest(request horizon.Request, rawETHTxHex, ethTXHash string) error {
-	newPreConfirmDetails := make(map[string]string)
+	newPreConfirmDetails := make(map[string]interface{})
+	newPreConfirmDetails[VersionPreConfirmDetailsKey] = 3
 	newPreConfirmDetails[TX1PreConfirmDetailsKey] = rawETHTxHex
 	newPreConfirmDetails[TX1HashPreConfirmDetailsKey] = ethTXHash
 

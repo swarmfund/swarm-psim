@@ -2,6 +2,9 @@ package conf
 
 // All services existing in PSIM
 const (
+	BalanceReporterService = "balance_reporter"
+	EventSubmitterService  = "event_submitter"
+
 	// external deployers
 	ServiceBTCDeployer = "external_btc_deployer"
 	ServiceETHDeployer = "external_eth_deployer"
@@ -50,6 +53,8 @@ const (
 
 	ServiceTemplateProvider = "template_provider"
 	ServiceWalletCleaner    = "wallet_cleaner"
+
+	ServiceRequestMonitor = "request_monitor"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.

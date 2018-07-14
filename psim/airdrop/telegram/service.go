@@ -64,6 +64,6 @@ func (s *Service) Run(ctx context.Context) {
 	}
 
 	r := chi.NewRouter()
-	r.Post("/", s.requestHandler)
+	r.Post("/*", s.requestHandler)
 	listener.RunServer(ctx, s.log, r, s.config.Listener)
 }

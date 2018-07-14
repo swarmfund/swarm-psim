@@ -13,6 +13,10 @@ import (
 	"gitlab.com/tokend/keypair"
 )
 
+var (
+	errInvalidState = errors.New("service got into unknown state")
+)
+
 // RequestListener is the interface, which must be implemented
 // by streamer of Horizon Requests, which parametrize Service.
 type RequestListener interface {
@@ -27,10 +31,6 @@ type RequestPerformer interface {
 
 type BlobSubmitter interface {
 	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
-}
-
-type BlobDataRetriever interface {
-	RetrieveKYCBlob(kycRequest horizon.KYCRequest) (*horizon.Blob, error)
 }
 
 type DocumentsConnector interface {
@@ -62,10 +62,10 @@ type Service struct {
 	signer keypair.Full
 	source keypair.Address
 
+	horizon            *horizon.Connector
 	requestListener    RequestListener
 	requestPerformer   RequestPerformer
 	blobSubmitter      BlobSubmitter
-	blobDataRetriever  BlobDataRetriever
 	documentsConnector DocumentsConnector
 	usersConnector     UsersConnector
 	accountsConnector  AccountsConnector
@@ -79,10 +79,10 @@ type Service struct {
 func NewService(
 	log *logan.Entry,
 	config Config,
+	horizon *horizon.Connector,
 	requestListener RequestListener,
 	requestPerformer RequestPerformer,
 	blobSubmitter BlobSubmitter,
-	blobDataRetriever BlobDataRetriever,
 	usersConnector UsersConnector,
 	accountsConnector AccountsConnector,
 	documentProvider DocumentsConnector,
@@ -94,10 +94,10 @@ func NewService(
 		log:    log.WithField("service", conf.ServiceIdentityMind),
 		config: config,
 
+		horizon:            horizon,
 		requestListener:    requestListener,
 		requestPerformer:   requestPerformer,
 		blobSubmitter:      blobSubmitter,
-		blobDataRetriever:  blobDataRetriever,
 		usersConnector:     usersConnector,
 		accountsConnector:  accountsConnector,
 		documentsConnector: documentProvider,
@@ -155,48 +155,88 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 }
 
 func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
-	proveErr := proveInterestingRequest(request)
-	if proveErr != nil {
-		// No need to process the Request for now.
+	fields := logan.F{
+		"request": request,
+	}
 
-		// I found this log useless
-		//s.log.WithField("request", request).WithError(proveErr).Debug("Found not interesting KYC Request.")
+	// check if request should be processed
+	if ok := isInterestingRequest(request); !ok {
+		s.log.WithFields(fields).Debug("skipping not interesting request")
 		return nil
 	}
 
-	// I found this log useless
-	s.log.WithField("request", request).Debug("Found interesting KYC Request.")
-	kycReq := request.Details.KYC
+	// check if request is valid
+	if err := isValidRequest(request); err != nil {
+		return errors.Wrap(err, "request is invalid in some way")
+	}
 
-	acc, err := s.accountsConnector.ByAddress(kycReq.AccountToUpdateKYC)
+	kycDetails := request.Details.KYC
+
+	// check if account we are going to review is blocked
+	account, err := s.accountsConnector.ByAddress(kycDetails.AccountToUpdateKYC)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Account by AccountID from Horizon", logan.F{"account_id": kycReq.AccountToUpdateKYC})
+		return errors.Wrap(err, "failed to get account", logan.F{
+			"address": kycDetails.AccountToUpdateKYC,
+		})
 	}
-	if acc.IsBlocked {
-		s.log.WithField("account_id", acc.AccountID).Debug("Found KYCRequest of a blocked Account, ignoring it.")
+	if account.IsBlocked {
+		s.log.WithFields(fields).Debug("skipping since account is blocked")
 		return nil
 	}
 
-	if kycReq.PendingTasks&kyc.TaskSubmitIDMind != 0 {
-		// Haven't submitted IDMind yet
-		err := s.processNotSubmitted(ctx, request)
+	// check if submitted blob is valid
+	blob, err := s.horizon.Blobs().Blob(kycDetails.KYCDataStruct.BlobID)
+	if err != nil {
+		return errors.Wrap(err, "failed to get blob", logan.F{
+			"blob_id": kycDetails.KYCDataStruct.BlobID,
+		})
+	}
+	if err := isBlobValid(blob); err != nil {
+		return errors.Wrap(err, "blob is invalid in some way")
+	}
+	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse KYC data", logan.F{
+			"blob_id": blob.ID,
+		})
+	}
+
+	// check if we are able process given account type transition
+	switch {
+	case isNotVerified(account) && isUpdateToGeneral(request) && !kycData.IsUSA():
+	case isNotVerified(account) && isUpdateToVerified(request) && kycData.IsUSA():
+	case isGeneral(account) && isUpdateToVerified(request) && kycData.IsUSA():
+	case isGeneral(account) && isUpdateToGeneral(request) && !kycData.IsUSA():
+	default:
+		err := s.rejectRequest(ctx, request, s.config.RejectReasons.KYCStateRejected, nil)
 		if err != nil {
-			return errors.Wrap(err, "Failed to process not submitted (to IDMind) KYCRequest")
+			return errors.Wrap(err, "failed to reject request")
 		}
-
-		return nil
 	}
 
-	// Already submitted
-	if kycReq.PendingTasks&kyc.TaskCheckIDMind != 0 {
-		err := s.processNotChecked(ctx, request)
-		if err != nil {
-			return errors.Wrap(err, "Failed to check KYC state in IDMind")
-		}
+	s.log.WithFields(fields).Debug("processing KYC request")
 
-		return nil
+	// finally process request
+	switch {
+	case kycDetails.PendingTasks&kyc.TaskNonLatinDoc != 0:
+		if err := s.approveRequest(ctx, request, nil); err != nil {
+			return errors.Wrap(err, "failed to approve request with a non-latin-docs task set")
+		}
+	case kycDetails.PendingTasks&kyc.TaskSubmitIDMind != 0:
+		err = s.processNewKYCApplication(ctx, kycData, request)
+	case kycDetails.PendingTasks&kyc.TaskCheckIDMind != 0:
+		err = s.processNotChecked(ctx, request)
+	default:
+		// unknown state, probably someone messed up isInterestingRequest call above
+		return errInvalidState
+	}
+	if err != nil {
+		return errors.Wrap(err, "failed to process IDMind request", logan.F{
+			"pending_tasks": kycDetails.PendingTasks,
+		})
 	}
 
-	// Normally unreachable
+	s.log.WithFields(fields).Debug("Processed KYC request successfully.")
+
 	return nil
 }
