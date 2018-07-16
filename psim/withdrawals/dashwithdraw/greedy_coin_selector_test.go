@@ -34,7 +34,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 		Amount         int64
 		Error          error
 	}{
-		"single utxo": { 			//Amount:5, Change:0, Option:5, Exp:5, Dust: 0
+		"single utxo": { //Amount:5, Change:0, Option:5, Exp:5, Dust: 0
 			Amount:         5,
 			ExpectedChange: 0,
 			UTXOs: []UTXO{
@@ -247,10 +247,10 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"dust": { //Amount:20, Change:0, Option: 16,5,2,2,1 Exp:21; Dust: 1
+		"dust": { //Amount:20, Change:0, Option: 16,5,2,2,1 Exp:0,1; Dust: 1
 			Amount:         20,
 			DustThreshold:  1,
-			ExpectedChange: 0,
+			ExpectedChange: 1,
 			UTXOs: []UTXO{
 				{
 					IsInactive: false,
@@ -299,12 +299,8 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 					TXHash: "hash0",
 				},
 				{
-					Vout:   3,
-					TXHash: "hash3",
-				},
-				{
-					Vout:   4,
-					TXHash: "hash4",
+					Vout:   1,
+					TXHash: "hash1",
 				},
 			},
 		},

@@ -55,6 +55,7 @@ func (s GreedyCoinSelector) Fund(amount int64) (utxos []bitcoin.Out, change int6
 	result, totalFunded = s.chooseUTXOs(activeUTXOS, amount)
 
 	return getKeys(result), totalFunded - amount, nil
+
 }
 
 func (s GreedyCoinSelector) chooseUTXOs(utxos map[bitcoin.Out]UTXO, amountToFill int64) (map[bitcoin.Out]UTXO, int64) {
@@ -67,14 +68,40 @@ func (s GreedyCoinSelector) chooseUTXOs(utxos map[bitcoin.Out]UTXO, amountToFill
 		}
 	}
 
-	//Ideal UTXO not found, splitting into 2 groups
+	//Ideal UTXO not found, choosing from 2 groups
+	biggerUTXOS, smallerUTXOS := s.splitAndChoose(utxos, amountToFill)
+
+	//If small UTXOs can fulfil amount
+	if smallerUTXOS != nil {
+		var sum int64
+		chosen := make(map[bitcoin.Out]UTXO)
+		for sum < amountToFill {
+			max := s.chooseMaxUTXO(smallerUTXOS)
+			sum += smallerUTXOS[max].Value
+
+			chosen[max] = smallerUTXOS[max]
+			delete(smallerUTXOS, max)
+
+		}
+		return chosen, sum
+	}
+
+	//choosing one minimal UTXO from the biggerUTXOS
+	chosen := s.chooseMinUTXO(biggerUTXOS)
+	result := make(map[bitcoin.Out]UTXO)
+	result[chosen] = biggerUTXOS[chosen]
+
+	return result, result[chosen].Value
+}
+
+//Split UTXOs into 2 groups - the ones that bigger than amountToFill,
+//and the ones that smaller than amountToFill
+//Returns only one map - smallerUTXOS if there are sufficient sum
+//or biggerUTXOS if smallerUTXOS are not enough to fulfill amountToFill
+func (s GreedyCoinSelector) splitAndChoose(utxos map[bitcoin.Out]UTXO, amountToFill int64) (map[bitcoin.Out]UTXO, map[bitcoin.Out]UTXO) {
+	var totalSmalls int64
 	smallerUTXOS := make(map[bitcoin.Out]UTXO)
 	biggerUTXOS := make(map[bitcoin.Out]UTXO)
-	var totalSmalls int64
-
-	//Split UTXOs into 2 groups - the ones that bigger than amountToFill,
-	//and the ones that smaller than amountToFill
-	//also we check whether sum of all small utxos is greater or equal to amountToFill
 	for k, v := range utxos {
 		if v.Value < amountToFill {
 			smallerUTXOS[k] = v
@@ -84,85 +111,45 @@ func (s GreedyCoinSelector) chooseUTXOs(utxos map[bitcoin.Out]UTXO, amountToFill
 		biggerUTXOS[k] = v
 	}
 
-	//If small UTXOs can fulfil amount
-	if totalSmalls >= amountToFill {
-		keys := getKeys(smallerUTXOS)
-		permutations, isEmpty := s.getPermutations(smallerUTXOS, keys, amountToFill)
+	if totalSmalls < amountToFill {
+		return biggerUTXOS, nil
+	}
+	return nil, smallerUTXOS
 
-		if !isEmpty {
-			indexToChoose := rand.Intn(len(permutations))
-			sum := sumOfUTXOs(permutations[indexToChoose])
-			for i, p := range permutations {
-				newSum := sumOfUTXOs(p)
-				if newSum < sum {
-					sum = newSum
-					indexToChoose = i
-				}
+}
+
+func (s GreedyCoinSelector) chooseMaxUTXO(utxos map[bitcoin.Out]UTXO) bitcoin.Out {
+	max := s.chooseRandomInMap(utxos)
+	for k, v := range utxos {
+		if utxos[max].Value < v.Value {
+			max = k
+		}
+	}
+
+	return max
+}
+
+func (s GreedyCoinSelector) chooseMinUTXO(utxos map[bitcoin.Out]UTXO) bitcoin.Out {
+	min := s.chooseRandomInMap(utxos)
+	for k, v := range utxos {
+		if utxos[min].Value > v.Value {
+			min = k
+		}
+	}
+	return min
+}
+func (s GreedyCoinSelector) chooseRandomInMap(utxos map[bitcoin.Out]UTXO) bitcoin.Out {
+	if len(utxos) > 0 {
+		indexToChoose := rand.Intn(len(utxos))
+		var i int
+		for k := range utxos {
+			if i == indexToChoose {
+				return k
 			}
-
-			return permutations[indexToChoose], sum
+			i++
 		}
-	}
-
-	//choosing one minimal UTXO from the ones that biggerUTXOS than amount
-	minOut := chooseRandomInMap(biggerUTXOS)
-	for i, utxo := range biggerUTXOS {
-		if utxo.Value < biggerUTXOS[minOut].Value {
-			minOut = i
-		}
-	}
-	result := make(map[bitcoin.Out]UTXO)
-	result[minOut] = biggerUTXOS[minOut]
-
-	return result, result[minOut].Value
-}
-
-func sumOfUTXOs(utxos map[bitcoin.Out]UTXO) int64 {
-	var sum int64
-	for _, v := range utxos {
-		sum += v.Value
-	}
-	return sum
-}
-
-func chooseRandomInMap(utxos map[bitcoin.Out]UTXO) bitcoin.Out {
-	indexToChoose := rand.Intn(len(utxos))
-	var i int
-	for k := range utxos {
-		if i == indexToChoose {
-			return k
-		}
-		i++
 	}
 	return bitcoin.Out{}
-}
-
-func (s GreedyCoinSelector) getPermutations(utxos map[bitcoin.Out]UTXO, keys []bitcoin.Out, amountToFill int64) ([]map[bitcoin.Out]UTXO, bool) {
-	rounds := min(1<<uint(len(utxos)), 1000)
-
-	options := powerSet(rounds, keys)
-
-	result := make([]map[bitcoin.Out]UTXO, 0, rounds)
-
-	for _, option := range options {
-
-		combination := make(map[bitcoin.Out]UTXO)
-		var sum int64
-		for _, key := range option {
-			combination[key] = utxos[key]
-			sum += utxos[key].Value
-		}
-		if sum < amountToFill {
-			continue
-		}
-		result = append(result, combination)
-	}
-
-	var isEmpty bool
-	if len(result) == 0 {
-		isEmpty = true
-	}
-	return result, isEmpty
 }
 
 func getKeys(utxos map[bitcoin.Out]UTXO) []bitcoin.Out {
@@ -172,23 +159,6 @@ func getKeys(utxos map[bitcoin.Out]UTXO) []bitcoin.Out {
 	}
 
 	return keys
-}
-func powerSet(powerSetSize int, original []bitcoin.Out) [][]bitcoin.Out {
-	result := make([][]bitcoin.Out, 0, powerSetSize)
-
-	var index int
-	for index < powerSetSize {
-		var subSet []bitcoin.Out
-
-		for j, elem := range original {
-			if index&(1<<uint(j)) > 0 {
-				subSet = append(subSet, elem)
-			}
-		}
-		result = append(result, subSet)
-		index++
-	}
-	return result
 }
 
 func min(a, b int) int {
