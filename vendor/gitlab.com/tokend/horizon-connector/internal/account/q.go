@@ -131,6 +131,22 @@ func (q *Q) CurrentBalanceIn(address, asset string) (types.Amount, error) {
 	return 0, ErrNoBalance
 }
 
+// CurrentExternalBindingData will return (nil, nil) if account external binding does not exist
+func (q *Q) CurrentExternalBindingData(address string, externalSystem int32) (*string, error) {
+	account, err := q.ByAddress(address)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+
+	for _, system := range account.ExternalSystemAccounts {
+		if system.Type.Value == externalSystem {
+			return &system.Data, nil
+		}
+	}
+
+	return nil, nil
+}
+
 func (q *Q) Balances(address string) ([]resources.Balance, error) {
 	endpoint := fmt.Sprintf("/accounts/%s/balances", address)
 	response, err := q.client.Get(endpoint)

@@ -590,11 +590,12 @@
     "internal/system",
     "internal/templates",
     "internal/transaction",
+    "internal/transaction_v2",
     "internal/user",
     "internal/wallets",
     "types"
   ]
-  revision = "a0a4089e69e92f5b8d9846eb3761ea34c6f4260c"
+  revision = "e972fe12b32c149c11e6c3990e582e7cd25c26f7"
 
 [[projects]]
   branch = "master"
