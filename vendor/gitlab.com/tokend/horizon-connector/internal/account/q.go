@@ -6,16 +6,18 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	goresources "gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector/internal"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
-	goresources "gitlab.com/tokend/go/resources"
 	"gitlab.com/tokend/horizon-connector/internal/responses"
+	"gitlab.com/tokend/horizon-connector/types"
 )
 
 var (
 	ErrNoSigner      = errors.New("No such signer")
 	ErrNotEnoughType = errors.New("Not enough types")
+	ErrNoBalance     = errors.New("no such balance")
 )
 
 type Q struct {
@@ -114,6 +116,19 @@ func (q *Q) ByAddress(address string) (*resources.Account, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return &account, nil
+}
+
+func (q *Q) CurrentBalanceIn(address, asset string) (types.Amount, error) {
+	account, err := q.ByAddress(address)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get account")
+	}
+	for _, balance := range account.Balances {
+		if balance.Asset == asset {
+			return balance.Balance, nil
+		}
+	}
+	return 0, ErrNoBalance
 }
 
 func (q *Q) Balances(address string) ([]resources.Balance, error) {

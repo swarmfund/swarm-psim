@@ -1,13 +1,16 @@
 package resources
 
+import "gitlab.com/tokend/regources"
+
 type Account struct {
-	AccountID              string                  `json:"account_id"`
-	IsBlocked              bool                    `json:"is_blocked"`
-	AccountTypeI           int32                   `json:"account_type_i"`
-	AccountType            string                  `json:"account_type"`
-	ExternalSystemAccounts []ExternalSystemAccount `json:"external_system_accounts"`
-	KYC                    AccountKYC              `json:"account_kyc"`
-	Referrer               string                  `json:"referrer"`
+	AccountID              string                              `json:"account_id"`
+	IsBlocked              bool                                `json:"is_blocked"`
+	AccountTypeI           int32                               `json:"account_type_i"`
+	AccountType            string                              `json:"account_type"`
+	ExternalSystemAccounts []regources.ExternalSystemAccountID `json:"external_system_accounts"`
+	KYC                    AccountKYC                          `json:"account_kyc"`
+	Referrer               string                              `json:"referrer"`
+	Balances               []Balance                           `json:"balances"`
 }
 
 func (a Account) GetLoganFields() map[string]interface{} {
@@ -22,25 +25,12 @@ func (a Account) GetLoganFields() map[string]interface{} {
 	}
 }
 
-type ExternalSystemAccount struct {
-	Type struct {
-		// Name human readable asset name
-		Name string `json:"name"`
-		// Value external system type
-		Value int `json:"value"`
-	} `json:"type"`
-
-	// AssetCode TokenD asset code
-	AssetCode string `json:"asset_code"`
-	Address   string `json:"data"`
-}
-
 type AccountKYC struct {
 	Data *KYCData `json:"KYCData"`
 }
 
 func (k AccountKYC) GetLoganFields() map[string]interface{} {
-	return map[string]interface{} {
+	return map[string]interface{}{
 		"data": k.Data,
 	}
 }
@@ -50,7 +40,7 @@ type KYCData struct {
 }
 
 func (d KYCData) GetLoganFields() map[string]interface{} {
-	return map[string]interface{} {
+	return map[string]interface{}{
 		"blob_id": d.BlobID,
 	}
 }
