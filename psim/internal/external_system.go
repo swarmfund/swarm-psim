@@ -16,19 +16,28 @@ type AssetsQ interface {
 	ByCode(string) (*horizon.Asset, error)
 }
 
-// MustGetExternalSystemType will try to get external system type from asset details
-// and panic if it's not sure about result
-func MustGetExternalSystemType(q AssetsQ, code string) int32 {
+// GetExternalSystemType will try to get external system type from asset details
+func GetExternalSystemType(q AssetsQ, code string) (int32, error) {
 	// external system type is not set, let's check asset details for that
 	asset, err := q.ByCode(code)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to get asset details"))
+		return 0, errors.Wrap(err, "failed to get asset details")
 	}
 	if asset == nil {
-		panic(errors.From(ErrAssetNotFound, logan.F{"deposit_asset": code}))
+		return 0, errors.From(ErrAssetNotFound, logan.F{"deposit_asset": code})
 	}
 	if asset.Details.ExternalSystemType == 0 {
-		panic(errors.From(ErrNoAssetExternalSystemType, logan.F{"deposit_asset": code}))
+		return 0, errors.From(ErrNoAssetExternalSystemType, logan.F{"deposit_asset": code})
 	}
-	return asset.Details.ExternalSystemType
+	return asset.Details.ExternalSystemType, nil
+}
+
+// MustGetExternalSystemType will try to get external system type from asset details
+// and panic if it's not sure about result
+func MustGetExternalSystemType(q AssetsQ, code string) int32 {
+	system, err := GetExternalSystemType(q, code)
+	if err != nil {
+		panic(err)
+	}
+	return system
 }
