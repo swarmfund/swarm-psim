@@ -2,11 +2,12 @@ package investready
 
 import (
 	"context"
-	"net/http"
 	"fmt"
+	"net/http"
 
 	"encoding/json"
 
+	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
@@ -14,7 +15,6 @@ import (
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-	"github.com/go-chi/chi"
 )
 
 const (
@@ -25,11 +25,16 @@ type KYCRequestsConnector interface {
 	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]horizon.Request, error)
 }
 
+type AccountsConnector interface {
+	ByAddress(address string) (*horizon.Account, error)
+}
+
 type RedirectsListener struct {
 	log    *logan.Entry
 	config listener.Config
 
 	kycRequestsConnector KYCRequestsConnector
+	accountsConnector    AccountsConnector
 	requestPerformer     RequestPerformer
 	investReady          InvestReady
 	doorman              doorman.Doorman
@@ -41,6 +46,7 @@ func NewRedirectsListener(
 	log *logan.Entry,
 	config listener.Config,
 	kycRequestsConnector KYCRequestsConnector,
+	accountsConnector AccountsConnector,
 	investReady InvestReady,
 	doorman doorman.Doorman,
 	performer RequestPerformer) *RedirectsListener {
@@ -49,6 +55,7 @@ func NewRedirectsListener(
 		log:                  log.WithField("worker", "redirects_listener"),
 		config:               config,
 		kycRequestsConnector: kycRequestsConnector,
+		accountsConnector:    accountsConnector,
 		requestPerformer:     performer,
 		doorman:              doorman,
 		investReady:          investReady,
@@ -83,16 +90,16 @@ func (l *RedirectsListener) redirectsHandler(w http.ResponseWriter, r *http.Requ
 	l.processRedirectRequest(r.Context(), w, request)
 }
 
-func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.ResponseWriter, request redirectedRequest) {
-	logger := l.log.WithField("request", request)
+func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.ResponseWriter, req redirectedRequest) {
+	logger := l.log.WithField("request", req)
 
-	if validationErr := request.Validate(); validationErr != "" {
+	if validationErr := req.Validate(); validationErr != "" {
 		logger.WithField("validation_err", validationErr).Warn("Received invalid request.")
 		listener.WriteError(w, http.StatusBadRequest, validationErr)
 		return
 	}
 
-	kycRequest, forbiddenErr, err := l.getKYCRequest(ctx, request.AccountID)
+	kycRequest, forbiddenErr, err := l.getAndValidateKYCRequest(ctx, req.AccountID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get KYCRequest by AccountID.")
 		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
@@ -104,7 +111,7 @@ func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.R
 		return
 	}
 
-	err = l.obtainAndSaveUserHash(ctx, *kycRequest, request.AccountID, request.OauthCode)
+	err = l.obtainAndSaveUserHash(ctx, req.OauthCode, *kycRequest, req.AccountID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to obtain and save UserHash.")
 		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
@@ -115,7 +122,11 @@ func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (l *RedirectsListener) getKYCRequest(ctx context.Context, accID string) (kycRequest *horizon.Request, forbiddenReason error, err error) {
+func (l *RedirectsListener) getAndValidateKYCRequest(ctx context.Context, accID string) (kycRequest *horizon.Request, forbiddenReason error, err error) {
+	if vErr, err := l.validateAccount(accID); err != nil || vErr != nil {
+		return nil, vErr, errors.Wrap(err, "failed to validate Account")
+	}
+
 	kycRequests, err := l.kycRequestsConnector.Requests(fmt.Sprintf("account_to_update_kyc=%s", accID),
 		"", horizon.ReviewableRequestType("update_kyc"))
 	if err != nil {
@@ -130,26 +141,53 @@ func (l *RedirectsListener) getKYCRequest(ctx context.Context, accID string) (ky
 		"kyc_request": kycRequest,
 	}
 
-	if kycRequest.State != kyc.RequestStatePending {
-		return nil, errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State), nil
-	}
-	if kycRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeUpdateKyc) {
-		return nil, nil, errors.From(errors.Errorf("Expected Request type to be KYC(%d), but got (%d).",
-			xdr.ReviewableRequestTypeUpdateKyc, kycRequest.Details.RequestType), fields)
-	}
-	if kycRequest.Details.KYC.PendingTasks&kyc.TaskUSA == 0 {
-		// No job for InvestReady service
-		return nil, errors.New("This User's KYCRequest does not have the Task to verify AccreditedInvestor."), nil
-	}
-	if kycRequest.Details.KYC.PendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) != 0 {
-		// Some previous jobs are not finished
-		return nil, errors.New("This User's KYCRequest has some other Tasks to be done first."), nil
+	if err := l.validateKYCRequest(*kycRequest); err != nil {
+		return nil, errors.From(err, fields), nil
 	}
 
 	return kycRequest, nil, nil
 }
 
-func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, kycRequest horizon.Request, accID, oauthCode string) error {
+func (l *RedirectsListener) validateAccount(accID string) (forbiddenReason error, err error) {
+	account, err := l.accountsConnector.ByAddress(accID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+	if account.IsBlocked {
+		l.log.WithField("account_id", accID).Debug("skipping, since Account is blocked")
+		return errors.New("account is blocked"), nil
+	}
+	if !kyc.IsVerified(*account) {
+		return errors.New("only Accounts of Type Verified are allowed to upgrade to General via InvestReady"), nil
+	}
+
+	return nil, nil
+}
+
+func (l *RedirectsListener) validateKYCRequest(kycRequest horizon.Request) (validationErr error) {
+	if kycRequest.State != kyc.RequestStatePending {
+		return errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State)
+	}
+	if kycRequest.Details.RequestType != int32(xdr.ReviewableRequestTypeUpdateKyc) {
+		return errors.Errorf("Expected Request type to be KYC(%d), but got (%d).",
+			xdr.ReviewableRequestTypeUpdateKyc, kycRequest.Details.RequestType)
+	}
+	if !kyc.IsUpdateToGeneral(kycRequest) {
+		return errors.New("AccountTypeToSet must be (General)")
+	}
+	if kycRequest.Details.KYC.PendingTasks&kyc.TaskUSA == 0 {
+		// No job for InvestReady service
+		return errors.New("This User's KYCRequest does not have the Task to verify AccreditedInvestor.")
+	}
+	if kycRequest.Details.KYC.PendingTasks&(kyc.TaskSuperAdmin|kyc.TaskFaceValidation|kyc.TaskDocsExpirationDate|kyc.TaskSubmitIDMind|kyc.TaskCheckIDMind) != 0 {
+		// Some previous jobs are not finished
+		return errors.New("This User's KYCRequest has some other Tasks to be done first.")
+	}
+
+	return nil
+}
+
+func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, oauthCode string, kycRequest horizon.Request, accID string) error {
 	userToken, err := l.investReady.ObtainUserToken(oauthCode)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain User's AccessToken in InvestReady")
@@ -163,7 +201,7 @@ func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, kycReques
 		"user_hash": userHash,
 	}
 
-	err = l.saveUserHash(ctx, kycRequest, accID, userHash)
+	err = l.approveRequestAddUserHash(ctx, kycRequest, accID, userHash)
 	if err != nil {
 		return errors.Wrap(err, "Failed to approve KYCRequest (with saving UserHash)", fields)
 	}
@@ -171,7 +209,7 @@ func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, kycReques
 	return nil
 }
 
-func (l *RedirectsListener) saveUserHash(ctx context.Context, kycRequest horizon.Request, accID, userHash string) error {
+func (l *RedirectsListener) approveRequestAddUserHash(ctx context.Context, kycRequest horizon.Request, accID, userHash string) error {
 	err := l.requestPerformer.Approve(ctx, kycRequest.ID, kycRequest.Hash, kyc.TaskCheckInvestReady, kyc.TaskUSA, map[string]string{
 		UserHashExtDetailsKey: userHash,
 	})

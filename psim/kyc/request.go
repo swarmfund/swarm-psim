@@ -13,6 +13,10 @@ func IsGeneral(account horizon.Account) bool {
 	return account.AccountTypeI == int32(xdr.AccountTypeGeneral)
 }
 
+func IsVerified(account horizon.Account) bool {
+	return account.AccountTypeI == int32(xdr.AccountTypeVerified)
+}
+
 func IsNotVerified(account horizon.Account) bool {
 	return account.AccountTypeI == int32(xdr.AccountTypeNotVerified)
 }

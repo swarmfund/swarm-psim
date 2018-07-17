@@ -62,7 +62,7 @@ type Service struct {
 
 	redirectsListener *RedirectsListener
 	kycRequests       <-chan horizon.ReviewableRequestEvent
-	users             []User
+	syncedUserHashes  []User
 }
 
 // TODO add docs.md
@@ -73,6 +73,7 @@ func NewService(
 	config Config,
 	requestListener RequestListener,
 	kycRequestsConnector KYCRequestsConnector,
+	accountsConnector AccountsConnector,
 	requestPerformer RequestPerformer,
 	blobProvider BlobsConnector,
 	userProvider UsersConnector,
@@ -84,6 +85,7 @@ func NewService(
 		logger,
 		config.RedirectsConfig,
 		kycRequestsConnector,
+		accountsConnector,
 		investReady,
 		doorman,
 		requestPerformer)
