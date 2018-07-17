@@ -68,7 +68,7 @@ func (l *RedirectsListener) Run(ctx context.Context) {
 
 	r := chi.NewRouter()
 	r.Put("/user_hash", l.userHashHandler)
-	r.Post("/.*", l.redirectsHandler)
+	r.Post("/*", l.redirectsHandler)
 
 	listener.RunServer(ctx, l.log, r, l.config)
 }
