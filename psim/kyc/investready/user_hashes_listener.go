@@ -34,7 +34,7 @@ func (l *RedirectsListener) processUserHashRequest(ctx context.Context, w http.R
 		return
 	}
 
-	kycRequest, forbiddenErr, err := l.getAndValidateKYCRequest(ctx, request.AccountID)
+	kycRequest, forbiddenErr, err := l.getAndValidateKYCRequest(ctx, request.AccountID, request.KYCRequestID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get KYCRequest by AccountID.")
 		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")

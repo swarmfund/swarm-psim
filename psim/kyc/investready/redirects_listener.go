@@ -2,7 +2,6 @@ package investready
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"encoding/json"
@@ -23,6 +22,7 @@ const (
 
 type KYCRequestsConnector interface {
 	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]horizon.Request, error)
+	GetRequestByID(requestID uint64) (*horizon.Request, error)
 }
 
 type AccountsConnector interface {
@@ -99,7 +99,7 @@ func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.R
 		return
 	}
 
-	kycRequest, forbiddenErr, err := l.getAndValidateKYCRequest(ctx, req.AccountID)
+	kycRequest, forbiddenErr, err := l.getAndValidateKYCRequest(ctx, req.AccountID, req.KYCRequestID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get KYCRequest by AccountID.")
 		listener.WriteError(w, http.StatusInternalServerError, "Internal error occurred.")
@@ -122,21 +122,15 @@ func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (l *RedirectsListener) getAndValidateKYCRequest(ctx context.Context, accID string) (kycRequest *horizon.Request, forbiddenReason error, err error) {
+func (l *RedirectsListener) getAndValidateKYCRequest(ctx context.Context, accID string, kycRequestID uint64) (kycRequest *horizon.Request, forbiddenReason error, err error) {
 	if vErr, err := l.validateAccount(accID); err != nil || vErr != nil {
 		return nil, vErr, errors.Wrap(err, "failed to validate Account")
 	}
 
-	kycRequests, err := l.kycRequestsConnector.Requests(fmt.Sprintf("account_to_update_kyc=%s", accID),
-		"", horizon.ReviewableRequestType("update_kyc"))
+	kycRequest, err = l.kycRequestsConnector.GetRequestByID(kycRequestID)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to get KYCRequests of the Account from Horizon")
+		return nil, nil, errors.Wrap(err, "Failed to get KYCRequest by ID")
 	}
-	if len(kycRequests) == 0 {
-		return nil, errors.New("No KYCRequests were found for the Account."), nil
-	}
-	r := kycRequests[0]
-	kycRequest = &r
 	fields := logan.F{
 		"kyc_request": kycRequest,
 	}
