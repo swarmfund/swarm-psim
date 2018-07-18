@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/distributed_lab/running"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -116,9 +117,11 @@ func (s *Service) Run(ctx context.Context) {
 		wg.Done()
 	}()
 
+	// TODO period to config
+	period := 30 * time.Second
 	wg.Add(1)
 	go func() {
-		s.processRequestsInfinitely(ctx)
+		running.WithBackOff(ctx, s.log, "requests_processing_iteration", s.processAllRequestsOnce, period, period, period)
 		wg.Done()
 	}()
 

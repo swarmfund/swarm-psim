@@ -18,36 +18,6 @@ const (
 	DeniedRejectReason = "Invest Ready denied."
 )
 
-// TODO timeToSleep to config
-// ProcessRequestsInfinitely is blocking method, returns only if ctx is cancelled.
-func (s *Service) processRequestsInfinitely(ctx context.Context) {
-	for {
-		// TODO timeToSleep to config
-		timeToSleep := 30 * time.Second
-
-		err := s.processAllRequestsOnce(ctx)
-		if err != nil {
-			// TODO Add timeToSleep to logs
-			s.log.WithError(err).Error("Failed to perform KYCRequests processing iteration. Waiting for the next iteration in a regular mode.")
-		} else {
-			s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
-		}
-
-		c := time.After(timeToSleep)
-		select {
-		case <-ctx.Done():
-			return
-		case <-c:
-			// Just in case
-			if running.IsCancelled(ctx) {
-				return
-			}
-
-			continue
-		}
-	}
-}
-
 func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 	users, err := s.investReady.ListAllSyncedUsers(ctx)
 	if err != nil {
@@ -75,6 +45,8 @@ func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 			break
 		}
 	}
+
+	s.log.Debug("No more KYC Requests in Horizon, will start from the very beginning, now sleeping.")
 	return nil
 }
 
