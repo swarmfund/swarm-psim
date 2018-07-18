@@ -570,7 +570,7 @@
   revision = "64c4f30aa7ea912ccccfbf1ff2ae049491b58b4b"
 
 [[projects]]
-  branch = "master"
+  branch = "feature/transactions_v2"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -590,11 +590,12 @@
     "internal/system",
     "internal/templates",
     "internal/transaction",
+    "internal/transactionv2",
     "internal/user",
     "internal/wallets",
     "types"
   ]
-  revision = "af53549c7d6f779e2034a7701def94a294b22e74"
+  revision = "472a3a372df04789c4bab7e24073ed2d1f2b76d3"
 
 [[projects]]
   branch = "master"
@@ -608,10 +609,10 @@
   revision = "c148f15306edac6a1ad994d8b218e8ae61a0b2c1"
 
 [[projects]]
-  branch = "master"
+  branch = "feature/transactions_v2"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "c71e5fd4bb539d6a706cc7cdbba2c8cda2fb784d"
+  revision = "b86e19c27e02047ec7df665ddf6de958dcff68c6"
 
 [[projects]]
   branch = "master"
@@ -700,6 +701,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de963afeea666e3c3c33582ab434e92efbcc2cef52677857a9b83e5d2e82dd11"
+  inputs-digest = "af13602c980ff987ec570c3d5036c187079fccb4a097003654cfd46a69fddfa0"
   solver-name = "gps-cdcl"
   solver-version = 1

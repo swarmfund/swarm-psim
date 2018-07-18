@@ -49,7 +49,7 @@ func (s *State) Mutate(ts time.Time, update StateUpdate) {
 		data := update.ExternalAccount
 		switch update.ExternalAccount.State {
 		case ExternalAccountBindingStateCreated:
-			externalType := update.ExternalAccount.ExternalType
+			externalType := data.ExternalType
 			if _, ok := s.external[externalType]; !ok {
 				s.external[externalType] = map[string][]externalState{}
 			}

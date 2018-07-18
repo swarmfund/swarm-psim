@@ -82,10 +82,10 @@
 
 [[constraint]]
   name = "gitlab.com/tokend/horizon-connector"
-  branch = "master"
+  branch = "feature/transactions_v2"
 
 [[override]]
-  branch = "master"
+  branch = "feature/transactions_v2"
   name = "gitlab.com/tokend/regources"
 
 [[constraint]]

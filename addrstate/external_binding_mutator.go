@@ -2,39 +2,55 @@ package addrstate
 
 import (
 	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/regources"
 )
 
-func ExternalSystemBindingMutator(systemType int32) func(xdr.LedgerEntryChange) StateUpdate {
-	return func(change xdr.LedgerEntryChange) (update StateUpdate) {
-		switch change.Type {
-		case xdr.LedgerEntryChangeTypeCreated:
-			switch change.Created.Data.Type {
-			case xdr.LedgerEntryTypeExternalSystemAccountId:
-				data := change.Created.Data.ExternalSystemAccountId
-				if int32(data.ExternalSystemType) != systemType {
-					break
-				}
-				update.ExternalAccount = &StateExternalAccountUpdate{
-					ExternalType: systemType,
-					State:        ExternalAccountBindingStateCreated,
-					Data:         string(data.Data),
-					Address:      data.AccountId.Address(),
-				}
+type ExternalSystemBindingMutator int32
+
+func (e *ExternalSystemBindingMutator) GetEffects() []int {
+	return []int{int(xdr.LedgerEntryChangeTypeCreated), int(xdr.LedgerEntryChangeTypeRemoved)}
+}
+
+func (e *ExternalSystemBindingMutator) GetEntryTypes() []int {
+	return []int{int(xdr.LedgerEntryTypeExternalSystemAccountId)}
+}
+
+func (e *ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (update StateUpdate) {
+	switch change.EntryType {
+	case int32(xdr.LedgerEntryTypeExternalSystemAccountId):
+		switch change.Effect {
+		case int32(xdr.LedgerEntryChangeTypeCreated):
+			var ledgerEntry xdr.LedgerEntry
+			err := xdr.SafeUnmarshalBase64(change.Payload, &ledgerEntry)
+			if err != nil {
+
 			}
-		case xdr.LedgerEntryChangeTypeRemoved:
-			switch change.Removed.Type {
-			case xdr.LedgerEntryTypeExternalSystemAccountId:
-				data := change.Removed.ExternalSystemAccountId
-				if int32(data.ExternalSystemType) != systemType {
-					break
-				}
-				update.ExternalAccount = &StateExternalAccountUpdate{
-					ExternalType: systemType,
-					State:        ExternalAccountBindingStateDeleted,
-					Address:      data.AccountId.Address(),
-				}
+			data := ledgerEntry.Data.MustExternalSystemAccountId()
+			if int32(data.ExternalSystemType) != int32(*e) {
+				break
+			}
+			update.ExternalAccount = &StateExternalAccountUpdate{
+				ExternalType: int32(*e),
+				State:        ExternalAccountBindingStateCreated,
+				Data:         string(data.Data),
+				Address:      data.AccountId.Address(),
+			}
+		case int32(xdr.LedgerEntryChangeTypeRemoved):
+			var ledgerKey xdr.LedgerKey
+			err := xdr.SafeUnmarshalBase64(change.Payload, &ledgerKey)
+			if err != nil {
+
+			}
+			data := ledgerKey.MustExternalSystemAccountId()
+			if int32(data.ExternalSystemType) != int32(*e) {
+				break
+			}
+			update.ExternalAccount = &StateExternalAccountUpdate{
+				ExternalType: int32(*e),
+				State:        ExternalAccountBindingStateDeleted,
+				Address:      data.AccountId.Address(),
 			}
 		}
-		return update
 	}
+	return update
 }

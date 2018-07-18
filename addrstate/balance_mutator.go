@@ -1,24 +1,42 @@
 package addrstate
 
-import "gitlab.com/tokend/go/xdr"
+import (
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/regources"
+)
 
-func BalanceMutator(asset string) func(xdr.LedgerEntryChange) StateUpdate {
-	return func(change xdr.LedgerEntryChange) (update StateUpdate) {
-		switch change.Type {
-		case xdr.LedgerEntryChangeTypeCreated:
-			switch change.Created.Data.Type {
-			case xdr.LedgerEntryTypeBalance:
-				data := change.Created.Data.Balance
-				if string(data.Asset) != asset {
-					break
-				}
-				update.Balance = &StateBalanceUpdate{
-					Address: data.AccountId.Address(),
-					Balance: data.BalanceId.AsString(),
-					Asset:   string(data.Asset),
-				}
+type BalanceMutator string
+
+func (b *BalanceMutator) GetEffects() []int {
+	return []int{int(xdr.LedgerEntryChangeTypeCreated)}
+}
+
+func (b *BalanceMutator) GetEntryTypes() []int {
+	return []int{int(xdr.LedgerEntryTypeBalance)}
+}
+
+
+func (b *BalanceMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (update StateUpdate) {
+	switch change.EntryType {
+	case int32(xdr.LedgerEntryTypeBalance):
+		switch change.Effect {
+		case int32(xdr.LedgerEntryChangeTypeCreated):
+			var ledgerEntry xdr.LedgerEntry
+			err := xdr.SafeUnmarshalBase64(change.Payload, &ledgerEntry)
+			if err != nil {
+
+			}
+			balance := ledgerEntry.Data.MustBalance()
+			if string(balance.Asset) != string(*b) {
+				break
+			}
+			update.Balance = &StateBalanceUpdate{
+				Address: balance.AccountId.Address(),
+				Balance: balance.BalanceId.AsString(),
+				Asset:   string(balance.Asset),
 			}
 		}
-		return update
 	}
+	return update
 }
+

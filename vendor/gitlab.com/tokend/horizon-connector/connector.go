@@ -21,6 +21,7 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal/user"
 	"gitlab.com/tokend/horizon-connector/internal/wallets"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/horizon-connector/internal/transactionv2"
 )
 
 type Connector struct {
@@ -87,6 +88,10 @@ func (c *Connector) Transactions() *transaction.Q {
 	return transaction.NewQ(c.client)
 }
 
+func (c *Connector) TransactionsV2() *transactionv2.Q {
+	return transactionv2.NewQ(c.client)
+}
+
 func (c *Connector) Sales() *sale.Q {
 	return sale.NewQ(c.client)
 }
@@ -101,7 +106,7 @@ func (c *Connector) Balances() *balance.Q {
 
 func (c *Connector) Listener() *listener.Q {
 	// TODO Rename Operations to Requests? it does actually manages Requests only.
-	return listener.NewQ(c.Transactions(), c.Operations())
+	return listener.NewQ(c.Transactions(), c.TransactionsV2(), c.Operations())
 }
 
 // TODO Rename to Requests? it does actually manages Requests only.
