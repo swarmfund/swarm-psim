@@ -85,7 +85,7 @@
   branch = "feature/transactions_v2"
 
 [[override]]
-  branch = "feature/transactions_v2"
+  branch = "master"
   name = "gitlab.com/tokend/regources"
 
 [[constraint]]

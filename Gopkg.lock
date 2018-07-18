@@ -609,10 +609,10 @@
   revision = "c148f15306edac6a1ad994d8b218e8ae61a0b2c1"
 
 [[projects]]
-  branch = "feature/transactions_v2"
+  branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "b86e19c27e02047ec7df665ddf6de958dcff68c6"
+  revision = "f597b01ef45ccc3398ea70a196597cfc9ef75766"
 
 [[projects]]
   branch = "master"
@@ -701,6 +701,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "af13602c980ff987ec570c3d5036c187079fccb4a097003654cfd46a69fddfa0"
+  inputs-digest = "f06768e28b9683597a1c1e75ef86c9c576ee1a530b44ca8ca80c5399e814ee9d"
   solver-name = "gps-cdcl"
   solver-version = 1

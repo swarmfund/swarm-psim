@@ -8,17 +8,20 @@ import (
 	"gitlab.com/tokend/regources"
 )
 
+// StateMutator uses to get StateUpdate for specific effects and entryTypes
 type StateMutator interface {
 	GetStateUpdate(change regources.LedgerEntryChangeV2) (StateUpdate, error)
 	GetEffects() []int
 	GetEntryTypes() []int
 }
 
+// StreamTransactionsV2 streams transactions fetched for specified filters.
 type TXStreamerV2 interface {
 	StreamTransactionsV2(ctx context.Context, effects, entryTypes []int,
 	) (<-chan regources.TransactionV2Event, <-chan error)
 }
 
+// Watcher watches what comes from txStreamer and what StateMutators do
 type Watcher struct {
 	log        *logan.Entry
 	mutators   []StateMutator
@@ -124,6 +127,7 @@ func (w *Watcher) run(ctx context.Context) {
 								"entry_type" : change.EntryType,
 								"effect" : change.Effect,
 							})
+							continue
 						}
 						w.state.Mutate(tx.LedgerCloseTime, stateUpdate)
 					}
