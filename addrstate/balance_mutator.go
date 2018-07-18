@@ -16,7 +16,6 @@ func (b BalanceMutator) GetEntryTypes() []int {
 	return []int{int(xdr.LedgerEntryTypeBalance)}
 }
 
-
 func (b BalanceMutator) GetStateUpdate(change xdr.LedgerEntryChange) (update StateUpdate) {
 	switch change.Type {
 	case xdr.LedgerEntryChangeTypeCreated:
@@ -31,7 +30,6 @@ func (b BalanceMutator) GetStateUpdate(change xdr.LedgerEntryChange) (update Sta
 				Balance: data.BalanceId.AsString(),
 				Asset:   string(data.Asset),
 			}
-
 		}
 	}
 	return
