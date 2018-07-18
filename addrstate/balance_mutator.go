@@ -2,9 +2,6 @@ package addrstate
 
 import (
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/regources"
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type BalanceMutator struct {
@@ -20,29 +17,23 @@ func (b BalanceMutator) GetEntryTypes() []int {
 }
 
 
-func (b BalanceMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (update StateUpdate, err error) {
-	switch change.EntryType {
-	case int32(xdr.LedgerEntryTypeBalance):
-		switch change.Effect {
-		case int32(xdr.LedgerEntryChangeTypeCreated):
-			var ledgerEntry xdr.LedgerEntry
-			err := xdr.SafeUnmarshalBase64(change.Payload, &ledgerEntry)
-			if err != nil {
-				return StateUpdate{}, errors.Wrap(err, "failed to unmarshal ledger entry", logan.F{
-					"xdr" : change.Payload,
-				})
-			}
-			balance := ledgerEntry.Data.MustBalance()
-			if string(balance.Asset) != b.Asset {
+func (b BalanceMutator) GetStateUpdate(change xdr.LedgerEntryChange) (update StateUpdate) {
+	switch change.Type {
+	case xdr.LedgerEntryChangeTypeCreated:
+		switch change.Created.Data.Type {
+		case xdr.LedgerEntryTypeBalance:
+			data := change.Created.Data.Balance
+			if string(data.Asset) != b.Asset {
 				break
 			}
 			update.Balance = &StateBalanceUpdate{
-				Address: balance.AccountId.Address(),
-				Balance: balance.BalanceId.AsString(),
-				Asset:   string(balance.Asset),
+				Address: data.AccountId.Address(),
+				Balance: data.BalanceId.AsString(),
+				Asset:   string(data.Asset),
 			}
+
 		}
 	}
-	return update, nil
+	return
 }
 

@@ -2,9 +2,6 @@ package addrstate
 
 import (
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/regources"
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type ExternalSystemBindingMutator struct{
@@ -19,20 +16,12 @@ func (e ExternalSystemBindingMutator) GetEntryTypes() []int {
 	return []int{int(xdr.LedgerEntryTypeExternalSystemAccountId)}
 }
 
-func (e ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntryChangeV2,
-) (update StateUpdate, err error) {
-	switch change.EntryType {
-	case int32(xdr.LedgerEntryTypeExternalSystemAccountId):
-		switch change.Effect {
-		case int32(xdr.LedgerEntryChangeTypeCreated):
-			var ledgerEntry xdr.LedgerEntry
-			err := xdr.SafeUnmarshalBase64(change.Payload, &ledgerEntry)
-			if err != nil {
-				return StateUpdate{}, errors.Wrap(err, "failed to unmarshal ledger entry", logan.F{
-					"xdr" : change.Payload,
-				})
-			}
-			data := ledgerEntry.Data.MustExternalSystemAccountId()
+func (e ExternalSystemBindingMutator) GetStateUpdate(change xdr.LedgerEntryChange) (update StateUpdate) {
+	switch change.Type {
+	case xdr.LedgerEntryChangeTypeCreated:
+		switch change.Created.Data.Type {
+		case xdr.LedgerEntryTypeExternalSystemAccountId:
+			data := change.Created.Data.ExternalSystemAccountId
 			if int32(data.ExternalSystemType) != e.SystemType {
 				break
 			}
@@ -42,15 +31,11 @@ func (e ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntr
 				Data:         string(data.Data),
 				Address:      data.AccountId.Address(),
 			}
-		case int32(xdr.LedgerEntryChangeTypeRemoved):
-			var ledgerKey xdr.LedgerKey
-			err := xdr.SafeUnmarshalBase64(change.Payload, &ledgerKey)
-			if err != nil {
-				return StateUpdate{}, errors.Wrap(err, "failed to unmarshal ledger key", logan.F{
-					"xdr" : change.Payload,
-				})
-			}
-			data := ledgerKey.MustExternalSystemAccountId()
+		}
+	case xdr.LedgerEntryChangeTypeRemoved:
+		switch change.Removed.Type {
+		case xdr.LedgerEntryTypeExternalSystemAccountId:
+			data := change.Removed.ExternalSystemAccountId
 			if int32(data.ExternalSystemType) != e.SystemType {
 				break
 			}
@@ -61,5 +46,5 @@ func (e ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntr
 			}
 		}
 	}
-	return update, nil
+	return
 }

@@ -6,11 +6,12 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/regources"
+	"gitlab.com/tokend/go/xdr"
 )
 
 // StateMutator uses to get StateUpdate for specific effects and entryTypes
 type StateMutator interface {
-	GetStateUpdate(change regources.LedgerEntryChangeV2) (StateUpdate, error)
+	GetStateUpdate(change xdr.LedgerEntryChange) StateUpdate
 	GetEffects() []int
 	GetEntryTypes() []int
 }
@@ -121,15 +122,16 @@ func (w *Watcher) run(ctx context.Context) {
 				// go through all ledger changes
 				for _, change := range tx.Changes {
 					// apply all mutators
+					ledgerEntryChange, err := convertLedgerEntryChangeV2(change)
+					if err != nil {
+						w.log.WithError(err).Warn("failed to get state update", logan.F{
+							"entry_type" : change.EntryType,
+							"effect" : change.Effect,
+						})
+						continue
+					}
 					for _, mutator := range w.mutators {
-						stateUpdate, err := mutator.GetStateUpdate(change)
-						if err != nil {
-							w.log.WithError(err).Warn("failed to get state update", logan.F{
-								"entry_type" : change.EntryType,
-								"effect" : change.Effect,
-							})
-							continue
-						}
+						stateUpdate := mutator.GetStateUpdate(ledgerEntryChange)
 						w.state.Mutate(tx.LedgerCloseTime, stateUpdate)
 					}
 				}
