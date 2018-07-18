@@ -42,8 +42,8 @@ func (q *Q) TransactionsByEffectsAndEntryTypes(cursor string, effects, entryType
 	return result.Embedded.Records, &result.Embedded.Meta, nil
 }
 
-func addQuerySlice(url url.Values, fieldName string, input []int) {
+func addQuerySlice(u url.Values, fieldName string, input []int) {
 	for _, value := range input {
-		url.Add(fieldName, strconv.Itoa(value))
+		u.Add(fieldName, strconv.Itoa(value))
 	}
 }
