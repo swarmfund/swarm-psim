@@ -9,7 +9,7 @@ import (
 )
 
 type StateMutator interface {
-	GetStateUpdate(change regources.LedgerEntryChangeV2) StateUpdate
+	GetStateUpdate(change regources.LedgerEntryChangeV2) (StateUpdate, error)
 	GetEffects() []int
 	GetEntryTypes() []int
 }
@@ -118,7 +118,14 @@ func (w *Watcher) run(ctx context.Context) {
 				for _, change := range tx.Changes {
 					// apply all mutators
 					for _, mutator := range w.mutators {
-						w.state.Mutate(tx.LedgerCloseTime, mutator.GetStateUpdate(change))
+						stateUpdate, err := mutator.GetStateUpdate(change)
+						if err != nil {
+							w.log.WithError(err).Warn("failed to get state update", logan.F{
+								"entry_type" : change.EntryType,
+								"effect" : change.Effect,
+							})
+						}
+						w.state.Mutate(tx.LedgerCloseTime, stateUpdate)
 					}
 				}
 			}

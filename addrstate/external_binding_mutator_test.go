@@ -52,7 +52,7 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 
 	thridPayload, err := xdr.MarshalBase64(firstLedgerKey)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger entry"))
+		panic(errors.Wrap(err, "failed to marshal ledger key"))
 	}
 	secondLedgerKey := &xdr.LedgerKey{
 		Type: xdr.LedgerEntryTypeExternalSystemAccountId,
@@ -64,7 +64,7 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 
 	fourthPayload, err := xdr.MarshalBase64(secondLedgerKey)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger entry"))
+		panic(errors.Wrap(err, "failed to marshal ledger key"))
 	}
 
 	cases := []struct {
@@ -130,7 +130,10 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 	for _, tc := range cases {
 		externalSystemBindingMutator := ExternalSystemBindingMutator(tc.systemType)
 		t.Run(tc.name, func(t *testing.T) {
-			got := externalSystemBindingMutator.GetStateUpdate(tc.change)
+			got, err := externalSystemBindingMutator.GetStateUpdate(tc.change)
+			if err != nil {
+				panic("failed to get statet update in tests")
+			}
 			assert.EqualValues(t, tc.expected, got)
 		})
 	}

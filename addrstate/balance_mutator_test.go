@@ -79,7 +79,10 @@ func TestBalanceMutator(t *testing.T) {
 	for i, tc := range cases {
 		balanceMutator := BalanceMutator(tc.asset)
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			got := balanceMutator.GetStateUpdate(tc.change)
+			got, err := balanceMutator.GetStateUpdate(tc.change)
+			if err != nil {
+				panic("failed to get statet update in tests")
+			}
 			assert.EqualValues(t, tc.expected, got)
 		})
 	}
