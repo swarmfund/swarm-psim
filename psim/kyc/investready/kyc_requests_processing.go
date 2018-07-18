@@ -112,13 +112,9 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 	fields["user"] = user
 
-	kycReq := request.Details.KYC
-	if kycReq == nil {
-		return errors.From(errors.New("KYCRequest in the Request is nil."), fields)
-	}
-	kycData, err := s.blobDataRetriever.ParseBlobData(*kycReq)
+	kycData, err := s.getBlobKYCData(request)
 	if err != nil {
-		return errors.Wrap(err, "Failed to retrieve KYC Blob or parse KYCData")
+		return errors.Wrap(err, "Failed to retrieve KYCData of the Request (from Blob)")
 	}
 
 	err = s.processInvestReadyUser(ctx, request, *user, *kycData)
@@ -127,6 +123,29 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	return nil
+}
+
+func (s *Service) getBlobKYCData(request horizon.Request) (*kyc.Data, error) {
+	kycReq := request.Details.KYC
+	if kycReq == nil {
+		return nil, errors.New("KYCRequest in the Request is nil.")
+	}
+	fields := logan.F{
+		"blob_id": kycReq.KYCDataStruct.BlobID,
+	}
+
+	blob, err := s.blobsConnector.Blob(kycReq.KYCDataStruct.BlobID)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Blob", fields)
+	}
+	fields["blob"] = blob
+
+	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parse KYCData from the Blob")
+	}
+
+	return kycData, nil
 }
 
 func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Request, user User, kycData kyc.Data) error {

@@ -14,6 +14,7 @@ import (
 
 	"github.com/getsentry/raven-go"
 	"github.com/spf13/viper"
+	"time"
 )
 
 const (
@@ -145,6 +146,7 @@ func addSentryHook(v *viper.Viper, entry *logan.Entry) (*logan.Entry, error) {
 	// TODO Consider using log level from config
 	hook.StacktraceConfiguration.Level = logrus.WarnLevel
 	hook.StacktraceConfiguration.Context = NLinesAroundErrorPoint
+	hook.Timeout = 3*time.Second
 
 	hook.AddExtraFilter("status_code", func(v interface{}) interface{} {
 		i, ok := v.(int)

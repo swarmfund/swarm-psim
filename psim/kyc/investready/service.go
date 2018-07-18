@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
@@ -29,11 +28,6 @@ type RequestPerformer interface {
 
 type BlobsConnector interface {
 	Blob(blobID string) (*horizon.Blob, error)
-	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
-}
-
-type BlobDataRetriever interface {
-	ParseBlobData(kycRequest horizon.KYCRequest) (*kyc.Data, error)
 }
 
 type UsersConnector interface {
@@ -56,7 +50,6 @@ type Service struct {
 	requestListener   RequestListener
 	requestPerformer  RequestPerformer
 	blobsConnector    BlobsConnector
-	blobDataRetriever BlobDataRetriever
 	usersConnector    UsersConnector
 
 	investReady InvestReady
