@@ -590,11 +590,12 @@
     "internal/system",
     "internal/templates",
     "internal/transaction",
+    "internal/transaction_v2",
     "internal/user",
     "internal/wallets",
     "types"
   ]
-  revision = "af53549c7d6f779e2034a7701def94a294b22e74"
+  revision = "e972fe12b32c149c11e6c3990e582e7cd25c26f7"
 
 [[projects]]
   branch = "master"
@@ -611,7 +612,7 @@
   branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "c71e5fd4bb539d6a706cc7cdbba2c8cda2fb784d"
+  revision = "d1030566bd0bedd57148368c812af3e8ca7cd3e3"
 
 [[projects]]
   branch = "master"
@@ -700,6 +701,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de963afeea666e3c3c33582ab434e92efbcc2cef52677857a9b83e5d2e82dd11"
+  inputs-digest = "81970c9b180cf85d49c6780cf790aa2a3771fd43a5c60c2917a7f849866fe902"
   solver-name = "gps-cdcl"
   solver-version = 1

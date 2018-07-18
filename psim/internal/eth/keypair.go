@@ -3,6 +3,8 @@ package eth
 import (
 	"context"
 
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
@@ -14,8 +16,9 @@ type Keypair struct {
 }
 
 func NewKeypair(hex string) (*Keypair, error) {
-	wallet := NewWallet()
+	hex = strings.TrimPrefix(hex, "0x")
 
+	wallet := NewWallet()
 	_, err := wallet.ImportHEX(hex)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to import private key")

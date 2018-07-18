@@ -21,6 +21,7 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal/user"
 	"gitlab.com/tokend/horizon-connector/internal/wallets"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/horizon-connector/internal/transaction_v2"
 )
 
 type Connector struct {
@@ -85,6 +86,10 @@ func (c *Connector) Accounts() *account.Q {
 
 func (c *Connector) Transactions() *transaction.Q {
 	return transaction.NewQ(c.client)
+}
+
+func (c *Connector) TransactionsV2() *transaction_v2.Q {
+	return transaction_v2.NewQ(c.client)
 }
 
 func (c *Connector) Sales() *sale.Q {

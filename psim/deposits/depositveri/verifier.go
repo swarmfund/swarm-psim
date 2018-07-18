@@ -16,7 +16,7 @@ import (
 var errNoExtAccount = errors.New("External system Account was not found.")
 
 type Verifier struct {
-	externalSystem     int
+	externalSystem     int32
 	log                *logan.Entry
 	lastBlocksNotWatch uint64
 	// TODO Interface
@@ -26,7 +26,7 @@ type Verifier struct {
 
 func newDepositVerifier(
 	serviceName string,
-	externalSystem int,
+	externalSystem int32,
 	log *logan.Entry,
 	lastBlocksNotWatch uint64,
 	horizon *horizon.Connector,
@@ -89,9 +89,12 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 	}
 	fields["account_id"] = accountID
 
-	offchainAddress, err := v.getOffchainAddress(*accountID, v.externalSystem)
+	offchainAddress, err := v.horizon.Accounts().CurrentExternalBindingData(*accountID, v.externalSystem)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get Offchain Address of the Account", fields.Merge(logan.F{"eternal_system": v.externalSystem}))
+	}
+	if offchainAddress == nil {
+		return nil, errors.Wrap(errNoExtAccount, "external binding not found", fields)
 	}
 
 	extDetails := deposit.ExternalDetails{}
@@ -103,7 +106,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 	}
 	fields["external_details"] = extDetails
 
-	expectedReference := v.offchainHelper.BuildReference(extDetails.BlockNumber, extDetails.TXHash, offchainAddress, extDetails.OutIndex, 64)
+	expectedReference := v.offchainHelper.BuildReference(extDetails.BlockNumber, extDetails.TXHash, *offchainAddress, extDetails.OutIndex, 64)
 	if expectedReference != string(op.Reference) {
 		return errors.Errorf("Invalid reference - expected (%s), got (%s).", expectedReference, op.Reference), nil
 	}
@@ -126,25 +129,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 		return nil, errors.Wrap(err, "Failed to get Block", fields)
 	}
 
-	return v.verifyOffchainBlock(*block, extDetails, uint64(req.Amount), offchainAddress), nil
-}
-
-func (v *Verifier) getOffchainAddress(accountAddress string, externalSystem int) (string, error) {
-	account, err := v.horizon.Accounts().ByAddress(accountAddress)
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to get Account by Address")
-	}
-	fields := logan.F{
-		"account": account,
-	}
-
-	for _, extSysAccount := range account.ExternalSystemAccounts {
-		if extSysAccount.Type.Value == externalSystem {
-			return extSysAccount.Address, nil
-		}
-	}
-
-	return "", errors.From(errNoExtAccount, fields)
+	return v.verifyOffchainBlock(*block, extDetails, uint64(req.Amount), *offchainAddress), nil
 }
 
 func (v *Verifier) verifyOffchainBlock(block deposit.Block, opExtDetails deposit.ExternalDetails, emissionAmount uint64, offchainAddress string) (checkErr error) {

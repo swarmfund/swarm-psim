@@ -18,7 +18,7 @@ var (
 	ErrSubmitInternal             = errors.New("internal submit error")
 	ErrSubmitRejected             = errors.New("transaction rejected")
 	ErrSubmitMalformed            = errors.New("transaction malformed")
-	ErrSubmitFailed            = errors.New("Transaction failed.")
+	ErrSubmitFailed               = errors.New("Transaction failed.")
 	ErrSubmitUnexpectedStatusCode = errors.New("Unexpected unsuccessful status code.")
 )
 
@@ -26,25 +26,24 @@ type Submitter struct {
 	client *Client
 }
 
-// DEPRECATED
 type SubmitResult struct {
 	Err         error
 	RawResponse []byte
 	TXCode      string
 	OpCodes     []string
+	ResultXDR   string
 }
 
 func (r SubmitResult) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
-		"err":      r.Err.Error(),
-		"raw":      string(r.RawResponse),
-		"tx_code":  r.TXCode,
-		"op_codes": r.OpCodes,
+		"err":        r.Err.Error(),
+		"raw":        string(r.RawResponse),
+		"tx_code":    r.TXCode,
+		"op_codes":   r.OpCodes,
+		"result_xdr": r.ResultXDR,
 	}
 }
 
-// DEPRECATED
-// Use SubmitE method instead
 func (s *Submitter) Submit(ctx context.Context, envelope string) SubmitResult {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(&resources.TransactionSubmit{
@@ -83,6 +82,7 @@ func (s *Submitter) Submit(ctx context.Context, envelope string) SubmitResult {
 			result.Err = ErrSubmitRejected
 			result.TXCode = response.Extras.ResultCodes.Transaction
 			result.OpCodes = response.Extras.ResultCodes.Operations
+			result.ResultXDR = response.Extras.ResultXDR
 		default:
 			panic("unknown reject type")
 		}
@@ -138,7 +138,7 @@ func (s *Submitter) SubmitE(txEnvelope string) (SubmitResponseDetails, error) {
 		return SubmitResponseDetails{}, errors.Wrap(err, "Failed to send POST request via Client")
 	}
 	details := SubmitResponseDetails{
-		StatusCode: statusCode,
+		StatusCode:  statusCode,
 		RawResponse: respBB,
 	}
 

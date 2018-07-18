@@ -44,7 +44,7 @@ func init() {
 		eth := app.Config(ctx).Ethereum()
 
 		return depositveri.New(
-			int(config.ExternalSystem),
+			config.ExternalSystem,
 			conf.ServiceERC20DepositVerify,
 			app.Log(ctx),
 			config.Signer,
