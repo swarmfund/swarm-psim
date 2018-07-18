@@ -10,6 +10,7 @@ import (
 
 	_ "gitlab.com/swarmfund/psim/psim/balancereporter"
 	_ "gitlab.com/swarmfund/psim/psim/eventsubmitter"
+	_ "gitlab.com/swarmfund/psim/psim/pokeman"
 
 	// derivers
 	_ "gitlab.com/swarmfund/psim/psim/externalsystems/btc"

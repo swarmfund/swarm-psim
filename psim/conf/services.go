@@ -2,6 +2,9 @@ package conf
 
 // All services existing in PSIM
 const (
+	// integration tests for user-facing flows
+	PokemanETHDepositService = "pokeman_eth_deposit"
+
 	BalanceReporterService = "balance_reporter"
 	EventSubmitterService  = "event_submitter"
 
