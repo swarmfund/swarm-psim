@@ -203,10 +203,10 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 
 	// check if we are able process given account type transition
 	switch {
-	case isNotVerified(account) && isUpdateToGeneral(request) && !kycData.IsUSA():
-	case isNotVerified(account) && isUpdateToVerified(request) && kycData.IsUSA():
-	case isGeneral(account) && isUpdateToVerified(request) && kycData.IsUSA():
-	case isGeneral(account) && isUpdateToGeneral(request) && !kycData.IsUSA():
+	case kyc.IsNotVerified(*account) && kyc.IsUpdateToGeneral(request) && !kycData.IsUSA():
+	case kyc.IsNotVerified(*account) && kyc.IsUpdateToVerified(request) && kycData.IsUSA():
+	case kyc.IsGeneral(*account) && kyc.IsUpdateToVerified(request) && kycData.IsUSA():
+	case kyc.IsGeneral(*account) && kyc.IsUpdateToGeneral(request) && !kycData.IsUSA():
 	default:
 		err := s.rejectRequest(ctx, request, s.config.RejectReasons.KYCStateRejected, nil)
 		if err != nil {
