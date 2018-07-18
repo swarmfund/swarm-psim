@@ -141,6 +141,9 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	fields["user"] = user
 
 	kycReq := request.Details.KYC
+	if kycReq == nil {
+		return errors.From(errors.New("KYCRequest in the Request is nil."), fields)
+	}
 	kycData, err := s.blobDataRetriever.ParseBlobData(*kycReq)
 	if err != nil {
 		return errors.Wrap(err, "Failed to retrieve KYC Blob or parse KYCData")
@@ -179,7 +182,7 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 	case PendingStatusMessage:
 		// Not Accredited yet - pending.
 		return nil
-	case AccreditedStatusMessage :
+	case AccreditedStatusMessage:
 		err := s.requestPerformer.Approve(ctx, request.ID, request.Hash, 0, kyc.TaskCheckInvestReady, nil)
 		if err != nil {
 			return errors.Wrap(err, "Failed to approve KYCRequest (InvestReady approved)")
@@ -187,7 +190,7 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 
 		logger.Info("Approved KYCRequest of approved AccreditedInvestor.")
 		return nil
-	case DeniedStatusMessage :
+	case DeniedStatusMessage:
 		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, DeniedRejectReason, RejectorName)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady denied)")
