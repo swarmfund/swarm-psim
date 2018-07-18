@@ -9,15 +9,15 @@ import (
 
 type ExternalSystemBindingMutator int32
 
-func (e *ExternalSystemBindingMutator) GetEffects() []int {
+func (e ExternalSystemBindingMutator) GetEffects() []int {
 	return []int{int(xdr.LedgerEntryChangeTypeCreated), int(xdr.LedgerEntryChangeTypeRemoved)}
 }
 
-func (e *ExternalSystemBindingMutator) GetEntryTypes() []int {
+func (e ExternalSystemBindingMutator) GetEntryTypes() []int {
 	return []int{int(xdr.LedgerEntryTypeExternalSystemAccountId)}
 }
 
-func (e *ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntryChangeV2,
+func (e ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntryChangeV2,
 ) (update StateUpdate, err error) {
 	switch change.EntryType {
 	case int32(xdr.LedgerEntryTypeExternalSystemAccountId):
@@ -31,11 +31,11 @@ func (e *ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEnt
 				})
 			}
 			data := ledgerEntry.Data.MustExternalSystemAccountId()
-			if int32(data.ExternalSystemType) != int32(*e) {
+			if int32(data.ExternalSystemType) != int32(e) {
 				break
 			}
 			update.ExternalAccount = &StateExternalAccountUpdate{
-				ExternalType: int32(*e),
+				ExternalType: int32(e),
 				State:        ExternalAccountBindingStateCreated,
 				Data:         string(data.Data),
 				Address:      data.AccountId.Address(),
@@ -49,11 +49,11 @@ func (e *ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEnt
 				})
 			}
 			data := ledgerKey.MustExternalSystemAccountId()
-			if int32(data.ExternalSystemType) != int32(*e) {
+			if int32(data.ExternalSystemType) != int32(e) {
 				break
 			}
 			update.ExternalAccount = &StateExternalAccountUpdate{
-				ExternalType: int32(*e),
+				ExternalType: int32(e),
 				State:        ExternalAccountBindingStateDeleted,
 				Address:      data.AccountId.Address(),
 			}

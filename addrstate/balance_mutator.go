@@ -9,16 +9,16 @@ import (
 
 type BalanceMutator string
 
-func (b *BalanceMutator) GetEffects() []int {
+func (b BalanceMutator) GetEffects() []int {
 	return []int{int(xdr.LedgerEntryChangeTypeCreated)}
 }
 
-func (b *BalanceMutator) GetEntryTypes() []int {
+func (b BalanceMutator) GetEntryTypes() []int {
 	return []int{int(xdr.LedgerEntryTypeBalance)}
 }
 
 
-func (b *BalanceMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (update StateUpdate, err error) {
+func (b BalanceMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (update StateUpdate, err error) {
 	switch change.EntryType {
 	case int32(xdr.LedgerEntryTypeBalance):
 		switch change.Effect {
@@ -31,7 +31,7 @@ func (b *BalanceMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (u
 				})
 			}
 			balance := ledgerEntry.Data.MustBalance()
-			if string(balance.Asset) != string(*b) {
+			if string(balance.Asset) != string(b) {
 				break
 			}
 			update.Balance = &StateBalanceUpdate{
