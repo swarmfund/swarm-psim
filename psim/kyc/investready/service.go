@@ -8,10 +8,10 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/distributed_lab/running"
 )
 
 // RequestListener is the interface, which must be implemented
@@ -28,11 +28,6 @@ type RequestPerformer interface {
 
 type BlobsConnector interface {
 	Blob(blobID string) (*horizon.Blob, error)
-	SubmitBlob(ctx context.Context, blobType, attrValue string, relationships map[string]string) (blobID string, err error)
-}
-
-type BlobDataRetriever interface {
-	ParseBlobData(kycRequest horizon.KYCRequest) (*kyc.Data, error)
 }
 
 type UsersConnector interface {
@@ -55,14 +50,13 @@ type Service struct {
 	requestListener   RequestListener
 	requestPerformer  RequestPerformer
 	blobsConnector    BlobsConnector
-	blobDataRetriever BlobDataRetriever
 	usersConnector    UsersConnector
 
 	investReady InvestReady
 
 	redirectsListener *RedirectsListener
 	kycRequests       <-chan horizon.ReviewableRequestEvent
-	users             []User
+	syncedUserHashes  []User
 }
 
 // TODO add docs.md
@@ -73,6 +67,7 @@ func NewService(
 	config Config,
 	requestListener RequestListener,
 	kycRequestsConnector KYCRequestsConnector,
+	accountsConnector AccountsConnector,
 	requestPerformer RequestPerformer,
 	blobProvider BlobsConnector,
 	userProvider UsersConnector,
@@ -84,6 +79,7 @@ func NewService(
 		logger,
 		config.RedirectsConfig,
 		kycRequestsConnector,
+		accountsConnector,
 		investReady,
 		doorman,
 		requestPerformer)
@@ -114,9 +110,11 @@ func (s *Service) Run(ctx context.Context) {
 		wg.Done()
 	}()
 
+	// TODO period to config
+	period := 30 * time.Second
 	wg.Add(1)
 	go func() {
-		s.processRequestsInfinitely(ctx)
+		running.WithBackOff(ctx, s.log, "requests_processing_iteration", s.processAllRequestsOnce, period, period, period)
 		wg.Done()
 	}()
 

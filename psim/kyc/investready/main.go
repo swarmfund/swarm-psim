@@ -48,6 +48,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config,
 		horizonConnector.Listener(),
 		horizonConnector.Operations(),
+		horizonConnector.Accounts(),
 		kyc.NewRequestPerformer(builder, config.Source, config.Signer, horizonConnector.Submitter()),
 		horizonConnector.Blobs(),
 		horizonConnector.Users(),

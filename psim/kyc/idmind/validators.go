@@ -70,19 +70,3 @@ func isBlobValid(blob *horizon.Blob) error {
 
 	return nil
 }
-
-func isGeneral(account *horizon.Account) bool {
-	return account.AccountTypeI == int32(xdr.AccountTypeGeneral)
-}
-
-func isNotVerified(account *horizon.Account) bool {
-	return account.AccountTypeI == int32(xdr.AccountTypeNotVerified)
-}
-
-func isUpdateToGeneral(request horizon.Request) bool {
-	return request.Details.KYC.AccountTypeToSet.Int == int(xdr.AccountTypeGeneral)
-}
-
-func isUpdateToVerified(request horizon.Request) bool {
-	return request.Details.KYC.AccountTypeToSet.Int == int(xdr.AccountTypeVerified)
-}

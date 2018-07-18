@@ -18,34 +18,6 @@ const (
 	DeniedRejectReason = "Invest Ready denied."
 )
 
-// TODO timeToSleep to config
-// ProcessRequestsInfinitely is blocking method, returns only if ctx is cancelled.
-func (s *Service) processRequestsInfinitely(ctx context.Context) {
-	for {
-		// TODO timeToSleep to config
-		timeToSleep := 30 * time.Second
-
-		err := s.processAllRequestsOnce(ctx)
-		if err != nil {
-			// TODO Add timeToSleep to logs
-			s.log.WithError(err).Error("Failed to perform KYCRequests processing iteration. Waiting for the next iteration in a regular mode.")
-		} else {
-			s.log.Debugf("No more KYC Requests in Horizon, will start from the very beginning, now sleeping for (%s).", timeToSleep.String())
-		}
-
-		c := time.After(timeToSleep)
-		select {
-		case <-ctx.Done():
-			return
-		case <-c:
-			if running.IsCancelled(ctx) {
-				return
-			}
-			continue
-		}
-	}
-}
-
 func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 	users, err := s.investReady.ListAllSyncedUsers(ctx)
 	if err != nil {
@@ -54,7 +26,7 @@ func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 	if running.IsCancelled(ctx) {
 		return nil
 	}
-	s.users = users
+	s.syncedUserHashes = users
 
 	s.kycRequests = s.requestListener.StreamAllKYCRequests(ctx, false)
 
@@ -73,6 +45,8 @@ func (s *Service) processAllRequestsOnce(ctx context.Context) error {
 			break
 		}
 	}
+
+	s.log.Debug("No more KYC Requests in Horizon, will start from the very beginning, now sleeping.")
 	return nil
 }
 
@@ -130,18 +104,17 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 		"user_hash": userHash,
 	}
 
-	user := s.findUser(userHash)
+	user := s.findInvestReadyUser(userHash)
 	if user == nil {
 		return errors.From(errors.New("User with the UserHash from KYCRequest was not found in InvestReady."), fields.Merge(logan.F{
-			"known_users": len(s.users),
+			"known_users": len(s.syncedUserHashes),
 		}))
 	}
 	fields["user"] = user
 
-	kycReq := request.Details.KYC
-	kycData, err := s.blobDataRetriever.ParseBlobData(*kycReq)
+	kycData, err := s.getBlobKYCData(request)
 	if err != nil {
-		return errors.Wrap(err, "Failed to retrieve KYC Blob or parse KYCData")
+		return errors.Wrap(err, "Failed to retrieve KYCData of the Request (from Blob)")
 	}
 
 	err = s.processInvestReadyUser(ctx, request, *user, *kycData)
@@ -150,6 +123,29 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	}
 
 	return nil
+}
+
+func (s *Service) getBlobKYCData(request horizon.Request) (*kyc.Data, error) {
+	kycReq := request.Details.KYC
+	if kycReq == nil {
+		return nil, errors.New("KYCRequest in the Request is nil.")
+	}
+	fields := logan.F{
+		"blob_id": kycReq.KYCDataStruct.BlobID,
+	}
+
+	blob, err := s.blobsConnector.Blob(kycReq.KYCDataStruct.BlobID)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get Blob", fields)
+	}
+	fields["blob"] = blob
+
+	kycData, err := kyc.ParseKYCData(blob.Attributes.Value)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parse KYCData from the Blob")
+	}
+
+	return kycData, nil
 }
 
 func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Request, user User, kycData kyc.Data) error {
@@ -173,12 +169,11 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 		return nil
 	}
 
-	if user.Status.Message == PendingStatusMessage {
+	switch user.Status.Message {
+	case PendingStatusMessage:
 		// Not Accredited yet - pending.
 		return nil
-	}
-
-	if user.Status.Message == AccreditedStatusMessage {
+	case AccreditedStatusMessage:
 		err := s.requestPerformer.Approve(ctx, request.ID, request.Hash, 0, kyc.TaskCheckInvestReady, nil)
 		if err != nil {
 			return errors.Wrap(err, "Failed to approve KYCRequest (InvestReady approved)")
@@ -186,9 +181,7 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 
 		logger.Info("Approved KYCRequest of approved AccreditedInvestor.")
 		return nil
-	}
-
-	if user.Status.Message == DeniedStatusMessage {
+	case DeniedStatusMessage:
 		err := s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, nil, DeniedRejectReason, RejectorName)
 		if err != nil {
 			return errors.Wrap(err, "Failed to reject KYCRequest (InvestReady denied)")
@@ -196,14 +189,14 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 
 		logger.Info("Rejected KYCRequest (InvestReady denied).")
 		return nil
+	default:
+		// TODO Make sure there's no other valid value of Accredited field
+		return errors.Errorf("Unexpected Status of the InvestReady User (%s).", user.Status.Message)
 	}
-
-	// TODO Make sure there's no other valid value of Accredited field
-	return errors.Errorf("Unexpected Status of the InvestReady User (%s).", user.Status.Message)
 }
 
-func (s *Service) findUser(userHash string) *User {
-	for _, user := range s.users {
+func (s *Service) findInvestReadyUser(userHash string) *User {
+	for _, user := range s.syncedUserHashes {
 		if user.Hash == userHash {
 			return &user
 		}
