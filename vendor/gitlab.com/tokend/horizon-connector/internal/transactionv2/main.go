@@ -8,7 +8,6 @@ import (
 	"gitlab.com/tokend/regources"
 	"net/url"
 	"strconv"
-	"fmt"
 )
 
 type Q struct {
@@ -21,13 +20,16 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
+// TransactionsByEffectsAndEntryTypes do request to horizon to get transactions v2
+// by specific entry type and effects, returns transactionsV2 and page meta
 func (q *Q) TransactionsByEffectsAndEntryTypes(cursor string, effects, entryTypes []int,
 ) ([]regources.TransactionV2, *regources.PageMeta, error) {
 	u := url.Values{}
 	u.Add("limit", "1000")
 	u.Add("cursor", cursor)
-	response, err := q.client.Get(fmt.Sprintf("/transactionv2/transactions?%s%s%s", u.Encode(),
-		getStringFromIntSlice("effect", effects), getStringFromIntSlice("entry_type", entryTypes)))
+	addQuerySlice(u, "effect", effects)
+	addQuerySlice(u, "entry_type", entryTypes)
+	response, err := q.client.Get("/v2/transactions?" + u.Encode())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "transactions_v2 request failed")
 	}
@@ -40,11 +42,8 @@ func (q *Q) TransactionsByEffectsAndEntryTypes(cursor string, effects, entryType
 	return result.Embedded.Records, &result.Embedded.Meta, nil
 }
 
-func getStringFromIntSlice(fieldName string, input []int) string {
-	u := url.Values{}
+func addQuerySlice(url url.Values, fieldName string, input []int) {
 	for _, value := range input {
-		u.Add(fieldName, strconv.Itoa(value))
+		url.Add(fieldName, strconv.Itoa(value))
 	}
-
-	return u.Encode()
 }

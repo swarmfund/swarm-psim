@@ -8,6 +8,7 @@ import (
 	"context"
 )
 
+// Q wraps queues to use their methods
 type Q struct {
 	txQ *transaction.Q
 	txV2Q *transactionv2.Q

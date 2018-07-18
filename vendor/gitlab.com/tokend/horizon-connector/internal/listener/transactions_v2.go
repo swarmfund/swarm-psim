@@ -8,17 +8,15 @@ import (
 	"gitlab.com/tokend/regources"
 )
 
+// StreamTransactionsV2 streams transactions fetched for specified filters.
+// If there is no new transactions, but ledger has been closed, `TransactionV2Event` with nil tx will be returned.
+// Consumer should not rely on closing of any of this channels.
 func (q *Q) StreamTransactionsV2(ctx context.Context, effects, entryTypes []int,
 ) (<-chan regources.TransactionV2Event, <-chan error) {
 	txStream := make(chan regources.TransactionV2Event)
 	errChan := make(chan error)
 
 	go func() {
-		defer func() {
-			close(txStream)
-			close(errChan)
-		}()
-
 		cursor := ""
 		for {
 			select {
