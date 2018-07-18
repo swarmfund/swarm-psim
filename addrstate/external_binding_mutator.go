@@ -7,7 +7,9 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-type ExternalSystemBindingMutator int32
+type ExternalSystemBindingMutator struct{
+	SystemType int32
+}
 
 func (e ExternalSystemBindingMutator) GetEffects() []int {
 	return []int{int(xdr.LedgerEntryChangeTypeCreated), int(xdr.LedgerEntryChangeTypeRemoved)}
@@ -31,11 +33,11 @@ func (e ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntr
 				})
 			}
 			data := ledgerEntry.Data.MustExternalSystemAccountId()
-			if int32(data.ExternalSystemType) != int32(e) {
+			if int32(data.ExternalSystemType) != e.SystemType {
 				break
 			}
 			update.ExternalAccount = &StateExternalAccountUpdate{
-				ExternalType: int32(e),
+				ExternalType: e.SystemType,
 				State:        ExternalAccountBindingStateCreated,
 				Data:         string(data.Data),
 				Address:      data.AccountId.Address(),
@@ -49,11 +51,11 @@ func (e ExternalSystemBindingMutator) GetStateUpdate(change regources.LedgerEntr
 				})
 			}
 			data := ledgerKey.MustExternalSystemAccountId()
-			if int32(data.ExternalSystemType) != int32(e) {
+			if int32(data.ExternalSystemType) != e.SystemType {
 				break
 			}
 			update.ExternalAccount = &StateExternalAccountUpdate{
-				ExternalType: int32(e),
+				ExternalType: e.SystemType,
 				State:        ExternalAccountBindingStateDeleted,
 				Address:      data.AccountId.Address(),
 			}

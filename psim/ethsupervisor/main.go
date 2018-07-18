@@ -52,8 +52,8 @@ func init() {
 			ctx,
 			app.Log(ctx),
 			[]addrstate.StateMutator{
-				addrstate.ExternalSystemBindingMutator(config.ExternalSystem),
-				addrstate.BalanceMutator("ETH"),
+				addrstate.ExternalSystemBindingMutator{SystemType: config.ExternalSystem},
+				addrstate.BalanceMutator{Asset: "ETH"},
 			},
 			horizon.Listener(),
 		)

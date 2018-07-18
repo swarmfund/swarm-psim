@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/regources"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func TestBalanceMutator(t *testing.T) {
@@ -26,10 +25,7 @@ func TestBalanceMutator(t *testing.T) {
 			},
 		},
 	}
-	firstPayload, err := xdr.MarshalBase64(firstLedgerEntry)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger entry"))
-	}
+	firstPayload := xdr.MustMarshalBase64(firstLedgerEntry)
 
 	secondLedgerEntry := xdr.LedgerEntry{
 		Data: xdr.LedgerEntryData{
@@ -41,10 +37,7 @@ func TestBalanceMutator(t *testing.T) {
 			},
 		},
 	}
-	secondPayload, err := xdr.MarshalBase64(secondLedgerEntry)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger entry"))
-	}
+	secondPayload := xdr.MustMarshalBase64(secondLedgerEntry)
 
 	cases := []struct {
 		asset    string
@@ -77,7 +70,7 @@ func TestBalanceMutator(t *testing.T) {
 		},
 	}
 	for i, tc := range cases {
-		balanceMutator := BalanceMutator(tc.asset)
+		balanceMutator := BalanceMutator{tc.asset}
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			got, err := balanceMutator.GetStateUpdate(tc.change)
 			if err != nil {

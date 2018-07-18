@@ -7,7 +7,9 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-type BalanceMutator string
+type BalanceMutator struct {
+	Asset string
+}
 
 func (b BalanceMutator) GetEffects() []int {
 	return []int{int(xdr.LedgerEntryChangeTypeCreated)}
@@ -31,7 +33,7 @@ func (b BalanceMutator) GetStateUpdate(change regources.LedgerEntryChangeV2) (up
 				})
 			}
 			balance := ledgerEntry.Data.MustBalance()
-			if string(balance.Asset) != string(b) {
+			if string(balance.Asset) != b.Asset {
 				break
 			}
 			update.Balance = &StateBalanceUpdate{

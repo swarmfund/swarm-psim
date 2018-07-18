@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/regources"
 )
 
@@ -23,10 +22,7 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 			},
 		},
 	}
-	firstPayload, err := xdr.MarshalBase64(firstLedgerEntry)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger entry"))
-	}
+	firstPayload := xdr.MustMarshalBase64(firstLedgerEntry)
 
 	secondLedgerEntry := &xdr.LedgerEntry{
 		Data: xdr.LedgerEntryData{
@@ -38,10 +34,8 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 			},
 		},
 	}
-	secondPayload, err := xdr.MarshalBase64(secondLedgerEntry)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger entry"))
-	}
+	secondPayload := xdr.MustMarshalBase64(secondLedgerEntry)
+
 	firstLedgerKey := &xdr.LedgerKey{
 		Type: xdr.LedgerEntryTypeExternalSystemAccountId,
 		ExternalSystemAccountId: &xdr.LedgerKeyExternalSystemAccountId{
@@ -49,11 +43,8 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 			ExternalSystemType: 24,
 		},
 	}
+	thridPayload := xdr.MustMarshalBase64(firstLedgerKey)
 
-	thridPayload, err := xdr.MarshalBase64(firstLedgerKey)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger key"))
-	}
 	secondLedgerKey := &xdr.LedgerKey{
 		Type: xdr.LedgerEntryTypeExternalSystemAccountId,
 		ExternalSystemAccountId: &xdr.LedgerKeyExternalSystemAccountId{
@@ -61,11 +52,7 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 			ExternalSystemType: 42,
 		},
 	}
-
-	fourthPayload, err := xdr.MarshalBase64(secondLedgerKey)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to marshal ledger key"))
-	}
+	fourthPayload := xdr.MustMarshalBase64(secondLedgerKey)
 
 	cases := []struct {
 		name       string
@@ -128,7 +115,7 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		externalSystemBindingMutator := ExternalSystemBindingMutator(tc.systemType)
+		externalSystemBindingMutator := ExternalSystemBindingMutator{tc.systemType}
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := externalSystemBindingMutator.GetStateUpdate(tc.change)
 			if err != nil {
