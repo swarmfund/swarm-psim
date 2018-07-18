@@ -34,6 +34,7 @@ type Watcher struct {
 	state      *State
 }
 
+// New returns new watcher and start streaming transactionsV2
 func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXStreamerV2) *Watcher {
 	w := &Watcher{
 		log:        log.WithField("service", "addrstate"),
@@ -68,7 +69,7 @@ func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	}
 }
 
-// WatcherState is a connector between LedgerEntryChange and Watcher state for specific consumers
+// StateUpdate is a connector between LedgerEntryChange and Watcher state for specific consumers
 // if new field added, add case to getStateUpdateTypes method
 type StateUpdate struct {
 	//AssetPrice      *int64
