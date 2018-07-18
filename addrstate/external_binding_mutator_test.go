@@ -118,9 +118,7 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 		externalSystemBindingMutator := ExternalSystemBindingMutator{tc.systemType}
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := externalSystemBindingMutator.GetStateUpdate(tc.change)
-			if err != nil {
-				panic("failed to get statet update in tests")
-			}
+			assert.NoError(t, err)
 			assert.EqualValues(t, tc.expected, got)
 		})
 	}

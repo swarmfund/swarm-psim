@@ -73,9 +73,7 @@ func TestBalanceMutator(t *testing.T) {
 		balanceMutator := BalanceMutator{tc.asset}
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			got, err := balanceMutator.GetStateUpdate(tc.change)
-			if err != nil {
-				panic("failed to get statet update in tests")
-			}
+			assert.NoError(t, err)
 			assert.EqualValues(t, tc.expected, got)
 		})
 	}
