@@ -117,10 +117,13 @@ func (s GreedyCoinSelector) splitAndChoose(utxos map[bitcoin.Out]UTXO, amountToF
 		return biggerUTXOS, nil
 	}
 	return nil, smallerUTXOS
-
 }
 
 func (s GreedyCoinSelector) chooseMaxUTXO(utxos map[bitcoin.Out]UTXO) bitcoin.Out {
+	if len(utxos) == 0 {
+		return bitcoin.Out{}
+	}
+
 	max := s.chooseRandomInMap(utxos)
 	for k, v := range utxos {
 		if utxos[max].Value < v.Value {
@@ -132,6 +135,10 @@ func (s GreedyCoinSelector) chooseMaxUTXO(utxos map[bitcoin.Out]UTXO) bitcoin.Ou
 }
 
 func (s GreedyCoinSelector) chooseMinUTXO(utxos map[bitcoin.Out]UTXO) bitcoin.Out {
+	if len(utxos) == 0 {
+		return bitcoin.Out{}
+	}
+
 	min := s.chooseRandomInMap(utxos)
 	for k, v := range utxos {
 		if utxos[min].Value > v.Value {
