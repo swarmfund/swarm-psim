@@ -71,7 +71,6 @@ func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 }
 
 // StateUpdate is a connector between LedgerEntryChange and Watcher state for specific consumers
-// if new field added, add case to getStateUpdateTypes method
 type StateUpdate struct {
 	//AssetPrice      *int64
 	ExternalAccount *StateExternalAccountUpdate
