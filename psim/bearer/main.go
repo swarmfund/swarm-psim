@@ -9,10 +9,10 @@ import (
 
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -21,8 +21,8 @@ func init() {
 
 func setupFn(ctx context.Context) (app.Service, error) {
 	config := Config{
-		AbnormalPeriod: 1 * time.Minute,
-		SleepPeriod:    5 * time.Minute,
+		AbnormalPeriod:    1 * time.Minute,
+		MaxAbnormalPeriod: 5 * time.Minute,
 	}
 	err := figure.
 		Out(&config).

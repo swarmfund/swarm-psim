@@ -3,13 +3,20 @@ package bearer
 import (
 	"context"
 
-	"time"
+	"net/http"
 
+	"github.com/go-chi/chi"
+	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/ape/problems"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/tokend/horizon-connector"
+
+	"strconv"
+
+	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/listener"
 )
 
 type SalesQ interface {
@@ -21,63 +28,120 @@ type SalesQ interface {
 type CheckSalesStateHelperInterface interface {
 	SalesQ
 	CloseSale(id uint64) (bool, error)
-	//GetHorizonInfo() (info *horizon.Info, err error)
-	//BuildTx(info *horizon.Info, saleID uint64) (string, error)
-	//SubmitTx(ctx context.Context, envelope string) horizon.SubmitResult
 }
 
 // Service is a main structure for bearer runner,
 // implements `app.Service` interface.
 type Service struct {
-	config Config
-	helper CheckSalesStateHelperInterface
-	logger *logan.Entry
-	ticker *time.Ticker
+	config       Config
+	helper       CheckSalesStateHelperInterface
+	logger       *logan.Entry
+	salesToClose chan horizon.CoreSale
 }
 
 // New is a constructor for bearer Service.
 func New(config Config, log *logan.Entry, helper CheckSalesStateHelperInterface) *Service {
 	return &Service{
-		config: config,
-		helper: helper,
-		logger: log.WithField("service", conf.ServiceBearer),
-		ticker: time.NewTicker(config.SleepPeriod),
+		config:       config,
+		helper:       helper,
+		logger:       log.WithField("service", conf.ServiceBearer),
+		salesToClose: make(chan horizon.CoreSale, 10),
 	}
+}
+
+func (s *Service) handleCloseSaleRequest(w http.ResponseWriter, r *http.Request) {
+	saleID := chi.URLParam(r, "id")
+
+	id, err := strconv.ParseUint(saleID, 10, 64)
+	if len(saleID) == 0 || err != nil {
+		ape.RenderErr(w, problems.BadRequest("invalid id"))
+		return
+	}
+	s.salesToClose <- horizon.CoreSale{ID: id}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (s *Service) router() chi.Router {
+	r := chi.NewRouter()
+
+	r.Use(
+		ape.RecoverMiddleware(s.logger),
+	)
+
+	r.Put("/sale/{id}", s.handleCloseSaleRequest)
+
+	return r
 }
 
 // Run logs out info about service start and invokes run over incremental timer
 func (s *Service) Run(ctx context.Context) {
 	s.logger.Info("starting...")
 
-	app.RunOverIncrementalTimer(
-		ctx,
+	go running.WithBackOff(ctx,
 		s.logger,
-		conf.ServiceBearer,
-		s.worker,
-		0,
-		s.config.AbnormalPeriod)
+		"crawler",
+		s.crawler,
+		s.config.NormalTime,
+		s.config.AbnormalPeriod,
+		s.config.MaxAbnormalPeriod)
+
+	go running.WithBackOff(ctx,
+		s.logger,
+		"saleCloser",
+		s.saleCloser,
+		s.config.NormalTime,
+		s.config.AbnormalPeriod,
+		s.config.MaxAbnormalPeriod)
+
+	serverConf := listener.Config{
+		Host:           s.config.Host,
+		CheckSignature: false,
+		Port:           s.config.Port,
+	}
+	listener.RunServer(ctx, s.logger, s.router(), serverConf)
 }
 
-// SendOperations sends operations to Horizon server and gets submission results from it
-func (s *Service) worker(ctx context.Context) error {
-	if err := s.checkSalesState(ctx); err != nil {
-		return errors.Wrap(err, "cannot submit checkSalesState operation")
+func (s *Service) tryCloseSale(sale horizon.CoreSale) error {
+	fields := logan.F{
+		"sale_id": sale.ID,
 	}
+	closed, err := s.helper.CloseSale(sale.ID)
+	if err != nil {
+		return err
+	}
+	if closed {
+		s.logger.WithFields(fields).Debug("sale closed")
+	} else {
+		s.logger.WithFields(fields).Debug("sale not ready yet")
+	}
+	return nil
+}
 
-	s.logger.Info("successful iteration")
-
-	select {
-	case <-ctx.Done():
-		s.logger.Info("bye-bye")
-	case <-s.ticker.C:
+func (s *Service) saleCloser(ctx context.Context) error {
+	for {
+		select {
+		case sale := <-s.salesToClose:
+			fields := logan.F{
+				"sale_id": sale.ID,
+			}
+			err := s.tryCloseSale(sale)
+			if err != nil {
+				s.logger.WithFields(fields).WithError(err).Error("failed to close sale")
+				return errors.Wrap(err, "failed to close sale", fields)
+			}
+			s.logger.WithFields(fields).Debug("Handled close sale request")
+		case <-ctx.Done():
+			s.logger.Info("saleCloser shut down")
+		}
 	}
 
 	return nil
 }
 
-func (s *Service) checkSalesState(ctx context.Context) error {
+func (s *Service) crawler(ctx context.Context) error {
 	sales, err := s.helper.CoreSales()
 	if err != nil {
+		s.logger.WithError(err).Error("failed to get sales")
 		return errors.Wrap(err, "failed to get sales")
 	}
 
@@ -85,16 +149,11 @@ func (s *Service) checkSalesState(ctx context.Context) error {
 		fields := logan.F{
 			"sale_id": sale.ID,
 		}
-		closed, err := s.helper.CloseSale(sale.ID)
+		err := s.tryCloseSale(sale)
 		if err != nil {
+			s.logger.WithFields(fields).WithError(err).Error("failed to close sale")
 			return errors.Wrap(err, "failed to close sale", fields)
 		}
-		if closed {
-			s.logger.WithFields(fields).Info("sale closed")
-		} else {
-			s.logger.WithFields(fields).Info("sale not ready yet")
-		}
 	}
-
 	return nil
 }
