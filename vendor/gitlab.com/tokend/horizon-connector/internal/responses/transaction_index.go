@@ -14,7 +14,7 @@ type TransactionIndex struct {
 
 type TransactionV2Index struct {
 	Embedded struct {
-		Meta    resources.PageMeta        `json:"meta"`
+		Meta    regources.PageMeta        `json:"meta"`
 		Records []regources.TransactionV2 `json:"records"`
 	} `json:"_embedded"`
 }
