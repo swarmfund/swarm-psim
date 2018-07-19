@@ -7,6 +7,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
+var ErrUnexpectedEffect = errors.New("unexpected change effect")
+
 func convertLedgerEntryChangeV2(change regources.LedgerEntryChangeV2) (xdr.LedgerEntryChange, error) {
 	switch change.Effect {
 	case int32(xdr.LedgerEntryChangeTypeRemoved):
@@ -28,6 +30,7 @@ func convertLedgerEntryChangeV2(change regources.LedgerEntryChangeV2) (xdr.Ledge
 		}
 		return xdr.NewLedgerEntryChange(xdr.LedgerEntryChangeType(change.Effect), ledgerEntry)
 	default:
-		return xdr.LedgerEntryChange{}, errors.New("Unexpected change effect")
+		return xdr.LedgerEntryChange{}, errors.Wrap(ErrUnexpectedEffect, "failed to convert ledger entry",
+			logan.F{"effect" : change.Effect})
 	}
 }
