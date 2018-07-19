@@ -1,4 +1,4 @@
-package transaction_v2
+package transactionv2
 
 import (
 	"gitlab.com/tokend/horizon-connector/internal"
@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/regources"
-	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"net/url"
 	"strconv"
-	"fmt"
 )
 
 type Q struct {
@@ -22,12 +20,16 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
-func (q *Q) TransactionsByEffectsAndEntryTypes(effects, entryTypes []int,
-) ([]regources.TransactionV2, *resources.PageMeta, error) {
+// TransactionsByEffectsAndEntryTypes do request to horizon to get transactions v2
+// by specific entry type and effects, returns transactionsV2 and page meta
+func (q *Q) TransactionsByEffectsAndEntryTypes(cursor string, effects, entryTypes []int,
+) ([]regources.TransactionV2, *regources.PageMeta, error) {
 	u := url.Values{}
 	u.Add("limit", "1000")
-	response, err := q.client.Get(fmt.Sprintf("/v2/transactions?%s%s%s", u.Encode(),
-		getStringFromIntSlice("effect", effects), getStringFromIntSlice("entry_type", entryTypes)))
+	u.Add("cursor", cursor)
+	addQuerySlice(u, "effect", effects)
+	addQuerySlice(u, "entry_type", entryTypes)
+	response, err := q.client.Get("/v2/transactions?" + u.Encode())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "transactions_v2 request failed")
 	}
@@ -40,11 +42,8 @@ func (q *Q) TransactionsByEffectsAndEntryTypes(effects, entryTypes []int,
 	return result.Embedded.Records, &result.Embedded.Meta, nil
 }
 
-func getStringFromIntSlice(fieldName string, input []int) string {
-	u := url.Values{}
+func addQuerySlice(u url.Values, fieldName string, input []int) {
 	for _, value := range input {
 		u.Add(fieldName, strconv.Itoa(value))
 	}
-
-	return u.Encode()
 }

@@ -8,10 +8,12 @@ import (
 )
 
 type Config struct {
-	Source  keypair.Address `fig:"source,required"`
-	Signer  keypair.Full    `fig:"signer,required"`
-	Keypair eth.Keypair     `fig:"keypair,required"`
-	Asset   string          `fig:"asset,required"`
+	Source          keypair.Address `fig:"source,required"`
+	Signer          keypair.Full    `fig:"signer,required"`
+	Keypair         eth.Keypair     `fig:"keypair,required"`
+	Asset           string          `fig:"asset,required"`
+	DisableDeposit  bool            `fig:"disable_deposit"`
+	DisableWithdraw bool            `fig:"disable_withdraw"`
 }
 
 func NewConfig(raw map[string]interface{}) (config Config, err error) {

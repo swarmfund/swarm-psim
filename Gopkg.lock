@@ -567,7 +567,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "64c4f30aa7ea912ccccfbf1ff2ae049491b58b4b"
+  revision = "7467cd1316e2e022322ef9b64383aef3b56194b3"
 
 [[projects]]
   branch = "master"
@@ -590,12 +590,12 @@
     "internal/system",
     "internal/templates",
     "internal/transaction",
-    "internal/transaction_v2",
+    "internal/transactionv2",
     "internal/user",
     "internal/wallets",
     "types"
   ]
-  revision = "e972fe12b32c149c11e6c3990e582e7cd25c26f7"
+  revision = "da2c208263c83487b889283ce03bdd67813a13c8"
 
 [[projects]]
   branch = "master"
@@ -612,7 +612,7 @@
   branch = "master"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
-  revision = "d1030566bd0bedd57148368c812af3e8ca7cd3e3"
+  revision = "f597b01ef45ccc3398ea70a196597cfc9ef75766"
 
 [[projects]]
   branch = "master"

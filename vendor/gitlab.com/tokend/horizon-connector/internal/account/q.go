@@ -11,7 +11,6 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/horizon-connector/internal/responses"
-	"gitlab.com/tokend/horizon-connector/types"
 )
 
 var (
@@ -118,17 +117,19 @@ func (q *Q) ByAddress(address string) (*resources.Account, error) {
 	return &account, nil
 }
 
-func (q *Q) CurrentBalanceIn(address, asset string) (types.Amount, error) {
+// CurrentBalanceIn return account's balance in provided asset
+// ErrNoBalance if balance does not exist
+func (q *Q) CurrentBalanceIn(address, asset string) (result resources.Balance, err error) {
 	account, err := q.ByAddress(address)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get account")
+		return result, errors.Wrap(err, "failed to get account")
 	}
 	for _, balance := range account.Balances {
 		if balance.Asset == asset {
-			return balance.Balance, nil
+			return balance, nil
 		}
 	}
-	return 0, ErrNoBalance
+	return result, ErrNoBalance
 }
 
 // CurrentExternalBindingData will return (nil, nil) if account external binding does not exist

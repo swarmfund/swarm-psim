@@ -4,18 +4,22 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal/operation"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/horizon-connector/internal/transaction"
+	"gitlab.com/tokend/horizon-connector/internal/transactionv2"
 	"context"
 )
 
+// Q wraps queues to use their methods
 type Q struct {
 	txQ *transaction.Q
+	txV2Q *transactionv2.Q
 	// TODO Rename - it'a actually RequestQ
 	opQ *operation.Q
 }
 
-func NewQ(tx *transaction.Q, op *operation.Q) *Q {
+func NewQ(tx *transaction.Q, txV2Q *transactionv2.Q, op *operation.Q) *Q {
 	return &Q{
 		tx,
+		txV2Q,
 		op,
 	}
 }
