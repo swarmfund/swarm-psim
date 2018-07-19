@@ -1,12 +1,12 @@
 package addrstate
 
 import (
-	"time"
 	"context"
+	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/tokend/regources"
 	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/regources"
 )
 
 // StateMutator uses to get StateUpdate for specific effects and entryTypes
@@ -37,10 +37,13 @@ type Watcher struct {
 
 // New returns new watcher and start streaming transactionsV2
 func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXStreamerV2) *Watcher {
+	ctx, cancel := context.WithCancel(ctx)
+
 	w := &Watcher{
 		log:        log.WithField("service", "addrstate"),
 		mutators:   mutators,
 		txStreamer: txQ,
+		ctx:        ctx,
 
 		state:      newState(),
 		headUpdate: make(chan struct{}),
@@ -51,6 +54,7 @@ func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXS
 			if rvr := recover(); rvr != nil {
 				log.WithRecover(rvr).Error("state watcher panicked")
 			}
+			cancel()
 		}()
 		w.run(ctx)
 	}()
@@ -124,9 +128,9 @@ func (w *Watcher) run(ctx context.Context) {
 					ledgerEntryChange, err := convertLedgerEntryChangeV2(change)
 					if err != nil {
 						w.log.WithError(err).Error("failed to get state update", logan.F{
-							"entry_type" : change.EntryType,
-							"effect" : change.Effect,
-							"transaction_id" : tx.ID,
+							"entry_type":     change.EntryType,
+							"effect":         change.Effect,
+							"transaction_id": tx.ID,
 						})
 						return
 					}
