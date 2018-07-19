@@ -123,11 +123,12 @@ func (w *Watcher) run(ctx context.Context) {
 					// apply all mutators
 					ledgerEntryChange, err := convertLedgerEntryChangeV2(change)
 					if err != nil {
-						w.log.WithError(err).Warn("failed to get state update", logan.F{
+						w.log.WithError(err).Error("failed to get state update", logan.F{
 							"entry_type" : change.EntryType,
 							"effect" : change.Effect,
+							"transaction_id" : tx.ID,
 						})
-						continue
+						return
 					}
 					for _, mutator := range w.mutators {
 						stateUpdate := mutator.GetStateUpdate(ledgerEntryChange)
