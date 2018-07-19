@@ -110,10 +110,13 @@ event_submitter:
   txhistory_cursor: ""
 
 bearer:
+  host: localhost
+  port: 2323
   source: GDHK26UFBGC63UBQCVQLHJD6RAQXLAS7RKJAR5FZQAWMCUBFHRNKFSKC
   signer: SDLZEHWFLOP2BIQBCQIGI7J7BXBAN5S7UESAKYT7XIZC62RG4YLM4FZ7
+  normal_time: 1m
   abnormal_period: 1m
-  sleep_period: 5m
+  max_abnormal_period: 5m
 
 notifier:
   source: G_SOME_VALID_PUBLIC_KEY
