@@ -3,50 +3,17 @@ package resources
 import (
 	"testing"
 
-	"reflect"
-
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/distributed_lab/ape/apeutil"
 )
 
-func TestGetTemplateRequest_Validate(t *testing.T) {
-	cases := []struct {
-		name string
-		key  string
-		err  bool
-	}{
-		{
-			name: "valid",
-			key:  "key",
-			err:  false,
-		},
-		{
-			name: "invalid",
-			key:  "",
-			err:  true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			request := GetTemplateRequest{Key: tc.key}
-			err := request.Validate()
-			if err != nil && !tc.err {
-				t.Fatalf("expected nil error got %s", err)
-			}
-			if err == nil && tc.err {
-				t.Fatalf("expected error got nil")
-			}
-		})
-	}
-
-}
-
 func TestNewGetTemplateRequest(t *testing.T) {
 	cases := []struct {
-		name     string
-		key      string
-		err      bool
-		expected GetTemplateRequest
+		name      string
+		key       string
+		err       bool
+		errString string
+		expected  GetTemplateRequest
 	}{
 		{
 			name: "valid request",
@@ -57,9 +24,10 @@ func TestNewGetTemplateRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid request",
-			key:  "",
-			err:  true,
+			name:      "invalid request",
+			key:       "",
+			err:       true,
+			errString: "-: cannot be blank.",
 			expected: GetTemplateRequest{
 				Key: "",
 			},
@@ -72,15 +40,10 @@ func TestNewGetTemplateRequest(t *testing.T) {
 				"template": tc.key,
 			})
 			got, err := NewGetTemplateRequest(r)
-			if err != nil && !tc.err {
-				t.Fatalf("expected nil error got %s", err)
+			if tc.err && assert.Error(t, err) {
+				assert.Equal(t, tc.errString, err.Error())
 			}
-			if err == nil && tc.err {
-				t.Fatalf("expected error got nil")
-			}
-			if err == nil && !reflect.DeepEqual(got, tc.expected) {
-				t.Fatalf("expected %#v got #%v", tc.expected, got)
-			}
+			assert.Equal(t, tc.expected, got)
 		})
 	}
 }
