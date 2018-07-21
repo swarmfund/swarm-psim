@@ -26,8 +26,8 @@ type AccountQ interface {
 
 type Service struct {
 	config     *Config
-	uploader   *s3.S3
-	downloader *s3manager.Downloader
+	uploader   handlers.TemplateUploader
+	downloader handlers.TemplateDownloader
 	log        *logan.Entry
 	info       *horizon.Info
 
@@ -37,8 +37,8 @@ type Service struct {
 
 func Router(
 	log *logan.Entry,
-	uploader *s3.S3,
-	downloader *s3manager.Downloader,
+	uploader handlers.TemplateUploader,
+	downloader handlers.TemplateDownloader,
 	bucket string,
 	info *horizon.Info,
 	doorman doorman.Doorman) chi.Router {

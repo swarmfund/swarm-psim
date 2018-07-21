@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/horizon-connector"
@@ -22,24 +20,24 @@ const (
 	CtxLogKey
 )
 
-func CtxUploader(uploader *s3.S3) func(context.Context) context.Context {
+func CtxUploader(uploader TemplateUploader) func(context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
 		return context.WithValue(ctx, CtxUploaderKey, uploader)
 	}
 }
 
-func Uploader(r *http.Request) *s3.S3 {
-	return r.Context().Value(CtxUploaderKey).(*s3.S3)
+func Uploader(r *http.Request) TemplateUploader {
+	return r.Context().Value(CtxUploaderKey).(TemplateUploader)
 }
 
-func CtxDownloader(uploader *s3manager.Downloader) func(context.Context) context.Context {
+func CtxDownloader(downloader TemplateDownloader) func(context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, CtxDownloaderKey, uploader)
+		return context.WithValue(ctx, CtxDownloaderKey, downloader)
 	}
 }
 
-func Downloader(r *http.Request) *s3manager.Downloader {
-	return r.Context().Value(CtxDownloaderKey).(*s3manager.Downloader)
+func Downloader(r *http.Request) TemplateDownloader {
+	return r.Context().Value(CtxDownloaderKey).(TemplateDownloader)
 }
 
 func CtxLog(log *logan.Entry) func(context.Context) context.Context {
