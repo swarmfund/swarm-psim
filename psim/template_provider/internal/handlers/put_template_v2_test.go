@@ -21,16 +21,14 @@ import (
 func TestPutTemplateV2(t *testing.T) {
 	cases := []struct {
 		name       string
-		bucket     string
 		key        string
 		body       string
 		statusCode int
 		err        error
 	}{
 		{
-			name:   "valid",
-			key:    "template",
-			bucket: "bucket",
+			name: "valid",
+			key:  "template",
 			body: `{
 							"data":
 							{
@@ -44,9 +42,8 @@ func TestPutTemplateV2(t *testing.T) {
 			statusCode: 204,
 		},
 		{
-			name:   "failed to upload",
-			key:    "template",
-			bucket: "bucket",
+			name: "failed to upload",
+			key:  "template",
 			body: `{
 							"data":
 							{
@@ -101,7 +98,9 @@ func TestPutTemplateV2(t *testing.T) {
 				return nil
 			}
 			uploader.On("PutObject",
-				mock.Anything).
+				mock.MatchedBy(func(input *s3.PutObjectInput) bool {
+					return input.Key != nil && input.Bucket != nil && input.Body != nil
+				})).
 				Return(nil, mockUploadFunc).Once()
 			defer uploader.AssertExpectations(t)
 

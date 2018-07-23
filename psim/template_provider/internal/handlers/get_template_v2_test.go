@@ -100,13 +100,17 @@ func TestGetTemplateV2(t *testing.T) {
 			}
 
 			downloader.On("Download",
-				mock.Anything, mock.Anything).
+				mock.MatchedBy(func(w io.WriterAt) bool {
+					return w != nil
+				}),
+				mock.MatchedBy(func(input *s3.GetObjectInput) bool {
+					return input.Bucket != nil && input.Key != nil
+				})).
 				Return(int64(0), mockDownloadFunc).Once()
 			defer downloader.AssertExpectations(t)
 
 			resp := Client(t, ts).Do("GET", fmt.Sprintf("v2/templates/%s", tc.key), "")
 			assert.Equal(t, tc.statusCode, resp.StatusCode)
-
 		})
 	}
 }

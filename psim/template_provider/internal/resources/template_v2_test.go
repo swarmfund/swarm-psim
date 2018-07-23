@@ -25,10 +25,9 @@ func TestTemplateV2_Validate(t *testing.T) {
 			},
 		},
 		{
-			name:      "invalid",
-			err:       true,
-			errString: "data: (attributes: (body: cannot be blank; subject: cannot be blank.).).",
-			template:  TemplateV2{},
+			name:     "invalid",
+			err:      true,
+			template: TemplateV2{},
 		},
 	}
 	for _, tc := range cases {
@@ -37,8 +36,8 @@ func TestTemplateV2_Validate(t *testing.T) {
 				Data: tc.template.Data,
 			}
 			err := request.Validate()
-			if tc.err && assert.Error(t, err) {
-				assert.Equal(t, tc.errString, err.Error())
+			if tc.err {
+				assert.Error(t, err)
 			}
 		})
 	}

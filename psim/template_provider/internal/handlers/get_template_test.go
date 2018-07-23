@@ -22,7 +22,6 @@ import (
 func TestGetTemplate(t *testing.T) {
 	cases := []struct {
 		name       string
-		bucket     string
 		key        string
 		body       string
 		statusCode int
@@ -31,21 +30,18 @@ func TestGetTemplate(t *testing.T) {
 		{
 			name:       "valid",
 			key:        "template",
-			bucket:     "bucket",
 			body:       "This is the contents of template",
 			statusCode: 200,
 		},
 		{
-			name:       "Failed to download",
+			name:       "failed to download",
 			key:        "template",
-			bucket:     "bucket",
 			err:        errors.New("Failed to download"),
 			statusCode: 500,
 		},
 		{
 			name:       "invalid key",
-			key:        "notemplate",
-			bucket:     "bucket",
+			key:        "template",
 			err:        awserr.New(s3.ErrCodeNoSuchKey, "", nil),
 			statusCode: 404,
 		},
@@ -86,7 +82,12 @@ func TestGetTemplate(t *testing.T) {
 			}
 
 			downloader.On("Download",
-				mock.Anything, mock.Anything).
+				mock.MatchedBy(func(w io.WriterAt) bool {
+					return w != nil
+				}),
+				mock.MatchedBy(func(input *s3.GetObjectInput) bool {
+					return input.Bucket != nil && input.Key != nil
+				})).
 				Return(int64(0), mockDownloadFunc).Once()
 			defer downloader.AssertExpectations(t)
 

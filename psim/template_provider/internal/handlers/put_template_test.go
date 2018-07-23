@@ -8,10 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"gitlab.com/distributed_lab/logan/v3"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers/mocks"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/middlewares"
 	"gitlab.com/tokend/go/doorman"
@@ -27,7 +27,6 @@ func TestPutTemplate(t *testing.T) {
 		actualKey  string
 		body       string
 		statusCode int
-		err        bool
 	}{
 		{
 			name:       "valid",
@@ -42,7 +41,6 @@ func TestPutTemplate(t *testing.T) {
 			key:        "template",
 			bucket:     "bucket",
 			body:       "",
-			err:        true,
 			statusCode: 500,
 		},
 	}
@@ -91,7 +89,9 @@ func TestPutTemplate(t *testing.T) {
 				return nil
 			}
 			uploader.On("PutObject",
-				mock.Anything).
+				mock.MatchedBy(func(input *s3.PutObjectInput) bool {
+					return input.Key != nil && input.Bucket != nil && input.Body != nil
+				})).
 				Return(nil, mockUploadFunc).Once()
 			defer uploader.AssertExpectations(t)
 
