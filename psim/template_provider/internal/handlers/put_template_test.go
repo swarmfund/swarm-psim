@@ -6,17 +6,9 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/go-chi/chi"
-	"github.com/stretchr/testify/assert"
-	"gitlab.com/distributed_lab/logan/v3"
-
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers/mocks"
-	"gitlab.com/swarmfund/psim/psim/template_provider/internal/middlewares"
-	"gitlab.com/tokend/go/doorman"
-	"gitlab.com/tokend/go/keypair"
-	"gitlab.com/tokend/horizon-connector"
 )
 
 func TestPutTemplate(t *testing.T) {
@@ -45,38 +37,7 @@ func TestPutTemplate(t *testing.T) {
 		},
 	}
 
-	bucket := "bucket"
-	uploader := &mocks.TemplateUploader{}
-
-	signer, err := keypair.Random()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	accountQ := mocks.AccountQ{}
-	doormanM := doorman.New(
-		true, &accountQ,
-	)
-	info := &horizon.Info{
-		MasterAccountID: signer.Address(),
-	}
-
-	logger := logan.New()
-
-	router := chi.NewRouter()
-	router.Use(
-		middlewares.ContenType("text/html"),
-		middlewares.Ctx(
-			CtxBucket(bucket),
-			CtxUploader(uploader),
-			CtxDoorman(doormanM),
-			CtxHorizonInfo(info),
-			CtxLog(logger),
-		),
-	)
-	router.Put("/templates/{template}", PutTemplate)
-
-	ts := httptest.NewServer(router)
+	ts := httptest.NewServer(TestRouter)
 	defer ts.Close()
 
 	for _, tc := range cases {

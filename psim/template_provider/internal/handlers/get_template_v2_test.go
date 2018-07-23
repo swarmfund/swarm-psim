@@ -10,13 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/go-chi/chi"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers/mocks"
-	"gitlab.com/swarmfund/psim/psim/template_provider/internal/middlewares"
 )
 
 func TestGetTemplateV2(t *testing.T) {
@@ -74,19 +70,7 @@ func TestGetTemplateV2(t *testing.T) {
 		},
 	}
 
-	downloader := &mocks.TemplateDownloader{}
-	logger := logan.New()
-	router := chi.NewRouter()
-	router.Use(
-		middlewares.Ctx(
-			CtxBucket("bucket"),
-			CtxDownloader(downloader),
-			CtxLog(logger),
-		),
-	)
-	router.Get("/v2/templates/{template}", GetTemplateV2)
-
-	ts := httptest.NewServer(router)
+	ts := httptest.NewServer(TestRouter)
 	defer ts.Close()
 
 	for _, tc := range cases {

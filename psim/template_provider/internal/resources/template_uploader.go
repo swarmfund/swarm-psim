@@ -1,4 +1,4 @@
-package handlers
+package resources
 
 import (
 	"github.com/aws/aws-sdk-go/service/s3"

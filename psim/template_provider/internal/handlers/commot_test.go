@@ -7,8 +7,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers/mocks"
+	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/keypair"
 	"gitlab.com/tokend/go/signcontrol"
+	"gitlab.com/tokend/horizon-connector"
+)
+
+var (
+	downloader = &mocks.TemplateDownloader{}
+	logger     = logan.New()
+	bucket     = "bucket"
+	uploader   = &mocks.TemplateUploader{}
+
+	signer, _ = keypair.Random()
+	accountQ  = mocks.AccountQ{}
+	doormanM  = doorman.New(
+		false, &accountQ,
+	)
+	info = &horizon.Info{
+		MasterAccountID: signer.Address(),
+	}
+	TestRouter = Router(logger, uploader, downloader, bucket, info, doormanM)
 )
 
 type TestClient struct {
