@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"io/ioutil"
+
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers/mocks"
 	"gitlab.com/tokend/go/doorman"
@@ -17,7 +19,7 @@ import (
 
 var (
 	downloader = &mocks.TemplateDownloader{}
-	logger     = logan.New()
+	logger     = logan.New().Out(ioutil.Discard)
 	bucket     = "bucket"
 	uploader   = &mocks.TemplateUploader{}
 
