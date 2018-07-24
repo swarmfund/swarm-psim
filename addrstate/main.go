@@ -111,8 +111,8 @@ func (w *Watcher) run(ctx context.Context) {
 	var effects []int
 
 	for _, mutator := range w.mutators {
-		entryTypes = append(mutator.GetEntryTypes())
-		effects = append(mutator.GetEffects())
+		entryTypes = append(entryTypes, mutator.GetEntryTypes()...)
+		effects = append(effects, mutator.GetEffects()...)
 	}
 
 	// there is intentionally no recover, it should just die in case of persistent error
