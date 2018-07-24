@@ -49,7 +49,9 @@ func TestGetTemplate(t *testing.T) {
 		},
 	}
 
-	ts := httptest.NewServer(TestRouter)
+	r, _, downloader, _, _ := testRouter()
+
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	for _, tc := range cases {

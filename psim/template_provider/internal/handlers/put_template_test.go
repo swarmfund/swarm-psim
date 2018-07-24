@@ -9,39 +9,52 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.com/tokend/go/keypair"
+	"gitlab.com/tokend/go/resources"
 )
 
 func TestPutTemplate(t *testing.T) {
 	cases := []struct {
-		name       string
-		bucket     string
-		key        string
-		actualKey  string
-		body       string
-		statusCode int
+		name          string
+		key           string
+		body          string
+		notAuthorized bool
+		signer        keypair.KP
+		statusCode    int
 	}{
 		{
 			name:       "valid",
 			key:        "template",
-			actualKey:  "template",
-			bucket:     "bucket",
 			body:       "body",
 			statusCode: 204,
 		},
 		{
 			name:       "no body",
 			key:        "template",
-			bucket:     "bucket",
 			body:       "",
 			statusCode: 500,
 		},
+		{
+			name:          "not authorized",
+			key:           "template",
+			body:          "body",
+			statusCode:    401,
+			notAuthorized: true,
+		},
 	}
 
-	ts := httptest.NewServer(TestRouter)
+	r, uploader, _, signer, accountQ := testRouter()
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			var caseSigner keypair.KP
+			if tc.notAuthorized {
+				caseSigner, _ = keypair.Random()
+			} else {
+				caseSigner = signer
+			}
 
 			mockUploadFunc := func(input *s3.PutObjectInput) error {
 				if len(tc.body) == 0 {
@@ -54,9 +67,23 @@ func TestPutTemplate(t *testing.T) {
 					return input.Key != nil && input.Bucket != nil && input.Body != nil
 				})).
 				Return(nil, mockUploadFunc).Once()
-			defer uploader.AssertExpectations(t)
+			if !tc.notAuthorized {
+				defer uploader.AssertExpectations(t)
+			}
 
-			resp := Client(t, ts).Signer(signer).Do("PUT", fmt.Sprintf("templates/%s", tc.key), tc.body)
+			sign := func(account string) []resources.Signer {
+				return []resources.Signer{
+					{
+						AccountID: signer.Address(),
+						Weight:    1,
+					},
+				}
+			}
+			accountQ.On("Signers", mock.MatchedBy(func(address string) bool {
+				return len(address) != 0
+			})).Return(sign, nil)
+
+			resp := Client(t, ts).Signer(caseSigner).Do("PUT", fmt.Sprintf("templates/%s", tc.key), tc.body)
 			assert.Equal(t, tc.statusCode, resp.StatusCode)
 		})
 	}

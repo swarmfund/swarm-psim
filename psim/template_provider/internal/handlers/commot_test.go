@@ -9,6 +9,7 @@ import (
 
 	"io/ioutil"
 
+	"github.com/go-chi/chi"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/handlers/mocks"
 	"gitlab.com/tokend/go/doorman"
@@ -17,22 +18,25 @@ import (
 	"gitlab.com/tokend/horizon-connector"
 )
 
-var (
-	downloader = &mocks.TemplateDownloader{}
-	logger     = logan.New().Out(ioutil.Discard)
-	bucket     = "bucket"
-	uploader   = &mocks.TemplateUploader{}
+func testRouter() (r chi.Router, uploader *mocks.TemplateUploader, downloader *mocks.TemplateDownloader, signer keypair.KP, accountQ *mocks.AccountQ) {
 
+	downloader = &mocks.TemplateDownloader{}
+	uploader = &mocks.TemplateUploader{}
+
+	logger := logan.New().Out(ioutil.Discard)
+	bucket := "bucket"
 	signer, _ = keypair.Random()
-	accountQ  = mocks.AccountQ{}
-	doormanM  = doorman.New(
-		false, &accountQ,
+	accountQ = &mocks.AccountQ{}
+	doormanM := doorman.New(
+		false, accountQ,
 	)
-	info = &horizon.Info{
+	info := &horizon.Info{
 		MasterAccountID: signer.Address(),
 	}
-	TestRouter = Router(logger, uploader, downloader, bucket, info, doormanM)
-)
+
+	r = Router(logger, uploader, downloader, bucket, info, doormanM)
+	return r, uploader, downloader, signer, accountQ
+}
 
 type TestClient struct {
 	t      *testing.T
