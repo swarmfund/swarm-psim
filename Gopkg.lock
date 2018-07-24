@@ -151,7 +151,7 @@
   branch = "master"
   name = "github.com/getsentry/raven-go"
   packages = ["."]
-  revision = "d1470f50d3a3a38533355a9fab7393e25a3b4226"
+  revision = "ed7bcb39ff10f39ab08e317ce16df282845852fa"
 
 [[projects]]
   name = "github.com/go-chi/chi"
@@ -567,7 +567,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "10e9845c795446b90736258a101a558eb5667b69"
+  revision = "7467cd1316e2e022322ef9b64383aef3b56194b3"
 
 [[projects]]
   branch = "master"
@@ -595,7 +595,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "763022f65d360c1ee429d4ae15320afeccba1507"
+  revision = "8c7c74bcf4eec7d30585e7bad4c963e660f25151"
 
 [[projects]]
   branch = "master"
