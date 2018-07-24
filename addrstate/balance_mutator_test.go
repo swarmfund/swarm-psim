@@ -61,8 +61,9 @@ func TestBalanceMutator(t *testing.T) {
 		},
 	}
 	for i, tc := range cases {
+		balanceMutator := BalanceMutator{tc.asset}
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			got := BalanceMutator(tc.asset)(tc.change)
+			got := balanceMutator.GetStateUpdate(tc.change)
 			assert.EqualValues(t, tc.expected, got)
 		})
 	}

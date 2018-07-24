@@ -567,7 +567,7 @@
     "xdrbuild",
     "xdrbuild/internal"
   ]
-  revision = "7467cd1316e2e022322ef9b64383aef3b56194b3"
+  revision = "10e9845c795446b90736258a101a558eb5667b69"
 
 [[projects]]
   branch = "master"
@@ -595,7 +595,7 @@
     "internal/wallets",
     "types"
   ]
-  revision = "da2c208263c83487b889283ce03bdd67813a13c8"
+  revision = "763022f65d360c1ee429d4ae15320afeccba1507"
 
 [[projects]]
   branch = "master"

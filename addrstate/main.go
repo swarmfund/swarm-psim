@@ -1,25 +1,32 @@
 package addrstate
 
 import (
-	"time"
-
 	"context"
+	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
-type StateMutator func(change xdr.LedgerEntryChange) StateUpdate
-
-type TXStreamer interface {
-	StreamTransactions(ctx context.Context) (<-chan horizon.TransactionEvent, <-chan error)
+// StateMutator uses to get StateUpdate for specific effects and entryTypes
+type StateMutator interface {
+	GetStateUpdate(change xdr.LedgerEntryChange) StateUpdate
+	GetEffects() []int
+	GetEntryTypes() []int
 }
 
+// StreamTransactionsV2 streams transactions fetched for specified filters.
+type TXStreamerV2 interface {
+	StreamTransactionsV2(ctx context.Context, effects, entryTypes []int,
+	) (<-chan regources.TransactionV2Event, <-chan error)
+}
+
+// Watcher watches what comes from txStreamer and what StateMutators do
 type Watcher struct {
 	log        *logan.Entry
 	mutators   []StateMutator
-	txStreamer TXStreamer
+	txStreamer TXStreamerV2
 	ctx        context.Context
 
 	// internal state
@@ -28,11 +35,15 @@ type Watcher struct {
 	state      *State
 }
 
-func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXStreamer) *Watcher {
+// New returns new watcher and start streaming transactionsV2
+func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXStreamerV2) *Watcher {
+	ctx, cancel := context.WithCancel(ctx)
+
 	w := &Watcher{
 		log:        log.WithField("service", "addrstate"),
 		mutators:   mutators,
 		txStreamer: txQ,
+		ctx:        ctx,
 
 		state:      newState(),
 		headUpdate: make(chan struct{}),
@@ -43,6 +54,7 @@ func New(ctx context.Context, log *logan.Entry, mutators []StateMutator, txQ TXS
 			if rvr := recover(); rvr != nil {
 				log.WithRecover(rvr).Error("state watcher panicked")
 			}
+			cancel()
 		}()
 		w.run(ctx)
 	}()
@@ -62,7 +74,7 @@ func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	}
 }
 
-// WatcherState is a connector between LedgerEntryChange and Watcher state for specific consumers
+// StateUpdate is a connector between LedgerEntryChange and Watcher state for specific consumers
 type StateUpdate struct {
 	//AssetPrice      *int64
 	ExternalAccount *StateExternalAccountUpdate
@@ -95,18 +107,36 @@ type StateBalanceUpdate struct {
 }
 
 func (w *Watcher) run(ctx context.Context) {
+	var entryTypes []int
+	var effects []int
+
+	for _, mutator := range w.mutators {
+		entryTypes = append(entryTypes, mutator.GetEntryTypes()...)
+		effects = append(effects, mutator.GetEffects()...)
+	}
+
 	// there is intentionally no recover, it should just die in case of persistent error
-	txStream, txStreamErrs := w.txStreamer.StreamTransactions(ctx)
+	txStream, txStreamErrs := w.txStreamer.StreamTransactionsV2(ctx, effects, entryTypes)
 
 	for {
 		select {
 		case txEvent := <-txStream:
-			if tx := txEvent.Transaction; tx != nil {
+			if tx := txEvent.TransactionV2; tx != nil {
 				// go through all ledger changes
-				for _, change := range tx.LedgerChanges() {
+				for _, change := range tx.Changes {
 					// apply all mutators
+					ledgerEntryChange, err := convertLedgerEntryChangeV2(change)
+					if err != nil {
+						w.log.WithError(err).Error("failed to get state update", logan.F{
+							"entry_type":     change.EntryType,
+							"effect":         change.Effect,
+							"transaction_id": tx.ID,
+						})
+						return
+					}
 					for _, mutator := range w.mutators {
-						w.state.Mutate(tx.CreatedAt, mutator(change))
+						stateUpdate := mutator.GetStateUpdate(ledgerEntryChange)
+						w.state.Mutate(tx.LedgerCloseTime, stateUpdate)
 					}
 				}
 			}

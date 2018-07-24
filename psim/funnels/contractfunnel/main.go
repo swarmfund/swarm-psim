@@ -29,7 +29,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	mutators := make([]addrstate.StateMutator, 0, len(config.ExternalSystems))
 	for _, system := range config.ExternalSystems {
-		mutators = append(mutators, addrstate.ExternalSystemBindingMutator(system))
+		mutators = append(mutators, addrstate.ExternalSystemBindingMutator{SystemType: system})
 	}
 
 	addrProvider := addrstate.New(

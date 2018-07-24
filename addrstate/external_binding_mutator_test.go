@@ -97,8 +97,9 @@ func TestExternalSystemBindingMutator(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
+		externalSystemBindingMutator := ExternalSystemBindingMutator{tc.systemType}
 		t.Run(tc.name, func(t *testing.T) {
-			got := ExternalSystemBindingMutator(tc.systemType)(tc.change)
+			got := externalSystemBindingMutator.GetStateUpdate(tc.change)
 			assert.EqualValues(t, tc.expected, got)
 		})
 	}

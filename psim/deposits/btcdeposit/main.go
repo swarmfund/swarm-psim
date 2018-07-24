@@ -33,8 +33,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		ctx,
 		log,
 		[]addrstate.StateMutator{
-			addrstate.ExternalSystemBindingMutator(config.ExternalSystem),
-			addrstate.BalanceMutator(config.DepositAsset),
+			addrstate.ExternalSystemBindingMutator{SystemType: config.ExternalSystem},
+			addrstate.BalanceMutator{Asset: config.DepositAsset},
 		},
 		horizonConnector.Listener(),
 	)
