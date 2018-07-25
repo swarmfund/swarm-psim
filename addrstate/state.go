@@ -54,8 +54,9 @@ func (s *State) Mutate(ts time.Time, update StateUpdate) {
 				s.external[externalType] = map[string][]externalState{}
 			}
 			s.external[externalType][data.Data] = append(s.external[externalType][data.Data], externalState{
-				State:   data.State,
-				Address: data.Address,
+				State:     data.State,
+				Address:   data.Address,
+				UpdatedAt: ts,
 			})
 			if _, ok := s.internalExternal[externalType]; !ok {
 				s.internalExternal[externalType] = map[string]string{}
@@ -79,8 +80,9 @@ func (s *State) Mutate(ts time.Time, update StateUpdate) {
 			}
 
 			s.external[externalType][external] = append(s.external[externalType][external], externalState{
-				State:   data.State,
-				Address: data.Address,
+				State:     data.State,
+				Address:   data.Address,
+				UpdatedAt: ts,
 			})
 			delete(s.internalExternal[externalType], data.Address)
 		default:
@@ -89,16 +91,6 @@ func (s *State) Mutate(ts time.Time, update StateUpdate) {
 			}))
 		}
 	}
-
-	//if update.AssetPrice != nil {
-	//	s.prices = append([]Price{{
-	//		UpdatedAt: ts,
-	//		Value:     *update.AssetPrice,
-	//	}}, s.prices...)
-	//}
-	//if update.Address != nil {
-	//	s.addrs.Store(update.Address.Offchain, update.Address.Tokend)
-	//}
 
 	if update.Balance != nil {
 		addr := update.Balance.Address
