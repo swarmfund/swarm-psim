@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
+	. "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/go/xdrbuild"
 )
@@ -34,6 +35,10 @@ func init() {
 		}
 
 		horizon := app.Config(ctx).Horizon().WithSigner(config.Signer)
+
+		if config.ExternalSystem == 0 {
+			config.ExternalSystem = MustGetExternalSystemType(horizon.Assets(), config.DepositAsset)
+		}
 
 		info, err := horizon.System().Info()
 		if err != nil {
