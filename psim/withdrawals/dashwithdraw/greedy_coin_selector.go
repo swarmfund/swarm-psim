@@ -57,24 +57,20 @@ func (s GreedyCoinSelector) Fund(amount int64) (utxos []bitcoin.Out, change int6
 		// Just in case
 		return nil, 0, ErrInsufficientFunds
 	}
-	su := NewSortedUTXOs(activeUTXOS)
-
-	result, totalFunded := s.chooseUTXOs(su, amount)
+	result, totalFunded := s.chooseUTXOs(activeUTXOS, amount)
 	return result, totalFunded - amount, nil
 }
 
-func (s GreedyCoinSelector) chooseUTXOs(su *SortedUTXOs, amountToFill int64) ([]bitcoin.Out, int64) {
-	for k, v := range su.m {
+func (s GreedyCoinSelector) chooseUTXOs(utxos map[bitcoin.Out]UTXO, amountToFill int64) ([]bitcoin.Out, int64) {
+	for k, v := range utxos {
 		if v.Value >= amountToFill && v.Value <= (amountToFill+s.dustThreshold) {
 			// Ideal UTXO found
-			result := make([]bitcoin.Out, 0)
-			result = append(result, k)
-			return result, v.Value
+			return []bitcoin.Out{k}, v.Value
 		}
 	}
 
 	//Ideal UTXO not found, choosing from 2 groups
-	biggerUTXOS, smallerUTXOS := s.splitAndChoose(su, amountToFill)
+	biggerUTXOS, smallerUTXOS := s.splitAndChoose(utxos, amountToFill)
 
 	//If small UTXOs can fulfil amount
 	if smallerUTXOS != nil {
@@ -82,20 +78,16 @@ func (s GreedyCoinSelector) chooseUTXOs(su *SortedUTXOs, amountToFill int64) ([]
 	}
 
 	//choosing one minimal UTXO from the biggerUTXOS
-	chosen, utxo, err := biggerUTXOS.PopSmallest()
-	if err != nil {
-		return nil, 0
-	}
-
-	result := make([]bitcoin.Out, 0)
-	result = append(result, chosen)
-	return result, utxo.Value
+	chosen, utxo := smallestInMap(biggerUTXOS)
+	return []bitcoin.Out{chosen}, utxo.Value
 }
 
-func (s GreedyCoinSelector) greedyKnapsack(su *SortedUTXOs, amountToFill int64) (chosen []bitcoin.Out, filled int64) {
-	if su.Len() == 0 {
+func (s GreedyCoinSelector) greedyKnapsack(utxos map[bitcoin.Out]UTXO, amountToFill int64) (chosen []bitcoin.Out, filled int64) {
+	if len(utxos) == 0 {
 		return nil, 0
 	}
+	su := NewSortableUTXOs(utxos)
+	sort.Sort(su)
 
 	var sum int64
 	chosen = make([]bitcoin.Out, 0)
@@ -110,16 +102,16 @@ func (s GreedyCoinSelector) greedyKnapsack(su *SortedUTXOs, amountToFill int64) 
 	return chosen, sum
 }
 
-//splitAndChoose splits UTXOs into 2 groups -
+//SplitAndChoose splits UTXOs into 2 groups -
 //the ones that bigger than amountToFill,
 //and the ones that smaller than amountToFill
 //Returns only one map - smallerUTXOS if there are sufficient sum
 //or biggerUTXOS if smallerUTXOS are not enough to fulfill amountToFill
-func (s GreedyCoinSelector) splitAndChoose(su *SortedUTXOs, amountToFill int64) (biggerUTXOS *SortedUTXOs, smallerUTXOS *SortedUTXOs) {
+func (s GreedyCoinSelector) splitAndChoose(utxos map[bitcoin.Out]UTXO, amountToFill int64) (bigger map[bitcoin.Out]UTXO, smaller map[bitcoin.Out]UTXO) {
 	var totalSmalls int64
-	smaller := make(map[bitcoin.Out]UTXO)
-	bigger := make(map[bitcoin.Out]UTXO)
-	for k, v := range su.m {
+	smaller = make(map[bitcoin.Out]UTXO)
+	bigger = make(map[bitcoin.Out]UTXO)
+	for k, v := range utxos {
 		if v.Value < amountToFill {
 			smaller[k] = v
 			totalSmalls += v.Value
@@ -129,14 +121,10 @@ func (s GreedyCoinSelector) splitAndChoose(su *SortedUTXOs, amountToFill int64) 
 	}
 
 	if totalSmalls < amountToFill {
-		biggerUTXOS = NewSortedUTXOs(bigger)
-		sort.Sort(biggerUTXOS)
-		return biggerUTXOS, nil
+		return bigger, nil
 	}
 
-	smallerUTXOS = NewSortedUTXOs(smaller)
-	sort.Sort(smallerUTXOS)
-	return nil, smallerUTXOS
+	return nil, smaller
 }
 
 func (s GreedyCoinSelector) getActiveUTXOs() map[bitcoin.Out]UTXO {
@@ -177,4 +165,15 @@ func (s GreedyCoinSelector) getActiveBalance() int64 {
 	}
 
 	return activeBalance
+}
+
+func smallestInMap(utxos map[bitcoin.Out]UTXO) (bitcoin.Out, UTXO) {
+	keys := getKeys(utxos)
+	min := keys[0]
+	for _, k := range keys {
+		if utxos[k].Value < utxos[min].Value {
+			min = k
+		}
+	}
+	return min, utxos[min]
 }

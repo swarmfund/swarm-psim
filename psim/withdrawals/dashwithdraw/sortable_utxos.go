@@ -5,31 +5,31 @@ import (
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
-type SortedUTXOs struct {
+type SortableUTXOs struct {
 	m    map[bitcoin.Out]UTXO
 	keys []bitcoin.Out
 }
 
-func NewSortedUTXOs(utxos map[bitcoin.Out]UTXO) *SortedUTXOs {
-	return &SortedUTXOs{m: utxos,
+func NewSortableUTXOs(utxos map[bitcoin.Out]UTXO) *SortableUTXOs {
+	return &SortableUTXOs{m: utxos,
 		keys: getKeys(utxos),
 	}
 }
 
-func (su *SortedUTXOs) Len() int {
+func (su *SortableUTXOs) Len() int {
 	return len(su.m)
 }
 
 //Less doing exact opposite to sort in descending order
-func (su *SortedUTXOs) Less(i, j int) bool {
+func (su *SortableUTXOs) Less(i, j int) bool {
 	return su.m[su.keys[i]].Value > su.m[su.keys[j]].Value
 }
 
-func (su *SortedUTXOs) Swap(i, j int) {
+func (su *SortableUTXOs) Swap(i, j int) {
 	su.keys[i], su.keys[j] = su.keys[j], su.keys[i]
 }
 
-func (su *SortedUTXOs) PopBiggest() (key bitcoin.Out, value UTXO, err error) {
+func (su *SortableUTXOs) PopBiggest() (key bitcoin.Out, value UTXO, err error) {
 	if len(su.keys) == 0 {
 		return bitcoin.Out{}, UTXO{}, errors.New("Container is empty")
 	}
@@ -40,13 +40,15 @@ func (su *SortedUTXOs) PopBiggest() (key bitcoin.Out, value UTXO, err error) {
 	return key, value, nil
 }
 
-func (su *SortedUTXOs) PopSmallest() (key bitcoin.Out, value UTXO, err error) {
+func (su *SortableUTXOs) PopSmallest() (min bitcoin.Out, value UTXO) {
 	if len(su.keys) == 0 {
-		return bitcoin.Out{}, UTXO{}, errors.New("Container is empty")
+		panic("Container is empty")
 	}
-	key = su.keys[len(su.keys)-1]
-	value = su.m[key]
-	su.keys = append(su.keys[:0], su.keys[:len(su.keys)-1]...)
-	delete(su.m, key)
-	return key, value, nil
+	min = su.keys[0]
+	for k, v := range su.m {
+		if v.Value < su.m[min].Value {
+			min = k
+		}
+	}
+	return min, su.m[min]
 }
