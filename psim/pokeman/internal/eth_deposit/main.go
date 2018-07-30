@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-)
+	)
 
 func init() {
 	app.RegisterService(conf.PokemanETHDepositService, func(ctx context.Context) (app.Service, error) {
@@ -22,12 +22,21 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
 
-		return NewService(
+		esProvider := NewExternalSystemProvider(horizon.Assets(), config.Asset)
+		esType, err := esProvider.GetExternalSystemType()
+
+		currentBalanceProvider := NewCurrentBalanceProvider(horizon, config.Source.Address(), config.Asset)
+		b, err := currentBalanceProvider.CurrentBalance()
+
+		return &Service{
 			app.Log(ctx),
-			app.Config(ctx).Ethereum(),
-			horizon,
-			config,
-			builder,
-		), nil
+			NewBalancePoller(ctx, app.Log(ctx), 30, currentBalanceProvider),
+			NewEthTxProvider(app.Config(ctx).Ethereum(), ctx, config.Keypair, app.Log(ctx)),
+			NewNativeTxProvider(horizon, builder, config.Source, config.Keypair, config.Signer, config.Asset, b.BalanceID, ctx),
+			NewExternalBindingDataProvider(horizon, config.Source.Address(), esType),
+			NewExternalSystemBinder(builder, horizon, config.Source, config.Signer, esType),
+			currentBalanceProvider,
+			esProvider,
+		}, nil
 	})
 }
