@@ -1,7 +1,6 @@
 package dashwithdraw
 
 import (
-	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
@@ -29,26 +28,13 @@ func (su *SortableUTXOs) Swap(i, j int) {
 	su.keys[i], su.keys[j] = su.keys[j], su.keys[i]
 }
 
-func (su *SortableUTXOs) PopBiggest() (key bitcoin.Out, value UTXO, err error) {
+func (su *SortableUTXOs) PopBiggest() (key bitcoin.Out, value UTXO) {
 	if len(su.keys) == 0 {
-		return bitcoin.Out{}, UTXO{}, errors.New("Container is empty")
+		panic("Container is empty")
 	}
 	key = su.keys[0]
 	value = su.m[key]
 	su.keys = append(su.keys[:0], su.keys[1:]...)
 	delete(su.m, key)
-	return key, value, nil
-}
-
-func (su *SortableUTXOs) PopSmallest() (min bitcoin.Out, value UTXO) {
-	if len(su.keys) == 0 {
-		panic("Container is empty")
-	}
-	min = su.keys[0]
-	for k, v := range su.m {
-		if v.Value < su.m[min].Value {
-			min = k
-		}
-	}
-	return min, su.m[min]
+	return key, value
 }

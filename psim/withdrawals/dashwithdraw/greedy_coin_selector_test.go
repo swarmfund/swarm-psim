@@ -6,7 +6,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 )
 
-func compareHelper(x, y []bitcoin.Out) bool {
+func containSameElements(x, y []bitcoin.Out) bool {
 	xMap := make(map[bitcoin.Out]int)
 	yMap := make(map[bitcoin.Out]int)
 
@@ -312,9 +312,8 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 			for _, u := range test.UTXOs {
 				s.AddUTXO(u)
 			}
-
 			utxos, change, err := s.Fund(test.Amount)
-			if !compareHelper(utxos, test.Expected) {
+			if !containSameElements(utxos, test.Expected) {
 				t.Errorf("%s: expected: %+v\nGot: %+v", k, test.Expected, utxos)
 			}
 			if change != test.ExpectedChange {

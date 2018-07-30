@@ -92,10 +92,7 @@ func (s GreedyCoinSelector) greedyKnapsack(utxos map[bitcoin.Out]UTXO, amountToF
 	var sum int64
 	chosen = make([]bitcoin.Out, 0)
 	for sum < amountToFill {
-		k, v, err := su.PopBiggest()
-		if err != nil {
-			return nil, 0
-		}
+		k, v := su.PopBiggest()
 		sum += v.Value
 		chosen = append(chosen, k)
 	}
