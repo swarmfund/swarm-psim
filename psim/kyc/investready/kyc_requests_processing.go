@@ -170,7 +170,7 @@ func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Re
 	}
 
 	switch user.Status.Message {
-	case PendingStatusMessage:
+	case PendingStatusMessage, NoPendingVerificationsStatusMessage:
 		// Not Accredited yet - pending.
 		return nil
 	case AccreditedStatusMessage:
