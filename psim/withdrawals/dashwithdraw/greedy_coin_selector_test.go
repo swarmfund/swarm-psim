@@ -34,7 +34,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 		Amount         int64
 		ExpectedError  error
 	}{
-		"single utxo": { //Amount:5, Change:0, Option:5, Expected Vouts:5, Dust: 0
+		"single utxo": { //Amount:5, Change:0, Option:5, ExpectedAmounts:5, Dust: 0
 			Amount:         5,
 			ExpectedChange: 0,
 			UTXOs: []UTXO{
@@ -55,7 +55,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"double utxo": { //Amount:2, Change:0, Option:1, 1; Expected Vouts:1, 1; Dust: 0
+		"double utxo": { //Amount:2, Change:0, Option:1, 1; ExpectedAmounts: 1,1; Dust: 0
 			Amount:         2,
 			ExpectedChange: 0,
 			UTXOs: []UTXO{
@@ -87,7 +87,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"big_and_small": { //Amount:3, Change:0, Option:1,2,3; Expected Vouts:3; Dust: 0
+		"big_and_small": { //Amount:3, Change:0, Option:1,2,3; ExpectedAmounts: 1, 2; Dust: 0
 			Amount:         3,
 			ExpectedChange: 0,
 			UTXOs: []UTXO{
@@ -123,7 +123,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"multiple": { //Amount:15, Change:5, Option:10, 20; Expected Vouts:20; Dust: 0
+		"multiple": { //Amount:15, Change:5, Option:10, 20; ExpectedAmounts: 20; Dust: 0
 			Amount:         15,
 			ExpectedChange: 5,
 			UTXOs: []UTXO{
@@ -151,7 +151,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"insufficient funds": { //Amount:4, Change:0, Option:1,2; Expected Vouts: ; Dust: 0, Err: InsufficientFunds
+		"insufficient funds": { //Amount:4, Change:0, Option:1,2; ExpectedAmounts: None; Dust: 0, Err: InsufficientFunds
 			Amount:         4,
 			ExpectedChange: 0,
 			ExpectedError:  ErrInsufficientFunds,
@@ -175,7 +175,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 			},
 			Expected: nil,
 		},
-		"same hash": { //Amount:2, Change:0, Option:1, 1; Expected Vouts: 1,1; Dust: 0
+		"same hash": { //Amount:2, Change:0, Option:1, 1; ExpectedAmounts: 1,1; Dust: 0
 			Amount:         2,
 			ExpectedChange: 0,
 			UTXOs: []UTXO{
@@ -207,7 +207,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"inactive utxo": { //Amount:3, Change:0, Option: 1,2,3(inactive); Expected Vouts: 1,2; Dust: 0
+		"inactive utxo": { //Amount:3, Change:0, Option: 1,2,3(inactive); ExpectedAmounts: 1,2; Dust: 0
 			Amount:         3,
 			ExpectedChange: 0,
 			UTXOs: []UTXO{
@@ -247,7 +247,7 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				},
 			},
 		},
-		"dust": { //Amount:20, Change:0, Option: 16,5,2,2,1 Expected Vouts:0,1; Dust: 1
+		"with non zero dust": { //Amount:20, Change:0, Option: 16,5,2,2,1 ExpectedAmounts: 16, 5; Dust: 1
 			Amount:         20,
 			DustThreshold:  1,
 			ExpectedChange: 1,
@@ -301,6 +301,112 @@ func TestGreedyCoinSelector_Fund(t *testing.T) {
 				{
 					Vout:   1,
 					TXHash: "hash1",
+				},
+			},
+		},
+		"ideal utxo and dust #1": { //Amount:20, Change:0, Option: 21,16,5,2,1 ExpectedAmounts: 21; Dust: 1
+			Amount:         20,
+			DustThreshold:  1,
+			ExpectedChange: 1,
+			UTXOs: []UTXO{
+				{
+					IsInactive: false,
+					Value:      21,
+					Out: bitcoin.Out{
+						Vout:   0,
+						TXHash: "hash0",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      16,
+					Out: bitcoin.Out{
+						Vout:   1,
+						TXHash: "hash1",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      5,
+					Out: bitcoin.Out{
+						Vout:   2,
+						TXHash: "hash2",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      2,
+					Out: bitcoin.Out{
+						Vout:   3,
+						TXHash: "hash3",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      2,
+					Out: bitcoin.Out{
+						Vout:   4,
+						TXHash: "hash4",
+					},
+				},
+			},
+			Expected: []bitcoin.Out{
+				{
+					Vout:   0,
+					TXHash: "hash0",
+				},
+			},
+		},
+		"ideal utxo and dust #2": { //Amount:20, Change:0, Option: 22,16,5,2,1 ExpectedAmounts: 22; Dust: 5
+			Amount:         20,
+			DustThreshold:  5,
+			ExpectedChange: 2,
+			UTXOs: []UTXO{
+				{
+					IsInactive: false,
+					Value:      22,
+					Out: bitcoin.Out{
+						Vout:   0,
+						TXHash: "hash0",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      16,
+					Out: bitcoin.Out{
+						Vout:   1,
+						TXHash: "hash1",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      5,
+					Out: bitcoin.Out{
+						Vout:   2,
+						TXHash: "hash2",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      2,
+					Out: bitcoin.Out{
+						Vout:   3,
+						TXHash: "hash3",
+					},
+				},
+				{
+					IsInactive: false,
+					Value:      2,
+					Out: bitcoin.Out{
+						Vout:   4,
+						TXHash: "hash4",
+					},
+				},
+			},
+			Expected: []bitcoin.Out{
+				{
+					Vout:   0,
+					TXHash: "hash0",
 				},
 			},
 		},
