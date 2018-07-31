@@ -6,6 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
+	"gitlab.com/swarmfund/psim/psim/internal"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 	)
 
 func init() {
@@ -15,28 +18,32 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init config")
 		}
 
-		horizon := app.Config(ctx).Horizon()
+		connector := app.Config(ctx).Horizon()
 
-		builder, err := horizon.TXBuilder()
+		builder, err := connector.TXBuilder()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
 
-		esProvider := NewExternalSystemProvider(horizon.Assets(), config.Asset)
-		esType, err := esProvider.GetExternalSystemType()
+		log := app.Log(ctx)
 
-		currentBalanceProvider := NewCurrentBalanceProvider(horizon, config.Source.Address(), config.Asset)
-		b, err := currentBalanceProvider.CurrentBalance()
-
-		return &Service{
-			app.Log(ctx),
-			NewBalancePoller(ctx, app.Log(ctx), 30, currentBalanceProvider),
-			NewEthTxProvider(app.Config(ctx).Ethereum(), ctx, config.Keypair, app.Log(ctx)),
-			NewNativeTxProvider(horizon, builder, config.Source, config.Keypair, config.Signer, config.Asset, b.BalanceID, ctx),
-			NewExternalBindingDataProvider(horizon, config.Source.Address(), esType),
-			NewExternalSystemBinder(builder, horizon, config.Source, config.Signer, esType),
-			currentBalanceProvider,
-			esProvider,
-		}, nil
+		return (&Service{
+			log,
+			func() (int32, error) {
+				return internal.GetExternalSystemType(connector.Assets(), config.Asset)
+			},
+			func() (horizon.Balance, error) {
+				return connector.Accounts().CurrentBalanceIn(config.Source.Address(), config.Asset)
+			},
+			func(externalSystem int32) (*string, error) {
+			return connector.Accounts().CurrentExternalBindingData(config.Source.Address(), externalSystem)
+			},
+			connector.Submitter().Submit,
+			func(op xdrbuild.Operation) (string, error) {
+				return builder.Transaction(config.Signer).Op(op).Sign(config.Signer).Marshal()
+			},
+			NewNativeTxProvider(connector, builder, config.Source, config.Keypair, config.Signer, config.Asset, config.Source.Address()),
+			NewEthTxProvider(app.Config(ctx).Ethereum(), config.Keypair, log),
+		}).WithTimeout(config.PollingTimeout), nil
 	})
 }

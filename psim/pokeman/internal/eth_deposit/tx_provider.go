@@ -15,28 +15,26 @@ import (
 // TODO consider change amount type
 
 type TxProvider interface {
-	Send(amount int, destination string) (succes bool, err error)
+	Send(ctx context.Context, amount int64, destination string) (succes bool, err error)
 }
 
 type EthTxProvider struct {
 	eclient *ethclient.Client
-	ctx     context.Context
 	kp      eth.Keypair
 	log     *logan.Entry
 }
 
-func NewEthTxProvider(eclient *ethclient.Client, ctx context.Context, kp eth.Keypair, log *logan.Entry) TxProvider {
+func NewEthTxProvider(eclient *ethclient.Client, kp eth.Keypair, log *logan.Entry) TxProvider {
 	return &EthTxProvider{
 		eclient,
-		ctx,
 		kp,
 		log,
 	}
 }
 
-func (e *EthTxProvider) Send(amount int, externalAddress string) (bool, error) {
+func (e *EthTxProvider) Send(ctx context.Context, amount int64, externalAddress string) (bool, error) {
 	// transfer some ETH
-	nonce, err := e.eclient.NonceAt(e.ctx, e.kp.Address(), nil)
+	nonce, err := e.eclient.NonceAt(ctx, e.kp.Address(), nil)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get address nonce")
 	}
@@ -44,7 +42,7 @@ func (e *EthTxProvider) Send(amount int, externalAddress string) (bool, error) {
 	tx := types.NewTransaction(
 		nonce,
 		common.HexToAddress(externalAddress),
-		eth.FromGwei(big.NewInt(2000)),
+		eth.FromGwei(big.NewInt(amount)),
 		22000,
 		eth.FromGwei(big.NewInt(5)),
 		nil,
@@ -55,10 +53,10 @@ func (e *EthTxProvider) Send(amount int, externalAddress string) (bool, error) {
 		return false, errors.Wrap(err, "failed to sign tx")
 	}
 
-	if err = e.eclient.SendTransaction(e.ctx, tx); err != nil {
+	if err = e.eclient.SendTransaction(ctx, tx); err != nil {
 		return false, errors.Wrap(err, "failed to send transfer tx")
 	}
 
-	eth.EnsureHashMined(e.ctx, e.log, e.eclient, tx.Hash())
+	eth.EnsureHashMined(ctx, e.log, e.eclient, tx.Hash())
 	return true, nil
 }

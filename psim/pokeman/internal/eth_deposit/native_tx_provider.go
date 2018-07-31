@@ -18,10 +18,9 @@ type NativeTxProvider struct {
 	signer keypair.Full
 	asset string
 	balanceID string
-	ctx context.Context
 }
 
-func NewNativeTxProvider(horizon *horizon.Connector, builder *xdrbuild.Builder, source keypair.Address, kp eth.Keypair, signer keypair.Full, asset string, balanceID string, ctx context.Context) *NativeTxProvider {
+func NewNativeTxProvider(horizon *horizon.Connector, builder *xdrbuild.Builder, source keypair.Address, kp eth.Keypair, signer keypair.Full, asset string, balanceID string) *NativeTxProvider {
 	return &NativeTxProvider{
 		horizon,
 		builder,
@@ -30,11 +29,10 @@ func NewNativeTxProvider(horizon *horizon.Connector, builder *xdrbuild.Builder, 
 		signer,
 		asset,
 		balanceID,
-		ctx,
 	}
 }
 
-func (n *NativeTxProvider) Send() (bool, error) {
+func (n *NativeTxProvider) Send(ctx context.Context) (bool, error) {
 	envelope, err := n.builder.Transaction(n.source).Op(xdrbuild.CreateWithdrawRequestOp{
 		Balance: n.balanceID,
 		Asset:   n.asset,
@@ -47,7 +45,7 @@ func (n *NativeTxProvider) Send() (bool, error) {
 		return false, errors.Wrap(err, "failed to marshal withdraw request")
 	}
 
-	result := n.horizon.Submitter().Submit(n.ctx, envelope)
+	result := n.horizon.Submitter().Submit(ctx, envelope)
 	if result.Err != nil {
 		return false, errors.Wrap(result.Err, "failed to submit withdraw tx")
 	}
