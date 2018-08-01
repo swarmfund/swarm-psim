@@ -120,6 +120,8 @@ func (s *Service) refreshOffer(ctx context.Context, assetPairConfig AssetPairCon
 	if err != nil {
 		return errors.Wrap(err, "failed to refresh sell Offer")
 	}
+
+	return nil
 }
 
 func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount, tx *xdrbuild.Transaction) error {
