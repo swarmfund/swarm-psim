@@ -111,14 +111,18 @@ func (s *Service) refreshOffer(ctx context.Context, assetPairConfig AssetPairCon
 
 	tx := s.builder.Transaction(s.config.Source)
 
-	err = s.refreshBuyOffer(ctx, assetPairConfig, *currentPrice, tx)
-	if err != nil {
-		return errors.Wrap(err, "failed to refresh buy Offer")
+	if assetPairConfig.QuoteAssetVolume > 0 {
+		err = s.refreshBuyOffer(ctx, assetPairConfig, *currentPrice, tx)
+		if err != nil {
+			return errors.Wrap(err, "failed to refresh buy Offer")
+		}
 	}
 
-	err = s.refreshSellOffer(ctx, assetPairConfig, *currentPrice, tx)
-	if err != nil {
-		return errors.Wrap(err, "failed to refresh sell Offer")
+	if assetPairConfig.BaseAssetVolume > 0 {
+		err = s.refreshSellOffer(ctx, assetPairConfig, *currentPrice, tx)
+		if err != nil {
+			return errors.Wrap(err, "failed to refresh sell Offer")
+		}
 	}
 
 	return nil
