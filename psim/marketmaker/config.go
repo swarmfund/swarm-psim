@@ -10,6 +10,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/keypair"
 	"gitlab.com/tokend/regources"
+	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 type Config struct {
@@ -57,7 +58,7 @@ var hooks = figure.Hooks{
 		for _, rawElem := range rawSlice {
 			rawConfig, err := cast.ToStringMapE(rawElem)
 			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed tot cast slice element to map[string]interface{}", logan.F{
+				return reflect.Value{}, errors.Wrap(err, "failed to cast slice element to map[string]interface{}", logan.F{
 					"raw_element": rawElem,
 				})
 			}
@@ -66,7 +67,7 @@ var hooks = figure.Hooks{
 			err = figure.
 				Out(&config).
 				From(rawConfig).
-				With(figure.BaseHooks).
+				With(figure.BaseHooks, utils.CommonHooks).
 				Please()
 			if err != nil {
 				return reflect.Value{}, errors.Wrap(err, "Failed to figure out AssetPairConfig")

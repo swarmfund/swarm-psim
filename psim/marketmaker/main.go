@@ -26,7 +26,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).GetRequired(conf.ServiceMarketMaker)).
-		With(figure.BaseHooks, utils.ETHHooks, hooks).
+		With(figure.BaseHooks, utils.CommonHooks, hooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out", logan.F{
