@@ -40,10 +40,17 @@ func setupFn(ctx context.Context) (app.Service, error) {
 				"asset_pair": assetPair,
 			})
 		}
+
+		if assetPair.BaseAssetVolume == 0 && assetPair.QuoteAssetVolume == 0 {
+			return nil, errors.From(errors.New("BaseAssetVolume and QuoteAssetVolume cannot both be zero."), logan.F{
+				"asset_pair": assetPair,
+			})
+		}
 	}
 	if config.CheckPeriod == 0 {
 		config.CheckPeriod = 30 * time.Second
 	}
+
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 

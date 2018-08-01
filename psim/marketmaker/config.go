@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/keypair"
 	"gitlab.com/tokend/regources"
@@ -30,8 +31,8 @@ func (c Config) GetLoganFields() map[string]interface{} {
 type AssetPairConfig struct {
 	BaseAsset        string           `fig:"base_asset,required"`
 	QuoteAsset       string           `fig:"quote_asset,required"`
-	BaseAssetVolume  regources.Amount `fig:"base_asset_volume,required"`
-	QuoteAssetVolume regources.Amount `fig:"quote_asset_volume,required"`
+	BaseAssetVolume  regources.Amount `fig:"base_asset_volume"`
+	QuoteAssetVolume regources.Amount `fig:"quote_asset_volume"`
 	PriceMargin      float64          `fig:"price_margin,required"`
 }
 
@@ -46,22 +47,34 @@ func (c AssetPairConfig) GetLoganFields() map[string]interface{} {
 }
 
 var hooks = figure.Hooks{
-	"marketmaker.AssetPairConfig": func(raw interface{}) (reflect.Value, error) {
-		rawConfig, err := cast.ToStringMapE(raw)
+	"[]marketmaker.AssetPairConfig": func(raw interface{}) (reflect.Value, error) {
+		rawSlice, err := cast.ToSliceE(raw)
 		if err != nil {
-			return reflect.Value{}, errors.Wrap(err, "Failed to cast to map[string]interface{}")
+			return reflect.Value{}, errors.Wrap(err, "Failed to cast to slice")
 		}
 
-		var config AssetPairConfig
-		err = figure.
-			Out(&config).
-			From(rawConfig).
-			With(figure.BaseHooks).
-			Please()
-		if err != nil {
-			return reflect.Value{}, errors.Wrap(err, "Failed to figure out AssetPairConfig")
+		var configs []AssetPairConfig
+		for _, rawElem := range rawSlice {
+			rawConfig, err := cast.ToStringMapE(rawElem)
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "failed tot cast slice element to map[string]interface{}", logan.F{
+					"raw_element": rawElem,
+				})
+			}
+
+			var config AssetPairConfig
+			err = figure.
+				Out(&config).
+				From(rawConfig).
+				With(figure.BaseHooks).
+				Please()
+			if err != nil {
+				return reflect.Value{}, errors.Wrap(err, "Failed to figure out AssetPairConfig")
+			}
+
+			configs = append(configs, config)
 		}
 
-		return reflect.ValueOf(config), nil
+		return reflect.ValueOf(configs), nil
 	},
 }
