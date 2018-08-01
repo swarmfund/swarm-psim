@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/ethereum/go-ethereum/ethclient"
+	slack "github.com/multiplay/go-slack"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go/client"
 	discovery "gitlab.com/distributed_lab/discovery-go"
@@ -41,6 +42,7 @@ type Config interface {
 	S3() *session.Session
 	Mixpanel() *mixpanel.Connector // TODO
 	Salesforce() *salesforce.Connector
+	Slack() slack.Client
 }
 
 type ViperConfig struct {
@@ -58,6 +60,7 @@ type ViperConfig struct {
 	stripeClient       *client.API
 	salesforce         *salesforce.Connector
 	mixpanel           *mixpanel.Connector
+	slackClient        slack.Client
 }
 
 func NewViperConfig(fn string) *ViperConfig {

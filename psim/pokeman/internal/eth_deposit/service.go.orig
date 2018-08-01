@@ -1,0 +1,534 @@
+package eth_deposit
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+<<<<<<< HEAD
+||||||| merged common ancestors
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+=======
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/multiplay/go-slack"
+	"github.com/multiplay/go-slack/chat"
+>>>>>>> feature/improve_pokeman_v2
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
+<<<<<<< HEAD
+||||||| merged common ancestors
+	"gitlab.com/swarmfund/psim/psim/internal"
+	"gitlab.com/swarmfund/psim/psim/internal/eth"
+=======
+	"gitlab.com/swarmfund/psim/psim/internal"
+>>>>>>> feature/improve_pokeman_v2
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
+)
+
+<<<<<<< HEAD
+type ExternalSystemTypeProvider func() (int32, error)
+||||||| merged common ancestors
+type Service struct {
+	log     *logan.Entry
+	eth     *ethclient.Client
+	horizon *horizon.Connector
+	builder *xdrbuild.Builder
+	config  Config
+}
+=======
+type Service struct {
+	log               *logan.Entry
+	foreignTxProvider TxProvider
+	slack             slack.Client
+	horizon           *horizon.Connector
+	builder           *xdrbuild.Builder
+	config            Config
+}
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+type CurrentBalanceProv func() (result horizon.Balance, err error)
+||||||| merged common ancestors
+func NewService(log *logan.Entry, eth *ethclient.Client, horizon *horizon.Connector, config Config, builder *xdrbuild.Builder) *Service {
+	service := Service{
+		log:     log,
+		eth:     eth,
+		horizon: horizon,
+		config:  config,
+		builder: builder,
+	}
+	return &service
+}
+=======
+func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *horizon.Connector, config Config, builder *xdrbuild.Builder) *Service {
+	service := Service{
+		log:               log,
+		foreignTxProvider: eth,
+		slack:             slack,
+		horizon:           horizon,
+		config:            config,
+		builder:           builder,
+	}
+	return &service
+}
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+type Submitter func(ctx context.Context, envelope string) horizon.SubmitResult
+
+type CurrentExternalBindingDataProvider func(externalSystem int32) (*string, error)
+
+type TxBuilder func(op xdrbuild.Operation) (string, error)
+
+type Service struct {
+	log                           *logan.Entry
+	getExternalSystemType         ExternalSystemTypeProvider
+	getCurrentBalance             CurrentBalanceProv
+	getCurrentExternalBindingData CurrentExternalBindingDataProvider
+	submit                        Submitter
+	buildTx                       TxBuilder
+	nativeTxProvider *NativeTxProvider
+	foreignTxProvider TxProvider
+||||||| merged common ancestors
+// pollBalance will endlessly poll for balance update in config.Asset for config.Source
+// and return updated balance value as well as approximate time it took to update
+// TODO make sure callies handle ctx close and invalid outputs it will make us generate
+func (s *Service) pollBalance(ctx context.Context, current regources.Amount) (updated regources.Amount, took time.Duration) {
+	started := time.Now()
+	defer func() {
+		took = time.Now().Sub(started)
+	}()
+	running.UntilSuccess(ctx, s.log, "balance-poller", func(i context.Context) (bool, error) {
+		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
+		if err != nil {
+			return false, errors.Wrap(err, "failed to get account balance")
+		}
+		if current != balance.Balance {
+			return true, nil
+		}
+		updated = balance.Balance
+		return false, nil
+	}, 5*time.Second, 5*time.Second)
+	return updated, took
+=======
+// pollBalance will endlessly pollBalanceChange for balance update in config.Asset for config.Source
+// and return updated balance value as well as approximate time it took to update
+// TODO make sure callers handle ctx close and invalid outputs it will make us generate
+func (s *Service) pollBalance(ctx context.Context, current regources.Amount) (updated regources.Amount, took time.Duration) {
+	started := time.Now()
+	defer func() {
+		took = time.Now().Sub(started)
+	}()
+	running.UntilSuccess(ctx, s.log, "balance-poller", func(i context.Context) (bool, error) {
+		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
+		if err != nil {
+			return false, errors.Wrap(err, "failed to get account balance")
+		}
+		if current != balance.Balance {
+			return true, nil
+		}
+		updated = balance.Balance
+		return false, nil
+	}, 5*time.Second, 5*time.Second)
+	return updated, took
+>>>>>>> feature/improve_pokeman_v2
+}
+
+// ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
+// TODO make sure callers handle ctx close and invalid outputs it will make us generate
+func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
+	externalAddr, err := s.getCurrentExternalBindingData(externalSystem)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get external binding data")
+	}
+
+	// seems like account does not have external binding atm, let's fix that
+	if externalAddr == nil {
+<<<<<<< HEAD
+		envelope, err := s.buildTx(&xdrbuild.BindExternalSystemAccountIDOp{externalSystem})
+||||||| merged common ancestors
+		// seems like account does not have external binding atm, let's fix that
+		envelope, err := s.builder.Transaction(s.config.Source).Op(
+			&xdrbuild.BindExternalSystemAccountIDOp{externalSystem},
+		).Sign(s.config.Signer).Marshal()
+=======
+		// seems like account does not have external binding atm, let's fix that
+		s.sendTxWithOp(ctx, &xdrbuild.BindExternalSystemAccountIDOp{externalSystem})
+>>>>>>> feature/improve_pokeman_v2
+		if err != nil {
+<<<<<<< HEAD
+			return "", errors.Wrap(err, "failed to marshal bind tx")
+		}
+
+		result := s.submit(context.Background(), envelope)
+		if result.Err != nil {
+			return "", errors.Wrap(result.Err, "failed to submit bind tx", result.GetLoganFields())
+||||||| merged common ancestors
+			return "", errors.Wrap(err, "failed to marshal bind tx")
+		}
+
+		result := s.horizon.Submitter().Submit(context.Background(), envelope)
+		if result.Err != nil {
+			return "", errors.Wrap(result.Err, "failed to submit bind tx", result.GetLoganFields())
+=======
+			return "", errors.Wrap(err, "failed to submit bind tx")
+>>>>>>> feature/improve_pokeman_v2
+		}
+
+		// probably it is better to parse tx result here to obtain external binding data,
+		// but nobody loves to mess with tx result mess and it's also safer to check explicitly
+		running.UntilSuccess(ctx, s.log, "external-data-getter", func(i context.Context) (bool, error) {
+			externalAddr, err = s.getCurrentExternalBindingData(externalSystem)
+			if err != nil {
+				return false, errors.Wrap(err, "failed to get external binding data")
+			}
+			return externalAddr != nil, nil
+		}, 5*time.Second, 5*time.Second)
+	}
+	return *externalAddr, nil
+}
+
+<<<<<<< HEAD
+// pollBalance will endlessly poll for balance update in config.Asset for config.Source
+// and return updated balance value as well as approximate time it took to update
+// TODO make sure callees handle ctx close and invalid outputs it will make us generate
+func (s *Service) pollBalance(ctx context.Context, current regources.Amount, timeout time.Duration) (updated regources.Amount, took time.Duration) {
+	started := time.Now()
+	defer func() {
+		took = time.Now().Sub(started)
+	}()
+	running.UntilSuccess(ctx, s.log, "balance-poller", func(i context.Context) (bool, error) {
+		if time.Now().Sub(started) >= timeout {
+			return false, errors.New("timed out")
+||||||| merged common ancestors
+func (s *Service) Run(ctx context.Context) {
+	running.WithBackOff(ctx, s.log, "poke-iter", func(i context.Context) error {
+		// get asset external system type
+		// it's better to update it on every iteration in case it might change
+		externalSystem, err := internal.GetExternalSystemType(s.horizon.Assets(), s.config.Asset)
+		if err != nil {
+			return errors.Wrap(err, "failed to get external system type")
+		}
+		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
+		if err != nil {
+			return errors.Wrap(err, "failed to get account balance")
+=======
+func (s *Service) sendTxWithOp(ctx context.Context, op xdrbuild.Operation) error {
+	envelope, err := s.builder.Transaction(s.config.Signer).Op(op).Sign(s.config.Signer).Marshal()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal withdraw request")
+	}
+
+	result := s.horizon.Submitter().Submit(ctx, envelope)
+	if result.Err != nil {
+		return errors.Wrap(err, "failed to submit tx", result.GetLoganFields())
+	}
+	return nil
+}
+
+func (s *Service) sendMessage(message string) {
+	msg := fmt.Sprint(message)
+	slackMsg := &chat.Message{Text: msg}
+	slackMsg.Send(s.slack)
+	fmt.Println(msg)
+}
+
+func (s *Service) pollBalanceChange(i context.Context, currentBalance regources.Amount) (regources.Amount, error) {
+	balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get account balance")
+	}
+	return balance.Balance, nil
+}
+
+func (s *Service) Run(ctx context.Context) {
+	running.WithBackOff(ctx, s.log, "poke-iter", func(i context.Context) error {
+		// it's better to update asset external system type on every iteration in case it might change
+		externalSystem, err := internal.GetExternalSystemType(s.horizon.Assets(), s.config.Asset)
+		if err != nil {
+			return errors.Wrap(err, "failed to get external system type")
+		}
+
+		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
+		if err != nil {
+			return errors.Wrap(err, "failed to get account balance")
+>>>>>>> feature/improve_pokeman_v2
+		}
+
+<<<<<<< HEAD
+		balance, err := s.getCurrentBalance()
+||||||| merged common ancestors
+		// set current account balance
+		balanceBefore := balance.Balance
+
+		// get external address
+		externalAddr, err := s.ensureExternalBinding(ctx, externalSystem)
+=======
+		balanceBefore := balance.Balance
+
+		externalAddr, err := s.ensureExternalBinding(ctx, externalSystem)
+>>>>>>> feature/improve_pokeman_v2
+		if err != nil {
+			return false, errors.Wrap(err, "failed to get account balance")
+		}
+<<<<<<< HEAD
+		if current != balance.Balance {
+			return true, nil
+||||||| merged common ancestors
+
+		// transfer some ETH
+		nonce, err := s.eth.NonceAt(ctx, s.config.Keypair.Address(), nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to get address nonce")
+=======
+		if !common.IsHexAddress(externalAddr) {
+			return errors.New("invalud hex address")
+>>>>>>> feature/improve_pokeman_v2
+		}
+
+<<<<<<< HEAD
+		updated = balance.Balance
+		return false, nil
+	}, 5*time.Second, 5*time.Second)
+	return updated, took
+}
+||||||| merged common ancestors
+		tx := types.NewTransaction(
+			nonce,
+			common.HexToAddress(externalAddr),
+			eth.FromGwei(big.NewInt(2000)),
+			22000,
+			eth.FromGwei(big.NewInt(5)),
+			nil,
+		)
+=======
+		s.foreignTxProvider.Send(ctx, 5, externalAddr)
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+func (s *Service) run(timeout time.Duration) func(ctx context.Context) {
+	return func(ctx context.Context) {
+		running.WithBackOff(ctx, s.log, "poke-iter", func(i context.Context) error {
+			// getting asset external system type on every iteration, since it might change
+			externalSystem, err := s.getExternalSystemType()
+			if err != nil {
+				return errors.Wrap(err, "failed to get external system type")
+			}
+||||||| merged common ancestors
+		tx, err = s.config.Keypair.SignTX(tx)
+		if err != nil {
+			return errors.Wrap(err, "failed to sign tx")
+		}
+=======
+		/* at this point we should buksovat, since ETH has been sent */
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+			balanceBefore, err := s.getCurrentBalance()
+			if err != nil {
+				return errors.Wrap(err, "failed to get account balance")
+			}
+
+			externalAddr, err := s.ensureExternalBinding(ctx, externalSystem)
+			if err != nil {
+				return errors.Wrap(err, "failed to get external address")
+			}
+||||||| merged common ancestors
+		if err = s.eth.SendTransaction(ctx, tx); err != nil {
+			return errors.Wrap(err, "failed to send transfer tx")
+		}
+=======
+		// deposit
+		depositPollingStarted := time.Now()
+		depositTook := func() time.Duration {
+			return time.Now().Sub(depositPollingStarted)
+		}
+		var balanceAfterDeposit regources.Amount
+		var balanceChangedOnDeposit bool
+		for !balanceChangedOnDeposit {
+			if running.IsCancelled(ctx) {
+				s.sendMessage(fmt.Sprintf("withdraw polling interrupted after: %s\n", depositTook().String()))
+				return nil
+			}
+			if depositTook() >= 10*time.Minute {
+				s.sendMessage(fmt.Sprintf("withdraw polling timed out\n"))
+				return nil
+			}
+			balanceAfterDeposit, err = s.pollBalanceChange(ctx, balanceBefore)
+			if err != nil {
+				s.sendMessage(fmt.Sprintf("withdraw polling failed with error after: %s\n", depositTook().String()))
+				return errors.Wrap(err, "failed to poll balance changes")
+			}
+			balanceChangedOnDeposit = balanceAfterDeposit != balanceBefore
+		}
+		if balanceAfterDeposit-balanceBefore != 5 {
+			s.sendMessage(fmt.Sprintf("withdraw failed: %s\n", depositTook().String()))
+			return nil
+		}
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+			_, err = s.foreignTxProvider.Send(ctx, 2000, externalAddr)
+			if err != nil {
+				return errors.From(errors.Wrap(err, "failed to send such an amout to the external address"), logan.F{
+					"amount":           999,
+					"external_address": externalAddr,
+				})
+			}
+
+			/* at this point we should buksovat, since the asset has been sent */
+
+			/*currentBalance*/_, depositTook := s.pollBalance(ctx, balanceBefore.Balance, timeout)
+
+			// TODO ensure balance is updated correctly
+			// TODO check if external details are valid
+
+			fmt.Printf("deposit took: %s\n", depositTook.String())
+			if depositTook >= timeout {
+				http.Post("https://hooks.slack.com/services/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", "application/json", strings.NewReader("{\"text\":\"Take attention, deposit took: "+depositTook.String()+"\"}"))
+			}
+||||||| merged common ancestors
+		eth.EnsureHashMined(ctx, s.log, s.eth, tx.Hash())
+
+		//
+		// at this point we should buksovat, since ETH has been sent
+		//
+
+		// get updated balance, hopefully
+		currentBalance, depositTook := s.pollBalance(ctx, balanceBefore)
+
+		// TODO ensure balance is updated correctly
+		// TODO check if external details are valid
+
+		fmt.Printf("deposit took: %s\n", depositTook.String())
+=======
+		s.sendMessage(fmt.Sprintf("deposit took: %s\n", depositTook().String()))
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+			/* withdraw flow, could ease on buksovanie for a bit */
+||||||| merged common ancestors
+		//
+		// withdraw flow, could ease on buksovanie for a bit
+		//
+=======
+		/* withdraw flow, could ease on buksovanie for a bit */
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+			_, err = s.nativeTxProvider.Send(ctx)
+			if err != nil {
+				return errors.Wrap(err, "failed to submit withdraw tx")
+			}
+			_, withdrawTook := s.pollBalance(ctx, balanceBefore.Balance, timeout)
+||||||| merged common ancestors
+		envelope, err := s.builder.Transaction(s.config.Source).Op(xdrbuild.CreateWithdrawRequestOp{
+			Balance: balance.BalanceID,
+			Asset:   s.config.Asset,
+			Amount:  2,
+			Details: &xdrbuild.ETHWithdrawRequestDetails{
+				Address: s.config.Keypair.Address().Hex(),
+			},
+		}).Sign(s.config.Signer).Marshal()
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal withdraw request")
+		}
+=======
+		err = s.sendTxWithOp(ctx, xdrbuild.CreateWithdrawRequestOp{
+			Balance: balance.BalanceID,
+			Asset:   s.config.Asset,
+			Amount:  2,
+			Details: s.foreignTxProvider.GetWithdrawRequestDetails(),
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to submit withdraw tx")
+		}
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+			// TODO validate ETH balance
+			// TODO validate tokend balance
+			fmt.Printf("withdraw took: %s\n", withdrawTook.String())
+			if withdrawTook >= timeout {
+				http.Post("https://hooks.slack.com/services/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", "application/json", strings.NewReader("{\"text\":\"Take attention, withdraw took: "+withdrawTook.String()+"\"}"))
+			}
+
+			return nil
+		}, 10*time.Second, 10*time.Second, 10*time.Second)
+	}
+}
+||||||| merged common ancestors
+		result := s.horizon.Submitter().Submit(ctx, envelope)
+		if result.Err != nil {
+			return errors.Wrap(err, "failed to submit withdraw tx", result.GetLoganFields())
+		}
+
+		_, withdrawTook := s.pollBalance(ctx, currentBalance)
+=======
+		// withdraw
+		updatedBalance := balanceAfterDeposit
+		withdrawPollingStarted := time.Now()
+		withdrawTook := func() time.Duration {
+			return time.Now().Sub(withdrawPollingStarted)
+		}
+		var balanceAfterWithdraw regources.Amount
+		var balanceChangedOnWithdraw bool
+		for !balanceChangedOnWithdraw {
+			if running.IsCancelled(ctx) {
+				s.sendMessage(fmt.Sprintf("withdraw polling interrupted after: %s\n", withdrawTook().String()))
+				return nil
+			}
+			if withdrawTook() >= 10*time.Minute {
+				s.sendMessage(fmt.Sprintf("withdraw polling timed out\n"))
+				return nil
+			}
+			balanceAfterWithdraw, err = s.pollBalanceChange(ctx, updatedBalance)
+			if err != nil {
+				s.sendMessage(fmt.Sprintf("withdraw polling failed with error after: %s\n", withdrawTook().String()))
+				return errors.Wrap(err, "failed to poll balance changes")
+			}
+			balanceChangedOnWithdraw = balanceAfterWithdraw != updatedBalance
+		}
+		if updatedBalance-balanceAfterWithdraw != 2 {
+			s.sendMessage(fmt.Sprintf("withdraw failed: %s\n", withdrawTook().String()))
+			return nil
+		}
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+func (s *Service) Run(ctx context.Context) {
+	s.run(1*time.Minute)
+}
+
+type timedService struct {
+	run func(ctx context.Context)
+}
+||||||| merged common ancestors
+		// TODO validate ETH balance
+		// TODO validate tokend balance
+=======
+		// TODO validate ETH balance
+>>>>>>> feature/improve_pokeman_v2
+
+<<<<<<< HEAD
+func (k *timedService) Run(ctx context.Context) {
+	k.run(ctx)
+}
+||||||| merged common ancestors
+		fmt.Printf("withdraw took: %s\n", withdrawTook.String())
+=======
+		s.sendMessage(fmt.Sprintf("withdraw took: %s\n", withdrawTook().String()))
+>>>>>>> feature/improve_pokeman_v2
+
+func (s *Service) WithTimeout(timeout time.Duration) (*timedService) {
+	return &timedService{s.run(timeout)}
+}
