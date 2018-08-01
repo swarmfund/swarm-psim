@@ -22,9 +22,14 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init tx builder")
 		}
 
+		log := app.Log(ctx)
+
+		ethTxProvider := NewEthTxProvider(app.Config(ctx).Ethereum(), config.Keypair, log)
+
 		return NewService(
-			app.Log(ctx),
-			app.Config(ctx).Ethereum(),
+			log,
+			ethTxProvider,
+			app.Config(ctx).Slack(),
 			horizon,
 			config,
 			builder,
