@@ -1,13 +1,15 @@
 package notifier
 
 import (
-	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/tokend/go/xdr"
 	"context"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/distributed_lab/logan/v3"
 	"fmt"
 	"strconv"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/internal"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 type CancelledOrderNotifier struct {
@@ -69,7 +71,7 @@ func (n *CancelledOrderNotifier) processCheckSaleStateOperation(ctx context.Cont
 		return errors.New("transaction doesn't exist")
 	}
 
-	ledgerChanges := tx.LedgerChanges()
+	ledgerChanges := internal.LedgerChanges(tx)
 
 	for _, change := range ledgerChanges {
 		offer := n.getRemovedOffer(change)

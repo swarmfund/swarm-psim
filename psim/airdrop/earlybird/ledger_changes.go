@@ -5,9 +5,10 @@ import (
 
 	"context"
 
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/internal"
+	"gitlab.com/tokend/go/xdr"
 )
 
 func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
@@ -41,8 +42,8 @@ func (s *Service) listenLedgerChangesInfinitely(ctx context.Context) {
 				}
 			}
 
-			for _, change := range txEvent.Transaction.LedgerChanges() {
-				s.processChange(ctx, txEvent.Transaction.CreatedAt, change)
+			for _, change := range internal.LedgerChanges(txEvent.Transaction) {
+				s.processChange(ctx, txEvent.Transaction.LedgerCloseTime, change)
 			}
 
 			return nil

@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
@@ -76,7 +77,7 @@ func (n *CreatedKYCNotifier) processCreateKYCRequestOperation(ctx context.Contex
 	}
 
 	// we need ledger changes to ensure that KYCRequest was created but not updated through CreateKYCRequestOperation
-	ledgerChanges := tx.LedgerChanges()
+	ledgerChanges := internal.LedgerChanges(tx)
 
 	for _, change := range ledgerChanges {
 		if !n.isCreatedKYCRequest(change) {

@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 	"golang.org/x/net/context"
 )
 
@@ -27,7 +28,7 @@ type UserConnector interface {
 type TransactionConnector interface {
 	// TransactionByID retrieves Transaction with given transaction ID
 	// If Transaction doesn't exist - nil,nil is returned.
-	TransactionByID(txID string) (*horizon.Transaction, error)
+	TransactionByID(txID string) (*regources.Transaction, error)
 }
 
 // SaleConnector is an interface for retrieving sale

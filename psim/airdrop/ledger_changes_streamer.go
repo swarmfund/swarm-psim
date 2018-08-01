@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/tokend/regources"
 )
 
 type TXStreamer interface {
@@ -83,11 +85,11 @@ func (s *LedgerChangesStreamer) Run(ctx context.Context) <-chan TimedLedgerChang
 	return s.timedChangesStream
 }
 
-func (s *LedgerChangesStreamer) streamChanges(ctx context.Context, tx horizon.Transaction) {
-	for _, change := range tx.LedgerChanges() {
+func (s *LedgerChangesStreamer) streamChanges(ctx context.Context, tx regources.Transaction) {
+	for _, change := range internal.LedgerChanges(&tx) {
 		timedChange := TimedLedgerChange{
 			Change: change,
-			Time:   tx.CreatedAt,
+			Time:   tx.LedgerCloseTime,
 		}
 
 		select {
