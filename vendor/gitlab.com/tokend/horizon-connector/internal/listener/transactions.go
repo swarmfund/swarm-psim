@@ -6,6 +6,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
+	"gitlab.com/tokend/regources"
 )
 
 // DEPRECATED
@@ -29,13 +30,13 @@ func (q *Q) Transactions(result chan<- resources.TransactionEvent) <-chan error 
 					Transaction: &ohaigo,
 					// emulating discrete transactions stream by spoofing meta
 					// to not let bump cursor too much before actually consuming all transactions
-					Meta: resources.PageMeta{
-						LatestLedger: resources.LedgerMeta{
-							ClosedAt: tx.CreatedAt,
+					Meta: regources.PageMeta{
+						LatestLedger: regources.LedgerMeta{
+							ClosedAt: tx.LedgerCloseTime,
 						},
 					},
 				}
-				cursor = tx.PagingToken
+				cursor = tx.PagingToken()
 			}
 			// letting consumer know about current ledger cursor
 			result <- resources.TransactionEvent{
@@ -81,9 +82,9 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 					Transaction: &ohaigo,
 					// emulating discrete transactions stream by spoofing meta
 					// to not let bump cursor too much before actually consuming all transactions
-					Meta: resources.PageMeta{
-						LatestLedger: resources.LedgerMeta{
-							ClosedAt: tx.CreatedAt,
+					Meta: regources.PageMeta{
+						LatestLedger: regources.LedgerMeta{
+							ClosedAt: tx.LedgerCloseTime,
 						},
 					},
 				}
@@ -93,7 +94,7 @@ func (q *Q) StreamTransactions(ctx context.Context) (<-chan resources.Transactio
 					return
 				}
 
-				cursor = tx.PagingToken
+				cursor = tx.PagingToken()
 			}
 
 			// letting consumer know about current ledger cursor
@@ -176,9 +177,9 @@ func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyP
 					Transaction: &ohaigo,
 					// emulating discrete transactions stream by spoofing meta
 					// to not let bump cursor too much before actually consuming all transactions
-					Meta: resources.PageMeta{
-						LatestLedger: resources.LedgerMeta{
-							ClosedAt: tx.CreatedAt,
+					Meta: regources.PageMeta{
+						LatestLedger: regources.LedgerMeta{
+							ClosedAt: tx.LedgerCloseTime,
 						},
 					},
 				}
@@ -189,7 +190,7 @@ func (q *Q) StreamTXsFromCursor(ctx context.Context, cursor string, stopOnEmptyP
 					// Ctx was canceled
 					return
 				}
-				cursor = tx.PagingToken
+				cursor = tx.PagingToken()
 			}
 
 			// letting consumer know about current ledger cursor

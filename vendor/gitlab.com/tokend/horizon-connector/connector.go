@@ -12,16 +12,17 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal/balance"
 	"gitlab.com/tokend/horizon-connector/internal/blob"
 	"gitlab.com/tokend/horizon-connector/internal/document"
+	"gitlab.com/tokend/horizon-connector/internal/keyvalue"
 	"gitlab.com/tokend/horizon-connector/internal/listener"
 	"gitlab.com/tokend/horizon-connector/internal/operation"
 	"gitlab.com/tokend/horizon-connector/internal/sale"
 	"gitlab.com/tokend/horizon-connector/internal/system"
 	"gitlab.com/tokend/horizon-connector/internal/templates"
 	"gitlab.com/tokend/horizon-connector/internal/transaction"
+	"gitlab.com/tokend/horizon-connector/internal/transactionv2"
 	"gitlab.com/tokend/horizon-connector/internal/user"
 	"gitlab.com/tokend/horizon-connector/internal/wallets"
 	"gitlab.com/tokend/keypair"
-	"gitlab.com/tokend/horizon-connector/internal/transactionv2"
 )
 
 type Connector struct {
@@ -64,6 +65,10 @@ func (c *Connector) Info() (info *Info, err error) {
 		return nil, errors.Wrap(err, "failed to unmarshal info")
 	}
 	return info, nil
+}
+
+func (c *Connector) KeyValue() *keyvalue.Q {
+	return keyvalue.NewQ(c.client)
 }
 
 func (c *Connector) System() *system.Q {

@@ -1,13 +1,14 @@
 package transactionv2
 
 import (
-	"gitlab.com/tokend/horizon-connector/internal"
-	"gitlab.com/tokend/horizon-connector/internal/responses"
 	"encoding/json"
-	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/regources"
 	"net/url"
 	"strconv"
+
+	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/tokend/horizon-connector/internal"
+	"gitlab.com/tokend/horizon-connector/internal/responses"
+	"gitlab.com/tokend/regources"
 )
 
 type Q struct {
@@ -20,10 +21,11 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
-// TransactionsByEffectsAndEntryTypes do request to horizon to get transactions v2
+// ByEffectsAndEntryTypes do request to horizon to get transactions v2
 // by specific entry type and effects, returns transactionsV2 and page meta
-func (q *Q) TransactionsByEffectsAndEntryTypes(cursor string, effects, entryTypes []int,
-) ([]regources.TransactionV2, *regources.PageMeta, error) {
+func (q *Q) ByEffectsAndEntryTypes(
+	cursor string, effects, entryTypes []int,
+) ([]regources.Transaction, *regources.PageMeta, error) {
 	u := url.Values{}
 	u.Add("limit", "1000")
 	u.Add("cursor", cursor)
@@ -34,7 +36,7 @@ func (q *Q) TransactionsByEffectsAndEntryTypes(cursor string, effects, entryType
 		return nil, nil, errors.Wrap(err, "transactions_v2 request failed")
 	}
 
-	var result responses.TransactionV2Index
+	var result responses.TransactionIndex
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, nil, errors.Wrap(err, "failed to unmarshal transactions_v2")
 	}

@@ -1,8 +1,10 @@
 package resources
 
+import "gitlab.com/tokend/regources"
+
 // TODO Comment
 // TODO Consider moving the type into listener package
 type TransactionEvent struct {
-	Transaction *Transaction
-	Meta        PageMeta
+	Transaction *regources.Transaction
+	Meta        regources.PageMeta
 }
