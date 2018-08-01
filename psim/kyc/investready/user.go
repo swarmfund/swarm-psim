@@ -40,7 +40,8 @@ func (u UserStatus) GetLoganFields() map[string]interface{} {
 type StatusMessage string
 
 const (
-	AccreditedStatusMessage StatusMessage = "Accredited"
-	PendingStatusMessage    StatusMessage = "Pending"
-	DeniedStatusMessage     StatusMessage = "Denied"
+	AccreditedStatusMessage             StatusMessage = "Accredited"
+	PendingStatusMessage                StatusMessage = "Pending"
+	NoPendingVerificationsStatusMessage StatusMessage = "No Pending Verifications"
+	DeniedStatusMessage                 StatusMessage = "Denied"
 )

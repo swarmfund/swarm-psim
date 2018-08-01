@@ -89,12 +89,14 @@ func (s *service) findAndProcessPricePoint(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to marshal SetAssetPrice TX", fields)
 	}
 
-	verifiedEnvelope, err := s.verifyEnvelope(envelope, pointToSubmit.Price)
-	if err != nil {
-		return errors.Wrap(err, "Failed to verify Envelope", fields)
+	if !s.config.DisableVerify {
+		envelope, err = s.verifyEnvelope(envelope, pointToSubmit.Price)
+		if err != nil {
+			return errors.Wrap(err, "Failed to verify Envelope", fields)
+		}
 	}
 
-	result := s.connector.Submit(ctx, verifiedEnvelope)
+	result := s.connector.Submit(ctx, envelope)
 	if result.Err != nil {
 		return errors.Wrap(result.Err, "Error submitting SetAssetPrice TX to Horizon", fields.Merge(logan.F{
 			"submit_result": result,

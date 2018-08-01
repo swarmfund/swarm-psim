@@ -18,10 +18,15 @@ type Config struct {
 	SubmitPeriod         time.Duration `fig:"submit_period,required"`
 	ProvidersToAgree     int           `fig:"providers_to_agree,required" mapstructure:"providers_to_agree,required"`
 	MaxPriceDeltaPercent string        `fig:"max_price_delta_percent,required" mapstructure:"max_price_delta_percent,required"`
-	VerifierServiceName  string        `fig:"verifier_service_name,required"`
+	// DisableVerify if true service will not seek verification and submit price update on it's own
+	DisableVerify bool `fig:"disable_verify"`
+	// VerifierServiceName discovery service name which service will seek verification from.
+	// Required if DisableVerify is false
+	VerifierServiceName  string        `fig:"verifier_service_name"`
 
 	Source keypair.Address `fig:"source,required"`
 	Signer keypair.Full    `fig:"signer" mapstructure:"signer,required"`
+
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
@@ -50,6 +55,10 @@ func (c Config) Validate() (validationErr error) {
 			"max_period_provider": maxPeriodProvider,
 			"submit_period":       c.SubmitPeriod,
 		})
+	}
+
+	if !c.DisableVerify && c.VerifierServiceName == "" {
+		return errors.New("verifier_service_name is required")
 	}
 
 	return nil
