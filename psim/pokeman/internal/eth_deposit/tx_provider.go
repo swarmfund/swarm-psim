@@ -13,8 +13,6 @@ import (
 	"gitlab.com/tokend/go/xdrbuild"
 )
 
-// TODO consider change amount type
-
 type TxProvider interface {
 	Send(ctx context.Context, amount int64, destination string) (succes bool, err error)
 	GetWithdrawRequestDetails() xdrbuild.WithdrawRequestDetails

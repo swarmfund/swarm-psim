@@ -38,28 +38,6 @@ func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *h
 	return &service
 }
 
-// pollBalance will endlessly pollBalanceChange for balance update in config.Asset for config.Source
-// and return updated balance value as well as approximate time it took to update
-// TODO make sure callers handle ctx close and invalid outputs it will make us generate
-func (s *Service) pollBalance(ctx context.Context, current regources.Amount) (updated regources.Amount, took time.Duration) {
-	started := time.Now()
-	defer func() {
-		took = time.Now().Sub(started)
-	}()
-	running.UntilSuccess(ctx, s.log, "balance-poller", func(i context.Context) (bool, error) {
-		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
-		if err != nil {
-			return false, errors.Wrap(err, "failed to get account balance")
-		}
-		if current != balance.Balance {
-			return true, nil
-		}
-		updated = balance.Balance
-		return false, nil
-	}, 5*time.Second, 5*time.Second)
-	return updated, took
-}
-
 // ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
 // TODO make sure callers handle ctx close and invalid outputs it will make us generate
 func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
@@ -154,7 +132,7 @@ func (s *Service) Run(ctx context.Context) {
 				s.sendMessage(fmt.Sprintf("withdraw polling interrupted after: %s\n", depositTook().String()))
 				return nil
 			}
-			if depositTook() >= 10*time.Minute {
+			if depositTook() >= s.config.PollingTimeout {
 				s.sendMessage(fmt.Sprintf("withdraw polling timed out\n"))
 				return nil
 			}
@@ -197,7 +175,7 @@ func (s *Service) Run(ctx context.Context) {
 				s.sendMessage(fmt.Sprintf("withdraw polling interrupted after: %s\n", withdrawTook().String()))
 				return nil
 			}
-			if withdrawTook() >= 10*time.Minute {
+			if withdrawTook() >= s.config.PollingTimeout {
 				s.sendMessage(fmt.Sprintf("withdraw polling timed out\n"))
 				return nil
 			}
