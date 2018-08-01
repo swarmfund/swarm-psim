@@ -85,12 +85,45 @@ func (s *Service) sendMessage(message string) {
 	fmt.Println(msg)
 }
 
-func (s *Service) pollBalanceChange(i context.Context, currentBalance regources.Amount) (regources.Amount, error) {
+func (s *Service) pollBalance(i context.Context, currentBalance regources.Amount) (regources.Amount, error) {
 	balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get account balance")
 	}
 	return balance.Balance, nil
+}
+
+// TODO use ctx deadline
+func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperation regources.Amount, changedTo regources.Amount) error {
+	timedCtx, cancelTimedCtx := context.WithTimeout(ctx, s.config.PollingTimeout)
+	defer cancelTimedCtx()
+	operationStarted := time.Now()
+	operationTook := func() string {
+		return time.Now().Sub(operationStarted).String()
+	}
+	var balanceAfterOperation regources.Amount
+	var balanceChangedAfterOperation bool
+	for !balanceChangedAfterOperation {
+		if running.IsCancelled(timedCtx) {
+			if running.IsCancelled(ctx) {
+				return errors.New("interrupted")
+			}
+			s.sendMessage(fmt.Sprintf("balance change polling timed out after: %s\n", operationTook()))
+			return errors.New("timed out")
+		}
+		var err error
+		balanceAfterOperation, err = s.pollBalance(timedCtx, balanceBeforeOperation)
+		if err != nil {
+			s.sendMessage(fmt.Sprintf("balance change polling failed with error after: %s\n", operationTook()))
+			return errors.Wrap(err, "balance polling failed")
+		}
+		balanceChangedAfterOperation = balanceAfterOperation != balanceBeforeOperation
+	}
+	if balanceAfterOperation != changedTo {
+		s.sendMessage(fmt.Sprintf("op failed: %s\n", operationTook()))
+		return errors.New("invalid balance change")
+	}
+	return nil
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -120,35 +153,11 @@ func (s *Service) Run(ctx context.Context) {
 
 		/* at this point we should buksovat, since ETH has been sent */
 
-		// deposit
-		depositPollingStarted := time.Now()
-		depositTook := func() time.Duration {
-			return time.Now().Sub(depositPollingStarted)
+		err = s.ensureBalanceChanged(ctx, balanceBefore, balanceBefore+5)
+		if err != nil {
+			return errors.Wrap(err, "failed to ensure balance has been changed after deposit")
 		}
-		var balanceAfterDeposit regources.Amount
-		var balanceChangedOnDeposit bool
-		for !balanceChangedOnDeposit {
-			if running.IsCancelled(ctx) {
-				s.sendMessage(fmt.Sprintf("withdraw polling interrupted after: %s\n", depositTook().String()))
-				return nil
-			}
-			if depositTook() >= s.config.PollingTimeout {
-				s.sendMessage(fmt.Sprintf("withdraw polling timed out\n"))
-				return nil
-			}
-			balanceAfterDeposit, err = s.pollBalanceChange(ctx, balanceBefore)
-			if err != nil {
-				s.sendMessage(fmt.Sprintf("withdraw polling failed with error after: %s\n", depositTook().String()))
-				return errors.Wrap(err, "failed to poll balance changes")
-			}
-			balanceChangedOnDeposit = balanceAfterDeposit != balanceBefore
-		}
-		if balanceAfterDeposit-balanceBefore != 5 {
-			s.sendMessage(fmt.Sprintf("withdraw failed: %s\n", depositTook().String()))
-			return nil
-		}
-
-		s.sendMessage(fmt.Sprintf("deposit took: %s\n", depositTook().String()))
+		balanceBefore = balanceBefore + 5
 
 		/* withdraw flow, could ease on buksovanie for a bit */
 
@@ -163,37 +172,12 @@ func (s *Service) Run(ctx context.Context) {
 		}
 
 		// withdraw
-		updatedBalance := balanceAfterDeposit
-		withdrawPollingStarted := time.Now()
-		withdrawTook := func() time.Duration {
-			return time.Now().Sub(withdrawPollingStarted)
-		}
-		var balanceAfterWithdraw regources.Amount
-		var balanceChangedOnWithdraw bool
-		for !balanceChangedOnWithdraw {
-			if running.IsCancelled(ctx) {
-				s.sendMessage(fmt.Sprintf("withdraw polling interrupted after: %s\n", withdrawTook().String()))
-				return nil
-			}
-			if withdrawTook() >= s.config.PollingTimeout {
-				s.sendMessage(fmt.Sprintf("withdraw polling timed out\n"))
-				return nil
-			}
-			balanceAfterWithdraw, err = s.pollBalanceChange(ctx, updatedBalance)
-			if err != nil {
-				s.sendMessage(fmt.Sprintf("withdraw polling failed with error after: %s\n", withdrawTook().String()))
-				return errors.Wrap(err, "failed to poll balance changes")
-			}
-			balanceChangedOnWithdraw = balanceAfterWithdraw != updatedBalance
-		}
-		if updatedBalance-balanceAfterWithdraw != 2 {
-			s.sendMessage(fmt.Sprintf("withdraw failed: %s\n", withdrawTook().String()))
-			return nil
+		err = s.ensureBalanceChanged(ctx, balanceBefore, balanceBefore-2)
+		if err != nil {
+			return errors.Wrap(err, "failed to ensure balance has been changed after withdraw")
 		}
 
 		// TODO validate ETH balance
-
-		s.sendMessage(fmt.Sprintf("withdraw took: %s\n", withdrawTook().String()))
 
 		return nil
 	}, 10*time.Second, 10*time.Second, 10*time.Second)
