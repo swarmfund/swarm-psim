@@ -54,6 +54,8 @@ func NewService(
 		accountInfoProvider: offersGetter,
 		submitter:           submitter,
 		builder:             builder,
+
+		assetToBalanceID: make(map[string]string),
 	}
 }
 
@@ -240,7 +242,9 @@ func (s *Service) getCurrentPrice(base, quote string) (*regources.Amount, error)
 	}
 
 	if assetPair == nil {
-		return nil, errors.Errorf("No AssetPair in Horizon with BaseAsset (%s) and QuoteAsset (%s).", base, quote)
+		return nil, errors.From(errors.Errorf("No AssetPair in Horizon with BaseAsset (%s) and QuoteAsset (%s).", base, quote), logan.F{
+			"horizon_asset_pairs": assetPairs,
+		})
 	}
 
 	return &assetPair.CurrentPrice, nil
