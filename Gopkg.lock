@@ -700,7 +700,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9ca3a01778b9cbc97bbeeaa5bf8d8e716264accd3d9edfef5cbc95448472ffe9"
+  digest = "1:734e2ee813060f22cf7b2959acd9b91f64fb2cd64ad705e50fd2ed6236796d42"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -727,7 +727,7 @@
     "types",
   ]
   pruneopts = "NT"
-  revision = "d95d0f3243416c79098527e538995c42515f5f0c"
+  revision = "f8d06e70fe86b83e49e2d46c4496a12ba6b2227d"
 
 [[projects]]
   branch = "master"
@@ -744,19 +744,11 @@
 
 [[projects]]
   branch = "master"
-<<<<<<< HEAD
-  digest = "1:b07076a4515e259bf1f726b329d810f1ccf68b4a4df9cd0fafe6bcc4171cd1b4"
+  digest = "1:8b4542da5cb438dce017588ee9b5cc1223ddf575034572a7a127a23ce8528c6b"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "c369c47ad3d56a57d94e85302c4f34a01076142c"
-=======
-  digest = "1:463ba2d1a256729dc4c8023ca1f1953409681d038a85fe02fdb6b7321e252e32"
-  name = "gitlab.com/tokend/regources"
-  packages = ["."]
-  pruneopts = "NT"
-  revision = "327fb69f19e4744f8011f6721fc2b9f244a8359b"
->>>>>>> Update vendor.
+  revision = "f23f8716d064f59bcd6a5f8ad3f4fd2fbb182409"
 
 [[projects]]
   branch = "master"

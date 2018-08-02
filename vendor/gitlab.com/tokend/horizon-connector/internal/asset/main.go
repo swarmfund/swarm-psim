@@ -57,7 +57,7 @@ func (q Q) Index() ([]regources.Asset, error) {
 }
 
 func (q Q) Pairs() ([]regources.AssetPair, error) {
-	endpoint := "/assets_pairs"
+	endpoint := "/asset_pairs"
 	response, err := q.client.Get(endpoint)
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
