@@ -11,7 +11,6 @@ import (
 
 // don't blame me, just make sure all exported types are really exported
 
-type Transaction = resources.Transaction
 type TransactionEvent = resources.TransactionEvent
 type TXPacket = listener.TXPacket
 type Request = resources.Request
@@ -42,6 +41,7 @@ type RequestKYCDetails = resources.RequestKYCDetails
 
 type ReviewableRequestType = operation.ReviewableRequestType
 type KYCData = resources.KYCData
+type KeyValue = resources.KeyValue
 
 // DEPRECATED: use regources directly
 type Asset = regources.Asset

@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
+	internal2 "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
@@ -47,7 +48,7 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 		return nil, nil
 	}
 
-	txEnvelope, err := tx.SafeEnvelope()
+	txEnvelope, err := internal2.SafeEnvelope(tx)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get tx envelope")
@@ -55,7 +56,7 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 
 	txEnvelopeBody := txEnvelope.Tx
 
-	txLedgerChanges, err := tx.GroupedLedgerChanges()
+	txLedgerChanges, err := internal2.GroupedLedgerChanges(tx)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get grouped ledger changes", logan.F{
@@ -65,7 +66,7 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 
 	operations := txEnvelopeBody.Operations
 
-	txResult, err := tx.Result()
+	txResult, err := internal2.Result(tx)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal results", logan.F{
@@ -81,9 +82,9 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 		})
 	}
 
-	txTime := &tx.CreatedAt
+	txTime := &tx.LedgerCloseTime
 
-	pagingToken := tx.PagingToken
+	pagingToken := tx.PagingToken()
 
 	return &TxData{operations, opsResults, txLedgerChanges, txTime, txEnvelopeBody.SourceAccount, pagingToken}, nil
 }

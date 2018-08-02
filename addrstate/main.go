@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/regources"
+	horizon "gitlab.com/tokend/horizon-connector"
 )
 
 // StateMutator uses to get StateUpdate for specific effects and entryTypes
@@ -19,7 +19,7 @@ type StateMutator interface {
 // StreamTransactionsV2 streams transactions fetched for specified filters.
 type TXStreamerV2 interface {
 	StreamTransactionsV2(ctx context.Context, effects, entryTypes []int,
-	) (<-chan regources.TransactionV2Event, <-chan error)
+	) (<-chan horizon.TransactionEvent, <-chan error)
 }
 
 // Watcher watches what comes from txStreamer and what StateMutators do
@@ -121,7 +121,7 @@ func (w *Watcher) run(ctx context.Context) {
 	for {
 		select {
 		case txEvent := <-txStream:
-			if tx := txEvent.TransactionV2; tx != nil {
+			if tx := txEvent.Transaction; tx != nil {
 				// go through all ledger changes
 				for _, change := range tx.Changes {
 					// apply all mutators

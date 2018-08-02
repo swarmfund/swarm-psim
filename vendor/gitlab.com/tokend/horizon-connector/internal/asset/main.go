@@ -19,6 +19,7 @@ func NewQ(client internal.Client) *Q {
 		client,
 	}
 }
+
 func (q Q) ByCode(code string) (*regources.Asset, error) {
 	endpoint := fmt.Sprintf("/assets/%s", code)
 	response, err := q.client.Get(endpoint)
@@ -53,4 +54,22 @@ func (q Q) Index() ([]regources.Asset, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return assets, nil
+}
+
+func (q Q) Pairs() ([]regources.AssetPair, error) {
+	endpoint := "/assets_pairs"
+	response, err := q.client.Get(endpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if response == nil {
+		return nil, nil
+	}
+
+	var assetPairs []regources.AssetPair
+	if err := json.Unmarshal(response, &assetPairs); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal")
+	}
+	return assetPairs, nil
 }

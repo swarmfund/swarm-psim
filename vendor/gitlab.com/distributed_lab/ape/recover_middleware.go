@@ -1,22 +1,24 @@
 package ape
 
 import (
-	"net/http"
-
-	"runtime/debug"
-
 	"fmt"
+	"net/http"
 
 	"github.com/getsentry/raven-go"
 	"github.com/google/jsonapi"
 	"gitlab.com/distributed_lab/ape/problems"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+// Logger abstract logger interface providing all possible bells and whistles,
+// mainly for decoupling `distributed_lab/logan` package
+type Logger interface {
+	Log(level uint32, fields map[string]interface{}, err error, withStack bool, args ...interface{})
+}
+
 // RecoverMiddleware by default will just catch handler panic.
 // Also it might take use of number of optionally injected arguments like:
-// - *logan.Entry to log stacktrace with Error level
+// - Logger implementation to log stacktrace with Error level
 // - *jsonapi.ErrorObject to render error body
 // - *raven.Client to report exception to Sentry
 func RecoverMiddleware(args ...interface{}) func(http.Handler) http.Handler {
@@ -28,11 +30,9 @@ func RecoverMiddleware(args ...interface{}) func(http.Handler) http.Handler {
 					rerr := errors.FromPanic(rvr)
 					for _, arg := range args {
 						switch v := arg.(type) {
-						case *logan.Entry:
-							v.
-								WithField("stack", string(debug.Stack())).
-								WithError(rerr).
-								Error("handler panicked")
+						case Logger:
+							// 2 - is logan/logrus error level as it most probable implementation of `Logger`
+							v.Log(2, nil, rerr, true, "handler panicked")
 						case *jsonapi.ErrorObject:
 							RenderErr(w, v)
 							responseRendered = true
