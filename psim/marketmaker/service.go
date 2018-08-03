@@ -60,11 +60,13 @@ func NewService(
 }
 
 func (s *Service) Run(ctx context.Context) {
+	s.log.WithField("c", s.config).Info("Starting.")
+
 	running.UntilSuccess(ctx, s.log, "balances_obtainer", s.obtainBalances, 5*time.Second, 5*time.Minute)
 
 	running.WithBackOff(ctx, s.log, "offers_refresher_iteration", func(ctx context.Context) error {
 		for _, assetPair := range s.config.AssetPairs {
-			err := s.refreshOffer(ctx, assetPair)
+			err := s.refreshOffers(ctx, assetPair)
 			if err != nil {
 				return errors.Wrap(err, "Failed to refresh Offer for AssetPair", logan.F{
 					"asset_pair": assetPair,
@@ -105,23 +107,21 @@ func (s *Service) obtainBalances(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (s *Service) refreshOffer(ctx context.Context, assetPairConfig AssetPairConfig) error {
+func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairConfig) error {
 	currentPrice, err := s.getCurrentPrice(assetPairConfig.BaseAsset, assetPairConfig.QuoteAsset)
 	if err != nil {
 		return errors.Wrap(err, "failed to obtain current price of the AssetPair")
 	}
 
-	tx := s.builder.Transaction(s.config.Source)
-
 	if assetPairConfig.QuoteAssetVolume > 0 {
-		err = s.refreshBuyOffer(ctx, assetPairConfig, *currentPrice, tx)
+		err = s.refreshBuyOffer(ctx, assetPairConfig, *currentPrice)
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh buy Offer")
 		}
 	}
 
 	if assetPairConfig.BaseAssetVolume > 0 {
-		err = s.refreshSellOffer(ctx, assetPairConfig, *currentPrice, tx)
+		err = s.refreshSellOffer(ctx, assetPairConfig, *currentPrice)
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh sell Offer")
 		}
@@ -130,7 +130,7 @@ func (s *Service) refreshOffer(ctx context.Context, assetPairConfig AssetPairCon
 	return nil
 }
 
-func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount, tx *xdrbuild.Transaction) error {
+func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount) error {
 	t := true
 	z := uint64(0)
 	offers, err := s.accountInfoProvider.Offers(s.config.Source.Address(), assetPairConfig.BaseAsset, assetPairConfig.QuoteAsset, &t, "", &z)
@@ -147,6 +147,8 @@ func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPair
 		}).Debug("Buy Offer is not outdated, leaving it as is.")
 		return nil
 	}
+
+	tx := s.builder.Transaction(s.config.Source)
 
 	// Delete all existing Offers first
 	for _, o := range offers {
@@ -183,7 +185,7 @@ func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPair
 	return nil
 }
 
-func (s *Service) refreshSellOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount, tx *xdrbuild.Transaction) error {
+func (s *Service) refreshSellOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount) error {
 	f := false
 	z := uint64(0)
 	offers, err := s.accountInfoProvider.Offers(s.config.Source.Address(), assetPairConfig.BaseAsset, assetPairConfig.QuoteAsset, &f, "", &z)
@@ -200,6 +202,8 @@ func (s *Service) refreshSellOffer(ctx context.Context, assetPairConfig AssetPai
 		}).Debug("Sell Offer is not outdated, leaving it as is.")
 		return nil
 	}
+
+	tx := s.builder.Transaction(s.config.Source)
 
 	// Delete all existing Offers first
 	for _, o := range offers {
