@@ -16,6 +16,7 @@ import (
 type TxProvider interface {
 	Send(ctx context.Context, amount int64, destination string) (succes bool, err error)
 	GetWithdrawRequestDetails() xdrbuild.WithdrawRequestDetails
+	GetCurrentBalance(ctx context.Context) (*big.Int, error)
 }
 
 type EthTxProvider struct {
@@ -65,4 +66,8 @@ func (e *EthTxProvider) GetWithdrawRequestDetails() xdrbuild.WithdrawRequestDeta
 	return &xdrbuild.ETHWithdrawRequestDetails{
 		Address: e.kp.Address().Hex(),
 	}
+}
+
+func (e *EthTxProvider) GetCurrentBalance(ctx context.Context) (*big.Int, error) {
+	return e.eclient.BalanceAt(ctx, e.kp.Address(), nil)
 }

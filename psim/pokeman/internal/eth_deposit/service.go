@@ -39,7 +39,6 @@ func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *h
 }
 
 // ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
-// TODO make sure callers handle ctx close and invalid outputs it will make us generate
 func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
 	externalAddr, err := s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
 	if err != nil {
@@ -54,13 +53,21 @@ func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int3
 
 		// probably better to parse tx result here to obtain external binding data,
 		// but nobody loves to mess with txresult mess and it's also safer to check explicitly
-		running.UntilSuccess(ctx, s.log, "external-data-getter", func(i context.Context) (bool, error) {
-			externalAddr, err = s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
-			if err != nil {
-				return false, errors.Wrap(err, "failed to get external binding data")
+		err := func(i context.Context) error {
+			for externalAddr == nil {
+				if running.IsCancelled(i) {
+					return errors.New("interrupted")
+				}
+				externalAddr, err = s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
+				if err != nil {
+					return errors.Wrap(err, "failed to get external binding data")
+				}
 			}
-			return externalAddr != nil, nil
-		}, 5*time.Second, 5*time.Second)
+			return nil
+		}(ctx)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to ensure external binding")
+		}
 	}
 	return *externalAddr, nil
 }
@@ -93,7 +100,6 @@ func (s *Service) pollBalance(i context.Context, currentBalance regources.Amount
 	return balance.Balance, nil
 }
 
-// TODO use ctx deadline
 func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperation regources.Amount, changedTo regources.Amount) error {
 	timedCtx, cancelTimedCtx := context.WithTimeout(ctx, s.config.PollingTimeout)
 	defer cancelTimedCtx()
@@ -101,6 +107,7 @@ func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperati
 	operationTook := func() string {
 		return time.Now().Sub(operationStarted).String()
 	}
+
 	var balanceAfterOperation regources.Amount
 	var balanceChangedAfterOperation bool
 	for !balanceChangedAfterOperation {
@@ -177,7 +184,10 @@ func (s *Service) Run(ctx context.Context) {
 			return errors.Wrap(err, "failed to ensure balance has been changed after withdraw")
 		}
 
-		// TODO validate ETH balance
+		foreignBalance, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+		if foreignBalance.Uint64() >= 2 {
+			return errors.New("foreign balance not changed")
+		}
 
 		return nil
 	}, 10*time.Second, 10*time.Second, 10*time.Second)
