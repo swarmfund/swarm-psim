@@ -153,7 +153,10 @@ func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPair
 	// Delete all existing Offers first
 	for _, o := range offers {
 		tx.Op(xdrbuild.DeleteOffer(o.OfferID))
-		s.log.WithField("offer", o).Info("Removing buy Offer.")
+		s.log.WithFields(logan.F{
+			"offer":                  o,
+			"current_price_to_offer": currentPriceToOffer,
+		}).Info("Removing buy Offer.")
 	}
 
 	baseAmount, overflow := amount.BigDivide(1, int64(assetPairConfig.QuoteAssetVolume), currentPriceToOffer, amount.ROUND_DOWN)
@@ -241,7 +244,8 @@ func (s *Service) getCurrentPrice(base, quote string) (*regources.Amount, error)
 	var assetPair *regources.AssetPair
 	for _, aPair := range assetPairs {
 		if aPair.Base == base && aPair.Quote == quote {
-			assetPair = &aPair
+			t := aPair
+			assetPair = &t
 		}
 	}
 
