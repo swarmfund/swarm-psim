@@ -113,126 +113,122 @@ func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairCo
 		return errors.Wrap(err, "failed to obtain current price of the AssetPair")
 	}
 
-	if assetPairConfig.QuoteAssetVolume > 0 {
-		err = s.refreshBuyOffer(ctx, assetPairConfig, *currentPrice)
-		if err != nil {
-			return errors.Wrap(err, "failed to refresh buy Offer")
-		}
+	buyPriceToOffer := int64(float64(*currentPrice) * (1 - assetPairConfig.PriceMargin))
+	needNewBuyOffer, tx, err := s.removeBuyOffersIfNecessary(ctx, assetPairConfig, buyPriceToOffer)
+	if err != nil {
+		return errors.Wrap(err, "failed to refresh buy Offer")
 	}
 
-	if assetPairConfig.BaseAssetVolume > 0 {
-		err = s.refreshSellOffer(ctx, assetPairConfig, *currentPrice)
-		if err != nil {
-			return errors.Wrap(err, "failed to refresh sell Offer")
+	sellPriceToOffer := int64(float64(*currentPrice) * (1 + assetPairConfig.PriceMargin))
+	needNewSellOffer, err := s.removeSellOffersIfNecessary(ctx, assetPairConfig, sellPriceToOffer, tx)
+	if err != nil {
+		return errors.Wrap(err, "failed to refresh sell Offer")
+	}
+
+	if needNewBuyOffer {
+		baseAmount, overflow := amount.BigDivide(1, int64(assetPairConfig.QuoteAssetVolume), buyPriceToOffer, amount.ROUND_DOWN)
+		if overflow {
+			return errors.From(errors.New("Conversion to BaseAmount caught overflow."), logan.F{
+				"quote_asset_volume": assetPairConfig.QuoteAssetVolume,
+				"buy_price_to_offer": buyPriceToOffer,
+			})
 		}
+
+		op := xdrbuild.CreateOffer(s.assetToBalanceID[assetPairConfig.BaseAsset], s.assetToBalanceID[assetPairConfig.QuoteAsset],
+			true, baseAmount, buyPriceToOffer, 0)
+		tx.Op(op)
+
+		s.log.WithFields(logan.F{
+			"manage_offer_op": op,
+		}).Info("Creating new buy Offer.")
+	}
+
+	if needNewSellOffer {
+		op := xdrbuild.CreateOffer(s.assetToBalanceID[assetPairConfig.BaseAsset], s.assetToBalanceID[assetPairConfig.QuoteAsset],
+			false, int64(assetPairConfig.BaseAssetVolume), sellPriceToOffer, 0)
+		tx.Op(op)
+
+		s.log.WithFields(logan.F{
+			"manage_offer_op": op,
+		}).Info("Creating new sell Offer.")
+	}
+
+	envelope, err := tx.Sign(s.config.Signer).Marshal()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal TX")
+	}
+
+	responseDetails, err := s.submitter.SubmitE(envelope)
+	if err != nil {
+		return errors.Wrap(err, "failed to submit tx", logan.F{
+			"details": responseDetails,
+		})
 	}
 
 	return nil
 }
 
-func (s *Service) refreshBuyOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount) error {
+func (s *Service) removeBuyOffersIfNecessary(ctx context.Context, assetPairConfig AssetPairConfig, priceToOffer int64) (needNewOffer bool, tx *xdrbuild.Transaction, err error) {
+	if assetPairConfig.QuoteAssetVolume == 0 {
+		// Don't manage buy Offers
+		return false, s.builder.Transaction(s.config.Source), nil
+	}
+
 	t := true
 	z := uint64(0)
 	offers, err := s.accountInfoProvider.Offers(s.config.Source.Address(), assetPairConfig.BaseAsset, assetPairConfig.QuoteAsset, &t, "", &z)
 	if err != nil {
-		return errors.Wrap(err, "failed to obtain my Offers")
+		return false, nil, errors.Wrap(err, "failed to obtain my Offers")
 	}
 
-	currentPriceToOffer := int64(float64(currentPrice) * (1 - assetPairConfig.PriceMargin))
-	if len(offers) == 1 && int64(offers[0].Price) == currentPriceToOffer && offers[0].QuoteAmount >= assetPairConfig.QuoteAssetVolume {
+	tx = s.builder.Transaction(s.config.Source)
+
+	if len(offers) == 1 && int64(offers[0].Price) == priceToOffer && offers[0].QuoteAmount >= assetPairConfig.QuoteAssetVolume {
 		// No need to refresh the Offer - it is full with actual price.
 		s.log.WithFields(logan.F{
 			"offer":      offers[0],
 			"asset_pair": assetPairConfig,
 		}).Debug("Buy Offer is not outdated, leaving it as is.")
-		return nil
+		return false, tx, nil
 	}
 
-	tx := s.builder.Transaction(s.config.Source)
-
-	// Delete all existing Offers first
 	for _, o := range offers {
 		tx.Op(xdrbuild.DeleteOffer(o.OfferID))
 		s.log.WithFields(logan.F{
-			"offer":                  o,
-			"current_price_to_offer": currentPriceToOffer,
+			"offer":          o,
+			"price_to_offer": priceToOffer,
 		}).Info("Removing buy Offer.")
 	}
 
-	baseAmount, overflow := amount.BigDivide(1, int64(assetPairConfig.QuoteAssetVolume), currentPriceToOffer, amount.ROUND_DOWN)
-	if overflow {
-		return errors.From(errors.New("Conversion to BaseAmount caught overflow."), logan.F{
-			"quote_asset_volume":     assetPairConfig.QuoteAssetVolume,
-			"current_price_to_offer": currentPriceToOffer,
-		})
-	}
-
-	op := xdrbuild.CreateOffer(s.assetToBalanceID[assetPairConfig.BaseAsset], s.assetToBalanceID[assetPairConfig.QuoteAsset],
-		true, baseAmount, currentPriceToOffer, 0)
-	tx.Op(op)
-	envelope, err := tx.Sign(s.config.Signer).Marshal()
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal TX")
-	}
-	s.log.WithFields(logan.F{
-		"manage_offer_op": op,
-	}).Info("Creating new buy Offer.")
-
-	responseDetails, err := s.submitter.SubmitE(envelope)
-	if err != nil {
-		return errors.Wrap(err, "failed to submit tx", logan.F{
-			"details": responseDetails,
-		})
-	}
-
-	return nil
+	return true, tx, nil
 }
 
-func (s *Service) refreshSellOffer(ctx context.Context, assetPairConfig AssetPairConfig, currentPrice regources.Amount) error {
+func (s *Service) removeSellOffersIfNecessary(ctx context.Context, assetPairConfig AssetPairConfig,
+	priceToOffer int64, tx *xdrbuild.Transaction) (needNewOffer bool, err error) {
+
 	f := false
 	z := uint64(0)
 	offers, err := s.accountInfoProvider.Offers(s.config.Source.Address(), assetPairConfig.BaseAsset, assetPairConfig.QuoteAsset, &f, "", &z)
 	if err != nil {
-		return errors.Wrap(err, "failed to obtain my Offers")
+		return false, errors.Wrap(err, "failed to obtain my Offers")
 	}
 
-	currentPriceToOffer := int64(float64(currentPrice) * (1 + assetPairConfig.PriceMargin))
-	if len(offers) == 1 && int64(offers[0].Price) == currentPriceToOffer && offers[0].BaseAmount >= assetPairConfig.BaseAssetVolume {
+	if len(offers) == 1 && int64(offers[0].Price) == priceToOffer && offers[0].BaseAmount >= assetPairConfig.BaseAssetVolume {
 		// No need to refresh the Offer - it is full with actual price.
 		s.log.WithFields(logan.F{
-			"offer":      offers[0],
-			"asset_pair": assetPairConfig,
+			"offer":          offers[0],
+			"asset_pair":     assetPairConfig,
+			"price_to_offer": priceToOffer,
 		}).Debug("Sell Offer is not outdated, leaving it as is.")
-		return nil
+		return false, nil
 	}
 
-	tx := s.builder.Transaction(s.config.Source)
-
-	// Delete all existing Offers first
 	for _, o := range offers {
 		tx.Op(xdrbuild.DeleteOffer(o.OfferID))
 		s.log.WithField("offer", o).Info("Removing sell Offer.")
 	}
 
-	op := xdrbuild.CreateOffer(s.assetToBalanceID[assetPairConfig.BaseAsset], s.assetToBalanceID[assetPairConfig.QuoteAsset],
-		false, int64(assetPairConfig.BaseAssetVolume), currentPriceToOffer, 0)
-	tx.Op(op)
-	envelope, err := tx.Sign(s.config.Signer).Marshal()
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal TX")
-	}
-	s.log.WithFields(logan.F{
-		"manage_offer_op": op,
-	}).Info("Creating new sell Offer.")
-
-	responseDetails, err := s.submitter.SubmitE(envelope)
-	if err != nil {
-		return errors.Wrap(err, "failed to submit tx", logan.F{
-			"details": responseDetails,
-		})
-	}
-
-	return nil
+	return true, nil
 }
 
 func (s *Service) getCurrentPrice(base, quote string) (*regources.Amount, error) {
