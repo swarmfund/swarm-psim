@@ -1,3 +1,5 @@
+// Sequence diagram of this service can be found here:
+// https://drive.google.com/file/d/12YisR3Pdf6jg4jTXKRDicZwUugO6B9DH/view?usp=sharing
 package marketmaker
 
 import (
@@ -51,7 +53,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.CheckPeriod = 30 * time.Second
 	}
 
-
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
 	horizonInfo, err := horizonConnector.System().Info()
@@ -60,7 +61,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
-
 
 	return NewService(
 		log,
