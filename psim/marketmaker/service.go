@@ -126,7 +126,7 @@ func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairCo
 	}
 
 	if needNewBuyOffer {
-		baseAmount, overflow := amount.BigDivide(1, int64(assetPairConfig.QuoteAssetVolume), buyPriceToOffer, amount.ROUND_DOWN)
+		baseAmount, overflow := amount.BigDivide(amount.One, int64(assetPairConfig.QuoteAssetVolume), buyPriceToOffer, amount.ROUND_UP)
 		if overflow {
 			return errors.From(errors.New("Conversion to BaseAmount caught overflow."), logan.F{
 				"quote_asset_volume": assetPairConfig.QuoteAssetVolume,
