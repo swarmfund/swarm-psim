@@ -1,7 +1,10 @@
 package eventsubmitter
 
 import (
+	"strings"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
 
 	horizon "gitlab.com/tokend/horizon-connector"
@@ -26,6 +29,7 @@ const (
 	BroadcastedEventNameKycRejected           BroadcastedEventName = "kyc_rejected"
 	BroadcastedEventNameKycApproved           BroadcastedEventName = "kyc_approved"
 	BroadcastedEventNameUserReferred          BroadcastedEventName = "user_referred"
+	BroadcastedEventNameAirdrop               BroadcastedEventName = "airdrop"
 	BroadcastedEventNameFundsWithdrawn        BroadcastedEventName = "funds_withdrawn"
 	BroadcastedEventNamePaymentV2Received     BroadcastedEventName = "payment_v2_received"
 	BroadcastedEventNamePaymentV2Sent         BroadcastedEventName = "payment_v2_sent"
@@ -122,6 +126,18 @@ func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
 }
 
 func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
+	opBody := opData.Op.Body.CreateIssuanceRequestOp
+	if opBody == nil {
+		return internal.InvalidBroadcastedEvent(errors.New("received nil create issuance op body")).Alone()
+	}
+
+	reference := opBody.Reference
+	for _, airdropSuffix := range airdrop.AllAirdropSuffixes {
+		if strings.HasSuffix(string(reference), airdropSuffix) {
+			return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameAirdrop, opData.CreatedAt).Alone()
+		}
+	}
+
 	opResult := opData.OpResult
 
 	if opResult.CreateIssuanceRequestResult == nil {
