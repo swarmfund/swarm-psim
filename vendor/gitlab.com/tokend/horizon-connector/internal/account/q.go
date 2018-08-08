@@ -174,13 +174,13 @@ func (q *Q) Offers(address, baseAsset, quoteAsset string, isBuy *bool, offerID s
 		return nil, errors.New("base and quote assets must be both set or both not set")
 	}
 
-	endpoint := fmt.Sprintf("/accounts/%s/offers?base_asset=%s&quote_asset=%soffer_id=%s",
+	endpoint := fmt.Sprintf("/accounts/%s/offers?base_asset=%s&quote_asset=%s&offer_id=%s",
 		address, baseAsset, quoteAsset, offerID)
 	if isBuy != nil {
 		endpoint = fmt.Sprintf("%s&is_buy=%v", endpoint, *isBuy)
 	}
 	if orderBookID != nil {
-		endpoint = fmt.Sprintf("%s&order_book_id=%s", endpoint, *orderBookID)
+		endpoint = fmt.Sprintf("%s&order_book_id=%d", endpoint, *orderBookID)
 	}
 
 	respBB, err := q.client.Get(endpoint)
@@ -192,14 +192,12 @@ func (q *Q) Offers(address, baseAsset, quoteAsset string, isBuy *bool, offerID s
 		return nil, nil
 	}
 
-	var response struct {
-		Data []regources.Offer `json:"data"`
-	}
-	if err := json.Unmarshal(respBB, &response); err != nil {
+	var result responses.OfferIndex
+	if err := json.Unmarshal(respBB, &result); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	return response.Data, nil
+	return result.Embedded.Records, nil
 }
 
 func (q *Q) References(address string) ([]resources.Reference, error) {

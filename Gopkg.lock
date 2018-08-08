@@ -640,11 +640,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bc7fa03f98f2e30a7ba981c2f8a8cdd439d4bf70c10dbc7192f35a5259f2b48a"
+  digest = "1:a34b6ec70924daaa7eb3213ece8d78064c7b718d081628b8a13414a88da67ce3"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
   pruneopts = "NT"
-  revision = "f0d0fbcbe98b4b3a7c68ba02122770f3a820a30e"
+  revision = "9961547e226abd6cc80893a14c76bd44ed3cf220"
 
 [[projects]]
   digest = "1:6d4ffb4721502c7047dfa9ec8e084a46afa7acb4801e7428502646db1aa432dd"
@@ -677,7 +677,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c4b247b9eb78adcf8c2fbaae8b6dd8ae202c11d0679ad3886350249e2f4f88e7"
+  digest = "1:e4f52b667e14acd85cb2316ac81457c064300a9449fd34c9b5fc58edee933d43"
   name = "gitlab.com/tokend/go"
   packages = [
     "amount",
@@ -696,11 +696,11 @@
     "xdrbuild/internal",
   ]
   pruneopts = "NT"
-  revision = "0c78fbcaf398241d7f7d97eafe79fa226b2eac40"
+  revision = "067b0608e1dc847ac78407bd1992df587fbcd46f"
 
 [[projects]]
   branch = "master"
-  digest = "1:51b529db7daa8ec398eb5c22564db073ba80b7ab747645ea7a5ccca81b65eaef"
+  digest = "1:706faafe34652b2344f8298853c46feaafa7074ba160a202625c4a78cdb1e931"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -727,7 +727,7 @@
     "types",
   ]
   pruneopts = "NT"
-  revision = "68a4e55bbb8c5d6ef4133446ce19af1cd4608bc2"
+  revision = "e34ec8a1dab5221a9cef42a1c0c8a9ca2eeab96b"
 
 [[projects]]
   branch = "master"
@@ -744,11 +744,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b07076a4515e259bf1f726b329d810f1ccf68b4a4df9cd0fafe6bcc4171cd1b4"
+  digest = "1:8b4542da5cb438dce017588ee9b5cc1223ddf575034572a7a127a23ce8528c6b"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "c369c47ad3d56a57d94e85302c4f34a01076142c"
+  revision = "f23f8716d064f59bcd6a5f8ad3f4fd2fbb182409"
 
 [[projects]]
   branch = "master"
