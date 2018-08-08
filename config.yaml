@@ -564,9 +564,9 @@ market_maker:
      quote_asset: USD
      base_asset_volume: 10000000 # integer in stroops # set to zero if no sell Offer must be managed (if don't sell the Base asset)
      quote_asset_volume: 100000000000 # integer in stroops # set to zero if no buy Offer must be managed (if don't sell the Quote asset)
-     price_margin: 0.05 # float from 0 to 1; the sell and buy prices will be price+price_margin and price-price_margin
+     price_margin: "0.05" # 5% # from 0 to 1 as type Amount - string; the sell and buy prices will be price+price_margin and price-price_margin
    - base_asset: ETH
      quote_asset: USD
      base_asset_volume: 500000000 # integer in stroops # set to zero if no sell Offer must be managed (if don't sell the Base asset)
      quote_asset_volume: 75000000000 # integer in stroops # set to zero if no buy Offer must be managed (if don't sell the Quote asset)
-     price_margin: 0.007 # float from 0 to 1; the sell and buy prices will be price+price_margin and price-price_margin
+     price_margin: "0.007" # 0.7% # from 0 to 1 as type Amount - string; the sell and buy prices will be price+price_margin and price-price_margin

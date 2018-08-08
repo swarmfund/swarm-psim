@@ -13,6 +13,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/amount"
 )
 
 func init() {
@@ -39,8 +40,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	// TODO VALIDATE method
 	for _, assetPair := range config.AssetPairs {
-		if assetPair.PriceMargin <= 0 || assetPair.PriceMargin >= 100 {
-			return nil, errors.From(errors.New("PriceMargin must be bigger than zero and less than 100."), logan.F{
+		if assetPair.PriceMargin <= 0 || assetPair.PriceMargin >= 100 * amount.One {
+			return nil, errors.From(errors.New("PriceMargin must be bigger than zero and smaller than 100."), logan.F{
 				"asset_pair": assetPair,
 			})
 		}

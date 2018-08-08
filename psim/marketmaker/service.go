@@ -117,11 +117,11 @@ func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairCo
 		return errors.Wrap(err, "failed to obtain current price of the AssetPair")
 	}
 
-	buyPriceToOffer, overflow := amount.BigDivide(int64(*currentPrice), 100-assetPairConfig.PriceMargin, 100, amount.ROUND_DOWN) // int64(float64(int64(*currentPrice)) * (1 - assetPairConfig.PriceMargin))
+	buyPriceToOffer, overflow := amount.BigDivide(int64(*currentPrice), amount.One-int64(assetPairConfig.PriceMargin), amount.One, amount.ROUND_DOWN)
 	if overflow {
 		return errors.New("Overflow on counting buyPriceToOffer.")
 	}
-	sellPriceToOffer, overflow := amount.BigDivide(int64(*currentPrice), 100+assetPairConfig.PriceMargin, 100, amount.ROUND_UP) // int64(float64(*currentPrice) * (1 + assetPairConfig.PriceMargin))
+	sellPriceToOffer, overflow := amount.BigDivide(int64(*currentPrice), amount.One+int64(assetPairConfig.PriceMargin), amount.One, amount.ROUND_UP)
 	if overflow {
 		return errors.New("Overflow on counting sellPriceToOffer.")
 	}
