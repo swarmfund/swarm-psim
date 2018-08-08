@@ -127,14 +127,12 @@ func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
 
 func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
 	opBody := opData.Op.Body.CreateIssuanceRequestOp
-	if opBody == nil {
-		return internal.InvalidBroadcastedEvent(errors.New("received nil create issuance op body")).Alone()
-	}
-
-	reference := opBody.Reference
-	for _, airdropSuffix := range airdrop.AllAirdropSuffixes {
-		if strings.HasSuffix(string(reference), airdropSuffix) {
-			return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameAirdrop, opData.CreatedAt).Alone()
+	if opBody != nil {
+		reference := opBody.Reference
+		for _, airdropSuffix := range airdrop.AllAirdropSuffixes {
+			if strings.HasSuffix(string(reference), airdropSuffix) {
+				return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameAirdrop, opData.CreatedAt).Alone()
+			}
 		}
 	}
 
