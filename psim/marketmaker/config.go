@@ -8,16 +8,16 @@ import (
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/keypair"
 	"gitlab.com/tokend/regources"
-	"gitlab.com/swarmfund/psim/psim/utils"
 )
 
 type Config struct {
 	CheckPeriod time.Duration `fig:"check_period"` // optional
 
 	Source keypair.Address `fig:"source,required"`
-	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
+	Signer keypair.Full    `fig:"signer,required"`
 
 	AssetPairs []AssetPairConfig `fig:"asset_pairs,required"`
 }

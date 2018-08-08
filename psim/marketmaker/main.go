@@ -24,7 +24,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	globalConfig := app.Config(ctx)
 	log := app.Log(ctx)
 
-	var config Config
+	var config = Config{
+		CheckPeriod: 30 * time.Second,
+	}
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).GetRequired(conf.ServiceMarketMaker)).
@@ -48,9 +50,6 @@ func setupFn(ctx context.Context) (app.Service, error) {
 				"asset_pair": assetPair,
 			})
 		}
-	}
-	if config.CheckPeriod == 0 {
-		config.CheckPeriod = 30 * time.Second
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)

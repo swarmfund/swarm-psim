@@ -640,11 +640,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bc7fa03f98f2e30a7ba981c2f8a8cdd439d4bf70c10dbc7192f35a5259f2b48a"
+  digest = "1:a34b6ec70924daaa7eb3213ece8d78064c7b718d081628b8a13414a88da67ce3"
   name = "gitlab.com/distributed_lab/figure"
   packages = ["."]
   pruneopts = "NT"
-  revision = "f0d0fbcbe98b4b3a7c68ba02122770f3a820a30e"
+  revision = "9961547e226abd6cc80893a14c76bd44ed3cf220"
 
 [[projects]]
   digest = "1:6d4ffb4721502c7047dfa9ec8e084a46afa7acb4801e7428502646db1aa432dd"
