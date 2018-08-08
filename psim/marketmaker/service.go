@@ -166,16 +166,18 @@ func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairCo
 		}).Info("Creating new sell Offer.")
 	}
 
-	envelope, err := tx.Sign(s.config.Signer).Marshal()
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal TX")
-	}
+	if needNewBuyOffer || needNewSellOffer {
+		envelope, err := tx.Sign(s.config.Signer).Marshal()
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal TX")
+		}
 
-	responseDetails, err := s.submitter.SubmitE(envelope)
-	if err != nil {
-		return errors.Wrap(err, "failed to submit tx", logan.F{
-			"details": responseDetails,
-		})
+		responseDetails, err := s.submitter.SubmitE(envelope)
+		if err != nil {
+			return errors.Wrap(err, "failed to submit tx", logan.F{
+				"details": responseDetails,
+			})
+		}
 	}
 
 	return nil
