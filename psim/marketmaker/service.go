@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
@@ -45,10 +46,10 @@ func NewService(
 	assetsGetter AssetsGetter,
 	offersGetter AccountInfoProvider,
 	submitter Submitter,
-	builder *xdrbuild.Builder) *Service {
-
+	builder *xdrbuild.Builder,
+) *Service {
 	return &Service{
-		log:                 log,
+		log:                 log.WithField("service", conf.ServiceMarketMaker),
 		config:              config,
 		assetsGetter:        assetsGetter,
 		accountInfoProvider: offersGetter,
@@ -63,6 +64,9 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("c", s.config).Info("Starting.")
 
 	running.UntilSuccess(ctx, s.log, "balances_obtainer", s.obtainBalances, 5*time.Second, 5*time.Minute)
+	if running.IsCancelled(ctx) {
+		return
+	}
 
 	running.WithBackOff(ctx, s.log, "offers_refresher_iteration", func(ctx context.Context) error {
 		for _, assetPair := range s.config.AssetPairs {
@@ -113,13 +117,22 @@ func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairCo
 		return errors.Wrap(err, "failed to obtain current price of the AssetPair")
 	}
 
-	buyPriceToOffer := int64(float64(*currentPrice) * (1 - assetPairConfig.PriceMargin))
-	needNewBuyOffer, tx, err := s.removeBuyOffersIfNecessary(ctx, assetPairConfig, buyPriceToOffer)
+	buyPriceToOffer, overflow := amount.BigDivide(int64(*currentPrice), 100-assetPairConfig.PriceMargin, 100, amount.ROUND_DOWN) // int64(float64(int64(*currentPrice)) * (1 - assetPairConfig.PriceMargin))
+	if overflow {
+		return errors.New("Overflow on counting buyPriceToOffer.")
+	}
+	sellPriceToOffer, overflow := amount.BigDivide(int64(*currentPrice), 100+assetPairConfig.PriceMargin, 100, amount.ROUND_UP) // int64(float64(*currentPrice) * (1 + assetPairConfig.PriceMargin))
+	if overflow {
+		return errors.New("Overflow on counting sellPriceToOffer.")
+	}
+
+	tx := s.builder.Transaction(s.config.Source)
+
+	needNewBuyOffer, err := s.removeBuyOffersIfNecessary(ctx, assetPairConfig, buyPriceToOffer, tx)
 	if err != nil {
 		return errors.Wrap(err, "failed to refresh buy Offer")
 	}
 
-	sellPriceToOffer := int64(float64(*currentPrice) * (1 + assetPairConfig.PriceMargin))
 	needNewSellOffer, err := s.removeSellOffersIfNecessary(ctx, assetPairConfig, sellPriceToOffer, tx)
 	if err != nil {
 		return errors.Wrap(err, "failed to refresh sell Offer")
@@ -168,28 +181,26 @@ func (s *Service) refreshOffers(ctx context.Context, assetPairConfig AssetPairCo
 	return nil
 }
 
-func (s *Service) removeBuyOffersIfNecessary(ctx context.Context, assetPairConfig AssetPairConfig, priceToOffer int64) (needNewOffer bool, tx *xdrbuild.Transaction, err error) {
+func (s *Service) removeBuyOffersIfNecessary(ctx context.Context, assetPairConfig AssetPairConfig, priceToOffer int64, tx *xdrbuild.Transaction) (needNewOffer bool, err error) {
 	if assetPairConfig.QuoteAssetVolume == 0 {
 		// Don't manage buy Offers
-		return false, s.builder.Transaction(s.config.Source), nil
+		return false, nil
 	}
 
 	t := true
 	z := uint64(0)
 	offers, err := s.accountInfoProvider.Offers(s.config.Source.Address(), assetPairConfig.BaseAsset, assetPairConfig.QuoteAsset, &t, "", &z)
 	if err != nil {
-		return false, nil, errors.Wrap(err, "failed to obtain my Offers")
+		return false, errors.Wrap(err, "failed to obtain my Offers")
 	}
 
-	tx = s.builder.Transaction(s.config.Source)
-
 	if len(offers) == 1 && int64(offers[0].Price) == priceToOffer && offers[0].QuoteAmount >= assetPairConfig.QuoteAssetVolume {
-		// No need to refresh the Offer - it is full with actual price.
+		// No need to refresh the Offer - it is full and price is actual.
 		s.log.WithFields(logan.F{
 			"offer":      offers[0],
 			"asset_pair": assetPairConfig,
 		}).Debug("Buy Offer is not outdated, leaving it as is.")
-		return false, tx, nil
+		return false, nil
 	}
 
 	for _, o := range offers {
@@ -200,11 +211,10 @@ func (s *Service) removeBuyOffersIfNecessary(ctx context.Context, assetPairConfi
 		}).Info("Removing buy Offer.")
 	}
 
-	return true, tx, nil
+	return true, nil
 }
 
-func (s *Service) removeSellOffersIfNecessary(ctx context.Context, assetPairConfig AssetPairConfig,
-	priceToOffer int64, tx *xdrbuild.Transaction) (needNewOffer bool, err error) {
+func (s *Service) removeSellOffersIfNecessary(ctx context.Context, assetPairConfig AssetPairConfig, priceToOffer int64, tx *xdrbuild.Transaction) (needNewOffer bool, err error) {
 
 	f := false
 	z := uint64(0)
@@ -240,8 +250,8 @@ func (s *Service) getCurrentPrice(base, quote string) (*regources.Amount, error)
 	var assetPair *regources.AssetPair
 	for _, aPair := range assetPairs {
 		if aPair.Base == base && aPair.Quote == quote {
-			t := aPair
-			assetPair = &t
+			assetPair = &aPair
+			break
 		}
 	}
 

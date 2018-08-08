@@ -13,7 +13,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/utils"
-	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -38,9 +37,10 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
+	// TODO VALIDATE method
 	for _, assetPair := range config.AssetPairs {
-		if assetPair.PriceMargin < 0 || assetPair.PriceMargin > 1 {
-			return nil, errors.From(errors.New("PriceMargin must be grater or equal to zero and less or equal to 1."), logan.F{
+		if assetPair.PriceMargin <= 0 || assetPair.PriceMargin >= 100 {
+			return nil, errors.From(errors.New("PriceMargin must be bigger than zero and less than 100."), logan.F{
 				"asset_pair": assetPair,
 			})
 		}
@@ -54,12 +54,10 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
 
-	horizonInfo, err := horizonConnector.System().Info()
+	builder, err := horizonConnector.TXBuilder()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Horizon info")
+		return nil, errors.Wrap(err, "Failed to create TXBuilder")
 	}
-
-	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
 	return NewService(
 		log,

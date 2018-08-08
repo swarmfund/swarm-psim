@@ -34,7 +34,7 @@ type AssetPairConfig struct {
 	QuoteAsset       string           `fig:"quote_asset,required"`
 	BaseAssetVolume  regources.Amount `fig:"base_asset_volume"`
 	QuoteAssetVolume regources.Amount `fig:"quote_asset_volume"`
-	PriceMargin      float64          `fig:"price_margin,required"`
+	PriceMargin      int64            `fig:"price_margin,required"`
 }
 
 func (c AssetPairConfig) GetLoganFields() map[string]interface{} {
