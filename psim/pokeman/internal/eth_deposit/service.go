@@ -38,22 +38,24 @@ func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *h
 	return &service
 }
 
+// TODO add throttling
 // ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
 func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
+	timer := running.NewIncrementalTimer(1, 2, 2)
 	externalAddr, err := s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get external binding data")
 	}
 	if externalAddr == nil {
 		// seems like account does not have external binding atm, let's fix that
-		s.sendTxWithOp(ctx, &xdrbuild.BindExternalSystemAccountIDOp{externalSystem})
+		err := s.sendTxWithOp(ctx, &xdrbuild.BindExternalSystemAccountIDOp{externalSystem})
 		if err != nil {
 			return "", errors.Wrap(err, "failed to submit bind tx")
 		}
 
 		// probably better to parse tx result here to obtain external binding data,
 		// but nobody loves to mess with txresult mess and it's also safer to check explicitly
-		err := func(i context.Context) error {
+		currentExternalBindingData := func(i context.Context) error {
 			for externalAddr == nil {
 				if running.IsCancelled(i) {
 					return errors.New("interrupted")
@@ -62,9 +64,12 @@ func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int3
 				if err != nil {
 					return errors.Wrap(err, "failed to get external binding data")
 				}
+				// TODO:
+				<-timer.Next()
 			}
 			return nil
-		}(ctx)
+		}
+		err = currentExternalBindingData(ctx)
 		if err != nil {
 			return "", errors.Wrap(err, "failed to ensure external binding")
 		}
@@ -101,14 +106,18 @@ func (s *Service) pollBalance(i context.Context, currentBalance regources.Amount
 }
 
 func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperation regources.Amount, changedTo regources.Amount) error {
+	timer := running.NewIncrementalTimer(1, 2, 2)
+
 	timedCtx, cancelTimedCtx := context.WithTimeout(ctx, s.config.PollingTimeout)
 	defer cancelTimedCtx()
+
 	operationStarted := time.Now()
 	operationTook := func() string {
 		return time.Now().Sub(operationStarted).String()
 	}
 
 	var balanceAfterOperation regources.Amount
+
 	var balanceChangedAfterOperation bool
 	for !balanceChangedAfterOperation {
 		if running.IsCancelled(timedCtx) {
@@ -118,16 +127,19 @@ func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperati
 			s.sendMessage(fmt.Sprintf("balance change polling timed out after: %s\n", operationTook()))
 			return errors.New("timed out")
 		}
+
 		var err error
 		balanceAfterOperation, err = s.pollBalance(timedCtx, balanceBeforeOperation)
+		<-timer.Next()
 		if err != nil {
 			s.sendMessage(fmt.Sprintf("balance change polling failed with error after: %s\n", operationTook()))
 			return errors.Wrap(err, "balance polling failed")
 		}
 		balanceChangedAfterOperation = balanceAfterOperation != balanceBeforeOperation
 	}
+
 	if balanceAfterOperation != changedTo {
-		s.sendMessage(fmt.Sprintf("op failed: %s\n", operationTook()))
+		s.sendMessage(fmt.Sprintf("op failed, took: %s\n", operationTook()))
 		return errors.New("invalid balance change")
 	}
 	return nil
@@ -146,6 +158,8 @@ func (s *Service) Run(ctx context.Context) {
 			return errors.Wrap(err, "failed to get account balance")
 		}
 
+		foreignBalanceBefore, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+
 		balanceBefore := balance.Balance
 
 		externalAddr, err := s.ensureExternalBinding(ctx, externalSystem)
@@ -153,7 +167,7 @@ func (s *Service) Run(ctx context.Context) {
 			return errors.Wrap(err, "failed to get external address")
 		}
 		if !common.IsHexAddress(externalAddr) {
-			return errors.New("invalud hex address")
+			return errors.New("invalid hex address")
 		}
 
 		s.foreignTxProvider.Send(ctx, 5, externalAddr)
@@ -165,6 +179,11 @@ func (s *Service) Run(ctx context.Context) {
 			return errors.Wrap(err, "failed to ensure balance has been changed after deposit")
 		}
 		balanceBefore = balanceBefore + 5
+
+		foreignBalanceAfter, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+		if foreignBalanceAfter.Uint64()-foreignBalanceBefore.Uint64() != 2 {
+			return errors.New("foreign balance not changed")
+		}
 
 		/* withdraw flow, could ease on buksovanie for a bit */
 
@@ -178,14 +197,14 @@ func (s *Service) Run(ctx context.Context) {
 			return errors.Wrap(err, "failed to submit withdraw tx")
 		}
 
-		// withdraw
+		//withdraw
 		err = s.ensureBalanceChanged(ctx, balanceBefore, balanceBefore-2)
 		if err != nil {
 			return errors.Wrap(err, "failed to ensure balance has been changed after withdraw")
 		}
 
-		foreignBalance, err := s.foreignTxProvider.GetCurrentBalance(ctx)
-		if foreignBalance.Uint64() >= 2 {
+		foreignBalanceAfter2, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+		if foreignBalanceAfter2.Uint64()-foreignBalanceAfter.Uint64() != 2 {
 			return errors.New("foreign balance not changed")
 		}
 
