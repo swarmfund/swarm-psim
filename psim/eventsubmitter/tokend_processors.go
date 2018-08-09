@@ -1,7 +1,10 @@
 package eventsubmitter
 
 import (
+	"strings"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
 
 	horizon "gitlab.com/tokend/horizon-connector"
@@ -34,6 +37,7 @@ const (
 	BroadcastedEventNameFundsDeposited        BroadcastedEventName = "funds_deposited"
 	BroadcastedEventNameFundsInvested         BroadcastedEventName = "funds_invested"
 	BroadcastedEventNameReferredUserPassedKyc BroadcastedEventName = "referred_user_passed_kyc"
+	BroadcastedEventNameReceivedAirdrop       BroadcastedEventName = "received_airdrop"
 )
 
 func processCreateAccountOp(opData OpData) []MaybeBroadcastedEvent {
@@ -122,6 +126,16 @@ func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
 }
 
 func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
+	opBody := opData.Op.Body.CreateIssuanceRequestOp
+	if opBody != nil {
+		reference := opBody.Reference
+		for _, airdropSuffix := range airdrop.AllAirdropSuffixes {
+			if strings.HasSuffix(string(reference), airdropSuffix) {
+				return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameReceivedAirdrop, opData.CreatedAt).Alone()
+			}
+		}
+	}
+
 	opResult := opData.OpResult
 
 	if opResult.CreateIssuanceRequestResult == nil {

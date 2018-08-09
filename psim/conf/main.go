@@ -11,10 +11,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/notificator-server/client"
+	salesforce "gitlab.com/distributed_lab/salesforce"
 	"gitlab.com/swarmfund/psim/mixpanel"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/notifications"
-	"gitlab.com/swarmfund/psim/salesforce"
 	"gitlab.com/tokend/horizon-connector"
 )
 

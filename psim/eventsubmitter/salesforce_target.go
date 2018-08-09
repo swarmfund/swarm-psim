@@ -2,16 +2,16 @@ package eventsubmitter
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/swarmfund/psim/salesforce"
+	"gitlab.com/distributed_lab/salesforce"
 )
 
 const salesforceTimeLayout = "2006-01-02T15:04:05.999-0700"
 
 var eventNameToSphere = map[BroadcastedEventName]string{
-	BroadcastedEventNameKycCreated:            "Total KYC",
-	BroadcastedEventNameKycUpdated:            "Total KYC",
-	BroadcastedEventNameKycRejected:           "Total KYC",
-	BroadcastedEventNameKycApproved:           "Total KYC",
+	BroadcastedEventNameKycCreated:            "Compilance",
+	BroadcastedEventNameKycUpdated:            "Compilance",
+	BroadcastedEventNameKycRejected:           "Compilance",
+	BroadcastedEventNameKycApproved:           "Compilance",
 	BroadcastedEventNameUserReferred:          "Community",
 	BroadcastedEventNameFundsWithdrawn:        "Investment",
 	BroadcastedEventNamePaymentV2Received:     "Trading",
@@ -21,6 +21,7 @@ var eventNameToSphere = map[BroadcastedEventName]string{
 	BroadcastedEventNameFundsDeposited:        "Investment",
 	BroadcastedEventNameFundsInvested:         "Investment",
 	BroadcastedEventNameReferredUserPassedKyc: "Community",
+	BroadcastedEventNameReceivedAirdrop:       "Community",
 }
 
 var eventNameToActionName = map[BroadcastedEventName]string{
@@ -37,6 +38,7 @@ var eventNameToActionName = map[BroadcastedEventName]string{
 	BroadcastedEventNameFundsDeposited:        "Deposit Funds",
 	BroadcastedEventNameFundsInvested:         "Invest Funds",
 	BroadcastedEventNameReferredUserPassedKyc: "Referred user completed KYC",
+	BroadcastedEventNameReceivedAirdrop:       "Received Airdrop",
 }
 
 // SalesforceTarget represents a target with salesforce api
