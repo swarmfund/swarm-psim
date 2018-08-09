@@ -21,6 +21,7 @@ var eventNameToSphere = map[BroadcastedEventName]string{
 	BroadcastedEventNameFundsDeposited:        "Investment",
 	BroadcastedEventNameFundsInvested:         "Investment",
 	BroadcastedEventNameReferredUserPassedKyc: "Community",
+	BroadcastedEventNameAirdrop:               "Community",
 }
 
 var eventNameToActionName = map[BroadcastedEventName]string{
@@ -37,6 +38,7 @@ var eventNameToActionName = map[BroadcastedEventName]string{
 	BroadcastedEventNameFundsDeposited:        "Deposit Funds",
 	BroadcastedEventNameFundsInvested:         "Invest Funds",
 	BroadcastedEventNameReferredUserPassedKyc: "Referred user completed KYC",
+	BroadcastedEventNameAirdrop:               "Airdrop",
 }
 
 // SalesforceTarget represents a target with salesforce api

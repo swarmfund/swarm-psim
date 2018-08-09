@@ -38,15 +38,10 @@ func NewService(config ServiceConfig, extractor Extractor, handler Handler, broa
 	}
 }
 
-const (
-	defaultServiceRetryTimeIncrement = 1 * time.Second
-	defaultMaxServiceRetryTime       = 30 * time.Second
-)
-
 // Run starts dispatching events to analytics services
 func (s *Service) Run(ctx context.Context) {
 	s.logger.Info("starting")
-	running.UntilSuccess(ctx, s.logger, conf.EventSubmitterService, s.dispatchEvents, defaultServiceRetryTimeIncrement, defaultMaxServiceRetryTime)
+	running.UntilSuccess(ctx, s.logger, conf.EventSubmitterService, s.dispatchEvents, 1*time.Second, 30*time.Second)
 }
 
 func (s *Service) dispatchEvents(ctx context.Context) (bool, error) {
