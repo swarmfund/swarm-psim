@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"gitlab.com/distributed_lab/salesforce"
+	salesforce "gitlab.com/swarmfund/salesforce-connector"
 	"gitlab.com/tokend/regources"
 )
 

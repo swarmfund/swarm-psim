@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	salesforce "gitlab.com/distributed_lab/salesforce"
+	salesforce "gitlab.com/swarmfund/salesforce-connector"
 )
 
 // TODO use figure out

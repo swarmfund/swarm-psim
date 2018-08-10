@@ -2,10 +2,8 @@ package eventsubmitter
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/distributed_lab/salesforce"
+	salesforce "gitlab.com/swarmfund/salesforce-connector"
 )
-
-const salesforceTimeLayout = "2006-01-02T15:04:05.999-0700"
 
 var eventNameToSphere = map[BroadcastedEventName]string{
 	BroadcastedEventNameKycCreated:            "Compilance",
@@ -55,7 +53,7 @@ func NewSalesforceTarget(sc *salesforce.Connector) *SalesforceTarget {
 
 // SendEvent uses salesforce client connector for sending event to analytics
 func (st *SalesforceTarget) SendEvent(event *BroadcastedEvent) error {
-	_, err := st.Connector.SendEvent(eventNameToSphere[event.Name], eventNameToActionName[event.Name], event.Time.Format(salesforceTimeLayout), event.ActorName, event.ActorEmail, event.InvestmentAmount, event.InvestmentCountry)
+	_, err := st.Connector.SendEvent(eventNameToSphere[event.Name], eventNameToActionName[event.Name], *event.Time, event.ActorName, event.ActorEmail, event.InvestmentAmount, event.InvestmentCountry)
 	if err != nil {
 		return errors.Wrap(err, "failed to post event")
 	}
