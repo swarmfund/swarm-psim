@@ -81,8 +81,8 @@
   name = "gitlab.com/tokend/go"
 
 [[constraint]]
+  branch = "feature/payment_v2_notifications"
   name = "gitlab.com/tokend/horizon-connector"
-  branch = "master"
 
 [[override]]
   branch = "master"

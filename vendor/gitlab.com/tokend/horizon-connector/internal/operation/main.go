@@ -137,6 +137,23 @@ func (q *Q) CreateKYCRequestOperations(cursor string) ([]operations.CreateKYCReq
 	return result.Embedded.Records, nil
 }
 
+func (q *Q) PaymentV2Operations(cursor string) ([]operations.PaymentV2, error) {
+	operationType := xdr.OperationTypePaymentV2
+	response, err := q.Operations(cursor, &operationType)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypePaymentV2.String(),
+		})
+	}
+
+	var result responses.PaymentV2OperationIndex
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{"response": string(response)})
+	}
+
+	return result.Embedded.Records, nil
+}
+
 func (q *Q) ReviewRequestOperations(cursor string) ([]operations.ReviewRequest, error) {
 	operationType := xdr.OperationTypeReviewRequest
 	response, err := q.Operations(cursor, &operationType)

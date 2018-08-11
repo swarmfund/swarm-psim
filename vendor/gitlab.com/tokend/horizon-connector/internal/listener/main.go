@@ -10,7 +10,7 @@ import (
 
 // Q wraps queues to use their methods
 type Q struct {
-	txQ *transaction.Q
+	txQ   *transaction.Q
 	txV2Q *transactionv2.Q
 	// TODO Rename - it'a actually RequestQ
 	opQ *operation.Q
@@ -79,6 +79,10 @@ func (q *Q) StreamAllCheckSaleStateOps(ctx context.Context, buffer int) <-chan C
 
 func (q *Q) StreamAllCreateKYCRequestOps(ctx context.Context, buffer int) <-chan CreateKYCRequestOpResponse {
 	return streamCreateKYCRequestOp(q, ctx, buffer)
+}
+
+func (q *Q) StreamAllPaymentV2Ops(ctx context.Context, buffer int) <-chan PaymentOpV2Response {
+	return streamPaymentV2(q, ctx, buffer)
 }
 
 func (q *Q) StreamAllReviewRequestOps(ctx context.Context, buffer int) <-chan ReviewRequestOpResponse {

@@ -699,8 +699,8 @@
   revision = "0c78fbcaf398241d7f7d97eafe79fa226b2eac40"
 
 [[projects]]
-  branch = "master"
-  digest = "1:51b529db7daa8ec398eb5c22564db073ba80b7ab747645ea7a5ccca81b65eaef"
+  branch = "feature/payment_v2_notifications"
+  digest = "1:87cd2e0b6bd07303cf3850695ad3315e4a6738b2062983146dd6004bded97432"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -727,7 +727,7 @@
     "types",
   ]
   pruneopts = "NT"
-  revision = "68a4e55bbb8c5d6ef4133446ce19af1cd4608bc2"
+  revision = "787de3cd8cfd6281dc6ce1033dbcfc4bbc4de76d"
 
 [[projects]]
   branch = "master"
@@ -744,11 +744,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b07076a4515e259bf1f726b329d810f1ccf68b4a4df9cd0fafe6bcc4171cd1b4"
+  digest = "1:59b4eef23dfef27e25cd9b4294587f679f2eb9031795b0fd96fb4bc54697704a"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "c369c47ad3d56a57d94e85302c4f34a01076142c"
+  revision = "1d6de2aa420a79a2396343e96d43f343fabf4be9"
 
 [[projects]]
   branch = "master"
