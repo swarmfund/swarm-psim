@@ -162,6 +162,16 @@ notifier:
 
       template_link_url: https://invest.swarm.fund
 
+  usa_kyc:
+    cursor: 1
+
+    emails:
+      subject: "Accreditation status verification"
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: -usa-user-notification # Email with same token will be sent only once
+      template_name: us-residents
+      template_link_url: https://invest.swarm.fund
+
   kyc_rejected:
     cursor: 1
 

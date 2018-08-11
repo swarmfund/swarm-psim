@@ -3,6 +3,7 @@ package airdrop
 // This constants are stored in the same place in order to avoid duplications in references or Issuance causes.
 //
 // NEVER! change these values, it will cause to duplicate money issuance!
+// WARNING! update AllAirdropSuffixes on change, which is used for tracking airdrop
 const (
 	EarlybirdIssuanceCause      = "airdrop"
 	KYCIssuanceCause            = "airdrop-for-kyc"
@@ -19,7 +20,6 @@ const (
 	TelegramReferenceSuffix       = "telegram"
 )
 
-// TODO: update on change, this is used for tracking airdrop
 var AllAirdropSuffixes = []string{
 	EarlybirdReferenceSuffix,
 	KYCReferenceSuffix,

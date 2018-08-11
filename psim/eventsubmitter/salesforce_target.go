@@ -5,6 +5,8 @@ import (
 	salesforce "gitlab.com/swarmfund/salesforce-connector"
 )
 
+const salesforceTimeLayout = "2006-01-02T15:04:05.999-0700"
+
 var eventNameToSphere = map[BroadcastedEventName]string{
 	BroadcastedEventNameKycCreated:            "Compilance",
 	BroadcastedEventNameKycUpdated:            "Compilance",
