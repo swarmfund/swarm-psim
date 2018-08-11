@@ -42,11 +42,13 @@ func (th TokendHandler) SetProcessor(opType xdr.OperationType, processor Process
 
 // UserData contains actor name and email to be sent to analytics
 type UserData struct {
-	Name    string
-	Email   string
-	Country string
+	Name     string
+	Email    string
+	Country  string
+	Referral string
 }
 
+// TODO: consider use kycapi
 func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, error) {
 	user, err := th.HorizonConnector.Users().User(event.Account)
 	if err != nil {
@@ -96,7 +98,7 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 		country = kycData.Address.Country
 	}
 
-	return &UserData{name, user.Attributes.Email, country}, nil
+	return &UserData{name, user.Attributes.Email, country, account.Referrer}, nil
 }
 
 // Process starts processing all op using processors in the map
@@ -167,9 +169,7 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 					broadcastedEvent = internal.ValidProcessedItem(event.BroadcastedEvent)
 				} else {
 					broadcastedEvent = internal.ValidProcessedItem(event.BroadcastedEvent.WithActor(userData.Name, userData.Email))
-					if broadcastedEvent.BroadcastedEvent.Name == BroadcastedEventNameFundsInvested {
-						broadcastedEvent.BroadcastedEvent.InvestmentCountry = userData.Country
-					}
+					broadcastedEvent.BroadcastedEvent.Country = userData.Country
 				}
 				broadcastedEvents <- *broadcastedEvent
 			}
