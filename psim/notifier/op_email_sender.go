@@ -50,7 +50,13 @@ func NewOpEmailSender(
 		return nil, errors.Wrap(err, "Failed to obtain template bytes")
 	}
 
-	opEmailSender.template, err = template.New("kyc-created").Parse(string(bb))
+	if len(bb) == 0 {
+		return nil, errors.From(errors.New("template not found"), logan.F{
+			"template_name": templateName,
+		})
+	}
+
+	opEmailSender.template, err = template.New(templateName).Parse(string(bb))
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to parse html.Template")
 	}
