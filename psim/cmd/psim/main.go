@@ -43,6 +43,7 @@ import (
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetterveri"
 	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 	_ "gitlab.com/swarmfund/psim/psim/wallet_cleaner"
+	_ "gitlab.com/swarmfund/psim/psim/marketmaker"
 
 	// airdrops
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"

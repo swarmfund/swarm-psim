@@ -2,14 +2,13 @@ package utils
 
 import (
 	"fmt"
-	"net/url"
 	"reflect"
-	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
+	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/regources"
 )
 
 var (
@@ -48,26 +47,20 @@ var (
 				return reflect.Value{}, fmt.Errorf("unsupported conversion from %T", value)
 			}
 		},
-		"time.Duration": func(value interface{}) (reflect.Value, error) {
-			str, err := cast.ToStringE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
-			}
-			result, err := time.ParseDuration(str)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse duration")
-			}
-			return reflect.ValueOf(result), nil
-		},
-		// ToDo: Move to psim/figure/BaseHooks
-		"*url.URL": func(value interface{}) (reflect.Value, error) {
+
+		"regources.Amount": func(value interface{}) (reflect.Value, error) {
 			switch v := value.(type) {
 			case string:
-				u, err := url.Parse(v)
+				int64Value, err := amount.Parse(v)
 				if err != nil {
-					return reflect.Value{}, errors.Wrap(err, "failed to parse url")
+					return reflect.Value{}, errors.Wrap(err, "failed to parse int64 value")
 				}
-				return reflect.ValueOf(u), nil
+
+				return reflect.ValueOf(regources.Amount(int64Value)), nil
+			case int:
+				return reflect.ValueOf(regources.Amount(int64(v))), nil
+			case int64:
+				return reflect.ValueOf(regources.Amount(v)), nil
 			case nil:
 				return reflect.ValueOf(nil), nil
 			default:

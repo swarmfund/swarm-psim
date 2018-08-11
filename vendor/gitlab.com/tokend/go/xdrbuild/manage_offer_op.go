@@ -6,6 +6,9 @@ import (
 	"gitlab.com/tokend/go/xdr"
 )
 
+// ManageOfferOp should not be constructed directly,
+// one should use CreateOffer or DeleteOffer function
+// for constructing a ManageOfferOp instance.
 type ManageOfferOp struct {
 	BaseBalance  string
 	QuoteBalance string
@@ -43,16 +46,21 @@ func (op ManageOfferOp) Validate() error {
 }
 
 func (op ManageOfferOp) XDR() (*xdr.Operation, error) {
-	var baseBalance, quoteBalance xdr.BalanceId
-	if len(op.BaseBalance) != 0 {
-		if err := baseBalance.SetString(op.BaseBalance); err != nil {
-			return nil, errors.Wrap(err, "failed to set base BalanceID")
-		}
+	if len(op.BaseBalance) == 0 {
+		// Just a random BalanceID, during Delete Offer the value will not be taken into account, but won't work without a valid BalanceID.
+		op.BaseBalance = "BBQJLW43UPKJSS67OXGAHJKZ4RM7JMQ6P7FCJEOMBC5GMYT3XQARZI54"
 	}
-	if len(op.QuoteBalance) != 0 {
-		if err := quoteBalance.SetString(op.QuoteBalance); err != nil {
-			return nil, errors.Wrap(err, "failed to set quote BalanceID")
-		}
+	if len(op.QuoteBalance) == 0 {
+		// Just a random BalanceID, during Delete Offer the value will not be taken into account, but won't work without a valid BalanceID.
+		op.QuoteBalance = "BBQJLW43UPKJSS67OXGAHJKZ4RM7JMQ6P7FCJEOMBC5GMYT3XQARZI54"
+	}
+
+	var baseBalance, quoteBalance xdr.BalanceId
+	if err := baseBalance.SetString(op.BaseBalance); err != nil {
+		return nil, errors.Wrap(err, "failed to set base BalanceID")
+	}
+	if err := quoteBalance.SetString(op.QuoteBalance); err != nil {
+		return nil, errors.Wrap(err, "failed to set quote BalanceID")
 	}
 
 	xdrOp := &xdr.Operation{
@@ -75,6 +83,19 @@ func (op ManageOfferOp) XDR() (*xdr.Operation, error) {
 	return xdrOp, nil
 }
 
+func (op ManageOfferOp) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"base_balance":  op.BaseBalance,
+		"quote_balance": op.QuoteBalance,
+		"is_buy":        op.IsBuy,
+		"amount":        op.Amount,
+		"price":         op.Price,
+		"fee":           op.Fee,
+		"offer_id":      op.OfferID,
+	}
+}
+
+// CreateOffer is a constructor for ManageOfferOp for creating new Offer.
 func CreateOffer(baseBalance, quoteBalance string, isBuy bool, amount int64, price int64, fee int64) *ManageOfferOp {
 	return &ManageOfferOp{
 		BaseBalance:  baseBalance,
@@ -86,6 +107,8 @@ func CreateOffer(baseBalance, quoteBalance string, isBuy bool, amount int64, pri
 	}
 }
 
+// DeleteOffer is a constructor for ManageOfferOp
+// for deleting the Offer with provided offerID.
 func DeleteOffer(offerID uint64) *ManageOfferOp {
 	return &ManageOfferOp{
 		OfferID: offerID,
