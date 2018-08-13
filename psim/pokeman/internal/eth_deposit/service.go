@@ -64,7 +64,6 @@ func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int3
 				if err != nil {
 					return errors.Wrap(err, "failed to get external binding data")
 				}
-				// TODO:
 				<-timer.Next()
 			}
 			return nil
@@ -181,7 +180,7 @@ func (s *Service) Run(ctx context.Context) {
 		balanceBefore = balanceBefore + 5
 
 		foreignBalanceAfter, err := s.foreignTxProvider.GetCurrentBalance(ctx)
-		if foreignBalanceAfter.Uint64()-foreignBalanceBefore.Uint64() != 2 {
+		if foreignBalanceAfter.Uint64()-foreignBalanceBefore.Uint64() != 5 {
 			return errors.New("foreign balance not changed")
 		}
 
