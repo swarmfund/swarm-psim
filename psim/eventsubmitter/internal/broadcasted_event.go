@@ -39,13 +39,3 @@ func (b BroadcastedEvent) WithActor(actorName string, actorEmail string) *Broadc
 
 	return &newB
 }
-
-// WithDeposit returns a copy of BroadcastedEvent with deposit-fields set
-func (b BroadcastedEvent) WithDeposit(amount int64, currency string) *BroadcastedEvent {
-	newB := b
-
-	newB.DepositAmount = amount
-	newB.DepositCurrency = currency
-
-	return &newB
-}

@@ -152,10 +152,10 @@ func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
 		return nil
 	}
 
-	event := internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
-	event[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
-	event[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
-	return event
+	events := internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
+	events[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
+	events[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
+	return events
 }
 
 func processKYCCreateUpdateRequestOp(opData OpData) []MaybeBroadcastedEvent {
@@ -192,10 +192,10 @@ func processReviewRequestOp(requestsProvider RequestProvider, accountsProvider A
 func handleIssuanceCreateReq(opData OpData) []MaybeBroadcastedEvent {
 	sourceAccountAddress := opData.SourceAccount.Address()
 	time := opData.CreatedAt
-	event := internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
-	event[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
-	event[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
-	return event
+	events := internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
+	events[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
+	events[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
+	return events
 }
 
 func findRemoval(ledgerChanges []xdr.LedgerEntryChange) *xdr.LedgerKeyReviewableRequest {

@@ -33,10 +33,8 @@ func (c *ViperConfig) Salesforce() *salesforce.Connector {
 		username := v.GetString("username")
 		password := v.GetString("password")
 
-		salesforce, err := salesforce.NewConnector(apiURL, secret, id, username, password)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to create connector"))
-		}
+		salesforce := salesforce.NewConnector(apiURL, secret, id, username, password)
+
 		c.salesforce = salesforce
 	}
 
