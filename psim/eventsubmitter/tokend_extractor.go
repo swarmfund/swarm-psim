@@ -31,7 +31,7 @@ type TxData struct {
 	Operations    []xdr.Operation
 	OpsResults    []xdr.OperationResult
 	LedgerChanges [][]xdr.LedgerEntryChange
-	Time          *time.Time
+	Time          time.Time
 	SourceAccount xdr.AccountId
 	PagingToken   string
 }
@@ -82,7 +82,7 @@ func validateTx(extractedTx horizon.TXPacket) (*TxData, error) {
 		})
 	}
 
-	txTime := &tx.LedgerCloseTime
+	txTime := tx.LedgerCloseTime
 
 	pagingToken := tx.PagingToken()
 

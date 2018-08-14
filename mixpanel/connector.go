@@ -30,6 +30,6 @@ func newMixpanelEvent(time *time.Time) *mixpanel.Event {
 	}
 }
 
-func (c *Connector) SendEvent(account string, name string, time *time.Time) error {
-	return c.mixpanelClient.Track(account, name, newMixpanelEvent(time))
+func (c *Connector) SendEvent(account string, name string, time time.Time) error {
+	return c.mixpanelClient.Track(account, name, newMixpanelEvent(&time))
 }
