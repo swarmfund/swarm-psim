@@ -45,7 +45,7 @@ type UserData struct {
 	Name     string
 	Email    string
 	Country  string
-	Referral string
+	Referrer string
 }
 
 // TODO: consider use kycapi
@@ -98,7 +98,12 @@ func (th TokendHandler) lookupUserData(event *BroadcastedEvent) (*UserData, erro
 		country = kycData.Address.Country
 	}
 
-	return &UserData{name, user.Attributes.Email, country, account.Referrer}, nil
+	return &UserData{
+		Name:     name,
+		Email:    user.Attributes.Email,
+		Country:  country,
+		Referrer: account.Referrer,
+	}, nil
 }
 
 // Process starts processing all op using processors in the map

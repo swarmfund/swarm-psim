@@ -23,37 +23,29 @@ type BroadcastedEvent struct {
 
 // NewBroadcastedEvent constructs an event filled with data provided by arguments
 func NewBroadcastedEvent(Account string, Name BroadcastedEventName, Time time.Time) *BroadcastedEvent {
-	return &BroadcastedEvent{Account, Name, Time, "", "", 0, 0, "", "", ""}
-}
-
-// WithActor returns a copy of BroadcastedEvent with actor-fields set
-func (be *BroadcastedEvent) WithActor(actorName string, actorEmail string) *BroadcastedEvent {
 	return &BroadcastedEvent{
-		Account:          be.Account,
-		Name:             be.Name,
-		Time:             be.Time,
-		ActorName:        actorName,
-		ActorEmail:       actorEmail,
-		InvestmentAmount: be.InvestmentAmount,
-		DepositAmount:    be.DepositAmount,
-		DepositCurrency:  be.DepositCurrency,
-		Referral:         be.Referral,
-		Country:          be.Country,
+		Account: Account,
+		Name:    Name,
+		Time:    Time,
 	}
 }
 
 // WithActor returns a copy of BroadcastedEvent with actor-fields set
-func (be *BroadcastedEvent) WithDeposit(amount int64, currency string) *BroadcastedEvent {
-	return &BroadcastedEvent{
-		Account:          be.Account,
-		Name:             be.Name,
-		Time:             be.Time,
-		ActorName:        be.ActorName,
-		ActorEmail:       be.ActorEmail,
-		InvestmentAmount: be.InvestmentAmount,
-		DepositAmount:    amount,
-		DepositCurrency:  currency,
-		Referral:         be.Referral,
-		Country:          be.Country,
-	}
+func (b BroadcastedEvent) WithActor(actorName string, actorEmail string) *BroadcastedEvent {
+	newB := b
+
+	newB.ActorName = actorName
+	newB.ActorEmail = actorEmail
+
+	return &newB
+}
+
+// WithDeposit returns a copy of BroadcastedEvent with deposit-fields set
+func (b BroadcastedEvent) WithDeposit(amount int64, currency string) *BroadcastedEvent {
+	newB := b
+
+	newB.DepositAmount = amount
+	newB.DepositCurrency = currency
+
+	return &newB
 }

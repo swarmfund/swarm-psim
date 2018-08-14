@@ -76,7 +76,7 @@ func (s *Service) dispatchEvents(ctx context.Context) error {
 		}
 
 		date := time.Now()
-		emittedEvents <- BroadcastedReport{response, int64(asset.Issued), threshold, &date}
+		emittedEvents <- BroadcastedReport{response, int64(asset.Issued), threshold, date}
 	}
 
 	return nil

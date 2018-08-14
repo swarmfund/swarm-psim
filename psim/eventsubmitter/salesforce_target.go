@@ -55,7 +55,18 @@ func NewSalesforceTarget(sc *salesforce.Connector) *SalesforceTarget {
 
 // SendEvent uses salesforce client connector for sending event to analytics
 func (st *SalesforceTarget) SendEvent(event *BroadcastedEvent) error {
-	_, err := st.Connector.SendEvent(eventNameToSphere[event.Name], eventNameToActionName[event.Name], event.Time, event.ActorName, event.ActorEmail, event.InvestmentAmount, event.DepositAmount, event.DepositCurrency, event.Referral, event.Country)
+	_, err := st.Connector.PostUserAction(salesforce.UserActionData{
+		Sphere:           eventNameToSphere[event.Name],
+		ActionName:       eventNameToActionName[event.Name],
+		OccurredAt:       event.Time,
+		ActorName:        event.ActorName,
+		ActorEmail:       event.ActorEmail,
+		InvestmentAmount: event.InvestmentAmount,
+		DepositAmount:    event.DepositAmount,
+		DepositCurrency:  event.DepositCurrency,
+		Referrer:         event.Referral,
+		Country:          event.Country,
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to post event")
 	}

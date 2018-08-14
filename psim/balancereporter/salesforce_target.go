@@ -23,8 +23,16 @@ func NewSalesforceTarget(sc *salesforce.Connector) *SalesforceTarget {
 }
 
 // SendEvent uses salesforce client connector for sending event to analytics
-func (st *SalesforceTarget) SendEvent(event *regources.BalancesReport, swmAmount int64, threshold int64, date *time.Time) error {
-	_, err := st.Connector.SendReport(event, swmAmount, threshold, date)
+func (st *SalesforceTarget) SendEvent(event *regources.BalancesReport, swmAmount int64, threshold int64, date time.Time) error {
+	_, err := st.Connector.PostReport(salesforce.BalanceReportData{
+		Positive:  event.TotalAccountsCount.PositiveBalance,
+		Zero:      event.TotalAccountsCount.ZeroBalance,
+		SWMAmount: swmAmount,
+		Threshold: threshold,
+		Above:     event.TotalAccountsCount.AboveThreshold,
+		Below:     event.TotalAccountsCount.BelowThreshold,
+		Date:      date,
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to post event")
 	}
