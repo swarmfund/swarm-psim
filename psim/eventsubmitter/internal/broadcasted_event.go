@@ -31,11 +31,11 @@ func NewBroadcastedEvent(Account string, Name BroadcastedEventName, Time time.Ti
 }
 
 // WithActor returns a copy of BroadcastedEvent with actor-fields set
-func (b BroadcastedEvent) WithActor(actorName string, actorEmail string) *BroadcastedEvent {
+func (b BroadcastedEvent) WithActor(actorName string, actorEmail string) BroadcastedEvent {
 	newB := b
 
 	newB.ActorName = actorName
 	newB.ActorEmail = actorEmail
 
-	return &newB
+	return newB
 }

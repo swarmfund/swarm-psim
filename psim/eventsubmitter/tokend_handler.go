@@ -171,7 +171,7 @@ func (th TokendHandler) Process(ctx context.Context, extractedItems <-chan Extra
 				var broadcastedEvent *ProcessedItem
 				if userData == nil {
 					th.logger.Debug("no user data found")
-					broadcastedEvent = internal.ValidProcessedItem(event.BroadcastedEvent)
+					broadcastedEvent = internal.ValidProcessedItem(*event.BroadcastedEvent)
 				} else {
 					broadcastedEvent = internal.ValidProcessedItem(event.BroadcastedEvent.WithActor(userData.Name, userData.Email))
 					broadcastedEvent.BroadcastedEvent.Country = userData.Country

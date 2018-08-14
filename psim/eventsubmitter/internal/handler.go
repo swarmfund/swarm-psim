@@ -24,6 +24,6 @@ func InvalidProcessedItem(err error) *ProcessedItem {
 }
 
 // ValidProcessedItem returns ProcessedItem without error, but with specified body
-func ValidProcessedItem(event *BroadcastedEvent) *ProcessedItem {
-	return &ProcessedItem{BroadcastedEvent: event, Error: nil}
+func ValidProcessedItem(event BroadcastedEvent) *ProcessedItem {
+	return &ProcessedItem{BroadcastedEvent: &event, Error: nil}
 }
