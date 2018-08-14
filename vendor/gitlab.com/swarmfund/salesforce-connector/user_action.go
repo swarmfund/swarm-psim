@@ -2,14 +2,19 @@ package salesforce
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
+	"time"
+
+	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-// Event contains both default salesforce and specific to a salesforce account fields defined as columns
-type Event struct {
-	Name                   string
+const salesforceTimeLayout = "2006-01-02T15:04:05.999-0700"
+
+// UserAction contains both default salesforce and specific to a salesforce account fields defined as columns
+type userAction struct {
+	Name                   string `json:"name"`
 	PropertyColumn         string `json:"Property__c"`
 	SphereColumn           string `json:"Sphere__c"`
 	ActionColumn           string `json:"Action__c"`
@@ -23,60 +28,75 @@ type Event struct {
 	CountryColumn          string `json:"Country__c"`
 }
 
-// EventResponse holds data received after SendEvent
-type EventResponse struct {
-	SalesforceID string   `json:"id"`
-	Success      bool     `json:"success"`
-	Errors       []string `json:"errors"`
-}
-
-var eventsEndpointURL = &url.URL{
+var userActionsEndpointURL = &url.URL{
 	Path: "/services/data/v42.0/sobjects/Website_Action__c/",
 }
 
-// PostEvent sends an event to predefined salesforce endpoint, uses now-time if failed to parse timeString
-func (c *Connector) PostEvent(sphere string, actionName string, timeString string, actorName string, actorEmail string, investmentAmount int64, depositAmount int64, depositCurrency, referral, country string) (*EventResponse, error) {
-	requestStruct := &Event{
+type UserActionData struct {
+	Sphere           string
+	ActionName       string
+	OccurredAt       time.Time
+	ActorName        string
+	ActorEmail       string
+	InvestmentAmount int64
+	DepositAmount    int64
+	DepositCurrency  string
+	Referrer         string
+	Country          string
+}
+
+// PostUserAction sends an event to predefined salesforce endpoint, uses now-time if failed to parse timeString
+func (c *Connector) PostUserAction(data UserActionData) (*PostObjectResponse, error) {
+	requestStruct := &userAction{
 		Name:                   "Action",
 		PropertyColumn:         "Swarm Invest",
-		SphereColumn:           sphere,
-		ActionColumn:           actionName,
-		ActionDateTimeColumn:   timeString,
-		ActorNameColumn:        actorName,
-		ActorEmailColumn:       actorEmail,
-		InvestmentAmountColumn: investmentAmount,
-		DepositAmountColumn:    depositAmount,
-		DepositCurrencyColumn:  depositCurrency,
-		ReferralColumn:         referral,
-		CountryColumn:          country,
+		SphereColumn:           data.Sphere,
+		ActionColumn:           data.ActionName,
+		ActionDateTimeColumn:   data.OccurredAt.Format(salesforceTimeLayout),
+		ActorNameColumn:        data.ActorName,
+		ActorEmailColumn:       data.ActorEmail,
+		InvestmentAmountColumn: data.InvestmentAmount,
+		DepositAmountColumn:    data.DepositAmount,
+		DepositCurrencyColumn:  data.DepositCurrency,
+		ReferralColumn:         data.Referrer,
+		CountryColumn:          data.Country,
 	}
 
 	requestBytes, err := json.Marshal(requestStruct)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to marshal request struct", logan.F{
+			"request": requestStruct,
+		})
 	}
 
-	statusCode, responseBytes, err := c.client.PostObject(requestBytes, eventsEndpointURL)
+	statusCode, responseBytes, err := c.client.PostObject(requestBytes, userActionsEndpointURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "faield to post report object", logan.F{
+			"request": string(requestBytes),
+		})
 	}
 
 	switch statusCode {
 	case http.StatusCreated:
-
-		var eventResponse *EventResponse
+		var eventResponse *PostObjectResponse
 		err = json.Unmarshal(responseBytes, &eventResponse)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to unmarshal response", logan.F{
+				"response": string(responseBytes),
+			})
 		}
-
 		return eventResponse, nil
-
 	case http.StatusUnauthorized:
 		return nil, errors.New("unauthorized")
 	case http.StatusBadRequest:
-		return nil, errors.New("malformed request sent")
+		return nil, errors.From(errors.New("malformed request sent"), logan.F{
+			"response": string(responseBytes),
+			"request":  string(requestBytes),
+		})
+	default:
+		return nil, errors.From(errors.New("unknown status code"), logan.F{
+			"status_code": statusCode,
+			"response":    string(responseBytes),
+		})
 	}
-
-	return nil, errors.New("unknown status code")
 }

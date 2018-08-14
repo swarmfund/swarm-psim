@@ -675,12 +675,12 @@
   revision = "07cdb2c05044120d9a3b7846bad2a82a969d3f2b"
 
 [[projects]]
-  branch = "feature/implementation"
-  digest = "1:797321ad409b6ac2faf20b2fe713214107ac5ae283d5385b7006d7688d7301bb"
+  branch = "master"
+  digest = "1:62d5ebcdcdfb9fe5f6a3dfed8ac0af515ae05785f41b3e0ad060666b972a0b25"
   name = "gitlab.com/swarmfund/salesforce-connector"
   packages = ["."]
   pruneopts = "NT"
-  revision = "3848859f2cf6ececb100f89e4f2a518ceff3cb86"
+  revision = "5c7626defc1742ae979444e838efd23b063d6d9a"
 
 [[projects]]
   branch = "master"
