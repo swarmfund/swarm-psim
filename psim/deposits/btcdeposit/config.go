@@ -17,9 +17,10 @@ type Config struct {
 	DepositAsset       string `fig:"deposit_asset,required"`
 	OffchainCurrency   string `fig:"offchain_currency,required"`
 	OffchainBlockchain string `fig:"offchain_blockchain,required"`
-	ExternalSystem     int32  `fig:"external_system,required"`
-	FixedDepositFee    uint64 `fig:"fixed_deposit_fee,required"`
-	DisableVerify      bool   `fig:"disable_verify"`
+	// TODO Consider getting ExternalSystem integer by Asset code in runtime.
+	ExternalSystem  int32  `fig:"external_system,required"`
+	FixedDepositFee uint64 `fig:"fixed_deposit_fee,required"`
+	DisableVerify   bool   `fig:"disable_verify"`
 
 	Signer keypair.Full    `fig:"signer,required" mapstructure:"signer"`
 	Source keypair.Address `fig:"source,required"`

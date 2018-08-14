@@ -62,6 +62,17 @@ func (h *ConfigHelper) GetFixedDepositFee() uint64 {
 	return h.depositFee
 }
 
+func (h *ConfigHelper) GetAddressSynonyms(address string) []string {
+	result := []string{address}
+
+	lowerAddr := strings.ToLower(address)
+	if lowerAddr != address {
+		result = append(result, lowerAddr)
+	}
+
+	return result
+}
+
 type Converter struct {
 }
 
@@ -89,7 +100,7 @@ func NewReferenceBuilder() *ReferenceBuilder {
 	return &ReferenceBuilder{}
 }
 
-func (h *ReferenceBuilder) BuildReference(_ uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
+func (h ReferenceBuilder) BuildReference(_ uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string {
 	// block number is not included in reference to mitigate chain branching
 	base := strings.ToLower(fmt.Sprintf("%s:%s:%d", txHash, offchainAddress, outIndex))
 	fmt.Println(base)

@@ -187,3 +187,9 @@ func (h CommonBTCHelper) BuildReference(blockNumber uint64, txHash, offchainAddr
 		return hex.EncodeToString(hash[:])
 	}
 }
+
+func (h CommonBTCHelper) GetAddressSynonyms(address string) []string {
+	// No Address synonyms are considered in Bitcoin, base 58 is used for encoding Addresses into string.
+	return []string{address}
+}
+

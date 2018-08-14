@@ -6,13 +6,10 @@ import (
 
 	"fmt"
 
-	"strings"
-
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/issuance"
 	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/go/amount"
@@ -37,7 +34,7 @@ type Discovery interface {
 	DiscoverService(service string) ([]discovery.ServiceEntry, error)
 }
 
-// OffchainHelper is the interface for specific Offchain(BTC or ETH)
+// OffchainHelper is the interface for specific Offchain(e.g. BTC or ETH)
 // deposit and deposit-verify services to implement
 // and parametrise the Service.
 type OffchainHelper interface {
@@ -63,6 +60,15 @@ type OffchainHelper interface {
 	// You probably won't use all of the provided arguments, but it's no problem
 	// for the abstract deposit service to provide all this values into implementations.
 	BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string
+	// GetAddressSynonyms must return all possible representations of the provided Offchain Address
+	// which represent the same Address (for example for Ether - lowercased Address is equal to the initial).
+	//
+	// The returned slice must contain at least 1 element.
+	//
+	// If returned slice contains only 1 element - it must be the one provided as parameter.
+	//
+	// The elements in the returned slice *should* not be duplicated.
+	GetAddressSynonyms(address string) []string
 
 	// GetLastKnownBlockNumber must return the number of last Block currently existing in the Offchain.
 	GetLastKnownBlockNumber() (uint64, error)
@@ -153,12 +159,12 @@ func (s *Service) processNewBlocks(ctx context.Context) error {
 	lastBlockToProcess := lastKnownBlock - s.lastBlocksNotWatch
 
 	if lastBlockToProcess <= s.lastProcessedBlock {
-		// No new blocks to process
+		// No new Blocks to process
 		return nil
 	}
 
 	for i := s.lastProcessedBlock + 1; i <= lastBlockToProcess; i++ {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 
@@ -167,7 +173,7 @@ func (s *Service) processNewBlocks(ctx context.Context) error {
 			return errors.Wrap(err, "Failed to process Block", logan.F{"block_index": i})
 		}
 
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			// Don't update lastProcessedBlock, because Block processing was probably not finished - ctx was canceled.
 			return nil
 		}
@@ -183,7 +189,7 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 
 	block, err := s.offchainHelper.GetBlock(blockNumber)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Block from BTCClient")
+		return errors.Wrap(err, "Failed to get Block from OffchainHelper")
 	}
 
 	if block == nil {
@@ -210,27 +216,31 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 
 func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime time.Time, tx Tx) error {
 	for i, out := range tx.Outs {
+		if running.IsCancelled(ctx) {
+			return nil
+		}
+
 		if out.Address == "" {
 			continue
 		}
 
-		accountAddress := s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, out.Address)
-		if running.IsCancelled(ctx) {
-			return nil
-		}
+		var accountAddress *string
+		addresses := s.offchainHelper.GetAddressSynonyms(out.Address)
+		for _, addr := range addresses {
+			accountAddress = s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, addr)
+			if accountAddress != nil {
+				// Found
+				break
+			}
 
-		if accountAddress == nil {
-			// there is weird case when address is lowercased in core,
-			// it's safe to check that, at least in ether
-			accountAddress = s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, strings.ToLower(out.Address))
-			if accountAddress == nil {
-				// external address is not among our watch addresses, ignoring
-				continue
+			if running.IsCancelled(ctx) {
+				return nil
 			}
 		}
 
-		if running.IsCancelled(ctx) {
-			return nil
+		if accountAddress == nil {
+			// No our Account found for this Offchain Address, skipping.
+			continue
 		}
 
 		fields := logan.F{
@@ -275,7 +285,7 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 	if balanceID == nil {
 		// user does not have target balance
 		// unfortunate, but we don't care
-		s.log.WithFields(fields).Warn("no depost asset balance found")
+		s.log.WithFields(fields).Warn("no deposit asset balance found")
 		return nil
 	}
 
