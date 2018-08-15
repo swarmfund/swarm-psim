@@ -7,7 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 	"gitlab.com/tokend/go/doorman"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 type ctxKey int
@@ -72,12 +72,12 @@ func Doorman(r *http.Request, constraints ...doorman.SignerConstraint) error {
 	return d.Check(r, constraints...)
 }
 
-func CtxHorizonInfo(i *horizon.Info) func(context.Context) context.Context {
+func CtxHorizonInfo(i *regources.Info) func(context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
 		return context.WithValue(ctx, horizonInfoCtxKey, i)
 	}
 }
 
-func Info(r *http.Request) *horizon.Info {
-	return r.Context().Value(horizonInfoCtxKey).(*horizon.Info)
+func Info(r *http.Request) *regources.Info {
+	return r.Context().Value(horizonInfoCtxKey).(*regources.Info)
 }

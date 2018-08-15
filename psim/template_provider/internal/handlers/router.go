@@ -8,7 +8,6 @@ import (
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/middlewares"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 	"gitlab.com/tokend/go/doorman"
-	horizon "gitlab.com/tokend/horizon-connector"
 )
 
 func Router(
@@ -16,7 +15,7 @@ func Router(
 	uploader resources.TemplateUploader,
 	downloader resources.TemplateDownloader,
 	bucket string,
-	info *horizon.Info,
+	info *regources.Info,
 	doorman doorman.Doorman) chi.Router {
 
 	r := chi.NewRouter()

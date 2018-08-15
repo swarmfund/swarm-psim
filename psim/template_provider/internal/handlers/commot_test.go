@@ -15,7 +15,7 @@ import (
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/keypair"
 	"gitlab.com/tokend/go/signcontrol"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 func testRouter() (r chi.Router, uploader *mocks.TemplateUploader, downloader *mocks.TemplateDownloader, signer keypair.KP, accountQ *mocks.AccountQ) {
@@ -30,7 +30,7 @@ func testRouter() (r chi.Router, uploader *mocks.TemplateUploader, downloader *m
 	doormanM := doorman.New(
 		false, accountQ,
 	)
-	info := &horizon.Info{
+	info := &regources.Info{
 		MasterAccountID: signer.Address(),
 	}
 

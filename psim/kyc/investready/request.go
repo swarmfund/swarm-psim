@@ -4,7 +4,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/regources"
 )
 
@@ -44,7 +43,7 @@ func proveInterestingMask(pendingTasks uint32) error {
 	return nil
 }
 
-func getInvestReadyUserHash(kycReq horizon.KYCRequest) string {
+func getInvestReadyUserHash(kycReq regources.UpdateKYCRequest) string {
 	var userHash string
 	for _, extDetails := range kycReq.ExternalDetails {
 		value, ok := extDetails[UserHashExtDetailsKey]

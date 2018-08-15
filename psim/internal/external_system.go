@@ -3,7 +3,7 @@ package internal
 import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 var (
@@ -13,7 +13,7 @@ var (
 
 //go:generate mockery -case underscore -output ./internal/mocks -name AssetsQ
 type AssetsQ interface {
-	ByCode(string) (*horizon.Asset, error)
+	ByCode(string) (*regources.Asset, error)
 }
 
 // GetExternalSystemType will try to get external system type from asset details
