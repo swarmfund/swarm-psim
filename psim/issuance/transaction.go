@@ -14,6 +14,7 @@ func CraftIssuanceTX(opt RequestOpt, builder *xdrbuild.Builder, source keypair.A
 			Asset:     opt.Asset,
 			Amount:    opt.Amount,
 			Details:   opt.Details,
+			AllTasks:  &opt.AllTasks,
 		}).
 		Sign(signer)
 }

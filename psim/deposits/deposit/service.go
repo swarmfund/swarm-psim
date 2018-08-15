@@ -55,7 +55,7 @@ type OffchainHelper interface {
 	// BuildReference must return a unique identifier of the Deposit, build from Offchain data.
 	//
 	// Reference is submitted to core and is used to prevent multiple Deposits about the same Offchain TX.
-	// Be sure for the same arguments - the reference will always be the same, otherwise extra wrong Issuance will appear.
+	// Be sure for the same arguments - the reference will always be the same, otherwise duplicate Issuances can appear.
 	//
 	// You probably won't use all of the provided arguments, but it's no problem
 	// for the abstract deposit service to provide all this values into implementations.
@@ -306,6 +306,8 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 			OutIndex:    outIndex,
 			Price:       amount.One,
 		}.Encode(),
+		// TODO stop setting this Task in future, it should be set as default Task for IssuanceRequest in Core in future.
+		AllTasks: issuance.TaskVerifyDeposit,
 	}
 
 	fields = fields.Merge(logan.F{

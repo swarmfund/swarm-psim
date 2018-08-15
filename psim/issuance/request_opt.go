@@ -1,11 +1,22 @@
 package issuance
 
+const (
+	TaskNotEnoughPreissuance    uint32 = 1
+	TaskManualReviewAssetPolicy uint32 = 2
+	TaskIssuanceLimitExceeded   uint32 = 4
+
+	TaskVerifyDeposit uint32 = 1024
+)
+
+// RequestOpt is the gathering structure for arguments to be set into CreateIssuanceRequest Operation.
 type RequestOpt struct {
 	Reference string
 	Receiver  string
 	Asset     string
 	Amount    uint64
 	Details   string
+	// AllTasks is the mask for Tasks to set on creation of the IssuanceRequest.
+	AllTasks uint32
 }
 
 func (i RequestOpt) GetLoganFields() map[string]interface{} {
@@ -15,5 +26,6 @@ func (i RequestOpt) GetLoganFields() map[string]interface{} {
 		"asset":     i.Asset,
 		"amount":    i.Amount,
 		"details":   i.Details,
+		"all_tasks": i.AllTasks,
 	}
 }
