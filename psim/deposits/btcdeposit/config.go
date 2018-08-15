@@ -12,7 +12,6 @@ type Config struct {
 	Supervisor supervisor.Config `fig:"supervisor"`
 
 	LastProcessedBlock uint64 `fig:"last_processed_block,required"`
-	LastBlocksNotWatch uint64 `fig:"last_blocks_not_watch,required"`
 	MinDepositAmount   uint64 `fig:"min_deposit_amount,required"`
 	DepositAsset       string `fig:"deposit_asset,required"`
 	OffchainCurrency   string `fig:"offchain_currency,required"`
@@ -31,7 +30,6 @@ func (c Config) GetLoganFields() map[string]interface{} {
 		"supervisor": c.Supervisor,
 
 		"last_processed_block":  c.LastProcessedBlock,
-		"last_blocks_not_watch": c.LastBlocksNotWatch,
 		"min_deposit_amount":    c.MinDepositAmount,
 		"deposit_asset":         c.DepositAsset,
 		"offchain_currency":     c.OffchainCurrency,

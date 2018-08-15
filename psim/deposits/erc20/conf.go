@@ -9,7 +9,6 @@ type DepositConfig struct {
 	Source        keypair.Address `fig:"source,required"`
 	Signer        keypair.Full    `fig:"signer,required"`
 	Cursor        uint64          `fig:"cursor,required"`
-	Confirmations uint64          `fig:"confirmations"`
 	// DepositAsset TokenD asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
@@ -18,6 +17,16 @@ type DepositConfig struct {
 	// if set will override one in deposit asset details
 	ExternalSystem int32 `fig:"external_system"`
 	DisableVerify  bool  `fig:"disable_verify"`
+}
+
+func (c DepositConfig) GetLoganFields() map[string]interface{} {
+	return map[string]interface{} {
+		"cursor": c.Cursor,
+		"deposit_asset": c.DepositAsset,
+		"token": c.Token,
+		"external_system": c.ExternalSystem,
+		"disable_verify": c.DisableVerify,
+	}
 }
 
 type VerifyConfig struct {

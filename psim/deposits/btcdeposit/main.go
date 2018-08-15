@@ -61,21 +61,18 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	return deposit.New(&deposit.Opts{
-		log,
-		config.Source,
-		config.Signer,
-		conf.ServiceBTCDeposit,
-		conf.ServiceBTCDepositVerify,
-
-		config.LastProcessedBlock,
-		config.LastBlocksNotWatch,
-
-		horizonConnector,
-		config.ExternalSystem,
-		addressProvider,
-		globalConfig.Discovery(),
-		builder,
-		btcHelper,
-		config.DisableVerify,
+		Log:                 log,
+		Source:              config.Source,
+		Signer:              config.Signer,
+		ServiceName:         conf.ServiceBTCDeposit,
+		VerifierServiceName: conf.ServiceBTCDepositVerify,
+		LastProcessedBlock:  config.LastProcessedBlock,
+		Horizon:             horizonConnector,
+		ExternalSystem:      config.ExternalSystem,
+		AddressProvider:     addressProvider,
+		Discovery:           globalConfig.Discovery(),
+		Builder:             builder,
+		OffchainHelper:      btcHelper,
+		DisableVerify:       config.DisableVerify,
 	}), nil
 }

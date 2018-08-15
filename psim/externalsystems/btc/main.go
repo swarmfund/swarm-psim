@@ -33,16 +33,16 @@ func init() {
 			return nil, errors.Wrap(err, "failed to init deriver")
 		}
 		return deployer.NewService(deployer.Opts{
-			app.Log(ctx),
-			config.ExternalTypes,
-			deployer.ExternalSystemPoolEntityCount(horizon),
-			config.TargetCount,
-			deriver,
-			builder,
-			config.Source,
-			config.Signer,
-			horizon,
-			deployerID,
+			Log:           app.Log(ctx),
+			ExternalTypes: config.ExternalTypes,
+			EntityCount:   deployer.ExternalSystemPoolEntityCount(horizon),
+			TargetCount:   config.TargetCount,
+			Deriver:       deriver,
+			TXBuilder:     builder,
+			Source:        config.Source,
+			Signer:        config.Signer,
+			Horizon:       horizon,
+			DeployerID:    deployerID,
 		}), nil
 	})
 }

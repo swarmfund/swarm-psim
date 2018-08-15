@@ -16,9 +16,7 @@ import (
 
 func init() {
 	app.RegisterService(conf.ServiceERC20Deposit, func(ctx context.Context) (app.Service, error) {
-		config := DepositConfig{
-			Confirmations: 12,
-		}
+		var config DepositConfig
 
 		err := figure.
 			Out(&config).
@@ -53,20 +51,19 @@ func init() {
 		eth := app.Config(ctx).Ethereum()
 
 		return deposit.New(&deposit.Opts{
-			app.Log(ctx),
-			config.Source,
-			config.Signer,
-			conf.ServiceERC20Deposit,
-			conf.ServiceERC20DepositVerify,
-			config.Cursor,
-			config.Confirmations,
-			app.Config(ctx).Horizon().WithSigner(config.Signer),
-			config.ExternalSystem,
-			addrProvider,
-			app.Config(ctx).Discovery(),
-			builder,
-			internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
-			config.DisableVerify,
+			Log:                 app.Log(ctx),
+			Source:              config.Source,
+			Signer:              config.Signer,
+			ServiceName:         conf.ServiceERC20Deposit,
+			VerifierServiceName: conf.ServiceERC20DepositVerify,
+			LastProcessedBlock:  config.Cursor,
+			Horizon:             app.Config(ctx).Horizon().WithSigner(config.Signer),
+			ExternalSystem:      config.ExternalSystem,
+			AddressProvider:     addrProvider,
+			Discovery:           app.Config(ctx).Discovery(),
+			Builder:             builder,
+			OffchainHelper:      internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
+			DisableVerify:       config.DisableVerify,
 		}), nil
 	})
 }

@@ -23,7 +23,6 @@ func TestNewConfig(t *testing.T) {
 		expected := Config{
 			Supervisor:         supervisor.Config{},
 			LastProcessedBlock: 1260685,
-			LastBlocksNotWatch: 15,
 			MinDepositAmount:   500000,
 			DepositAsset:       "BTC",
 			FixedDepositFee:    100000,

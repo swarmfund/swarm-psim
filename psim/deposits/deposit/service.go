@@ -93,7 +93,6 @@ type Service struct {
 	serviceName         string
 	verifierServiceName string
 	lastProcessedBlock  uint64
-	lastBlocksNotWatch  uint64 // confirmations
 	externalSystem      int32
 	disableVerify       bool
 
@@ -116,7 +115,6 @@ func New(opts *Opts) *Service {
 		serviceName:         opts.ServiceName,
 		verifierServiceName: opts.VerifierServiceName,
 		lastProcessedBlock:  opts.LastProcessedBlock,
-		lastBlocksNotWatch:  opts.LastBlocksNotWatch,
 		horizon:             opts.Horizon,
 		addressProvider:     opts.AddressProvider,
 		discovery:           opts.Discovery,
@@ -134,14 +132,15 @@ type Opts struct {
 	ServiceName         string
 	VerifierServiceName string
 	LastProcessedBlock  uint64
-	LastBlocksNotWatch  uint64
-	Horizon             *horizon.Connector
-	ExternalSystem      int32
-	AddressProvider     AddressProvider
-	Discovery           Discovery
-	Builder             *xdrbuild.Builder
-	OffchainHelper      OffchainHelper
-	DisableVerify       bool
+
+	Horizon         *horizon.Connector
+	ExternalSystem  int32
+	AddressProvider AddressProvider
+	Discovery       Discovery
+	Builder         *xdrbuild.Builder
+	OffchainHelper  OffchainHelper
+
+	DisableVerify bool
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -155,15 +154,7 @@ func (s *Service) processNewBlocks(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to GetBlockCount")
 	}
 
-	// We only consider transactions, which have at least LastBlocksNotWatch + 1 confirmations
-	lastBlockToProcess := lastKnownBlock - s.lastBlocksNotWatch
-
-	if lastBlockToProcess <= s.lastProcessedBlock {
-		// No new Blocks to process
-		return nil
-	}
-
-	for i := s.lastProcessedBlock + 1; i <= lastBlockToProcess; i++ {
+	for i := s.lastProcessedBlock + 1; i <= lastKnownBlock; i++ {
 		if running.IsCancelled(ctx) {
 			return nil
 		}
