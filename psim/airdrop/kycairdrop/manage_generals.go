@@ -68,13 +68,15 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return nil
 	}
 
-	isUSA, err := s.usaChecker.CheckIsUSA(*acc)
-	if err != nil {
-		return errors.Wrap(err, "Failed to check whether User is from USA")
-	}
-	if isUSA {
-		s.log.WithField("account_id", accAddress).Warn("Found USA User, no issuance for USA user, skipping.")
-		return nil
+	if !s.config.USACheckDisabled {
+		isUSA, err := s.usaChecker.CheckIsUSA(*acc)
+		if err != nil {
+			return errors.Wrap(err, "Failed to check whether User is from USA")
+		}
+		if isUSA {
+			s.log.WithField("account_id", accAddress).Warn("Found USA User, no issuance for USA user, skipping.")
+			return nil
+		}
 	}
 
 	user, err := s.usersConnector.User(accAddress)
@@ -116,7 +118,7 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 }
 
 func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, bool, error) {
-	balanceID, err := airdrop.GetBalanceID(accAddress, s.config.Asset, s.accountsConnector)
+	balanceID, err := airdrop.GetBalanceID(accAddress, s.config.IssuanceConfig.Asset, s.accountsConnector)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "Failed to get BalanceID of the Account")
 	}

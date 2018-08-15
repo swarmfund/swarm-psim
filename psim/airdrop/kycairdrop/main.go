@@ -6,12 +6,12 @@ import (
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
-	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/lchanges"
+	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/go/xdrbuild"
 )
 
 // KYCAirdrop service's goal is to issue 10 SWM to users who have successfully passed KYC.
@@ -36,8 +36,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	if len(config.RequestTokenSuffix) == 0 {
-		return nil, errors.New("'email_request_token_suffix' in config must not be empty")
+	err = config.Validate()
+	if err != nil {
+		return nil, errors.Wrap(err, "Config is invalid")
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
@@ -49,9 +50,13 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	builder := xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod)
 
+	if config.IssuanceConfig.ReferenceSuffix == "" {
+		config.IssuanceConfig.ReferenceSuffix = airdrop.KYCReferenceSuffix
+	}
+
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
-		config.Asset,
-		airdrop.KYCReferenceSuffix,
+		config.IssuanceConfig.Asset,
+		config.IssuanceConfig.ReferenceSuffix,
 		config.Source,
 		config.Signer,
 		builder,
