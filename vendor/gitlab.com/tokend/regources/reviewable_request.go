@@ -16,9 +16,9 @@ type ReviewableRequest struct {
 	UpdatedAt    Time                      `json:"updated_at"`
 
 	// RequestStateI  - integer representation of request state
-	StateI int32 `json:"request_state_i"`
+	State int32 `json:"request_state_i"`
 	// RequestState  - string representation of request state
-	State string `json:"request_state"`
+	StateName string `json:"request_state"`
 }
 
 // TODO GetLoganFields implementation
@@ -30,21 +30,21 @@ func (r *ReviewableRequest) PagingToken() string {
 // ReviewableRequestDetails - provides specific for request type details.
 // Note: json key of specific request must be equal to xdr.ReviewableRequestType.ShortString result
 type ReviewableRequestDetails struct {
-	// RequestTypeI  - integer representation of request type
-	RequestTypeI int32 `json:"request_type_i"`
-	// RequestType  - string representation of request type
-	RequestType string `json:"request_type"`
+	// RequestType  - integer representation of request type
+	RequestType int32 `json:"request_type_i"`
+	// RequestTypeName  - string representation of request type
+	RequestTypeName string `json:"request_type"`
 
-	AssetCreation          *AssetCreationRequest     `json:"asset_create,omitempty"`
-	AssetUpdate            *AssetUpdateRequest       `json:"asset_update,omitempty"`
-	PreIssuanceCreate      *PreIssuanceRequest       `json:"pre_issuance_create,omitempty"`
-	IssuanceCreate         *IssuanceRequest          `json:"issuance_create,omitempty"`
-	Withdraw               *WithdrawalRequest        `json:"withdraw,omitempty"`
-	TwoStepWithdraw        *WithdrawalRequest        `json:"two_step_withdrawal"`
-	Sale                   *SaleCreationRequest      `json:"sale,omitempty"`
+	AssetCreate       *AssetCreationRequest `json:"asset_create,omitempty"`
+	AssetUpdate       *AssetUpdateRequest   `json:"asset_update,omitempty"`
+	PreIssuanceCreate *PreIssuanceRequest   `json:"pre_issuance_create,omitempty"`
+	IssuanceCreate    *IssuanceRequest      `json:"issuance_create,omitempty"`
+	Withdraw          *WithdrawalRequest    `json:"withdraw,omitempty"`
+	TwoStepWithdraw   *WithdrawalRequest    `json:"two_step_withdrawal"`
+	Sale              *SaleCreationRequest  `json:"sale,omitempty"`
 	LimitsUpdate           *LimitsUpdateRequest      `json:"limits_update,omitempty"`
-	AmlAlert               *AMLAlertRequest          `json:"aml_alert"`
-	UpdateKYC              *UpdateKYCRequest         `json:"update_kyc,omitempty"`
+	AMLAlert               *AMLAlertRequest          `json:"aml_alert"`
+	KYC                    *UpdateKYCRequest         `json:"update_kyc,omitempty"`
 	UpdateSaleDetails      *UpdateSaleDetailsRequest `json:"update_sale_details"`
 	UpdateSaleEndTime      *UpdateSaleEndTimeRequest `json:"update_sale_end_time"`
 	PromotionUpdateRequest *PromotionUpdateRequest   `json:"promotion_update_request"`
