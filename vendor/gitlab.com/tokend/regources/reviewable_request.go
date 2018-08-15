@@ -4,7 +4,7 @@ import "encoding/json"
 
 // Represents Reviewable request
 type ReviewableRequest struct {
-	ID           string                    `json:"id"`
+	ID           uint64                    `json:"id,string"`
 	PT           string                    `json:"paging_token"`
 	Requestor    string                    `json:"requestor"`
 	Reviewer     string                    `json:"reviewer"`
@@ -20,6 +20,8 @@ type ReviewableRequest struct {
 	// RequestState  - string representation of request state
 	State string `json:"request_state"`
 }
+
+// TODO GetLoganFields implementation
 
 func (r *ReviewableRequest) PagingToken() string {
 	return r.PT
