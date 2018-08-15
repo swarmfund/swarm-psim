@@ -65,14 +65,11 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		Source:              config.Source,
 		Signer:              config.Signer,
 		ServiceName:         conf.ServiceBTCDeposit,
-		VerifierServiceName: conf.ServiceBTCDepositVerify,
 		LastProcessedBlock:  config.LastProcessedBlock,
 		Horizon:             horizonConnector,
 		ExternalSystem:      config.ExternalSystem,
 		AddressProvider:     addressProvider,
-		Discovery:           globalConfig.Discovery(),
 		Builder:             builder,
 		OffchainHelper:      btcHelper,
-		DisableVerify:       config.DisableVerify,
 	}), nil
 }

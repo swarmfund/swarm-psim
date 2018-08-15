@@ -4,16 +4,12 @@ import (
 	"context"
 	"time"
 
-	"fmt"
-
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/issuance"
-	"gitlab.com/swarmfund/psim/psim/verification"
 	"gitlab.com/tokend/go/amount"
-	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
@@ -90,16 +86,13 @@ type Service struct {
 	source keypair.Address
 	signer keypair.Full
 
-	serviceName         string
-	verifierServiceName string
-	lastProcessedBlock  uint64
-	externalSystem      int32
-	disableVerify       bool
+	serviceName        string
+	lastProcessedBlock uint64
+	externalSystem     int32
 
 	// TODO Interface
 	horizon         *horizon.Connector
 	addressProvider AddressProvider
-	discovery       Discovery
 	builder         *xdrbuild.Builder
 	offchainHelper  OffchainHelper
 }
@@ -109,38 +102,30 @@ type Service struct {
 // Make sure HorizonConnector provided to constructor is with signer.
 func New(opts *Opts) *Service {
 	return &Service{
-		log:                 opts.Log.WithField("service", opts.ServiceName),
-		source:              opts.Source,
-		signer:              opts.Signer,
-		serviceName:         opts.ServiceName,
-		verifierServiceName: opts.VerifierServiceName,
-		lastProcessedBlock:  opts.LastProcessedBlock,
-		horizon:             opts.Horizon,
-		addressProvider:     opts.AddressProvider,
-		discovery:           opts.Discovery,
-		builder:             opts.Builder,
-		offchainHelper:      opts.OffchainHelper,
-		externalSystem:      opts.ExternalSystem,
-		disableVerify:       opts.DisableVerify,
+		log:                opts.Log.WithField("service", opts.ServiceName),
+		source:             opts.Source,
+		signer:             opts.Signer,
+		serviceName:        opts.ServiceName,
+		lastProcessedBlock: opts.LastProcessedBlock,
+		horizon:            opts.Horizon,
+		addressProvider:    opts.AddressProvider,
+		builder:            opts.Builder,
+		offchainHelper:     opts.OffchainHelper,
+		externalSystem:     opts.ExternalSystem,
 	}
 }
 
 type Opts struct {
-	Log                 *logan.Entry
-	Source              keypair.Address
-	Signer              keypair.Full
-	ServiceName         string
-	VerifierServiceName string
-	LastProcessedBlock  uint64
-
-	Horizon         *horizon.Connector
-	ExternalSystem  int32
-	AddressProvider AddressProvider
-	Discovery       Discovery
-	Builder         *xdrbuild.Builder
-	OffchainHelper  OffchainHelper
-
-	DisableVerify bool
+	Log                *logan.Entry
+	Source             keypair.Address
+	Signer             keypair.Full
+	ServiceName        string
+	LastProcessedBlock uint64
+	Horizon            *horizon.Connector
+	ExternalSystem     int32
+	AddressProvider    AddressProvider
+	Builder            *xdrbuild.Builder
+	OffchainHelper     OffchainHelper
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -330,21 +315,7 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 		"issuance":         issuanceOpt,
 	})
 
-	var envelopeBase64 string
-	if !s.disableVerify {
-		readyEnvelope, err := s.verifyIssuance(envelope, issuanceOpt)
-		if err != nil {
-			return errors.Wrap(err, "failed to verify issuance request")
-		}
-		envelopeBase64, err = xdr.MarshalBase64(*readyEnvelope)
-		if err != nil {
-			return errors.Wrap(err, "Failed to marshal fully signed Envelope")
-		}
-	} else {
-		envelopeBase64 = envelope
-	}
-
-	ok, err := issuance.SubmitEnvelope(ctx, envelopeBase64, s.horizon.Submitter())
+	ok, err := issuance.SubmitEnvelope(ctx, envelope, s.horizon.Submitter())
 	if err != nil {
 		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
 		return nil
@@ -355,83 +326,5 @@ func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offch
 	} else {
 		logger.Debug("Reference duplication - already processed Deposit, skipping.")
 	}
-	return nil
-}
-
-func (s *Service) verifyIssuance(envelope string, issuanceOpt issuance.RequestOpt) (*xdr.TransactionEnvelope, error) {
-	readyEnvelope, err := s.sendToVerifier(envelope)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Verify Issuance TX")
-	}
-
-	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
-	if checkErr != nil {
-		return nil, errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
-	}
-	return readyEnvelope, nil
-}
-
-func (s *Service) sendToVerifier(envelope string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {
-	url, err := s.getVerifierURL()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get URL of Verify")
-	}
-
-	responseEnvelope, err := verification.Verify(url, envelope)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send request to Verifier", logan.F{"verifier_url": url})
-	}
-
-	return responseEnvelope, nil
-}
-
-func (s *Service) getVerifierURL() (string, error) {
-	services, err := s.discovery.DiscoverService(s.verifierServiceName)
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
-	}
-	if len(services) == 0 {
-		return "", ErrNoVerifierServices
-	}
-
-	return services[0].Address, nil
-}
-
-func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuanceOpt issuance.RequestOpt) (checkErr error) {
-	if len(envelope.Tx.Operations) != 1 {
-		return errors.New("Must be exactly 1 Operation.")
-	}
-
-	opBody := envelope.Tx.Operations[0].Body
-
-	if opBody.Type != xdr.OperationTypeCreateIssuanceRequest {
-		return errors.Errorf("Expected OperationType to be CreateIssuanceRequest(%d), but got (%d).",
-			xdr.OperationTypeCreateIssuanceRequest, opBody.Type)
-	}
-
-	op := envelope.Tx.Operations[0].Body.CreateIssuanceRequestOp
-
-	if op == nil {
-		return errors.New("CreateIssuanceRequestOp is nil.")
-	}
-
-	if string(op.Reference) != issuanceOpt.Reference {
-		return errors.Errorf("Expected Reference to be (%s), but got (%s).", issuanceOpt.Reference, op.Reference)
-	}
-
-	req := op.Request
-
-	if req.Receiver.AsString() != issuanceOpt.Receiver {
-		return errors.Errorf("Expected Receiver to be (%s), but got (%s).", issuanceOpt.Receiver, req.Receiver)
-	}
-
-	if string(req.Asset) != issuanceOpt.Asset {
-		return errors.Errorf("Expected Asset to be (%s), but got (%s).", issuanceOpt.Asset, req.Asset)
-	}
-
-	if uint64(req.Amount) != issuanceOpt.Amount {
-		return errors.Errorf("Expected Asset to be (%d), but got (%d).", issuanceOpt.Amount, req.Amount)
-	}
-
 	return nil
 }

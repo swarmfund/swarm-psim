@@ -55,15 +55,12 @@ func init() {
 			Source:              config.Source,
 			Signer:              config.Signer,
 			ServiceName:         conf.ServiceERC20Deposit,
-			VerifierServiceName: conf.ServiceERC20DepositVerify,
 			LastProcessedBlock:  config.Cursor,
 			Horizon:             app.Config(ctx).Horizon().WithSigner(config.Signer),
 			ExternalSystem:      config.ExternalSystem,
 			AddressProvider:     addrProvider,
-			Discovery:           app.Config(ctx).Discovery(),
 			Builder:             builder,
 			OffchainHelper:      internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
-			DisableVerify:       config.DisableVerify,
 		}), nil
 	})
 }
