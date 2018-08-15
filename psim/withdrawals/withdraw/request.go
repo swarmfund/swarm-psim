@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/regources"
 )
 
@@ -37,7 +36,7 @@ var (
 // - ErrMissingRequestInDetails
 // - ErrMissingAddress
 // - ErrAddressNotAString.
-func GetWithdrawalAddress(request horizon.Request) (string, error) {
+func GetWithdrawalAddress(request regources.ReviewableRequest) (string, error) {
 	if request.Details.TwoStepWithdraw != nil {
 		return getWithdrawAddress(request.Details.TwoStepWithdraw.ExternalDetails)
 	}

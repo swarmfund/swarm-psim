@@ -11,10 +11,10 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
-func (s *Service) processNewKYCApplication(ctx context.Context, kycData *kyc.Data, request horizon.Request) error {
+func (s *Service) processNewKYCApplication(ctx context.Context, kycData *kyc.Data, request regources.ReviewableRequest) error {
 	idDoc := kycData.Documents.IDDocument
 	docType := getDocType(idDoc.Type)
 	accountID := request.Details.KYC.AccountToUpdateKYC
@@ -117,7 +117,7 @@ func fixDocURL(url string) string {
 }
 
 // ProcessNewApplicationResponse takes email just to log it with some info logs.
-func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData *kyc.Data, request horizon.Request, email string) error {
+func (s *Service) processNewApplicationResponse(ctx context.Context, appResponse ApplicationResponse, kycData *kyc.Data, request regources.ReviewableRequest, email string) error {
 	logger := s.log.WithFields(logan.F{
 		"request": request,
 		"email":   email,

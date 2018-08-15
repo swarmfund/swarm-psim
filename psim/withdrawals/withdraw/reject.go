@@ -5,10 +5,10 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
-func (s *Service) getRejectReason(request horizon.Request) RejectReason {
+func (s *Service) getRejectReason(request regources.ReviewableRequest) RejectReason {
 	address, err := GetWithdrawalAddress(request)
 	if err != nil {
 		switch errors.Cause(err) {
@@ -37,7 +37,7 @@ func (s *Service) getRejectReason(request horizon.Request) RejectReason {
 	return ""
 }
 
-func (s *Service) processRequestReject(ctx context.Context, request horizon.Request, reason RejectReason) error {
+func (s *Service) processRequestReject(ctx context.Context, request regources.ReviewableRequest, reason RejectReason) error {
 	returnedEnvelope, err := s.sendRequestToVerifier(VerifyRejectURLSuffix, NewReject(request.ID, request.Hash, reason))
 	if err != nil {
 		return errors.Wrap(err, "Failed to send Reject to Verify")

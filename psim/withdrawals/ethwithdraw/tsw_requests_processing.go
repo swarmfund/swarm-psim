@@ -20,7 +20,7 @@ import (
 	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -77,7 +77,7 @@ func (s *Service) processTSWRequestsInfinitely(ctx context.Context) {
 // ProcessPendingTSWRequest prepares raw signed ETH TX and puts it into Request Approve.
 //
 // TSWRequest stands from TwoStepWithdraw Request
-func (s *Service) processPendingTSWRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processPendingTSWRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	tswRequest := request.Details.TwoStepWithdraw
 
 	assetAmount := convertAmount(int64(tswRequest.Amount), s.config.AssetPrecision)
@@ -159,7 +159,7 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, addr string, amount *b
 }
 
 // TSWRequest stands from TwoStepWithdraw Request
-func (s *Service) approveTSWRequest(request horizon.Request, rawETHTxHex, ethTXHash string) error {
+func (s *Service) approveTSWRequest(request regources.ReviewableRequest, rawETHTxHex, ethTXHash string) error {
 	newPreConfirmDetails := make(map[string]interface{})
 	newPreConfirmDetails[VersionPreConfirmDetailsKey] = 3
 	newPreConfirmDetails[TX1PreConfirmDetailsKey] = rawETHTxHex
@@ -195,7 +195,7 @@ func (s *Service) approveTSWRequest(request horizon.Request, rawETHTxHex, ethTXH
 	return nil
 }
 
-func (s *Service) rejectTSWRequest(request horizon.Request, rejectReason string) error {
+func (s *Service) rejectTSWRequest(request regources.ReviewableRequest, rejectReason string) error {
 	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.Source).Op(xdrbuild.ReviewRequestOp{
 		ID:     request.ID,
 		Hash:   request.Hash,

@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 // SubmitETHTransactions is a blocking method
@@ -84,7 +84,7 @@ func (s *Service) submitAllETHTransactionsOnce(ctx context.Context) {
 	}, 0, 5*time.Second, 30*time.Second)
 }
 
-func (s *Service) processApprovedWithdrawRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processApprovedWithdrawRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	rawTXHex, tx, err := getTX2(request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get ETH TX2")

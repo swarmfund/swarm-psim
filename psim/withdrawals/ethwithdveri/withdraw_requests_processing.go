@@ -25,7 +25,7 @@ import (
 	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -79,7 +79,7 @@ func (s *Service) processWithdrawRequestsInfinitely(ctx context.Context) {
 }
 
 // ProcessPendingWithdrawRequest prepares raw signed ETH TX and puts it into Request Approve.
-func (s *Service) processPendingWithdrawRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processPendingWithdrawRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	if request.Details.RequestType == int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		running.UntilSuccess(ctx, s.log.WithField("request_id", request.ID), "withdraw_first_step_approval_waiter",
 			func(ctx context.Context) (bool, error) {
@@ -267,7 +267,7 @@ func (s *Service) prepareSignedETHTx(ctx context.Context, transferID *big.Int) (
 	return tx, nil
 }
 
-func (s *Service) approveWithdrawRequest(request horizon.Request, rawETHTxHex, ethTXHash string) error {
+func (s *Service) approveWithdrawRequest(request regources.ReviewableRequest, rawETHTxHex, ethTXHash string) error {
 	newReviewerDetails := make(map[string]string)
 	newReviewerDetails[TX2ReviewerDetailsKey] = rawETHTxHex
 	newReviewerDetails[TX2HashReviewerDetailsKey] = ethTXHash
@@ -302,7 +302,7 @@ func (s *Service) approveWithdrawRequest(request horizon.Request, rawETHTxHex, e
 	return nil
 }
 
-func (s *Service) rejectWithdrawRequest(request horizon.Request, rejectReason string) error {
+func (s *Service) rejectWithdrawRequest(request regources.ReviewableRequest, rejectReason string) error {
 	signedEnvelope, err := s.xdrbuilder.Transaction(s.config.Source).Op(xdrbuild.ReviewRequestOp{
 		ID:     request.ID,
 		Hash:   request.Hash,

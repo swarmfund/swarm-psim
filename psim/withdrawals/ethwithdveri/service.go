@@ -17,6 +17,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 type WithdrawRequestsStreamer interface {
@@ -24,7 +25,7 @@ type WithdrawRequestsStreamer interface {
 }
 
 type RequestGetter interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type TXSubmitter interface {

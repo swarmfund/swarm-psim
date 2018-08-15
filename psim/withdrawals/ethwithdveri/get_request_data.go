@@ -11,7 +11,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/regources"
 )
 
@@ -109,7 +108,7 @@ func getPreConfirmationVersion(request regources.ReviewableRequest) (float64, er
 	return version, nil
 }
 
-func (s *Service) getWithdrawRejectReason(request horizon.Request, countedAssetAmount *big.Int) string {
+func (s *Service) getWithdrawRejectReason(request regources.ReviewableRequest, countedAssetAmount *big.Int) string {
 	withdrawRequest := request.Details.Withdraw
 
 	addrI, ok := withdrawRequest.ExternalDetails[WithdrawAddressExtDetailsKey]
@@ -131,7 +130,7 @@ func (s *Service) getWithdrawRejectReason(request horizon.Request, countedAssetA
 	return ""
 }
 
-func getRequestNotProcessableReason(request horizon.Request) string {
+func getRequestNotProcessableReason(request regources.ReviewableRequest) string {
 	// Just in case, should never happen as filters only request Withdrawal requests
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) &&
 		request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {

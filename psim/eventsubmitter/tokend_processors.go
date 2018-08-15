@@ -20,7 +20,7 @@ type AccountProvider interface {
 
 // RequestProvider is responsible for request lookup by address
 type RequestProvider interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 // Event names sent to analytics services

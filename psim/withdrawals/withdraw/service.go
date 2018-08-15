@@ -187,7 +187,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	proveErr := ProvePendingRequest(request, s.offchainHelper.GetAsset(), int32(xdr.ReviewableRequestTypeTwoStepWithdrawal), int32(xdr.ReviewableRequestTypeWithdraw))
 	if proveErr != "" {
 		// Not a pending or asset doesn't match.

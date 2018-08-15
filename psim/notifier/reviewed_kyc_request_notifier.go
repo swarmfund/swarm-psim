@@ -10,10 +10,11 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 type ReviewableRequestConnector interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type ReviewedKYCRequestNotifier struct {

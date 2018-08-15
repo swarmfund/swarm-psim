@@ -11,12 +11,12 @@ import (
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/regources"
 )
 
 type RequestsConnector interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type Service struct {
@@ -28,8 +28,8 @@ type Service struct {
 	signerKP keypair.Full
 
 	requestsConnector RequestsConnector
-	xdrbuilder *xdrbuild.Builder
-	listener   net.Listener
+	xdrbuilder        *xdrbuild.Builder
+	listener          net.Listener
 
 	discoveryRegisterPeriod time.Duration
 	discovery               *discovery.Client
@@ -59,9 +59,9 @@ func New(
 		sourceKP: sourceKP,
 		signerKP: signerKP,
 
-		requestsConnector:    requestsConnector,
-		xdrbuilder: builder,
-		listener:   listener,
+		requestsConnector: requestsConnector,
+		xdrbuilder:        builder,
+		listener:          listener,
 
 		discoveryRegisterPeriod: discoveryRegisterPeriod,
 		discovery:               discoveryClient,

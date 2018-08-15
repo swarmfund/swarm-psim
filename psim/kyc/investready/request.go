@@ -5,11 +5,12 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 // ProveInterestingRequest returns non-nil error if the provided Request
 // doesn't need to be considered by this Service.
-func proveInterestingRequest(request horizon.Request) error {
+func proveInterestingRequest(request regources.ReviewableRequest) error {
 	if request.State != kyc.RequestStatePending {
 		// State is not pending
 		return errors.Errorf("Invalid Request State (%d) expected Pending(%d).", request.State, kyc.RequestStatePending)
