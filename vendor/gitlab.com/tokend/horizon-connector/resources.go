@@ -13,12 +13,21 @@ import (
 
 type TransactionEvent = resources.TransactionEvent
 type TXPacket = listener.TXPacket
-type Request = resources.Request
-type WithdrawRequest = resources.RequestWithdrawDetails
-type KYCRequest = resources.RequestKYCDetails
+
+// DEPRECATED: use regources directly
+type Request = regources.ReviewableRequest
+
+type WithdrawRequest = regources.WithdrawalRequest
+
+// DEPRECATED: use regources directly
+type KYCRequest = regources.UpdateKYCRequest
+
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
 type WithdrawalRequestStreamingOpts = listener.WithdrawalRequestStreamingOpts
-type Info = resources.Info
+
+// DEPRECATED: use regources directly
+type Info = regources.Info
+
 type Signer = goresources.Signer
 type Sale = resources.Sale
 type CoreSale = resources.CoreSale
@@ -37,7 +46,9 @@ type CreateKYCRequestOp = operations.CreateKYCRequest
 type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
 type ReviewRequestOp = operations.ReviewRequest
 type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
-type RequestKYCDetails = resources.RequestKYCDetails
+
+// DEPRECATED: use regources directly
+type RequestKYCDetails = regources.UpdateKYCRequest
 
 type ReviewableRequestType = operation.ReviewableRequestType
 type KYCData = resources.KYCData

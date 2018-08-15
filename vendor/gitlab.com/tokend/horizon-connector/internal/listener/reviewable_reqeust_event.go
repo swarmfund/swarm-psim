@@ -1,13 +1,15 @@
 package listener
 
-import "gitlab.com/tokend/horizon-connector/internal/resources"
+import (
+	"gitlab.com/tokend/regources"
+)
 
 type ReviewableRequestEvent struct {
-	body *resources.Request
+	body *regources.ReviewableRequest
 	err  error
 }
 
-func (e *ReviewableRequestEvent) Unwrap() (*resources.Request, error) {
+func (e *ReviewableRequestEvent) Unwrap() (*regources.ReviewableRequest, error) {
 	return e.body, e.err
 }
 

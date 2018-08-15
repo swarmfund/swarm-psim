@@ -700,7 +700,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:706faafe34652b2344f8298853c46feaafa7074ba160a202625c4a78cdb1e931"
+  digest = "1:b2c59dec52f3ff7cd8dc4eaedcddd5fd651b2a66c3d8e4ea4d67addfd70d0109"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -727,7 +727,7 @@
     "types",
   ]
   pruneopts = "NT"
-  revision = "e34ec8a1dab5221a9cef42a1c0c8a9ca2eeab96b"
+  revision = "b06695841e0d5380106d6dd1402e020316fb86e7"
 
 [[projects]]
   branch = "master"

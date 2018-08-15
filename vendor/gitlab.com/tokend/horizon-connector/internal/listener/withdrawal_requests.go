@@ -19,8 +19,6 @@ type WithdrawalRequestStreamingOpts struct {
 
 // StreamWithdrawalRequests streams all ReviewableRequests of type Withdraw and TwoStepWithdraw
 func (q *Q) StreamWithdrawalRequests(ctx context.Context, opts WithdrawalRequestStreamingOpts) <-chan ReviewableRequestEvent {
-	//return q.getAndStreamReviewableRequests(ctx, "", "", operation.WithdrawalsReviewableRequestType, false)
-
 	var getParams string
 
 	if opts.ReverseOrder {

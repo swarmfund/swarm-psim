@@ -80,7 +80,7 @@ func (q *Q) Signers(address string) ([]goresources.Signer, error) {
 }
 
 // ByBalance return account address by balance
-// DEPRECATED use AccountID() from Balances Q instead
+// DEPRECATED: use AccountID() from Balances Q instead
 func (q *Q) ByBalance(balanceID string) (*string, error) {
 	endpoint := fmt.Sprintf("/balances/%s/account", balanceID)
 	response, err := q.client.Get(endpoint)
