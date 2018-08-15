@@ -68,7 +68,7 @@ func (s *Service) generateStats(ctx context.Context) (Stats, error) {
 			return stats, err
 		}
 
-		if s.isUnresolvedBeforeTimeout(request.CreatedAt, request.State) {
+		if s.isUnresolvedBeforeTimeout(time.Time(request.CreatedAt), request.State) {
 			stats.unresolvedRequestIDs = append(stats.unresolvedRequestIDs, request.ID)
 		}
 

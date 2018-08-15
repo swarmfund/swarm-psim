@@ -6,6 +6,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -63,12 +64,12 @@ func getWithdrawAddress(externalDetails map[string]interface{}) (string, error) 
 }
 
 // TODO Comment
-func GetWithdrawAmount(request horizon.Request) (int64, error) {
+func GetWithdrawAmount(request regources.ReviewableRequest) (int64, error) {
 	if request.Details.TwoStepWithdraw != nil {
-		return int64(request.Details.TwoStepWithdraw.DestinationAmount), nil
+		return int64(request.Details.TwoStepWithdraw.DestAssetAmount), nil
 	}
 	if request.Details.Withdraw != nil {
-		return int64(request.Details.Withdraw.DestinationAmount), nil
+		return int64(request.Details.Withdraw.DestAssetAmount), nil
 	}
 
 	return 0, ErrMissingRequestInDetails
@@ -82,7 +83,7 @@ func GetWithdrawAmount(request horizon.Request) (int64, error) {
 // - ErrMissingWithdraw
 // - ErrMissingTXHex
 // - ErrTXHexNotAString.
-func GetTXHex(request horizon.Request) (string, error) {
+func GetTXHex(request regources.ReviewableRequest) (string, error) {
 	if request.Details.Withdraw == nil {
 		return "", ErrMissingWithdraw
 	}
@@ -106,7 +107,7 @@ func GetTXHex(request horizon.Request) (string, error) {
 // - its DestinationAsset equals `asset`.
 //
 // Otherwise returns string describing the validation error.
-func ProvePendingRequest(request horizon.Request, asset string, neededRequestTypes ...int32) string {
+func ProvePendingRequest(request regources.ReviewableRequest, asset string, neededRequestTypes ...int32) string {
 	if request.State != RequestStatePending {
 		// State is not pending
 		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)
@@ -124,10 +125,10 @@ func ProvePendingRequest(request horizon.Request, asset string, neededRequestTyp
 
 	var destAsset string
 	if request.Details.TwoStepWithdraw != nil {
-		destAsset = request.Details.TwoStepWithdraw.DestinationAsset
+		destAsset = request.Details.TwoStepWithdraw.DestAssetCode
 	}
 	if request.Details.Withdraw != nil {
-		destAsset = request.Details.Withdraw.DestinationAsset
+		destAsset = request.Details.Withdraw.DestAssetCode
 	}
 	// TODO If not Withdraw and not TSW - consider returning specific error (switch request.Details.RequestType)
 

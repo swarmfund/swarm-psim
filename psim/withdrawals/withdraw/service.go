@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/regources"
 )
 
 var (
@@ -31,7 +32,7 @@ type RequestListener interface {
 // it allows to obtain Request by ID and is used for fetching Withdraw Request
 // after preliminary approve (TwoStep Request).
 type RequestsConnector interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type TXSubmitter interface {

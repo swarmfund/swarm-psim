@@ -95,7 +95,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	case withdraw.RejectReasonInvalidAddress:
 		return s.validateInvalidAddress(addr)
 	case withdraw.RejectReasonTooLittleAmount:
-		amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestinationAmount))
+		amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestAssetAmount))
 		return s.validateTooLittleAmount(amount)
 	}
 

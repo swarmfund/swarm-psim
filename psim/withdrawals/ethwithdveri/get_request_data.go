@@ -12,6 +12,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -37,7 +38,7 @@ const (
 // - The Request is not of type Withdraw
 // - WithdrawRequest is not approved
 // in all other cases - nil error means non-nil Transaction and vice versa.
-func getTX2(request horizon.Request) (string, *types.Transaction, error) {
+func getTX2(request regources.ReviewableRequest) (string, *types.Transaction, error) {
 	// FIXME (stepko) config?
 	if request.ID == 13449 || request.ID == 13453 {
 		return "", nil, nil
@@ -88,7 +89,7 @@ func getTX2(request horizon.Request) (string, *types.Transaction, error) {
 }
 
 // TODO Avoid duplication with ethwithdraw service.
-func getPreConfirmationVersion(request horizon.Request) (float64, error) {
+func getPreConfirmationVersion(request regources.ReviewableRequest) (float64, error) {
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		// Not a WithdrawRequest - either still TSWRequest or not a WithdrawalRequest at all.
 		return 0, nil
@@ -132,7 +133,9 @@ func (s *Service) getWithdrawRejectReason(request horizon.Request, countedAssetA
 
 func getRequestNotProcessableReason(request horizon.Request) string {
 	// Just in case, should never happen as filters only request Withdrawal requests
-	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) && request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) &&
+		request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
+
 		return fmt.Sprintf("Invalid RequestType (%d).", request.Details.RequestType)
 	}
 

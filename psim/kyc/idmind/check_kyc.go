@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 // TODO Try to refactor - make method shorter.
@@ -81,7 +82,7 @@ func (s *Service) processNotChecked(ctx context.Context, request horizon.Request
 	return nil
 }
 
-func getIDMindTXId(request horizon.Request) string {
+func getIDMindTXId(request regources.ReviewableRequest) string {
 	kycReq := request.Details.KYC
 
 	var txID string
