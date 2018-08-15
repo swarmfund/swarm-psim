@@ -129,16 +129,16 @@ type SaleQuoteAsset struct {
 }
 
 type UpdateKYCRequest struct {
-	AccountToUpdateKYC string                   `json:"account_to_update_kyc"`
-	AccountTypeToSet   int32                    `json:"account_type_to_set"`
-	KYCLevel           uint32                   `json:"kyc_level"`
-	KYCData            map[string]interface{}   `json:"kyc_data"`
+	AccountToUpdateKYC string                 `json:"account_to_update_kyc"`
+	AccountTypeToSet   AccountTypeToSet       `json:"account_type_to_set"`
+	KYCLevel           uint32                 `json:"kyc_level"`
+	KYCData            map[string]interface{} `json:"kyc_data"`
 	// KYCDataStruct is the data from raw map of KYCData, unmarshalled into typed struct in custom Unmarshal below
-	KYCDataStruct      KYCData                  `json:"-"`
-	AllTasks           uint32                   `json:"all_tasks"`
-	PendingTasks       uint32                   `json:"pending_tasks"`
-	SequenceNumber     uint32                   `json:"sequence_number"`
-	ExternalDetails    []map[string]interface{} `json:"external_details"`
+	KYCDataStruct   KYCData                  `json:"-"`
+	AllTasks        uint32                   `json:"all_tasks"`
+	PendingTasks    uint32                   `json:"pending_tasks"`
+	SequenceNumber  uint32                   `json:"sequence_number"`
+	ExternalDetails []map[string]interface{} `json:"external_details"`
 }
 
 func (r *UpdateKYCRequest) UnmarshalJSON(data []byte) error {
@@ -163,6 +163,10 @@ func (r *UpdateKYCRequest) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type AccountTypeToSet struct {
+	Int    int    `json:"int"`
+	String string `json:"string"`
+}
 
 type UpdateSaleDetailsRequest struct {
 	SaleID     uint64                 `json:"sale_id"`
