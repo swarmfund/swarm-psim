@@ -79,21 +79,23 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		}
 	}
 
-	user, err := s.usersConnector.User(accAddress)
-	if err != nil {
-		return errors.Wrap(err, "Failed to obtain User by accountAddress")
-	}
-	if user == nil {
-		// Actually situation is not very probable.
-		s.log.WithField("account_address", accAddress).
-			Error("Tried to get User's emailAddress, but User not found. I won't come back to this User again.")
-		// Returning nil, because we don't want to stop on this User and retry him.
-		return nil
-	}
+	fields := logan.F{}
+	var emailAddress string
+	if !s.config.EmailsConfig.Disabled {
+		user, err := s.usersConnector.User(accAddress)
+		if err != nil {
+			return errors.Wrap(err, "Failed to obtain User by accountAddress")
+		}
+		if user == nil {
+			// Actually situation is not very probable.
+			s.log.WithField("account_address", accAddress).
+				Error("Tried to get User's emailAddress, but User not found. I won't come back to this User again.")
+			// Returning nil, because we don't want to stop on this User and retry him.
+			return nil
+		}
 
-	emailAddress := user.Attributes.Email
-	fields := logan.F{
-		"email_address": emailAddress,
+		emailAddress = user.Attributes.Email
+		fields["email_address"] = emailAddress
 	}
 
 	issuanceOpt, issuanceHappened, err := s.processIssuance(ctx, accAddress)
@@ -101,18 +103,20 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	logger := s.log.WithFields(logan.F{
+	fields.Merge(logan.F{
 		"account_address": accAddress,
-		"email_address":   emailAddress,
 		"issuance_opt":    *issuanceOpt,
 	})
+	logger := s.log.WithFields(fields)
 	if issuanceHappened {
 		logger.Info("CoinEmissionRequest was sent successfully.")
 	} else {
 		logger.Info("Reference duplication in Horizon response - already processed Deposit, skipping.")
 	}
 
-	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
+	if !s.config.EmailsConfig.Disabled {
+		s.emailProcessor.AddEmailAddress(ctx, emailAddress)
+	}
 
 	return nil
 }
