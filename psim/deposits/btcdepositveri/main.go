@@ -10,6 +10,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
+	"gitlab.com/swarmfund/psim/psim/internal"
 )
 
 func init() {
@@ -28,6 +29,10 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
+
+	if config.ExternalSystem == 0 {
+		config.ExternalSystem = internal.MustGetExternalSystemType(horizonConnector.Assets(), config.DepositAsset)
+	}
 
 	btcHelper, err := btcdeposit.NewBTCHelper(
 		log,

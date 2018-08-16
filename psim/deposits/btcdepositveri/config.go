@@ -14,7 +14,7 @@ type Config struct {
 	MinDepositAmount    uint64 `fig:"min_deposit_amount,required"`
 	FixedDepositFee     uint64 `fig:"fixed_deposit_fee,required"`
 	LastBlocksNotWatch  uint64 `fig:"last_blocks_not_watch,required"`
-	ExternalSystem      int32  `fig:"external_system,required"`
+	ExternalSystem      int32  `fig:"external_system"`
 	BlocksToSearchForTX uint64 `fig:"blocks_to_search_for_tx,required"`
 
 	Source keypair.Address `fig:"source,required"`
