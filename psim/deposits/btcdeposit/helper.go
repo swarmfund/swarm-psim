@@ -5,17 +5,17 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"context"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/tokend/go/amount"
-	"context"
-	"gitlab.com/distributed_lab/running"
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -31,10 +31,10 @@ type BTCClient interface {
 type CommonBTCHelper struct {
 	log *logan.Entry
 
-	depositAsset     string
-	minDepositAmount uint64
-	fixedDepositFee  uint64
-	netParams        *chaincfg.Params
+	depositAsset        string
+	minDepositAmount    uint64
+	fixedDepositFee     uint64
+	netParams           *chaincfg.Params
 	blocksToSearchForTX uint64
 
 	btcClient BTCClient
@@ -48,7 +48,7 @@ func NewBTCHelper(
 	minDepositAmount uint64,
 	fixedDepositFee uint64,
 	currency, blockchain string,
-	blocksToSearchForTX int,
+	blocksToSearchForTX uint64,
 
 	btcClient BTCClient) (*CommonBTCHelper, error) {
 
@@ -63,11 +63,11 @@ func NewBTCHelper(
 	return &CommonBTCHelper{
 		log: log,
 
-		depositAsset:     depositAsset,
-		minDepositAmount: minDepositAmount,
-		fixedDepositFee:  fixedDepositFee,
-		netParams:        netParams,
-		blocksToSearchForTX: uint64(blocksToSearchForTX),
+		depositAsset:        depositAsset,
+		minDepositAmount:    minDepositAmount,
+		fixedDepositFee:     fixedDepositFee,
+		netParams:           netParams,
+		blocksToSearchForTX: blocksToSearchForTX,
 
 		btcClient: btcClient,
 	}, nil
@@ -235,4 +235,3 @@ func (h CommonBTCHelper) GetAddressSynonyms(address string) []string {
 	// No Address synonyms are considered in Bitcoin, base 58 is used for encoding Addresses into string.
 	return []string{address}
 }
-

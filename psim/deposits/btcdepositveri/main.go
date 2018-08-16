@@ -5,12 +5,11 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/btcdeposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
-	"gitlab.com/tokend/go/xdrbuild"
 )
 
 func init() {
@@ -28,17 +27,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		})
 	}
 
-	listener, err := ape.Listener(config.Host, config.Port)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to init listener")
-	}
-
 	horizonConnector := globalConfig.Horizon().WithSigner(config.Signer)
-
-	horizonInfo, err := horizonConnector.System().Info()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get Horizon info")
-	}
 
 	btcHelper, err := btcdeposit.NewBTCHelper(
 		log,
@@ -54,16 +43,31 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to create BTCHelper")
 	}
 
-	return depositveri.New(
-		config.ExternalSystem,
-		conf.ServiceBTCDepositVerify,
-		log,
-		config.Signer,
-		config.LastBlocksNotWatch,
-		horizonConnector,
-		xdrbuild.NewBuilder(horizonInfo.Passphrase, horizonInfo.TXExpirationPeriod),
-		listener,
-		globalConfig.Discovery(),
-		btcHelper,
-	), nil
+	addrProvider := addrstate.New(
+		ctx,
+		app.Log(ctx),
+		[]addrstate.StateMutator{
+			addrstate.ExternalSystemBindingMutator{SystemType: config.ExternalSystem},
+			addrstate.BalanceMutator{Asset: config.DepositAsset},
+		},
+		horizonConnector.Listener(),
+	)
+
+	builder, err := horizonConnector.TXBuilder()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init tx builder")
+	}
+
+	return depositveri.New(depositveri.Opts{
+		Log:                log.WithField("service", conf.ServiceBTCDepositVerify),
+		Source:             config.Source,
+		Signer:             config.Signer,
+		ExternalSystem:     config.ExternalSystem,
+		LastBlocksNotWatch: config.LastBlocksNotWatch,
+		Horizon:            horizonConnector,
+		IssuanceStreamer:   horizonConnector.Listener(),
+		AddressProvider:    addrProvider,
+		Builder:            builder,
+		OffchainHelper:     btcHelper,
+	}), nil
 }

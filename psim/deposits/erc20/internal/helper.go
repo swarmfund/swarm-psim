@@ -182,3 +182,8 @@ func (h *ETHHelper) GetBlock(number uint64) (*deposit.Block, error) {
 
 	return &block, nil
 }
+
+func (h *ETHHelper) FindTX(ctx context.Context, blockNumber uint64, txHash string) (deposit.TXFindMeta, *deposit.Tx, error) {
+	// TODO (awsum)
+	panic("Not implemented.")
+}

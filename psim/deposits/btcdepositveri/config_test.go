@@ -20,8 +20,6 @@ func TestNewConfig(t *testing.T) {
 		}
 
 		expected := Config{
-			Host:               "localhost",
-			Port:               8102,
 			DepositAsset:       "BTC",
 			MinDepositAmount:   500000,
 			FixedDepositFee:    100000,
