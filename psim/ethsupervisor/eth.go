@@ -13,6 +13,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/internal/resources"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/tokend/go/amount"
+	"gitlab.com/tokend/regources"
 )
 
 // TODO defer
@@ -172,9 +173,8 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 		Reference: reference,
 		Receiver:  *receiver,
 		Amount:    emissionAmount.Uint64(),
-		Details: resources.DepositDetails{
+		Details: regources.DepositDetails{
 			TXHash: tx.Hash().Hex(),
-			Price:  amount.One,
 		}.Encode(),
 	})
 

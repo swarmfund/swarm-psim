@@ -8,9 +8,9 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 var errNoExtAccount = errors.New("External system Account was not found.")
@@ -97,7 +97,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 		return nil, errors.Wrap(errNoExtAccount, "external binding not found", fields)
 	}
 
-	extDetails := deposit.ExternalDetails{}
+	extDetails := regources.DepositDetails{}
 	err = json.Unmarshal([]byte(string(req.ExternalDetails)), &extDetails)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to unmarshal ExternalDetails of the request", fields.Merge(logan.F{
@@ -109,10 +109,6 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 	expectedReference := v.offchainHelper.BuildReference(extDetails.BlockNumber, extDetails.TXHash, *offchainAddress, extDetails.OutIndex, 64)
 	if expectedReference != string(op.Reference) {
 		return errors.Errorf("Invalid reference - expected (%s), got (%s).", expectedReference, op.Reference), nil
-	}
-
-	if extDetails.Price != amount.One {
-		return errors.Errorf("Wrong Price - expected (%d), got (%d).", amount.One, extDetails.Price), nil
 	}
 
 	lastKnownBlockNumber, err := v.offchainHelper.GetLastKnownBlockNumber()
@@ -132,7 +128,7 @@ func (v *Verifier) validateIssuanceOp(op xdr.CreateIssuanceRequestOp) (verifyErr
 	return v.verifyOffchainBlock(*block, extDetails, uint64(req.Amount), *offchainAddress), nil
 }
 
-func (v *Verifier) verifyOffchainBlock(block deposit.Block, opExtDetails deposit.ExternalDetails, emissionAmount uint64, offchainAddress string) (checkErr error) {
+func (v *Verifier) verifyOffchainBlock(block deposit.Block, opExtDetails regources.DepositDetails, emissionAmount uint64, offchainAddress string) (checkErr error) {
 	for _, tx := range block.TXs {
 		if tx.Hash == opExtDetails.TXHash {
 			// TX Exists in Offchain

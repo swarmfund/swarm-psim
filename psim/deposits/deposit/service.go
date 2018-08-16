@@ -8,15 +8,12 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/issuance"
-	"gitlab.com/tokend/go/amount"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
-)
-
-var (
-	ErrNoVerifierServices = errors.New("No Deposit Verify services were found.")
+	"gitlab.com/tokend/regources"
 )
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
@@ -271,17 +268,18 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 	reference := s.offchainHelper.BuildReference(blockNumber, txHash, out.Address, outIndex, 64)
 	// TODO check maxLen
 
+	details := internal.MustMarshal(regources.DepositDetails{
+		BlockNumber: blockNumber,
+		TXHash:      txHash,
+		OutIndex:    outIndex,
+	})
+
 	issuanceOpt := issuance.RequestOpt{
 		Reference: reference,
 		Receiver:  *balanceID,
 		Asset:     s.offchainHelper.GetAsset(),
 		Amount:    emissionAmount,
-		Details: ExternalDetails{
-			BlockNumber: blockNumber,
-			TXHash:      txHash,
-			OutIndex:    outIndex,
-			Price:       amount.One,
-		}.Encode(),
+		Details:   details,
 		// TODO stop setting this Task in future, it should be set as default Task for IssuanceRequest in Core in future.
 		AllTasks: issuance.TaskVerifyDeposit,
 	}
