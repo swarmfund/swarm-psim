@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
+	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
@@ -204,6 +205,35 @@ func (s *Service) checkValue(out deposit.Out, issuanceAmount regources.Amount) e
 	return nil
 }
 
-func (s *Service) rejectRequest(request regources.ReviewableRequest) error {
+func (s *Service) rejectRequest(request regources.ReviewableRequest, rejectReason string) error {
+	envelope, err := s.builder.
+		Transaction(s.source).
+		Op(xdrbuild.ReviewRequestOp{
+			ID:     request.ID,
+			Hash:   request.Hash,
+			Action: xdr.ReviewRequestOpActionReject,
+			// TODO Check that nil is OK
+			Details: nil,
+			Reason:  rejectReason,
+		}).
+		Sign(s.signer).Marshal()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal tx")
+	}
 
+	submitDetails, err := s.horizon.Submitter().SubmitE(envelope)
+	if err != nil {
+		return errors.Wrap(err, "failed to submit tx", logan.F{
+			"envelope": envelope,
+		})
+	}
+
+	if submitDetails.StatusCode < 200 || submitDetails.StatusCode >= 300 {
+		return errors.From(errors.New("Error submitting TX."), logan.F{
+			"envelope":                envelope,
+			"submit_response_details": submitDetails,
+		})
+	}
+
+	return nil
 }

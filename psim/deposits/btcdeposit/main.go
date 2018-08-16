@@ -53,7 +53,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.FixedDepositFee,
 		config.OffchainCurrency,
 		config.OffchainBlockchain,
-		config.BlocksToSearchForTX,
+		// this value is actually only needed for btcdepositveri service
+		10,
 
 		globalConfig.Bitcoin(),
 	)
