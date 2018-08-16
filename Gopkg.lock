@@ -744,11 +744,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e7b7443a2b7ac483216fc69ea28edc61b492a944aa1677c04c13f95d4a560140"
+  digest = "1:429cf7ebded60aed81bf1cf833971967b8dd3378d07e9a4c2cbe957072fcc601"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "c81395318b9befe1e0b969f87cc6f4563fba40cd"
+  revision = "bafdd49969215e5642e3c66c7cd389bfea84389e"
 
 [[projects]]
   branch = "master"

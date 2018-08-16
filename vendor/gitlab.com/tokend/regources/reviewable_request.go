@@ -35,19 +35,19 @@ type ReviewableRequestDetails struct {
 	// RequestTypeName  - string representation of request type
 	RequestTypeName string `json:"request_type"`
 
-	AssetCreate       *AssetCreationRequest `json:"asset_create,omitempty"`
-	AssetUpdate       *AssetUpdateRequest   `json:"asset_update,omitempty"`
-	PreIssuanceCreate *PreIssuanceRequest   `json:"pre_issuance_create,omitempty"`
-	IssuanceCreate    *IssuanceRequest      `json:"issuance_create,omitempty"`
-	Withdraw          *WithdrawalRequest    `json:"withdraw,omitempty"`
-	TwoStepWithdraw   *WithdrawalRequest    `json:"two_step_withdrawal"`
-	Sale              *SaleCreationRequest  `json:"sale,omitempty"`
+	AssetCreate            *AssetCreationRequest     `json:"asset_create,omitempty"`
+	AssetUpdate            *AssetUpdateRequest       `json:"asset_update,omitempty"`
+	PreIssuanceCreate      *PreIssuanceRequest       `json:"pre_issuance_create,omitempty"`
+	IssuanceCreate         *IssuanceRequest          `json:"issuance_create,omitempty"`
+	Withdraw               *WithdrawalRequest        `json:"withdraw,omitempty"`
+	TwoStepWithdraw        *WithdrawalRequest        `json:"two_step_withdrawal,omitempty"`
+	Sale                   *SaleCreationRequest      `json:"sale,omitempty"`
 	LimitsUpdate           *LimitsUpdateRequest      `json:"limits_update,omitempty"`
-	AMLAlert               *AMLAlertRequest          `json:"aml_alert"`
+	AMLAlert               *AMLAlertRequest          `json:"aml_alert,omitempty"`
 	KYC                    *UpdateKYCRequest         `json:"update_kyc,omitempty"`
-	UpdateSaleDetails      *UpdateSaleDetailsRequest `json:"update_sale_details"`
-	UpdateSaleEndTime      *UpdateSaleEndTimeRequest `json:"update_sale_end_time"`
-	PromotionUpdateRequest *PromotionUpdateRequest   `json:"promotion_update_request"`
+	UpdateSaleDetails      *UpdateSaleDetailsRequest `json:"update_sale_details,omitempty"`
+	UpdateSaleEndTime      *UpdateSaleEndTimeRequest `json:"update_sale_end_time,omitempty"`
+	PromotionUpdateRequest *PromotionUpdateRequest   `json:"promotion_update_request,omitempty"`
 	Invoice                *InvoiceRequest           `json:"invoice,omitempty"`
 	Contract               *ContractRequest          `json:"contract,omitempty"`
 }
@@ -92,6 +92,45 @@ type IssuanceRequest struct {
 	Amount          Amount                 `json:"amount"`
 	Receiver        string                 `json:"receiver"`
 	ExternalDetails map[string]interface{} `json:"external_details"`
+	DepositDetails  DepositDetails         `json:"-"`
+}
+
+func (r *IssuanceRequest) UnmarshalJSON(data []byte) error {
+	type t IssuanceRequest
+	var tt t
+	if err := json.Unmarshal(data, &tt); err != nil {
+		return err
+	}
+	*r = IssuanceRequest(tt)
+
+	// marshal map back to json
+	rawExtDetails, err := json.Marshal(r.ExternalDetails)
+	if err != nil {
+		return err
+	}
+
+	// finally unmarshal to proper struct
+	if err := json.Unmarshal(rawExtDetails, &r.DepositDetails); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DepositDetails is a blob to be put into CreateIssuance Operation DepositDetails as JSON string.
+// DepositDetails provide info not included into the Issuance itself, but necessary for verification the Issuance.
+type DepositDetails struct {
+	BlockNumber uint64 `json:"block_number"`
+	TXHash      string `json:"tx_hash"`
+	OutIndex    uint   `json:"out_index"`
+}
+
+// GetLoganFields implements fields.Provider interface from logan.
+func (d DepositDetails) GetLoganFields() map[string]interface{} {
+	return map[string]interface{}{
+		"block_number": d.BlockNumber,
+		"tx_hash":      d.TXHash,
+	}
 }
 
 type LimitsUpdateRequest struct {
