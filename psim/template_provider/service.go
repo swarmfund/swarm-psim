@@ -14,7 +14,6 @@ import (
 	res "gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/resources"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/regources"
 )
 

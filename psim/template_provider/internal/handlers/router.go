@@ -8,6 +8,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/middlewares"
 	"gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 	"gitlab.com/tokend/go/doorman"
+	"gitlab.com/tokend/regources"
 )
 
 func Router(
