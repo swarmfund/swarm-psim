@@ -68,6 +68,20 @@ type OffchainHelper interface {
 	// GetBlock must retrieve the Block with number `number` from the Offchain and parse it into the type Block.
 	// It's OK to have Outs in a Tx with Addresses equal to empty string (if output failed to parse or definitely not interesting for us).
 	GetBlock(number uint64) (*Block, error)
+	// FindTX looks for the TX with provided `txHash` in the Offchain
+	// starting from the Block with number `blockNumber`.
+	//
+	// `blockNumber` is the number of the Block, where the searched TX
+	// was first seen, so the TX should not be in a Block with lower number.
+	//
+	// If the TX was not found - nil TX without error must be returned
+	FindTX(ctx context.Context, blockNumber uint64, txHash string) (TXFindMeta, *Tx, error)
+}
+
+type TXFindMeta struct {
+	StopWaiting     bool
+	BlockWhereFound uint64
+	BlockTime       time.Time
 }
 
 // Service implements app.Service interface.

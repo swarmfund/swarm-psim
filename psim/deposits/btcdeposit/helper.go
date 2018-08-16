@@ -15,6 +15,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/tokend/go/amount"
 	"context"
+	"gitlab.com/distributed_lab/running"
 )
 
 // BTCClient is interface to be implemented by Bitcoin Core client
@@ -34,6 +35,7 @@ type CommonBTCHelper struct {
 	minDepositAmount uint64
 	fixedDepositFee  uint64
 	netParams        *chaincfg.Params
+	blocksToSearchForTX uint64
 
 	btcClient BTCClient
 }
@@ -46,6 +48,7 @@ func NewBTCHelper(
 	minDepositAmount uint64,
 	fixedDepositFee uint64,
 	currency, blockchain string,
+	blocksToSearchForTX int,
 
 	btcClient BTCClient) (*CommonBTCHelper, error) {
 
@@ -64,6 +67,7 @@ func NewBTCHelper(
 		minDepositAmount: minDepositAmount,
 		fixedDepositFee:  fixedDepositFee,
 		netParams:        netParams,
+		blocksToSearchForTX: uint64(blocksToSearchForTX),
 
 		btcClient: btcClient,
 	}, nil
@@ -93,7 +97,46 @@ func (h CommonBTCHelper) GetBlock(number uint64) (*deposit.Block, error) {
 		Timestamp: block.MsgBlock().Header.Timestamp,
 		TXs:       depositTXs,
 	}, nil
+}
 
+// FindTX implementation for BTC looks for a TX with provided Hash in N
+// blocks starting from the Block with provided `blockNumber`.
+func (h CommonBTCHelper) FindTX(ctx context.Context, blockNumber uint64, txHash string) (deposit.TXFindMeta, *deposit.Tx, error) {
+	for i := blockNumber; i < (blockNumber + h.blocksToSearchForTX); i++ {
+		if running.IsCancelled(ctx) {
+			return deposit.TXFindMeta{}, nil, nil
+		}
+
+		block, err := h.btcClient.GetBlock(i)
+		if err != nil {
+			return deposit.TXFindMeta{}, nil, errors.Wrap(err, "Failed to get Block from BTCClient", logan.F{
+				"block_number": i,
+			})
+		}
+		if block == nil {
+			// Arrived to the end of existing Blocks - TX not found,
+			// but there is a hope to see it later.
+			return deposit.TXFindMeta{
+				StopWaiting: false,
+			}, nil, nil
+		}
+
+		for _, tx := range block.Transactions() {
+			if tx.Hash().String() == txHash {
+				// The TX was found!
+				t := h.parseTX(*tx)
+				return deposit.TXFindMeta{
+					BlockWhereFound: i,
+					BlockTime:       block.MsgBlock().Header.Timestamp,
+				}, &t, nil
+			}
+		}
+	}
+
+	// No hope to see the TX later.
+	return deposit.TXFindMeta{
+		StopWaiting: true,
+	}, nil, nil
 }
 
 func (h CommonBTCHelper) parseTX(tx btcutil.Tx) deposit.Tx {

@@ -47,6 +47,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.FixedDepositFee,
 		config.OffchainCurrency,
 		config.OffchainBlockchain,
+		config.BlocksToSearchForTX,
 		globalConfig.Bitcoin(),
 	)
 	if err != nil {
