@@ -24,6 +24,7 @@ type KYCRequest = regources.UpdateKYCRequest
 
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
 type WithdrawalRequestStreamingOpts = listener.WithdrawalRequestStreamingOpts
+type IssuanceRequestStreamingOpts = listener.IssuanceRequestStreamingOpts
 
 // DEPRECATED: use regources directly
 type Info = regources.Info
@@ -51,7 +52,10 @@ type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
 type RequestKYCDetails = regources.UpdateKYCRequest
 
 type ReviewableRequestType = operation.ReviewableRequestType
-type KYCData = resources.KYCData
+
+// DEPRECATED: use regources directly
+type KYCData = regources.KYCData
+
 type KeyValue = resources.KeyValue
 
 // DEPRECATED: use regources directly
