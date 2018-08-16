@@ -29,8 +29,8 @@ func (c IssuanceConfig) Validate() (validationErr error) {
 		return errors.New("Amount cannot be zero.")
 	}
 
-	if utf8.RuneCountInString(c.ReferenceSuffix) <= 8 {
-		return errors.New("Reference suffix length must be 8 symbols.")
+	if utf8.RuneCountInString(c.ReferenceSuffix) > 8 {
+		return errors.New("Reference suffix length must be at most 8 symbols.")
 	}
 
 	return nil
