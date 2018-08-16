@@ -14,7 +14,7 @@ type IssuanceRequestStreamingOpts struct {
 	ReverseOrder    bool
 	// Filters
 	AssetCode    string
-	RequestState int
+	RequestState int32
 }
 
 // StreamIssuanceRequests streams all ReviewableRequests of type CreateIssuance

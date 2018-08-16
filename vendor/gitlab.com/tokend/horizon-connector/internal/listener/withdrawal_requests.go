@@ -14,7 +14,7 @@ type WithdrawalRequestStreamingOpts struct {
 	ReverseOrder    bool
 	// Filters
 	DestAssetCode string
-	RequestState  int
+	RequestState  int32
 }
 
 // StreamWithdrawalRequests streams all ReviewableRequests of type Withdraw and TwoStepWithdraw
