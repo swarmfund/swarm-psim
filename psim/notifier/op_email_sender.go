@@ -50,7 +50,7 @@ func NewOpEmailSender(
 		return nil, errors.Wrap(err, "Failed to obtain template bytes")
 	}
 
-	if len(bb) == 0 {
+	if bb == nil {
 		return nil, errors.From(errors.New("template not found"), logan.F{
 			"template_name": templateName,
 		})

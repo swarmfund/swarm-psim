@@ -169,7 +169,7 @@ func New(
 		},
 
 		reviewedKYCRequestNotifier: ReviewedKYCRequestNotifier{
-			log:                      log,
+			log: log,
 			approvedKYCEmailSender:   approvedKYCEmailSender,
 			rejectedKYCEmailSender:   rejectedKYCEmailSender,
 			usaKYCEmailSender:        usaKYCEmailSender,
@@ -183,6 +183,7 @@ func New(
 		},
 
 		paymentV2Notifier: PaymentV2Notifier{
+			log:                  log,
 			emailSender:          paymentV2EmailSender,
 			eventConfig:          config.PaymentV2,
 			transactionConnector: transactionConnector,
@@ -197,30 +198,30 @@ func (s *Service) Run(ctx context.Context) {
 
 	var opNotifiersWaitGroup sync.WaitGroup
 
-	opNotifiersWaitGroup.Add(3)
+	opNotifiersWaitGroup.Add(4)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
 		running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
 			s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
-		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
 		running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 			s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
-		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
 		running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
 			s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
-		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
 		running.WithBackOff(ctx, s.logger, "payment_v2_notifier",
 			s.paymentV2Notifier.listenAndProcessPaymentV2, 0, 5*time.Second, time.Second)
-		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	opNotifiersWaitGroup.Wait()

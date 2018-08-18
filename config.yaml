@@ -168,7 +168,7 @@ notifier:
       subject: "Payment successful"
       request_type: 10 # 10 means that email will be sent only once per each unique token
       request_token_suffix: _payment_successful # Email with same token will be sent only once
-      template_name: payment-successful
+      template_name: email-payment-successful
       template_link_url: https://invest.swarm.fund
 
 charger:
