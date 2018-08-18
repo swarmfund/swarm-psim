@@ -194,6 +194,7 @@ func New(
 }
 
 func (s *Service) Run(ctx context.Context) {
+	time.Sleep(5 * time.Second)
 	s.logger.Info("Starting")
 
 	var opNotifiersWaitGroup sync.WaitGroup
