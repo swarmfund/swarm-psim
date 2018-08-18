@@ -105,6 +105,8 @@ func (n *PaymentV2Notifier) notifyAboutPaymentV2(
 	ctx context.Context,
 	paymentV2Operation horizon.PaymentV2Op,
 ) error {
+	// FIXME: if one of the participants doesn't have user - no one will receive payment V2 notification
+
 	sender, err := n.userConnector.User(paymentV2Operation.From)
 	if err != nil {
 		return errors.Wrap(err, "failed to load sender", logan.F{
@@ -166,16 +168,18 @@ func (n *PaymentV2Notifier) buildPaymentV2UniqueToken(emailAddress string, payme
 }
 
 func getPaymentParticipantsFees(paymentV2Operation horizon.PaymentV2Op) (*PaymentParticipantsFees, error) {
-	senderTotalFee := big.NewInt(int64(paymentV2Operation.SourceFeeData.FixedFee) +
-		int64(paymentV2Operation.SourceFeeData.ActualPaymentFee))
+	senderFixedFee := big.NewInt(int64(paymentV2Operation.SourceFeeData.FixedFee))
+	senderPaymentFee := big.NewInt(int64(paymentV2Operation.SourceFeeData.ActualPaymentFee))
+	senderTotalFee := big.NewInt(0).Add(senderFixedFee, senderPaymentFee)
 	if !senderTotalFee.IsInt64() {
 		return nil, errors.From(errors.New("Sender total fee overflows int64"), logan.F{
 			"payment_id": paymentV2Operation.PaymentID,
 		})
 	}
 
-	receiverTotalFee := big.NewInt(int64(paymentV2Operation.DestinationFeeData.FixedFee) +
-		int64(paymentV2Operation.DestinationFeeData.ActualPaymentFee))
+	receiverFixedFee := big.NewInt(int64(paymentV2Operation.DestinationFeeData.FixedFee))
+	receiverPaymentFee := big.NewInt(int64(paymentV2Operation.DestinationFeeData.ActualPaymentFee))
+	receiverTotalFee := big.NewInt(0).Add(receiverFixedFee, receiverPaymentFee)
 	if !receiverTotalFee.IsInt64() {
 		return nil, errors.From(errors.New("Receiver total fee overflows int64"), logan.F{
 			"payment_id": paymentV2Operation.PaymentID,

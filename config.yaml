@@ -163,6 +163,7 @@ notifier:
       template_name: us-residents
       template_link_url: https://invest.swarm.fund
   payment_v2:
+    disabled: true
     cursor: 1
     emails:
       subject: "Payment successful"

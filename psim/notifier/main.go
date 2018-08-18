@@ -70,19 +70,19 @@ func setupFn(ctx context.Context) (app.Service, error) {
 }
 
 func checkRequestTokenSuffixesValidity(config Config) error {
-	if len(config.OrderCancelled.Emails.RequestTokenSuffix) == 0 {
+	if len(config.OrderCancelled.Emails.RequestTokenSuffix) == 0 && !config.OrderCancelled.Disabled {
 		return errors.New("'email_request_token_suffix' in order_cancelled must not be empty")
 	}
-	if len(config.KYCCreated.Emails.RequestTokenSuffix) == 0 {
+	if len(config.KYCCreated.Emails.RequestTokenSuffix) == 0 && !config.KYCCreated.Disabled {
 		return errors.New("'email_request_token_suffix' in kyc_created must not be empty")
 	}
-	if len(config.KYCApproved.Emails.RequestTokenSuffix) == 0 {
+	if len(config.KYCApproved.Emails.RequestTokenSuffix) == 0 && !config.KYCApproved.Disabled {
 		return errors.New("'email_request_token_suffix' in kyc_approved must not be empty")
 	}
-	if len(config.KYCRejected.Emails.RequestTokenSuffix) == 0 {
+	if len(config.KYCRejected.Emails.RequestTokenSuffix) == 0 && !config.KYCRejected.Disabled {
 		return errors.New("'email_request_token_suffix' in kyc_rejected must not be empty")
 	}
-	if len(config.PaymentV2.Emails.RequestTokenSuffix) == 0 {
+	if len(config.PaymentV2.Emails.RequestTokenSuffix) == 0 && !config.PaymentV2.Disabled {
 		return errors.New("'email_request_token_suffix' in payment_v2 must not be empty")
 	}
 

@@ -142,7 +142,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.PaymentV2.Disabled {
 		return nil, errors.Wrap(err, "failed to create paymentV2EmailSender")
 	}
 
@@ -194,7 +195,6 @@ func New(
 }
 
 func (s *Service) Run(ctx context.Context) {
-	time.Sleep(5 * time.Second)
 	s.logger.Info("Starting")
 
 	var opNotifiersWaitGroup sync.WaitGroup
@@ -221,6 +221,10 @@ func (s *Service) Run(ctx context.Context) {
 
 	go func(w *sync.WaitGroup) {
 		defer w.Done()
+		if s.paymentV2Notifier.eventConfig.Disabled {
+			s.logger.Info("paymentV2 notifier disabled by config")
+			return
+		}
 		running.WithBackOff(ctx, s.logger, "payment_v2_notifier",
 			s.paymentV2Notifier.listenAndProcessPaymentV2, 0, 5*time.Second, time.Second)
 	}(&opNotifiersWaitGroup)
