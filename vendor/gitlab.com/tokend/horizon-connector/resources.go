@@ -13,12 +13,22 @@ import (
 
 type TransactionEvent = resources.TransactionEvent
 type TXPacket = listener.TXPacket
-type Request = resources.Request
-type WithdrawRequest = resources.RequestWithdrawDetails
-type KYCRequest = resources.RequestKYCDetails
+
+// DEPRECATED: use regources directly
+type Request = regources.ReviewableRequest
+
+type WithdrawRequest = regources.WithdrawalRequest
+
+// DEPRECATED: use regources directly
+type KYCRequest = regources.UpdateKYCRequest
+
 type ReviewableRequestEvent = listener.ReviewableRequestEvent
 type WithdrawalRequestStreamingOpts = listener.WithdrawalRequestStreamingOpts
-type Info = resources.Info
+type IssuanceRequestStreamingOpts = listener.IssuanceRequestStreamingOpts
+
+// DEPRECATED: use regources directly
+type Info = regources.Info
+
 type Signer = goresources.Signer
 type Sale = resources.Sale
 type CoreSale = resources.CoreSale
@@ -35,12 +45,19 @@ type Account = resources.Account
 type Wallet = resources.Wallet
 type CreateKYCRequestOp = operations.CreateKYCRequest
 type CreateKYCRequestOpResponse = listener.CreateKYCRequestOpResponse
+type PaymentV2Op = operations.PaymentV2
+type PaymentV2OpResponse = listener.PaymentOpV2Response
 type ReviewRequestOp = operations.ReviewRequest
 type ReviewRequestOpResponse = listener.ReviewRequestOpResponse
-type RequestKYCDetails = resources.RequestKYCDetails
+
+// DEPRECATED: use regources directly
+type RequestKYCDetails = regources.UpdateKYCRequest
 
 type ReviewableRequestType = operation.ReviewableRequestType
-type KYCData = resources.KYCData
+
+// DEPRECATED: use regources directly
+type KYCData = regources.KYCData
+
 type KeyValue = resources.KeyValue
 
 // DEPRECATED: use regources directly

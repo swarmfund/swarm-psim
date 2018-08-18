@@ -1,15 +1,17 @@
 package notifier
 
 import (
+	"reflect"
+
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"reflect"
 )
 
 type EventConfig struct {
-	Cursor uint64       `fig:"cursor"`
-	Emails EmailsConfig `fig:"emails,required"`
+	Disabled bool         `fig:"disabled"`
+	Cursor   uint64       `fig:"cursor"`
+	Emails   EmailsConfig `fig:"emails,required"`
 }
 
 func (c EventConfig) GetLoganFields() map[string]interface{} {
@@ -24,6 +26,16 @@ var EventHooks = figure.Hooks{
 		rawEvent, err := cast.ToStringMapE(raw)
 		if err != nil {
 			return reflect.Value{}, errors.Wrap(err, "failed to cast provider to map[string]interface{}")
+		}
+
+		var disabledConfig struct {
+			Disabled bool `fig:"disabled"`
+		}
+
+		err = figure.Out(&disabledConfig).From(rawEvent).Please()
+
+		if disabledConfig.Disabled {
+			return reflect.ValueOf(EventConfig{Disabled: true}), nil
 		}
 
 		var event EventConfig

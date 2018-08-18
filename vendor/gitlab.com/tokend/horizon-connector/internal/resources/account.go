@@ -26,21 +26,11 @@ func (a Account) GetLoganFields() map[string]interface{} {
 }
 
 type AccountKYC struct {
-	Data *KYCData `json:"KYCData"`
+	Data *regources.KYCData `json:"KYCData"`
 }
 
 func (k AccountKYC) GetLoganFields() map[string]interface{} {
 	return map[string]interface{}{
 		"data": k.Data,
-	}
-}
-
-type KYCData struct {
-	BlobID string `json:"blob_id"`
-}
-
-func (d KYCData) GetLoganFields() map[string]interface{} {
-	return map[string]interface{}{
-		"blob_id": d.BlobID,
 	}
 }

@@ -3,7 +3,7 @@ package regources
 import (
 	"encoding/json"
 
-	"github.com/pkg/errors"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/go/amount"
 )
 

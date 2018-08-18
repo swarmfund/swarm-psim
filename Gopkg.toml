@@ -81,8 +81,8 @@
   name = "gitlab.com/tokend/go"
 
 [[constraint]]
-  name = "gitlab.com/tokend/horizon-connector"
   branch = "master"
+  name = "gitlab.com/tokend/horizon-connector"
 
 [[override]]
   branch = "master"

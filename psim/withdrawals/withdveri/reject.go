@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/ape"
+	"gitlab.com/swarmfund/psim/ape/problems"
+	"gitlab.com/swarmfund/psim/psim/verification"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
-	"gitlab.com/swarmfund/psim/ape"
-	"gitlab.com/swarmfund/psim/ape/problems"
-	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
-	"gitlab.com/swarmfund/psim/psim/verification"
 )
 
 func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +95,7 @@ func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.
 	case withdraw.RejectReasonInvalidAddress:
 		return s.validateInvalidAddress(addr)
 	case withdraw.RejectReasonTooLittleAmount:
-		amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestinationAmount))
+		amount := s.offchainHelper.ConvertAmount(int64(request.Details.TwoStepWithdraw.DestAssetAmount))
 		return s.validateTooLittleAmount(amount)
 	}
 

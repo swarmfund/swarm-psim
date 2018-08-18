@@ -13,4 +13,5 @@ type Config struct {
 	KYCApproved    EventConfig `fig:"kyc_approved,required"`
 	USAKyc         EventConfig `fig:"usa_kyc,required"`
 	KYCRejected    EventConfig `fig:"kyc_rejected,required"`
+	PaymentV2      EventConfig `fig:"payment_v2,required"`
 }

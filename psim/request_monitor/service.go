@@ -54,7 +54,7 @@ func (s *Service) checkRequests(ctx context.Context) error {
 			continue
 		}
 
-		if s.isUnresolvedBeforeTimeout(request.UpdatedAt, request.Details.RequestType) {
+		if s.isUnresolvedBeforeTimeout(time.Time(request.UpdatedAt), request.Details.RequestType) {
 			s.logger.WithFields(logan.F{
 				"request type":  request.Details.RequestType,
 				"request state": request.State,

@@ -122,67 +122,54 @@ bearer:
 notifier:
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
-
   order_cancelled:
     cursor: 1
-
     emails:
       subject: "IO cancelled"
-
       request_type: 10 # 10 means that email will be sent only once per each unique token
       request_token_suffix: _io_cancelled # Email with same token will be sent only once
-
       template_name: io-cancelled
-
       template_link_url: https://invest.swarm.fund
-
   kyc_created:
     cursor: 1
-
     emails:
       subject: "KYC request created"
-
       request_type: 10 # 10 means that email will be sent only once per each unique token
       request_token_suffix: _kyc_request_created # Email with same token will be sent only once
-
       template_name: kyc-created
-
       template_link_url: https://invest.swarm.fund
-
   kyc_approved:
     cursor: 1
-
     emails:
       subject: "KYC request approved"
-
       request_type: 10 # 10 means that email will be sent only once per each unique token
       request_token_suffix: _kyc_request_approved # Email with same token will be sent only once
-
       template_name: kyc-approved
-
       template_link_url: https://invest.swarm.fund
-
+  kyc_rejected:
+    cursor: 1
+    emails:
+      subject: "KYC request rejected"
+      request_type: 10 # 10 means that email will be sent only once per each unique token
+      request_token_suffix: _kyc_request_rejected # Email with same token will be sent only once
+      template_name: kyc-rejected
+      template_link_url: https://invest.swarm.fund
   usa_kyc:
     cursor: 1
-
     emails:
       subject: "Accreditation status verification"
       request_type: 10 # 10 means that email will be sent only once per each unique token
       request_token_suffix: -usa-user-notification # Email with same token will be sent only once
       template_name: us-residents
       template_link_url: https://invest.swarm.fund
-
-  kyc_rejected:
+  payment_v2:
+    disabled: true
     cursor: 1
-
     emails:
-      subject: "KYC request rejected"
-
+      subject: "Payment successful"
       request_type: 10 # 10 means that email will be sent only once per each unique token
-      request_token_suffix: _kyc_request_rejected # Email with same token will be sent only once
-
-      template_name: kyc-rejected
-
+      request_token_suffix: _payment_successful # Email with same token will be sent only once
+      template_name: email-payment-successful
       template_link_url: https://invest.swarm.fund
 
 charger:
