@@ -8,9 +8,9 @@ import (
 
 	"net/url"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 //todo add base pointer types
@@ -23,44 +23,6 @@ var (
 				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
 			}
 			return reflect.ValueOf(result), nil
-		},
-		"*string": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToStringE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse string")
-			}
-			return reflect.ValueOf(&result), nil
-		},
-		// TODO Do other types slices?
-		"[]int64": func(value interface{}) (reflect.Value, error) {
-			var a []int64
-
-			switch v := value.(type) {
-			case []int64:
-				return reflect.ValueOf(value), nil
-			case []int:
-				for _, intValue := range v {
-					a = append(a, int64(intValue))
-				}
-				return reflect.ValueOf(a), nil
-			case []interface{}:
-				for i, u := range v {
-					int64Value, err := cast.ToInt64E(u)
-					if err != nil {
-						return reflect.Value{}, fmt.Errorf("failed to cast slice element number %d: %#v of type %T into int64", i, value, value)
-					}
-					a = append(a, int64Value)
-				}
-				return reflect.ValueOf(a), nil
-			case interface{}:
-				int64Value, err := cast.ToInt64E(value)
-				if err != nil {
-					return reflect.Value{}, fmt.Errorf("failed to cast %#v of type %T to int64", value, value)
-				}
-				return reflect.ValueOf([]int64{int64Value}), nil
-			default:
-				return reflect.Value{}, fmt.Errorf("failed to cast %#v of type %T to []int64", value, value)
-			}
 		},
 		"[]string": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToStringSliceE(value)
@@ -124,13 +86,6 @@ var (
 				return reflect.Value{}, errors.Wrap(err, "failed to parse bool")
 			}
 			return reflect.ValueOf(result), nil
-		},
-		"*bool": func(value interface{}) (reflect.Value, error) {
-			result, err := cast.ToBoolE(value)
-			if err != nil {
-				return reflect.Value{}, errors.Wrap(err, "failed to parse bool")
-			}
-			return reflect.ValueOf(&result), nil
 		},
 		"time.Time": func(value interface{}) (reflect.Value, error) {
 			result, err := cast.ToTimeE(value)

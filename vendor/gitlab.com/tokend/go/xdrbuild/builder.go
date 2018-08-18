@@ -1,10 +1,7 @@
 package xdrbuild
 
 import (
-	"encoding/hex"
-
 	"github.com/pkg/errors"
-	"gitlab.com/tokend/go/network"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild/internal"
 	"gitlab.com/tokend/keypair"
@@ -40,16 +37,4 @@ func (b *Builder) Sign(envelope *xdr.TransactionEnvelope, kp keypair.Full) (*xdr
 	}
 
 	return envelope, nil
-}
-
-func (b *Builder) TXHashHex(envelope string) (string, error) {
-	var tx xdr.TransactionEnvelope
-	if err := xdr.SafeUnmarshalBase64(envelope, &tx); err != nil {
-		return "", errors.Wrap(err, "failed to unmarshal envelope")
-	}
-	hash, err := network.HashTransaction(&tx.Tx, b.passphrase)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to hash tx")
-	}
-	return hex.EncodeToString(hash[:]), nil
 }

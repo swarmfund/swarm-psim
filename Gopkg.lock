@@ -699,8 +699,8 @@
   revision = "0c78fbcaf398241d7f7d97eafe79fa226b2eac40"
 
 [[projects]]
-  branch = "feature/payment_v2_notifications"
-  digest = "1:87cd2e0b6bd07303cf3850695ad3315e4a6738b2062983146dd6004bded97432"
+  branch = "master"
+  digest = "1:016fa81579c90792c928b98bf19e7d2fe6fc8408af193682bd4137361536fb0a"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -727,7 +727,7 @@
     "types",
   ]
   pruneopts = "NT"
-  revision = "787de3cd8cfd6281dc6ce1033dbcfc4bbc4de76d"
+  revision = "f2c432d1be325d9f0ed20abe21b962b223faa870"
 
 [[projects]]
   branch = "master"
@@ -744,11 +744,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:59b4eef23dfef27e25cd9b4294587f679f2eb9031795b0fd96fb4bc54697704a"
+  digest = "1:1caccf0e8fc43866715dbfb98a21073ca6265adad140d3db81681f1cedc19cc1"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "1d6de2aa420a79a2396343e96d43f343fabf4be9"
+  revision = "fb67c13c632496b6166adc68ca65ab5ee7eb44d5"
 
 [[projects]]
   branch = "master"
@@ -881,6 +881,7 @@
     "github.com/ethereum/go-ethereum/crypto",
     "github.com/ethereum/go-ethereum/ethclient",
     "github.com/ethereum/go-ethereum/event",
+    "github.com/ethereum/go-ethereum/log",
     "github.com/ethereum/go-ethereum/rlp",
     "github.com/evalphobia/logrus_sentry",
     "github.com/getsentry/raven-go",
