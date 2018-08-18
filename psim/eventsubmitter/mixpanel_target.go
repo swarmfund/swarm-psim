@@ -19,5 +19,5 @@ func NewMixpanelTarget(connector *mixpanel.Connector) *MixpanelTarget {
 
 // SendEvent sends an event to mixpanel via mixpanel client
 func (mt *MixpanelTarget) SendEvent(event *BroadcastedEvent) error {
-	return mt.Connector.SendEvent(event.Account, string(event.Name), event.Time)
+	return mt.Connector.SendEvent(event.ActorEmail, string(event.Name), event.Time)
 }

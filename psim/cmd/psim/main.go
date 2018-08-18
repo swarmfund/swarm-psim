@@ -38,12 +38,12 @@ import (
 
 	// other folks
 	_ "gitlab.com/swarmfund/psim/psim/bearer"
+	_ "gitlab.com/swarmfund/psim/psim/marketmaker"
 	_ "gitlab.com/swarmfund/psim/psim/notifier"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetter"
 	_ "gitlab.com/swarmfund/psim/psim/prices/pricesetterveri"
 	_ "gitlab.com/swarmfund/psim/psim/template_provider"
 	_ "gitlab.com/swarmfund/psim/psim/wallet_cleaner"
-	_ "gitlab.com/swarmfund/psim/psim/marketmaker"
 
 	// airdrops
 	_ "gitlab.com/swarmfund/psim/psim/airdrop/20airdrop"

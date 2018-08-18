@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/salesforce"
+	salesforce "gitlab.com/swarmfund/salesforce-connector"
 )
 
 // TODO use figure out
@@ -33,10 +33,8 @@ func (c *ViperConfig) Salesforce() *salesforce.Connector {
 		username := v.GetString("username")
 		password := v.GetString("password")
 
-		salesforce, err := salesforce.NewConnector(apiURL, secret, id, username, password)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to create connector"))
-		}
+		salesforce := salesforce.NewConnector(apiURL, secret, id, username, password)
+
 		c.salesforce = salesforce
 	}
 

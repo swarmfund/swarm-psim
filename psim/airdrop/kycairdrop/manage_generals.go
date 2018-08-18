@@ -68,30 +68,34 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return nil
 	}
 
-	isUSA, err := s.usaChecker.CheckIsUSA(*acc)
-	if err != nil {
-		return errors.Wrap(err, "Failed to check whether User is from USA")
-	}
-	if isUSA {
-		s.log.WithField("account_id", accAddress).Warn("Found USA User, no issuance for USA user, skipping.")
-		return nil
-	}
-
-	user, err := s.usersConnector.User(accAddress)
-	if err != nil {
-		return errors.Wrap(err, "Failed to obtain User by accountAddress")
-	}
-	if user == nil {
-		// Actually situation is not very probable.
-		s.log.WithField("account_address", accAddress).
-			Error("Tried to get User's emailAddress, but User not found. I won't come back to this User again.")
-		// Returning nil, because we don't want to stop on this User and retry him.
-		return nil
+	if !s.config.USACheckDisabled {
+		isUSA, err := s.usaChecker.CheckIsUSA(*acc)
+		if err != nil {
+			return errors.Wrap(err, "Failed to check whether User is from USA")
+		}
+		if isUSA {
+			s.log.WithField("account_id", accAddress).Warn("Found USA User, no issuance for USA user, skipping.")
+			return nil
+		}
 	}
 
-	emailAddress := user.Attributes.Email
-	fields := logan.F{
-		"email_address": emailAddress,
+	fields := logan.F{}
+	var emailAddress string
+	if !s.config.EmailsConfig.Disabled {
+		user, err := s.usersConnector.User(accAddress)
+		if err != nil {
+			return errors.Wrap(err, "Failed to obtain User by accountAddress")
+		}
+		if user == nil {
+			// Actually situation is not very probable.
+			s.log.WithField("account_address", accAddress).
+				Error("Tried to get User's emailAddress, but User not found. I won't come back to this User again.")
+			// Returning nil, because we don't want to stop on this User and retry him.
+			return nil
+		}
+
+		emailAddress = user.Attributes.Email
+		fields["email_address"] = emailAddress
 	}
 
 	issuanceOpt, issuanceHappened, err := s.processIssuance(ctx, accAddress)
@@ -99,24 +103,26 @@ func (s *Service) processGeneralAccount(ctx context.Context, accAddress string) 
 		return errors.Wrap(err, "Failed to process Issuance", fields)
 	}
 
-	logger := s.log.WithFields(logan.F{
+	fields.Merge(logan.F{
 		"account_address": accAddress,
-		"email_address":   emailAddress,
 		"issuance_opt":    *issuanceOpt,
 	})
+	logger := s.log.WithFields(fields)
 	if issuanceHappened {
 		logger.Info("CoinEmissionRequest was sent successfully.")
 	} else {
 		logger.Info("Reference duplication in Horizon response - already processed Deposit, skipping.")
 	}
 
-	s.emailProcessor.AddEmailAddress(ctx, emailAddress)
+	if !s.config.EmailsConfig.Disabled {
+		s.emailProcessor.AddEmailAddress(ctx, emailAddress)
+	}
 
 	return nil
 }
 
 func (s *Service) processIssuance(ctx context.Context, accAddress string) (*issuance.RequestOpt, bool, error) {
-	balanceID, err := airdrop.GetBalanceID(accAddress, s.config.Asset, s.accountsConnector)
+	balanceID, err := airdrop.GetBalanceID(accAddress, s.config.IssuanceConfig.Asset, s.accountsConnector)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "Failed to get BalanceID of the Account")
 	}

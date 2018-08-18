@@ -27,7 +27,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	err := figure.
 		Out(&config).
 		From(app.Config(ctx).Get(conf.ServiceRequestMonitor)).
-		With(figure.BaseHooks, utils.ETHHooks).
+		With(figure.BaseHooks, RequestsHook, utils.ETHHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to figure out")

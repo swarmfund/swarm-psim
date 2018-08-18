@@ -397,6 +397,7 @@ airdrop_earlybird:
   issuance:
     asset: SWM
     amount: 100000000 # 100 SWM (in stroops)
+    reference_suffix: "-airdrop"
 
   registered_before: "2018-02-05T14:00:00" # +14 - the latest existing GMT
 
@@ -404,6 +405,8 @@ airdrop_earlybird:
   signer: S_SOME_VALID_PRIVATE_KEY
 
   emails:
+    disabled: false
+
     subject: "Airdrop"
 #    email_subject: "Airdrop delaying"
 
@@ -420,14 +423,19 @@ airdrop_earlybird:
 "G_SOME_VALID_ACCOUNT_ADDRESS_2"]
 
 airdrop_kyc:
+  usa_check_disabled: true
+
   issuance:
     asset: SWM
     amount: 10000000 # 10 SWM (in stroops)
+    reference_suffix: "-air-kyc"
 
   source: G_SOME_VALID_PUBLIC_KEY
   signer: S_SOME_VALID_PRIVATE_KEY
 
   emails:
+    disabled: false
+
     subject: "KYC Verification Bonus"
 
     request_type: 10 # 10 means that email will be sent only once per each unique token
@@ -450,6 +458,8 @@ airdrop_march_referrals:
   signer: S_SOME_VALID_PRIVATE_KEY
 
   emails:
+    disabled: false
+
     subject: "March Madness Referral Bonus"
 
     request_type: 10 # 10 means that email will be sent only once per each unique token
@@ -471,6 +481,8 @@ airdrop_march_20_20:
   signer: S_SOME_VALID_PRIVATE_KEY
 
   emails:
+    disabled: false
+
     subject: "March Madness 20/20 Airdrop"
 
     request_type: 10 # 10 means that email will be sent only once per each unique token
@@ -493,6 +505,7 @@ airdrop_telegram:
   issuance:
     asset: SWM
     amount: 5000000 # 5 SWM (in stroops)
+    reference_suffix: "telegram"
 
   telegram_secret_key: some_long_hex_string
   source: G_SOME_VALID_PUBLIC_KEY
@@ -523,6 +536,8 @@ identity_mind:
     invalid_kyc_data: "KYC data is invalid" # Make sure the string is shorter than 256
 #    policy_evaluation_rules_fired: "Policy evaluation rules fired" # Make sure the string is shorter than 256
   emails:
+    disabled: false
+
     subject: "IDMind pending KYC requests waiting for manual review"
     request_type: 7 # 7 means that email with unique token will be sent only once in 24h
     message: "There are some pending KYC requests waiting for manual review in IDMind. Please, do the manual review."

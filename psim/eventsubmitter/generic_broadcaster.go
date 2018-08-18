@@ -46,7 +46,7 @@ func (gb *GenericBroadcaster) putEventsToBufferedTargets(ctx context.Context, pr
 			select {
 			case <-ctx.Done():
 				return
-			case target.Data <- MaybeBroadcastedEvent{item.BroadcastedEvent, item.Error}:
+			case target.Data <- MaybeBroadcastedEvent{BroadcastedEvent: item.BroadcastedEvent, Error: item.Error}:
 				continue
 			default:
 				gb.logger.Warn("buffer busy, skiping")
