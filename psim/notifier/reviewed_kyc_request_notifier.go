@@ -260,7 +260,7 @@ func (n *ReviewedKYCRequestNotifier) isRejectedKYC(reviewRequestOp horizon.Revie
 }
 
 func (n *ReviewedKYCRequestNotifier) canNotifyAboutApprovedKYC(cursor uint64) bool {
-	return cursor >= n.approvedRequestConfig.Cursor
+	return cursor >= n.approvedRequestConfig.Cursor && !n.approvedRequestConfig.Disabled
 }
 
 func (n *ReviewedKYCRequestNotifier) canNotifyAboutUSAKyc(cursor uint64) bool {
@@ -268,7 +268,7 @@ func (n *ReviewedKYCRequestNotifier) canNotifyAboutUSAKyc(cursor uint64) bool {
 }
 
 func (n *ReviewedKYCRequestNotifier) canNotifyAboutRejectedKYC(cursor uint64) bool {
-	return cursor >= n.rejectedRequestConfig.Cursor
+	return cursor >= n.rejectedRequestConfig.Cursor && !n.rejectedRequestConfig.Disabled
 }
 
 func (n *ReviewedKYCRequestNotifier) buildApprovedKYCUniqueToken(emailAddress, accountToUpdateKYC string, requestID uint64) string {

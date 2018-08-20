@@ -82,7 +82,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.OrderCancelled.Disabled {
 		return nil, errors.Wrap(err, "failed to create cancelledOrderEmailSender")
 	}
 
@@ -94,7 +95,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.KYCCreated.Disabled {
 		return nil, errors.Wrap(err, "failed to create createdKYCEmailSender")
 	}
 
@@ -106,7 +108,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.KYCApproved.Disabled {
 		return nil, errors.Wrap(err, "failed to create approvedKYCEmailSender")
 	}
 
@@ -118,7 +121,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.KYCRejected.Disabled {
 		return nil, errors.Wrap(err, "failed to create rejectedKYCEmailSender")
 	}
 
@@ -130,7 +134,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.USAKyc.Disabled {
 		return nil, errors.Wrap(err, "Failed to create usaKYCEmailSender")
 	}
 
@@ -203,12 +208,20 @@ func (s *Service) Run(ctx context.Context) {
 
 	go func(w *sync.WaitGroup) {
 		defer w.Done()
+		if s.cancelledOrderNotifier.eventConfig.Disabled {
+			s.logger.Info("cancel order notifier disabled by config")
+			return
+		}
 		running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
 			s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
 		defer w.Done()
+		if s.createdKYCNotifier.eventConfig.Disabled {
+			s.logger.Info("create kyc notifier disabled by config")
+			return
+		}
 		running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 			s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
 	}(&opNotifiersWaitGroup)
