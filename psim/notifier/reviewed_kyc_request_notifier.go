@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
 )
@@ -104,7 +103,8 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 
 	kycRequest := request.Details.KYC
 
-	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) {
+	if kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeGeneral) &&
+		kycRequest.AccountTypeToSet.Int != int(xdr.AccountTypeVerified) {
 		return nil
 	}
 
@@ -134,7 +134,18 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutApprovedKYCRequest(ctx context.C
 		FirstName: kycFirstName,
 	}
 
-	err = n.approvedKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
+	if kycRequest.AccountTypeToSet.Int == int(xdr.AccountTypeGeneral) {
+		err = n.approvedKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
+	}
+
+	if kycRequest.AccountTypeToSet.Int == int(xdr.AccountTypeVerified) {
+		if n.usaKYCEmailSender == nil {
+			return nil
+		}
+
+		err = n.usaKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "failed to send email")
 	}
@@ -187,57 +198,6 @@ func (n *ReviewedKYCRequestNotifier) notifyAboutRejectedKYCRequest(ctx context.C
 	err = n.rejectedKYCEmailSender.SendEmail(ctx, emailAddress, emailUniqueToken, data)
 	if err != nil {
 		return errors.Wrap(err, "failed to send email")
-	}
-
-	return nil
-}
-
-func (n *ReviewedKYCRequestNotifier) tryNotifyAboutUSAKyc(ctx context.Context, requestID uint64) error {
-	request, err := n.requestConnector.GetRequestByID(requestID)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get ReviewableRequest from Horizon", logan.F{
-			"request_id": requestID,
-		})
-	}
-	fields := logan.F{
-		"request": request,
-	}
-
-	kycRequest := request.Details.KYC
-
-	if kycRequest.AllTasks&kyc.TaskUSA == 0 {
-		// Not a USA User, at least it's not marked as USA user yet.
-		return nil
-	}
-
-	user, err := n.userConnector.User(kycRequest.AccountToUpdateKYC)
-	if err != nil {
-		return errors.Wrap(err, "Failed to load User from Horizon", fields)
-	}
-	if user == nil {
-		return errors.From(errors.New("No User found in Horizon"), fields)
-	}
-	fields["user"] = user
-
-	emailAddr := user.Attributes.Email
-	emailUniqueToken := emailAddr + n.usaKYCConfig.Emails.RequestTokenSuffix
-
-	kycFirstName, err := n.kycDataHelper.getKYCFirstName(kycRequest.KYCData)
-	if err != nil {
-		return errors.Wrap(err, "Failed to obtain Blob KYCData")
-	}
-
-	templateData := struct {
-		Link      string
-		FirstName string
-	}{
-		Link:      n.approvedRequestConfig.Emails.TemplateLinkURL,
-		FirstName: kycFirstName,
-	}
-
-	err = n.usaKYCEmailSender.SendEmail(ctx, emailAddr, emailUniqueToken, templateData)
-	if err != nil {
-		return errors.Wrap(err, "Failed to send email")
 	}
 
 	return nil

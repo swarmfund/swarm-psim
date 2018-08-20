@@ -157,7 +157,7 @@ notifier:
   usa_kyc:
     cursor: 1
     emails:
-      subject: "Accreditation status verification"
+      subject: "Your Account is Approved"
       request_type: 10 # 10 means that email will be sent only once per each unique token
       request_token_suffix: -usa-user-notification # Email with same token will be sent only once
       template_name: us-residents
