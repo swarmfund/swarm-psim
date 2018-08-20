@@ -39,6 +39,7 @@ type PaymentNotificationData struct {
 	ReceiverFee           regources.Amount
 	ReceiverFeeAsset      string
 	SenderPaysForReceiver bool
+	Link                  string
 }
 
 func (n *PaymentV2Notifier) listenAndProcessPaymentV2(ctx context.Context) error {
@@ -148,6 +149,7 @@ func (n *PaymentV2Notifier) notifyAboutPaymentV2(
 		ReceiverFee:           paymentParticipantFees.ReceiverTotalFee,
 		ReceiverFeeAsset:      paymentV2Operation.DestinationFeeData.ActualPaymentFeeAssetCode,
 		SenderPaysForReceiver: paymentV2Operation.SourcePaysForDest,
+		Link: n.eventConfig.Emails.TemplateLinkURL,
 	}
 
 	err = n.emailSender.SendEmail(ctx, senderEmailAddress, senderEmailUniqueToken, data)
