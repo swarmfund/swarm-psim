@@ -4,16 +4,19 @@ import "encoding/json"
 
 // Represents Reviewable request
 type ReviewableRequest struct {
-	ID           uint64                    `json:"id,string"`
-	PT           string                    `json:"paging_token"`
-	Requestor    string                    `json:"requestor"`
-	Reviewer     string                    `json:"reviewer"`
-	Reference    *string                   `json:"reference"`
-	RejectReason string                    `json:"reject_reason"`
-	Hash         string                    `json:"hash"`
-	Details      *ReviewableRequestDetails `json:"details"`
-	CreatedAt    Time                      `json:"created_at"`
-	UpdatedAt    Time                      `json:"updated_at"`
+	ID              uint64                    `json:"id,string"`
+	PT              string                    `json:"paging_token"`
+	Requestor       string                    `json:"requestor"`
+	Reviewer        string                    `json:"reviewer"`
+	Reference       *string                   `json:"reference,omitempty"`
+	RejectReason    string                    `json:"reject_reason"`
+	Hash            string                    `json:"hash"`
+	Details         *ReviewableRequestDetails `json:"details"`
+	AllTasks        uint32                    `json:"all_tasks"`
+	PendingTasks    uint32                    `json:"pending_tasks"`
+	ExternalDetails map[string]interface{}  `json:"external_details"`
+	CreatedAt       Time                      `json:"created_at"`
+	UpdatedAt       Time                      `json:"updated_at"`
 
 	// RequestStateI  - integer representation of request state
 	State int32 `json:"request_state_i"`

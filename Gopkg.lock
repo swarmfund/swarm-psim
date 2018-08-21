@@ -193,14 +193,6 @@
   revision = "0c5e7abb4e562fa14dd2548cb57b28f979a7dcd9"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ea1d5bfdb4ec5c2ee48c97865e6de1a28fa8c4849a3f56b27d521aa619038e06"
-  name = "github.com/go-errors/errors"
-  packages = ["."]
-  pruneopts = "NT"
-  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
-
-[[projects]]
   digest = "1:e05711632e1515319b014e8fe4cbe1d30ab024c473403f60cf0fdeb4c586a474"
   name = "github.com/go-ini/ini"
   packages = ["."]
@@ -650,7 +642,6 @@
   digest = "1:6d4ffb4721502c7047dfa9ec8e084a46afa7acb4801e7428502646db1aa432dd"
   name = "gitlab.com/distributed_lab/logan"
   packages = [
-    ".",
     "v3",
     "v3/errors",
     "v3/fields",
@@ -677,6 +668,22 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:290a3f006aa23852a3c55d319a317e49a502ea05719fea931749283dd060f4f3"
+  name = "gitlab.com/distributed_lab/salesforce"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "07cdb2c05044120d9a3b7846bad2a82a969d3f2b"
+
+[[projects]]
+  branch = "master"
+  digest = "1:62d5ebcdcdfb9fe5f6a3dfed8ac0af515ae05785f41b3e0ad060666b972a0b25"
+  name = "gitlab.com/swarmfund/salesforce-connector"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "5c7626defc1742ae979444e838efd23b063d6d9a"
+
+[[projects]]
+  branch = "master"
   digest = "1:782d7511da16dae7e919ad7e1c7f39354e7b3660f4d8db4f0f4faa23165319f6"
   name = "gitlab.com/tokend/go"
   packages = [
@@ -700,7 +707,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5d50326830367debb686dc2f376fe34f5bbf21c856c1d732085361fa039ff69e"
+  digest = "1:016fa81579c90792c928b98bf19e7d2fe6fc8408af193682bd4137361536fb0a"
   name = "gitlab.com/tokend/horizon-connector"
   packages = [
     ".",
@@ -727,7 +734,7 @@
     "types",
   ]
   pruneopts = "NT"
-  revision = "ce8408ff153207b899d4dd2074b1a674986e9d18"
+  revision = "f2c432d1be325d9f0ed20abe21b962b223faa870"
 
 [[projects]]
   branch = "master"
@@ -744,11 +751,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:429cf7ebded60aed81bf1cf833971967b8dd3378d07e9a4c2cbe957072fcc601"
+  digest = "1:1caccf0e8fc43866715dbfb98a21073ca6265adad140d3db81681f1cedc19cc1"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "bafdd49969215e5642e3c66c7cd389bfea84389e"
+  revision = "fb67c13c632496b6166adc68ca65ab5ee7eb44d5"
 
 [[projects]]
   branch = "master"
@@ -881,6 +888,7 @@
     "github.com/ethereum/go-ethereum/crypto",
     "github.com/ethereum/go-ethereum/ethclient",
     "github.com/ethereum/go-ethereum/event",
+    "github.com/ethereum/go-ethereum/log",
     "github.com/ethereum/go-ethereum/rlp",
     "github.com/evalphobia/logrus_sentry",
     "github.com/getsentry/raven-go",
@@ -911,12 +919,12 @@
     "gitlab.com/distributed_lab/ape/problems",
     "gitlab.com/distributed_lab/discovery-go",
     "gitlab.com/distributed_lab/figure",
-    "gitlab.com/distributed_lab/logan",
     "gitlab.com/distributed_lab/logan/v3",
     "gitlab.com/distributed_lab/logan/v3/errors",
     "gitlab.com/distributed_lab/logan/v3/fields",
     "gitlab.com/distributed_lab/notificator-server/client",
     "gitlab.com/distributed_lab/running",
+    "gitlab.com/swarmfund/salesforce-connector",
     "gitlab.com/tokend/go/amount",
     "gitlab.com/tokend/go/doorman",
     "gitlab.com/tokend/go/hash",

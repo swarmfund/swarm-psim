@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/ape/problems"
-	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/swarmfund/psim/psim/verification"
-	"gitlab.com/tokend/regources"
+	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
+	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/go/xdrbuild"
+	"gitlab.com/tokend/horizon-connector"
 )
 
 func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {

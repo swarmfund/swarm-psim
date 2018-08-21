@@ -19,11 +19,6 @@ type Service struct {
 	connector *horizon.Connector
 }
 
-type Stats struct {
-	unresolvedRequestIDs []uint64
-	requestTypeToNumber  map[xdr.ReviewableRequestType]int
-}
-
 func New(config Config, log *logan.Entry, horizonConnector *horizon.Connector) *Service {
 	return &Service{
 		config:    config,
@@ -39,55 +34,50 @@ func (s *Service) Run(ctx context.Context) {
 		ctx,
 		s.logger,
 		conf.ServiceRequestMonitor,
-		s.generateAndSendStats,
+		s.checkRequests,
 		s.config.SleepPeriod,
 		1*time.Minute,
 		1*time.Hour)
 }
 
-func (s *Service) generateAndSendStats(ctx context.Context) error {
-	stats, err := s.generateStats(ctx)
-	if err != nil {
-		return errors.Wrap(err, "Failed to collect stats")
-	}
+func (s *Service) checkRequests(ctx context.Context) error {
 
-	s.logger.WithFields(logan.F{
-		"number_of_requests_by_type": stats.requestTypeToNumber,
-		"unresolved_requests_IDs":    stats.unresolvedRequestIDs,
-	}).Info("Statistics")
-	return nil
-}
-
-func (s *Service) generateStats(ctx context.Context) (Stats, error) {
-	stats := makeEmptyStats()
-	ch := s.connector.Listener().StreamAllReviewableRequestsOnce(ctx)
+	ch := s.connector.WithSigner(s.config.Signer).Listener().StreamAllReviewableRequestsOnce(ctx)
 
 	for requestEvent := range ch {
 		request, err := requestEvent.Unwrap()
 		if err != nil {
-			return stats, err
+			return errors.Wrap(err, "failed to get request")
 		}
 
-		if s.isUnresolvedBeforeTimeout(time.Time(request.CreatedAt), request.State) {
-			stats.unresolvedRequestIDs = append(stats.unresolvedRequestIDs, request.ID)
+		if request.State != int32(ReviewableRequestStatePending) {
+			continue
 		}
 
-		requestType := xdr.ReviewableRequestType(request.Details.RequestType)
-		stats.requestTypeToNumber[requestType] += 1
+		if s.isUnresolvedBeforeTimeout(time.Time(request.UpdatedAt), request.Details.RequestType) {
+			s.logger.WithFields(logan.F{
+				"request type":  request.Details.RequestType,
+				"request state": request.State,
+				"last update":   request.UpdatedAt,
+			}).Error("stale request")
+		}
 	}
 
-	return stats, nil
+	return nil
 }
 
-func (s *Service) isUnresolvedBeforeTimeout(createdAt time.Time, state int32) bool {
-	elapsedTime := time.Now().Sub(createdAt)
-	return elapsedTime > s.config.RequestTimeout && state == int32(ReviewableRequestStatePending)
+func (s *Service) isUnresolvedBeforeTimeout(updatedAt time.Time, requestType int32) bool {
+	timeout := s.getTimeout(requestType)
+	elapsedTime := time.Now().Sub(updatedAt)
+	return elapsedTime > timeout
 }
 
-func makeEmptyStats() Stats {
-	stats := Stats{requestTypeToNumber: make(map[xdr.ReviewableRequestType]int)}
-	for _, requestType := range xdr.ReviewableRequestTypeAll {
-		stats.requestTypeToNumber[requestType] = 0
+func (s *Service) getTimeout(requestType int32) time.Duration {
+	typeString := xdr.ReviewableRequestType(requestType).ShortString()
+	timeout, ok := s.config.Requests[typeString]
+	if ok {
+		return timeout.Timeout
 	}
-	return stats
+	return s.config.DefaultTimeout
+
 }

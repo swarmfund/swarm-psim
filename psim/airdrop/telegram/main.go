@@ -47,9 +47,13 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		return nil, errors.Wrap(err, "Failed to get Horizon TXBuilder")
 	}
 
+	if config.Issuance.ReferenceSuffix == "" {
+		config.Issuance.ReferenceSuffix = airdrop.TelegramReferenceSuffix
+	}
+
 	issuanceSubmitter := airdrop.NewIssuanceSubmitter(
 		config.Issuance.Asset,
-		airdrop.TelegramReferenceSuffix,
+		config.Issuance.ReferenceSuffix,
 		config.Source,
 		config.Signer,
 		builder,

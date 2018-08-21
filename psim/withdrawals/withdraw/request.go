@@ -124,10 +124,10 @@ func ProvePendingRequest(request regources.ReviewableRequest, asset string, need
 
 	var destAsset string
 	if request.Details.TwoStepWithdraw != nil {
-		destAsset = request.Details.TwoStepWithdraw.DestAssetCode
+		destAsset = request.Details.TwoStepWithdraw.DestAssetAmount.String()
 	}
 	if request.Details.Withdraw != nil {
-		destAsset = request.Details.Withdraw.DestAssetCode
+		destAsset = request.Details.Withdraw.DestAssetAmount.String()
 	}
 	// TODO If not Withdraw and not TSW - consider returning specific error (switch request.Details.RequestType)
 

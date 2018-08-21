@@ -30,7 +30,6 @@ const (
 	BroadcastedEventNameKycRejected           BroadcastedEventName = "kyc_rejected"
 	BroadcastedEventNameKycApproved           BroadcastedEventName = "kyc_approved"
 	BroadcastedEventNameUserReferred          BroadcastedEventName = "user_referred"
-	BroadcastedEventNameAirdrop               BroadcastedEventName = "airdrop"
 	BroadcastedEventNameFundsWithdrawn        BroadcastedEventName = "funds_withdrawn"
 	BroadcastedEventNamePaymentV2Received     BroadcastedEventName = "payment_v2_received"
 	BroadcastedEventNamePaymentV2Sent         BroadcastedEventName = "payment_v2_sent"
@@ -39,6 +38,7 @@ const (
 	BroadcastedEventNameFundsDeposited        BroadcastedEventName = "funds_deposited"
 	BroadcastedEventNameFundsInvested         BroadcastedEventName = "funds_invested"
 	BroadcastedEventNameReferredUserPassedKyc BroadcastedEventName = "referred_user_passed_kyc"
+	BroadcastedEventNameReceivedAirdrop       BroadcastedEventName = "received_airdrop"
 )
 
 func processCreateAccountOp(opData OpData) []MaybeBroadcastedEvent {
@@ -132,7 +132,7 @@ func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
 		reference := opBody.Reference
 		for _, airdropSuffix := range airdrop.AllAirdropSuffixes {
 			if strings.HasSuffix(string(reference), airdropSuffix) {
-				return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameAirdrop, opData.CreatedAt).Alone()
+				return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameReceivedAirdrop, opData.CreatedAt).Alone()
 			}
 		}
 	}
@@ -153,7 +153,10 @@ func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
 		return nil
 	}
 
-	return internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
+	events := internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
+	events[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
+	events[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
+	return events
 }
 
 func processKYCCreateUpdateRequestOp(opData OpData) []MaybeBroadcastedEvent {
@@ -190,7 +193,10 @@ func processReviewRequestOp(requestsProvider RequestProvider, accountsProvider A
 func handleIssuanceCreateReq(opData OpData) []MaybeBroadcastedEvent {
 	sourceAccountAddress := opData.SourceAccount.Address()
 	time := opData.CreatedAt
-	return internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
+	events := internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
+	events[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
+	events[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
+	return events
 }
 
 func findRemoval(ledgerChanges []xdr.LedgerEntryChange) *xdr.LedgerKeyReviewableRequest {
