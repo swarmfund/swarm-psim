@@ -179,6 +179,7 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 		return errors.Wrap(err, "Failed to get Block from OffchainHelper")
 	}
 
+	// FIXME running on node pool may cause skipped blocks here
 	if block == nil {
 		// helper thinks it's 404, we don't care
 		return nil
@@ -249,6 +250,7 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 
 		err := s.processDeposit(ctx, blockNumber, blockTime, tx.Hash, uint(i), out, *accountAddress)
 		// TODO Retry processing Deposit - don't go to following Deposits.
+		// FIXME pp: actually no, buksovat is not a option here. a separate retry queue would be nice
 		if err != nil {
 			return errors.Wrap(err, "Failed to process Deposit", fields)
 		}
@@ -276,9 +278,12 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 		return nil
 	}
 
+	// TODO make sure min deposit amount > deposit fee
 	valueWithoutDepositFee := out.Value - s.offchainHelper.GetFixedDepositFee()
 	emissionAmount := s.offchainHelper.ConvertToSystem(valueWithoutDepositFee)
 
+	// TODO why not make it internal?
+	// keep BuildReference optional and use if provided for compatibility, else build it in helper
 	reference := s.offchainHelper.BuildReference(blockNumber, txHash, out.Address, outIndex, 64)
 	// TODO check maxLen
 
