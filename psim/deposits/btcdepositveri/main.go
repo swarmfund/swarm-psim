@@ -55,7 +55,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 
 	return depositveri.New(
 		config.ExternalSystem,
-		conf.ServiceBTCDepositVerify,
+		config.ServiceName,
 		log,
 		config.Signer,
 		config.LastBlocksNotWatch,

@@ -65,7 +65,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.Source,
 		config.Signer,
 		conf.ServiceBTCDeposit,
-		conf.ServiceBTCDepositVerify,
+		config.VerifierServiceName,
 
 		config.LastProcessedBlock,
 		config.LastBlocksNotWatch,
