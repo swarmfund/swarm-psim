@@ -293,55 +293,34 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 		OutIndex:    outIndex,
 	})
 
-	issuanceOpt := issuance.RequestOpt{
-		Reference: reference,
-		Receiver:  *balanceID,
-		Asset:     s.offchainHelper.GetAsset(),
-		Amount:    emissionAmount,
-		Details:   details,
-		// TODO stop setting this Task in future, it should be set as default Task for IssuanceRequest in Core in future.
-		AllTasks: issuance.TaskVerifyDeposit,
-	}
-
 	fields = fields.Merge(logan.F{
 		"balance_id":              balanceID,
 		"converted_system_amount": emissionAmount,
 		"reference":               reference,
 	})
 
-	err := s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuanceOpt)
+	envelope, err := s.builder.Transaction(s.source).Op(xdrbuild.CreateIssuanceRequestOp{
+		Reference: reference,
+		Receiver:  *balanceID,
+		Asset:     s.offchainHelper.GetAsset(),
+		Amount:    emissionAmount,
+		Details:   details,
+		// TODO consider relying on core for this one
+		AllTasks: &issuance.DefaultIssuanceTasks,
+	}).Sign(s.signer).Marshal()
 	if err != nil {
-		return errors.Wrap(err, "Failed to process Issuance", fields)
+		return errors.Wrap(err, "failed to issuance marshal envelope", fields)
 	}
-
-	return nil
-}
-
-func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offchainAddress, accountAddress string, issuanceOpt issuance.RequestOpt) error {
-	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.source, s.signer)
-
-	envelope, err := tx.Marshal()
-	if err != nil {
-		return errors.Wrap(err, "Failed to marshal TX into envelope")
-	}
-
-	logger := s.log.WithFields(logan.F{
-		"block_number":     blockNumber,
-		"offchain_address": offchainAddress,
-		"account_address":  accountAddress,
-		"issuance":         issuanceOpt,
-	})
 
 	ok, err := issuance.SubmitEnvelope(ctx, envelope, s.horizon.Submitter())
 	if err != nil {
-		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
-		return nil
+		return errors.Wrap(err, "failed to submit issuance tx", fields)
+	}
+	if ok {
+		s.log.Info("CoinEmissionRequest was sent successfully.")
+	} else {
+		s.log.Debug("Reference duplication - already processed Deposit, skipping.")
 	}
 
-	if ok {
-		logger.Info("CoinEmissionRequest was sent successfully.")
-	} else {
-		logger.Debug("Reference duplication - already processed Deposit, skipping.")
-	}
 	return nil
 }

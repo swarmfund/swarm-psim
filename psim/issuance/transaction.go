@@ -5,6 +5,7 @@ import (
 	"gitlab.com/tokend/keypair"
 )
 
+// DEPRECATED: use xdrbuild directly
 func CraftIssuanceTX(opt RequestOpt, builder *xdrbuild.Builder, source keypair.Address, signer keypair.Full) *xdrbuild.Transaction {
 	return builder.
 		Transaction(source).

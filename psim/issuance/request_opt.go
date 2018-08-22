@@ -8,7 +8,12 @@ const (
 	TaskVerifyDeposit uint32 = 1024
 )
 
+var (
+	DefaultIssuanceTasks = TaskVerifyDeposit
+)
+
 // RequestOpt is the gathering structure for arguments to be set into CreateIssuanceRequest Operation.
+// DEPRECATED: use xdrbuild.CreateIssuanceRequest directly
 type RequestOpt struct {
 	Reference string
 	Receiver  string
