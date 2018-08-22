@@ -5,13 +5,13 @@ import (
 
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
 	. "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/addrstate"
 )
 
 func init() {
@@ -51,16 +51,16 @@ func init() {
 		eth := app.Config(ctx).Ethereum()
 
 		return deposit.New(&deposit.Opts{
-			Log:                 app.Log(ctx),
-			Source:              config.Source,
-			Signer:              config.Signer,
-			ServiceName:         conf.ServiceERC20Deposit,
-			LastProcessedBlock:  config.Cursor,
-			Horizon:             app.Config(ctx).Horizon().WithSigner(config.Signer),
-			ExternalSystem:      config.ExternalSystem,
-			AddressProvider:     addrProvider,
-			Builder:             builder,
-			OffchainHelper:      internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
+			Log:                app.Log(ctx),
+			Source:             config.Source,
+			Signer:             config.Signer,
+			ServiceName:        conf.ServiceERC20Deposit,
+			LastProcessedBlock: config.Cursor,
+			Horizon:            app.Config(ctx).Horizon().WithSigner(config.Signer),
+			ExternalSystem:     config.ExternalSystem,
+			AddressProvider:    addrProvider,
+			Builder:            builder,
+			OffchainHelper:     internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
 		}), nil
 	})
 }

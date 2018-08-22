@@ -5,13 +5,13 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/deposits/depositveri"
 	"gitlab.com/swarmfund/psim/psim/deposits/erc20/internal"
 	. "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/addrstate"
 )
 
 func init() {
