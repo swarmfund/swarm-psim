@@ -131,7 +131,7 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) (bool, error) {
 
 	txHash, err := s.craftAndSendTX(utxoOuts, funnelOuts, inputUTXOs, privateKeys)
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to craft and send TX")
+		return false, errors.Wrap(err, "Failed to craft and send TX", fields)
 	}
 	fields["tx_hash"] = txHash
 
