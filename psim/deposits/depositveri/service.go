@@ -7,6 +7,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/verifier"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
@@ -37,7 +38,7 @@ func New(
 
 	return verifier.New(
 		serviceName,
-		"my_awesome_super_duper_random_id_deposit",
+		utils.GenerateToken(),
 		log,
 		v,
 		builder,
