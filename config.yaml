@@ -189,9 +189,7 @@ btc_deposit:
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # satoshis (0.005 BTC)
   deposit_asset: BTC #TokenD asset code
-  offchain_currency: BTC # is used to build network params (version bytes)
-  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
-  external_system: 1
+  network_type: 1 # see `derive.NetworkType` for exact values
   fixed_deposit_fee: 100000 # satoshis (0.001 BTC)
   disable_verify: false # optional field
 
@@ -203,9 +201,7 @@ btc_deposit_verify:
   last_blocks_not_watch: 0
   min_deposit_amount: 500000 # 0.005 BTC (integer in satoshis)
   deposit_asset: BTC #TokenD asset code
-  offchain_currency: BTC # is used to build network params (version bytes)
-  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
-  external_system: 1 # optional
+  network_type: 1 # see `derive.NetworkType` for exact values
   fixed_deposit_fee: 100000 # 0.001 BTC (integer in satoshis)
   blocks_to_search_for_tx: 10 # how many blocks to wait for a TX to appear again after it was first detected in block and disappeared because of fork
 

@@ -13,6 +13,7 @@ const (
 	TestnetBlockchain = "testnet"
 )
 
+// DEPRECATED: use derive.NetworkParams instead
 func GetNetParams(currency, blockchain string) (*chaincfg.Params, error) {
 	switch currency {
 	case BTCCurrency:

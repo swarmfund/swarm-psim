@@ -5,8 +5,10 @@ import (
 
 	"reflect"
 
+	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/keypair"
 )
@@ -39,6 +41,13 @@ func NewConfig(serviceName string) Config {
 }
 
 var DLFigureHooks = figure.Hooks{
+	"derive.NetworkType": func(raw interface{}) (reflect.Value, error) {
+		i, err := cast.ToInt32E(raw)
+		if err != nil {
+			return reflect.Value{}, errors.Wrap(err, "int32 cast failed")
+		}
+		return reflect.ValueOf(derive.NetworkType(i)), nil
+	},
 	"supervisor.Config": func(raw interface{}) (reflect.Value, error) {
 		result := Config{}
 		err := figure.Out(&result).

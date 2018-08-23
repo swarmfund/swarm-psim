@@ -129,7 +129,7 @@ func (s *Service) processRequest(ctx context.Context, request regources.Reviewab
 
 	if tx == nil {
 		if txFindMeta.StopWaiting {
-			return errors.Wrap(err, "failed to reject request (TX does not exit in Offchain and we don't expect it to appear)")
+			return errors.Wrap(err, "failed to verify request (TX does not exit in Offchain and we don't expect it to appear)")
 		} else {
 			// No TX in Offchain yet, but there is a hope to find TX in future - ignoring this Request for now
 			return nil

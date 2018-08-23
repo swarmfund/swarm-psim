@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"context"
+
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -13,8 +14,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/deposits/deposit"
+	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
 	"gitlab.com/tokend/go/amount"
 )
 
@@ -47,26 +48,18 @@ func NewBTCHelper(
 	depositAsset string,
 	minDepositAmount uint64,
 	fixedDepositFee uint64,
-	currency, blockchain string,
+	network derive.NetworkType,
 	blocksToSearchForTX uint64,
 
-	btcClient BTCClient) (*CommonBTCHelper, error) {
-
-	netParams, err := bitcoin.GetNetParams(currency, blockchain)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
-			"currency":   currency,
-			"blockchain": blockchain,
-		})
-	}
-
+	btcClient BTCClient,
+) (*CommonBTCHelper, error) {
 	return &CommonBTCHelper{
 		log: log,
 
 		depositAsset:        depositAsset,
 		minDepositAmount:    minDepositAmount,
 		fixedDepositFee:     fixedDepositFee,
-		netParams:           netParams,
+		netParams:           derive.NetworkParams(network),
 		blocksToSearchForTX: blocksToSearchForTX,
 
 		btcClient: btcClient,
