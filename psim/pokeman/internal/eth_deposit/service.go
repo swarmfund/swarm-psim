@@ -5,183 +5,211 @@ import (
 	"fmt"
 	"time"
 
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/multiplay/go-slack"
+	"github.com/multiplay/go-slack/chat"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/internal"
-	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/regources"
 )
 
 type Service struct {
-	log     *logan.Entry
-	eth     *ethclient.Client
-	horizon *horizon.Connector
-	builder *xdrbuild.Builder
-	config  Config
+	log               *logan.Entry
+	foreignTxProvider TxProvider
+	slack             slack.Client
+	horizon           *horizon.Connector
+	builder           *xdrbuild.Builder
+	config            Config
 }
 
-func NewService(log *logan.Entry, eth *ethclient.Client, horizon *horizon.Connector, config Config, builder *xdrbuild.Builder) *Service {
+func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *horizon.Connector, config Config, builder *xdrbuild.Builder) *Service {
 	service := Service{
-		log:     log,
-		eth:     eth,
-		horizon: horizon,
-		config:  config,
-		builder: builder,
+		log:               log,
+		foreignTxProvider: eth,
+		slack:             slack,
+		horizon:           horizon,
+		config:            config,
+		builder:           builder,
 	}
 	return &service
 }
 
-// pollBalance will endlessly poll for balance update in config.Asset for config.Source
-// and return updated balance value as well as approximate time it took to update
-// TODO make sure callies handle ctx close and invalid outputs it will make us generate
-func (s *Service) pollBalance(ctx context.Context, current regources.Amount) (updated regources.Amount, took time.Duration) {
-	started := time.Now()
-	defer func() {
-		took = time.Now().Sub(started)
-	}()
-	running.UntilSuccess(ctx, s.log, "balance-poller", func(i context.Context) (bool, error) {
-		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
-		if err != nil {
-			return false, errors.Wrap(err, "failed to get account balance")
-		}
-		if current != balance.Balance {
-			return true, nil
-		}
-		updated = balance.Balance
-		return false, nil
-	}, 5*time.Second, 5*time.Second)
-	return updated, took
-}
-
+// TODO add throttling
 // ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
-// TODO make sure callies handle ctx close and invalid outputs it will make us generate
 func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
+	// FIXME: expose running.NewIncrementalTimer
+	//timer := running.NewIncrementalTimer(1, 2, 2)
 	externalAddr, err := s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get external binding data")
 	}
 	if externalAddr == nil {
 		// seems like account does not have external binding atm, let's fix that
-		envelope, err := s.builder.Transaction(s.config.Source).Op(
-			&xdrbuild.BindExternalSystemAccountIDOp{externalSystem},
-		).Sign(s.config.Signer).Marshal()
+		err := s.sendTxWithOp(ctx, &xdrbuild.BindExternalSystemAccountIDOp{externalSystem})
 		if err != nil {
-			return "", errors.Wrap(err, "failed to marshal bind tx")
-		}
-
-		result := s.horizon.Submitter().Submit(context.Background(), envelope)
-		if result.Err != nil {
-			return "", errors.Wrap(result.Err, "failed to submit bind tx", result.GetLoganFields())
+			return "", errors.Wrap(err, "failed to submit bind tx")
 		}
 
 		// probably better to parse tx result here to obtain external binding data,
 		// but nobody loves to mess with txresult mess and it's also safer to check explicitly
-		running.UntilSuccess(ctx, s.log, "external-data-getter", func(i context.Context) (bool, error) {
-			externalAddr, err = s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
-			if err != nil {
-				return false, errors.Wrap(err, "failed to get external binding data")
+		currentExternalBindingData := func(i context.Context) error {
+			for externalAddr == nil {
+				if running.IsCancelled(i) {
+					return errors.New("interrupted")
+				}
+				externalAddr, err = s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
+				if err != nil {
+					return errors.Wrap(err, "failed to get external binding data")
+				}
+				// FIXME: expose running.IncrementalTimer.Next()
+				//<-timer.Next()
 			}
-			return externalAddr != nil, nil
-		}, 5*time.Second, 5*time.Second)
+			return nil
+		}
+		err = currentExternalBindingData(ctx)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to ensure external binding")
+		}
 	}
 	return *externalAddr, nil
 }
 
+func (s *Service) sendTxWithOp(ctx context.Context, op xdrbuild.Operation) error {
+	envelope, err := s.builder.Transaction(s.config.Signer).Op(op).Sign(s.config.Signer).Marshal()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal withdraw request")
+	}
+
+	result := s.horizon.Submitter().Submit(ctx, envelope)
+	if result.Err != nil {
+		return errors.Wrap(err, "failed to submit tx", result.GetLoganFields())
+	}
+	return nil
+}
+
+func (s *Service) sendMessage(message string) {
+	msg := fmt.Sprint(message)
+	slackMsg := &chat.Message{Text: msg}
+	slackMsg.Send(s.slack)
+	fmt.Println(msg)
+}
+
+func (s *Service) pollBalance(i context.Context, currentBalance regources.Amount) (regources.Amount, error) {
+	balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get account balance")
+	}
+	return balance.Balance, nil
+}
+
+func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperation regources.Amount, changedTo regources.Amount) error {
+	// FIXME:
+	// timer := running.NewIncrementalTimer(1, 2, 2)
+
+	timedCtx, cancelTimedCtx := context.WithTimeout(ctx, s.config.PollingTimeout)
+	defer cancelTimedCtx()
+
+	operationStarted := time.Now()
+	operationTook := func() string {
+		return time.Now().Sub(operationStarted).String()
+	}
+
+	var balanceAfterOperation regources.Amount
+
+	var balanceChangedAfterOperation bool
+	for !balanceChangedAfterOperation {
+		if running.IsCancelled(timedCtx) {
+			if running.IsCancelled(ctx) {
+				return errors.New("interrupted")
+			}
+			s.sendMessage(fmt.Sprintf("balance change polling timed out after: %s\n", operationTook()))
+			return errors.New("timed out")
+		}
+
+		var err error
+		balanceAfterOperation, err = s.pollBalance(timedCtx, balanceBeforeOperation)
+		// FIXME:
+		//<-timer.Next()
+		if err != nil {
+			s.sendMessage(fmt.Sprintf("balance change polling failed with error after: %s\n", operationTook()))
+			return errors.Wrap(err, "balance polling failed")
+		}
+		balanceChangedAfterOperation = balanceAfterOperation != balanceBeforeOperation
+	}
+
+	if balanceAfterOperation != changedTo {
+		s.sendMessage(fmt.Sprintf("op failed, took: %s\n", operationTook()))
+		return errors.New("invalid balance change")
+	}
+	return nil
+}
+
 func (s *Service) Run(ctx context.Context) {
 	running.WithBackOff(ctx, s.log, "poke-iter", func(i context.Context) error {
-		// get asset external system type
-		// it's better to update it on every iteration in case it might change
+		// it's better to update asset external system type on every iteration in case it might change
 		externalSystem, err := internal.GetExternalSystemType(s.horizon.Assets(), s.config.Asset)
 		if err != nil {
 			return errors.Wrap(err, "failed to get external system type")
 		}
+
 		balance, err := s.horizon.Accounts().CurrentBalanceIn(s.config.Source.Address(), s.config.Asset)
 		if err != nil {
 			return errors.Wrap(err, "failed to get account balance")
 		}
 
-		// set current account balance
+		foreignBalanceBefore, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+
 		balanceBefore := balance.Balance
 
-		// get external address
 		externalAddr, err := s.ensureExternalBinding(ctx, externalSystem)
 		if err != nil {
 			return errors.Wrap(err, "failed to get external address")
 		}
+		if !common.IsHexAddress(externalAddr) {
+			return errors.New("invalid hex address")
+		}
 
-		// transfer some ETH
-		nonce, err := s.eth.NonceAt(ctx, s.config.Keypair.Address(), nil)
+		s.foreignTxProvider.Send(ctx, 5, externalAddr)
+
+		/* at this point we should buksovat, since ETH has been sent */
+
+		err = s.ensureBalanceChanged(ctx, balanceBefore, balanceBefore+5)
 		if err != nil {
-			return errors.Wrap(err, "failed to get address nonce")
+			return errors.Wrap(err, "failed to ensure balance has been changed after deposit")
+		}
+		balanceBefore = balanceBefore + 5
+
+		foreignBalanceAfter, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+		if foreignBalanceAfter.Uint64()-foreignBalanceBefore.Uint64() != 5 {
+			return errors.New("foreign balance not changed")
 		}
 
-		tx := types.NewTransaction(
-			nonce,
-			common.HexToAddress(externalAddr),
-			eth.FromGwei(big.NewInt(2000)),
-			22000,
-			eth.FromGwei(big.NewInt(5)),
-			nil,
-		)
+		/* withdraw flow, could ease on buksovanie for a bit */
 
-		tx, err = s.config.Keypair.SignTX(tx)
-		if err != nil {
-			return errors.Wrap(err, "failed to sign tx")
-		}
-
-		if err = s.eth.SendTransaction(ctx, tx); err != nil {
-			return errors.Wrap(err, "failed to send transfer tx")
-		}
-
-		eth.EnsureHashMined(ctx, s.log, s.eth, tx.Hash())
-
-		//
-		// at this point we should buksovat, since ETH has been sent
-		//
-
-		// get updated balance, hopefully
-		currentBalance, depositTook := s.pollBalance(ctx, balanceBefore)
-
-		// TODO ensure balance is updated correctly
-		// TODO check if external details are valid
-
-		fmt.Printf("deposit took: %s\n", depositTook.String())
-
-		//
-		// withdraw flow, could ease on buksovanie for a bit
-		//
-
-		envelope, err := s.builder.Transaction(s.config.Source).Op(xdrbuild.CreateWithdrawRequestOp{
+		err = s.sendTxWithOp(ctx, xdrbuild.CreateWithdrawRequestOp{
 			Balance: balance.BalanceID,
 			Asset:   s.config.Asset,
 			Amount:  2,
-			Details: &xdrbuild.ETHWithdrawRequestDetails{
-				Address: s.config.Keypair.Address().Hex(),
-			},
-		}).Sign(s.config.Signer).Marshal()
+			Details: s.foreignTxProvider.GetWithdrawRequestDetails(),
+		})
 		if err != nil {
-			return errors.Wrap(err, "failed to marshal withdraw request")
+			return errors.Wrap(err, "failed to submit withdraw tx")
 		}
 
-		result := s.horizon.Submitter().Submit(ctx, envelope)
-		if result.Err != nil {
-			return errors.Wrap(err, "failed to submit withdraw tx", result.GetLoganFields())
+		//withdraw
+		err = s.ensureBalanceChanged(ctx, balanceBefore, balanceBefore-2)
+		if err != nil {
+			return errors.Wrap(err, "failed to ensure balance has been changed after withdraw")
 		}
 
-		_, withdrawTook := s.pollBalance(ctx, currentBalance)
-
-		// TODO validate ETH balance
-		// TODO validate tokend balance
-
-		fmt.Printf("withdraw took: %s\n", withdrawTook.String())
+		foreignBalanceAfter2, err := s.foreignTxProvider.GetCurrentBalance(ctx)
+		if foreignBalanceAfter2.Uint64()-foreignBalanceAfter.Uint64() != 2 {
+			return errors.New("foreign balance not changed")
+		}
 
 		return nil
 	}, 10*time.Second, 10*time.Second, 10*time.Second)

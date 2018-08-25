@@ -26,6 +26,9 @@ salesforce:
   username: "user@test.com"
   password: "password"
 
+slack:
+  webhook_url: "webhook here"
+
 notificator:
   url: http://swarm:9009
   secret: string
