@@ -42,7 +42,7 @@ func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *h
 // ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
 func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
 	// FIXME: expose running.NewIncrementalTimer
-	timer := running.NewIncrementalTimer(1, 2, 2)
+	//timer := running.NewIncrementalTimer(1, 2, 2)
 	externalAddr, err := s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get external binding data")
@@ -66,7 +66,7 @@ func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int3
 					return errors.Wrap(err, "failed to get external binding data")
 				}
 				// FIXME: expose running.IncrementalTimer.Next()
-				<-timer.Next()
+				//<-timer.Next()
 			}
 			return nil
 		}
@@ -107,7 +107,8 @@ func (s *Service) pollBalance(i context.Context, currentBalance regources.Amount
 }
 
 func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperation regources.Amount, changedTo regources.Amount) error {
-	timer := running.NewIncrementalTimer(1, 2, 2)
+	// FIXME:
+	// timer := running.NewIncrementalTimer(1, 2, 2)
 
 	timedCtx, cancelTimedCtx := context.WithTimeout(ctx, s.config.PollingTimeout)
 	defer cancelTimedCtx()
@@ -131,7 +132,8 @@ func (s *Service) ensureBalanceChanged(ctx context.Context, balanceBeforeOperati
 
 		var err error
 		balanceAfterOperation, err = s.pollBalance(timedCtx, balanceBeforeOperation)
-		<-timer.Next()
+		// FIXME:
+		//<-timer.Next()
 		if err != nil {
 			s.sendMessage(fmt.Sprintf("balance change polling failed with error after: %s\n", operationTook()))
 			return errors.Wrap(err, "balance polling failed")
