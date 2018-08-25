@@ -117,6 +117,11 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) (bool, error) {
 	}
 	fields["fee_per_kb"] = feePerKB
 
+	// FIXME if the node doesn’t have enough information to make an estimate, the value -1 will be returned
+	if feePerKB <= 0 {
+		feePerKB = s.config.MaxFeePerKB / 2
+	}
+
 	if feePerKB > s.config.MaxFeePerKB {
 		return false, errors.From(errTooBigFeePerKB, fields.Merge(logan.F{
 			"config_max_fee_per_kb": s.config.MaxFeePerKB,
@@ -131,7 +136,7 @@ func (s Service) funnelUTXOs(_ context.Context, utxos []UTXO) (bool, error) {
 
 	txHash, err := s.craftAndSendTX(utxoOuts, funnelOuts, inputUTXOs, privateKeys)
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to craft and send TX")
+		return false, errors.Wrap(err, "Failed to craft and send TX", fields)
 	}
 	fields["tx_hash"] = txHash
 

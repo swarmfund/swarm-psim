@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 
 	"gitlab.com/tokend/horizon-connector/internal"
-	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/horizon-connector/internal/responses"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/tokend/horizon-connector/internal/resources/operations"
 	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/regources"
 )
 
 type Q struct {
@@ -24,20 +24,17 @@ func NewQ(client internal.Client) *Q {
 	}
 }
 
-func (q *Q) AllRequests(cursor string) ([]resources.Request, error) {
+func (q *Q) AllRequests(cursor string) ([]regources.ReviewableRequest, error) {
 	url := fmt.Sprintf("/requests?limit=200&cursor=%s", cursor)
 	return q.getRequests(url)
 }
 
 // DEPRECATED: Instead use Requests() method providing specific ReviewableRequestType
-func (q *Q) WithdrawalRequests(cursor string) ([]resources.Request, error) {
-	url := fmt.Sprintf("/request/withdrawals?limit=200&cursor=%s", cursor)
-	return q.getRequests(url)
-}
+//func (q *Q) WithdrawalRequests(cursor string) ([]regources.ReviewableRequest, error) {
 
 // Requests obtains batch of Requests of the provided type from the provided cursor
 // It differs from the AllRequests method, as the latter uses `/requests` path to obtain Requests.
-func (q *Q) Requests(getParams, cursor string, reqType ReviewableRequestType) ([]resources.Request, error) {
+func (q *Q) Requests(getParams, cursor string, reqType ReviewableRequestType) ([]regources.ReviewableRequest, error) {
 	url := fmt.Sprintf("/request/%s?limit=200", string(reqType))
 
 	if getParams != "" {
@@ -49,7 +46,7 @@ func (q *Q) Requests(getParams, cursor string, reqType ReviewableRequestType) ([
 	return q.getRequests(url)
 }
 
-func (q *Q) getRequests(url string) ([]resources.Request, error) {
+func (q *Q) getRequests(url string) ([]regources.ReviewableRequest, error) {
 	response, err := q.client.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "Request failed", logan.F{
@@ -68,7 +65,7 @@ func (q *Q) getRequests(url string) ([]resources.Request, error) {
 	return result.Embedded.Records, nil
 }
 
-func (q *Q) GetRequestByID(requestID uint64) (*resources.Request, error) {
+func (q *Q) GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error) {
 	response, err := q.client.Get(fmt.Sprintf("/requests/%d", requestID))
 	if err != nil {
 		return nil, errors.Wrap(err, "request failed")
@@ -79,7 +76,7 @@ func (q *Q) GetRequestByID(requestID uint64) (*resources.Request, error) {
 		return nil, nil
 	}
 
-	var result resources.Request
+	var result regources.ReviewableRequest
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal response")
 	}
@@ -130,6 +127,23 @@ func (q *Q) CreateKYCRequestOperations(cursor string) ([]operations.CreateKYCReq
 	}
 
 	var result responses.CreateKYCRequestOperationIndex
+	if err := json.Unmarshal(response, &result); err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{"response": string(response)})
+	}
+
+	return result.Embedded.Records, nil
+}
+
+func (q *Q) PaymentV2Operations(cursor string) ([]operations.PaymentV2, error) {
+	operationType := xdr.OperationTypePaymentV2
+	response, err := q.Operations(cursor, &operationType)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get operations", logan.F{
+			"operation_type": xdr.OperationTypePaymentV2.String(),
+		})
+	}
+
+	var result responses.PaymentV2OperationIndex
 	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, errors.Wrap(err, "Failed to unmarshal response", logan.F{"response": string(response)})
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 type Target interface {
-	SendEvent(event *regources.BalancesReport, swmAmount int64, threshold int64, date *time.Time) (err error)
+	SendEvent(event *regources.BalancesReport, swmAmount int64, threshold int64, date time.Time) (err error)
 }
 
 // BufferedTarget holds actual target and its events to broadcast
@@ -96,7 +96,7 @@ type BroadcastedReport struct {
 	Report    *regources.BalancesReport
 	SWMAmount int64
 	Threshold int64
-	Date      *time.Time
+	Date      time.Time
 }
 
 // BroadcastEvents launches two goroutines - one copies events to buffered targets - second actually sends them to targets

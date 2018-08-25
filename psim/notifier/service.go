@@ -8,6 +8,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 	"golang.org/x/net/context"
 )
 
@@ -27,7 +28,7 @@ type UserConnector interface {
 type TransactionConnector interface {
 	// TransactionByID retrieves Transaction with given transaction ID
 	// If Transaction doesn't exist - nil,nil is returned.
-	TransactionByID(txID string) (*horizon.Transaction, error)
+	TransactionByID(txID string) (*regources.Transaction, error)
 }
 
 // SaleConnector is an interface for retrieving sale
@@ -53,6 +54,7 @@ type Service struct {
 	cancelledOrderNotifier     CancelledOrderNotifier
 	createdKYCNotifier         CreatedKYCNotifier
 	reviewedKYCRequestNotifier ReviewedKYCRequestNotifier
+	paymentV2Notifier          PaymentV2Notifier
 }
 
 // New is a constructor of a service
@@ -69,6 +71,7 @@ func New(
 	checkSaleStateResponses <-chan horizon.CheckSaleStateResponse,
 	createKYCRequestOpResponses <-chan horizon.CreateKYCRequestOpResponse,
 	reviewRequestOpResponses <-chan horizon.ReviewRequestOpResponse,
+	paymentV2OpResponses <-chan horizon.PaymentV2OpResponse,
 ) (*Service, error) {
 
 	cancelledOrderEmailSender, err := NewOpEmailSender(
@@ -79,7 +82,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.OrderCancelled.Disabled {
 		return nil, errors.Wrap(err, "failed to create cancelledOrderEmailSender")
 	}
 
@@ -91,7 +95,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.KYCCreated.Disabled {
 		return nil, errors.Wrap(err, "failed to create createdKYCEmailSender")
 	}
 
@@ -103,7 +108,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.KYCApproved.Disabled {
 		return nil, errors.Wrap(err, "failed to create approvedKYCEmailSender")
 	}
 
@@ -115,7 +121,8 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.KYCRejected.Disabled {
 		return nil, errors.Wrap(err, "failed to create rejectedKYCEmailSender")
 	}
 
@@ -127,8 +134,22 @@ func New(
 		notificatorConnector,
 		templatesConnector,
 	)
-	if err != nil {
+	// FIXME sorry, please fix
+	if err != nil && !config.USAKyc.Disabled {
 		return nil, errors.Wrap(err, "Failed to create usaKYCEmailSender")
+	}
+
+	paymentV2EmailSender, err := NewOpEmailSender(
+		config.PaymentV2.Emails.Subject,
+		config.PaymentV2.Emails.TemplateName,
+		config.PaymentV2.Emails.RequestType,
+		log.WithField("emails_type", "payment_v2"),
+		notificatorConnector,
+		templatesConnector,
+	)
+	// FIXME sorry, please fix
+	if err != nil && !config.PaymentV2.Disabled {
+		return nil, errors.Wrap(err, "failed to create paymentV2EmailSender")
 	}
 
 	return &Service{
@@ -166,6 +187,15 @@ func New(
 			kycDataHelper:            &KYCDataGetter{blobsConnector: blobsConnector},
 			reviewRequestOpResponses: reviewRequestOpResponses,
 		},
+
+		paymentV2Notifier: PaymentV2Notifier{
+			log:                  log,
+			emailSender:          paymentV2EmailSender,
+			eventConfig:          config.PaymentV2,
+			transactionConnector: transactionConnector,
+			userConnector:        userConnector,
+			paymentV2Responses:   paymentV2OpResponses,
+		},
 	}, nil
 }
 
@@ -174,24 +204,42 @@ func (s *Service) Run(ctx context.Context) {
 
 	var opNotifiersWaitGroup sync.WaitGroup
 
-	opNotifiersWaitGroup.Add(3)
+	opNotifiersWaitGroup.Add(4)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
+		if s.cancelledOrderNotifier.eventConfig.Disabled {
+			s.logger.Info("cancel order notifier disabled by config")
+			return
+		}
 		running.WithBackOff(ctx, s.logger, "cancelled_order_notifier",
 			s.cancelledOrderNotifier.listenAndProcessCancelledOrders, 0, 5*time.Second, time.Second)
-		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
+		if s.createdKYCNotifier.eventConfig.Disabled {
+			s.logger.Info("create kyc notifier disabled by config")
+			return
+		}
 		running.WithBackOff(ctx, s.logger, "created_kyc_notifier",
 			s.createdKYCNotifier.listenAndProcessCreatedKYCRequests, 0, 5*time.Second, time.Second)
-		w.Done()
 	}(&opNotifiersWaitGroup)
 
 	go func(w *sync.WaitGroup) {
+		defer w.Done()
 		running.WithBackOff(ctx, s.logger, "reviewed_kyc_notifier",
 			s.reviewedKYCRequestNotifier.listenAndProcessReviewedKYCRequests, 0, 5*time.Second, time.Second)
-		w.Done()
+	}(&opNotifiersWaitGroup)
+
+	go func(w *sync.WaitGroup) {
+		defer w.Done()
+		if s.paymentV2Notifier.eventConfig.Disabled {
+			s.logger.Info("paymentV2 notifier disabled by config")
+			return
+		}
+		running.WithBackOff(ctx, s.logger, "payment_v2_notifier",
+			s.paymentV2Notifier.listenAndProcessPaymentV2, 0, 5*time.Second, time.Second)
 	}(&opNotifiersWaitGroup)
 
 	opNotifiersWaitGroup.Wait()

@@ -9,6 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
@@ -28,8 +29,8 @@ type Service struct {
 	signerKP keypair.Full
 
 	requestsConnector RequestsConnector
-	xdrbuilder *xdrbuild.Builder
-	listener   net.Listener
+	xdrbuilder        *xdrbuild.Builder
+	listener          net.Listener
 
 	discoveryRegisterPeriod time.Duration
 	discovery               *discovery.Client
@@ -59,15 +60,15 @@ func New(
 		sourceKP: sourceKP,
 		signerKP: signerKP,
 
-		requestsConnector:    requestsConnector,
-		xdrbuilder: builder,
-		listener:   listener,
+		requestsConnector: requestsConnector,
+		xdrbuilder:        builder,
+		listener:          listener,
 
 		discoveryRegisterPeriod: discoveryRegisterPeriod,
 		discovery:               discoveryClient,
 		discoveryService: discoveryClient.Service(&discovery.ServiceRegistration{
 			Name:            serviceName,
-			ID:              "my_awesome_super_duper_random_id",
+			ID:              utils.GenerateToken(),
 			TTL:             2 * discoveryRegisterPeriod,
 			DeregisterAfter: 3 * discoveryRegisterPeriod,
 

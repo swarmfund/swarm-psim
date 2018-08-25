@@ -1,7 +1,10 @@
 package eventsubmitter
 
 import (
+	"strings"
+
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/swarmfund/psim/psim/airdrop"
 	"gitlab.com/swarmfund/psim/psim/eventsubmitter/internal"
 
 	horizon "gitlab.com/tokend/horizon-connector"
@@ -34,6 +37,7 @@ const (
 	BroadcastedEventNameFundsDeposited        BroadcastedEventName = "funds_deposited"
 	BroadcastedEventNameFundsInvested         BroadcastedEventName = "funds_invested"
 	BroadcastedEventNameReferredUserPassedKyc BroadcastedEventName = "referred_user_passed_kyc"
+	BroadcastedEventNameReceivedAirdrop       BroadcastedEventName = "received_airdrop"
 )
 
 func processCreateAccountOp(opData OpData) []MaybeBroadcastedEvent {
@@ -122,6 +126,16 @@ func processManageOfferOp(opData OpData) []MaybeBroadcastedEvent {
 }
 
 func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
+	opBody := opData.Op.Body.CreateIssuanceRequestOp
+	if opBody != nil {
+		reference := opBody.Reference
+		for _, airdropSuffix := range airdrop.AllAirdropSuffixes {
+			if strings.HasSuffix(string(reference), airdropSuffix) {
+				return internal.ValidBroadcastedEvent(opData.SourceAccount.Address(), BroadcastedEventNameReceivedAirdrop, opData.CreatedAt).Alone()
+			}
+		}
+	}
+
 	opResult := opData.OpResult
 
 	if opResult.CreateIssuanceRequestResult == nil {
@@ -138,7 +152,10 @@ func processCreateIssuanceRequestOp(opData OpData) []MaybeBroadcastedEvent {
 		return nil
 	}
 
-	return internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
+	events := internal.ValidBroadcastedEvent(opSuccess.Receiver.Address(), BroadcastedEventNameFundsDeposited, opData.CreatedAt).Alone()
+	events[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
+	events[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
+	return events
 }
 
 func processKYCCreateUpdateRequestOp(opData OpData) []MaybeBroadcastedEvent {
@@ -175,7 +192,10 @@ func processReviewRequestOp(requestsProvider RequestProvider, accountsProvider A
 func handleIssuanceCreateReq(opData OpData) []MaybeBroadcastedEvent {
 	sourceAccountAddress := opData.SourceAccount.Address()
 	time := opData.CreatedAt
-	return internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
+	events := internal.ValidBroadcastedEvent(sourceAccountAddress, BroadcastedEventNameFundsDeposited, time).Alone()
+	events[0].BroadcastedEvent.DepositAmount = int64(opData.Op.Body.CreateIssuanceRequestOp.Request.Amount)
+	events[0].BroadcastedEvent.DepositCurrency = string(opData.Op.Body.CreateIssuanceRequestOp.Request.Asset)
+	return events
 }
 
 func findRemoval(ledgerChanges []xdr.LedgerEntryChange) *xdr.LedgerKeyReviewableRequest {

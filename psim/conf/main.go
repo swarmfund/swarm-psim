@@ -15,7 +15,7 @@ import (
 	"gitlab.com/swarmfund/psim/mixpanel"
 	"gitlab.com/swarmfund/psim/psim/bitcoin"
 	"gitlab.com/swarmfund/psim/psim/notifications"
-	"gitlab.com/swarmfund/psim/salesforce"
+	salesforce "gitlab.com/swarmfund/salesforce-connector"
 	"gitlab.com/tokend/horizon-connector"
 )
 

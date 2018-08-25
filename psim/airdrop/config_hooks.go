@@ -2,6 +2,7 @@ package airdrop
 
 import (
 	"reflect"
+
 	"github.com/spf13/cast"
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -15,6 +16,17 @@ var FigureHooks = figure.Hooks{
 		}
 
 		var emails EmailsConfig
+
+		var disabledConfig struct {
+			Disabled bool `fig:"disabled"`
+		}
+
+		err = figure.Out(&disabledConfig).From(rawEmails).Please()
+
+		if disabledConfig.Disabled {
+			return reflect.ValueOf(EmailsConfig{Disabled: true}), nil
+		}
+
 		err = figure.
 			Out(&emails).
 			From(rawEmails).

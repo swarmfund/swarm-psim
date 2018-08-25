@@ -2,14 +2,14 @@ package listener
 
 import (
 	"context"
-	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/horizon-connector/internal/operation"
 	"time"
 	"fmt"
+	"gitlab.com/tokend/regources"
 )
 
 func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableRequestEvent) {
-	reqGetter := func(cursor string) ([]resources.Request, error) {
+	reqGetter := func(cursor string) ([]regources.ReviewableRequest, error) {
 		return q.opQ.AllRequests(cursor)
 	}
 
@@ -17,7 +17,7 @@ func (q *Q) StreamAllReviewableRequests(ctx context.Context) (<-chan ReviewableR
 }
 
 func (q *Q) StreamAllReviewableRequestsOnce(ctx context.Context) (<-chan ReviewableRequestEvent) {
-	reqGetter := func(cursor string) ([]resources.Request, error) {
+	reqGetter := func(cursor string) ([]regources.ReviewableRequest, error) {
 		return q.opQ.AllRequests(cursor)
 	}
 
@@ -40,14 +40,14 @@ func (q *Q) streamKYCRequests(ctx context.Context, filters string, stopOnEmptyPa
 }
 
 func (q *Q) getAndStreamReviewableRequests(ctx context.Context, getParams, cursor string, reqType operation.ReviewableRequestType, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
-	reqGetter := func(cursor string) ([]resources.Request, error) {
+	reqGetter := func(cursor string) ([]regources.ReviewableRequest, error) {
 		return q.opQ.Requests(getParams, cursor, reqType)
 	}
 
 	return streamReviewableRequests(ctx, reqGetter, cursor, stopOnEmptyPage)
 }
 
-func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]resources.Request, error), cursor string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
+func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string) ([]regources.ReviewableRequest, error), cursor string, stopOnEmptyPage bool) (<-chan ReviewableRequestEvent) {
 	reqStream := make(chan ReviewableRequestEvent)
 
 	go func() {
@@ -90,7 +90,7 @@ func streamReviewableRequests(ctx context.Context, reqGetter func(cursor string)
 					return
 				}
 
-				cursor = req.PagingToken
+				cursor = req.PagingToken()
 			}
 		}
 	}()

@@ -65,10 +65,10 @@ func getWithdrawAddress(externalDetails map[string]interface{}) (string, error) 
 // TODO Comment
 func GetWithdrawAmount(request horizon.Request) (int64, error) {
 	if request.Details.TwoStepWithdraw != nil {
-		return int64(request.Details.TwoStepWithdraw.DestinationAmount), nil
+		return int64(request.Details.TwoStepWithdraw.DestAssetAmount), nil
 	}
 	if request.Details.Withdraw != nil {
-		return int64(request.Details.Withdraw.DestinationAmount), nil
+		return int64(request.Details.Withdraw.DestAssetAmount), nil
 	}
 
 	return 0, ErrMissingRequestInDetails
@@ -124,16 +124,16 @@ func ProvePendingRequest(request horizon.Request, asset string, neededRequestTyp
 
 	var destAsset string
 	if request.Details.TwoStepWithdraw != nil {
-		destAsset = request.Details.TwoStepWithdraw.DestinationAsset
+		destAsset = request.Details.TwoStepWithdraw.DestAssetCode
 	}
 	if request.Details.Withdraw != nil {
-		destAsset = request.Details.Withdraw.DestinationAsset
+		destAsset = request.Details.Withdraw.DestAssetCode
 	}
 	// TODO If not Withdraw and not TSW - consider returning specific error (switch request.Details.RequestType)
 
 	if destAsset != asset {
 		// Withdraw not to BTC.
-		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", destAsset, asset)
+		return fmt.Sprintf("Wrong DestintationAsset (%s) expected (%s).", destAsset, asset)
 	}
 
 	return ""

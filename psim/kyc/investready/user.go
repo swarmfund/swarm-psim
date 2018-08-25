@@ -43,5 +43,7 @@ const (
 	AccreditedStatusMessage             StatusMessage = "Accredited"
 	PendingStatusMessage                StatusMessage = "Pending"
 	NoPendingVerificationsStatusMessage StatusMessage = "No Pending Verifications"
-	DeniedStatusMessage                 StatusMessage = "Denied"
+	// Peter Martinez promised to add such status for those cases when we are out of credits in InvestReady.
+	UnpaidStatusMessage StatusMessage = "Unpaid"
+	DeniedStatusMessage StatusMessage = "Denied"
 )

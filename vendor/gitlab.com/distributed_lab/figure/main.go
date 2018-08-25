@@ -3,8 +3,7 @@ package figure
 import (
 	"reflect"
 
-	"fmt"
-
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
@@ -14,7 +13,15 @@ const (
 	ignore   = "-"
 )
 
-var ErrRequiredValue = errors.New("You must set the value in field")
+var (
+	ErrRequiredValue = errors.New("you must set the value in field")
+	ErrNoHook        = errors.New("no such hook")
+)
+
+type Validatable interface {
+	// Validate validates the data and returns an error if validation fails.
+	Validate() error
+}
 
 // Hook signature for custom hooks.
 // Takes raw value expected to return target value
@@ -69,44 +76,47 @@ func (f *Figurator) Please() error {
 		fieldType := tpe.Field(fi)
 		fieldValue := vle.Field(fi)
 
-		_, err := f.SetField(fieldValue, fieldType, keyTag)
-		if err != nil {
-			return err
+		if err := f.SetField(fieldValue, fieldType, keyTag); err != nil {
+			return errors.Wrap(err, "failed to set field", logan.F{"field": fieldType.Name})
 		}
+	}
+
+	if data, ok := f.target.(Validatable); ok {
+		return data.Validate()
 	}
 
 	return nil
 }
 
-func (f *Figurator) SetField(fieldValue reflect.Value, field reflect.StructField, keyTag string) (bool, error) {
-
+func (f *Figurator) SetField(fieldValue reflect.Value, field reflect.StructField, keyTag string) error {
 	tag, err := parseFieldTag(field, keyTag)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to parse tag")
+		return errors.Wrap(err, "failed to parse tag", logan.F{"tag": tag.Key})
 	}
 
 	if tag == nil {
-		return false, nil
+		return nil
 	}
 
-	raw, hasRaw := f.values[tag.Key]
+	hook, ok := f.hooks[field.Type.String()]
+	if !ok {
+		return errors.Wrap(ErrNoHook, "failed to find hook", logan.F{"hook": field.Type.String()})
+	}
 
 	isSet := false
-	if hook, ok := f.hooks[field.Type.String()]; ok && hasRaw {
+	raw, hasRaw := f.values[tag.Key]
+	if hasRaw {
 		value, err := hook(raw)
 		if err != nil {
-			return false, errors.Wrap(err, fmt.Sprintf("failed to figure out %s", field))
+			return errors.Wrap(err, "failed to figure out", logan.F{"hook": field.Type.String(), "value": raw})
 		}
 		fieldValue.Set(value)
 		isSet = true
 	}
 
-	if !isSet {
-		if tag.IsRequired {
-			return false, errors.Wrap(ErrRequiredValue, tag.Key)
-		}
-		return false, nil
+	if !isSet && tag.IsRequired {
+		return errors.Wrap(ErrRequiredValue, "failed to get value for this field", logan.F{"field": field.Name})
 	}
 
-	return true, nil
+	return nil
 }

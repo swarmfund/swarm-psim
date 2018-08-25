@@ -1,3 +1,5 @@
+// Sequence diagram for this service can be found here:
+// https://gitlab.com/tokend/knowledge_base/blob/master/flows/kyc/invest-ready-sequence-diagram.jpeg
 package investready
 
 import (

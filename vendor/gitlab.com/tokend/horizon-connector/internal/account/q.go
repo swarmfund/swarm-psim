@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tokend/horizon-connector/internal"
 	"gitlab.com/tokend/horizon-connector/internal/resources"
 	"gitlab.com/tokend/horizon-connector/internal/responses"
+	"gitlab.com/tokend/regources"
 )
 
 var (
@@ -79,7 +80,7 @@ func (q *Q) Signers(address string) ([]goresources.Signer, error) {
 }
 
 // ByBalance return account address by balance
-// DEPRECATED use AccountID() from Balances Q instead
+// DEPRECATED: use AccountID() from Balances Q instead
 func (q *Q) ByBalance(balanceID string) (*string, error) {
 	endpoint := fmt.Sprintf("/balances/%s/account", balanceID)
 	response, err := q.client.Get(endpoint)
@@ -164,6 +165,39 @@ func (q *Q) Balances(address string) ([]resources.Balance, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal")
 	}
 	return result, nil
+}
+
+// Offers requests Offers by the Account.
+// All parameters except `address` are optional - use default values for parameters you don't need to provide.
+func (q *Q) Offers(address, baseAsset, quoteAsset string, isBuy *bool, offerID string, orderBookID *uint64) ([]regources.Offer, error) {
+	if (baseAsset == "") != (quoteAsset == "") {
+		return nil, errors.New("base and quote assets must be both set or both not set")
+	}
+
+	endpoint := fmt.Sprintf("/accounts/%s/offers?base_asset=%s&quote_asset=%s&offer_id=%s",
+		address, baseAsset, quoteAsset, offerID)
+	if isBuy != nil {
+		endpoint = fmt.Sprintf("%s&is_buy=%v", endpoint, *isBuy)
+	}
+	if orderBookID != nil {
+		endpoint = fmt.Sprintf("%s&order_book_id=%d", endpoint, *orderBookID)
+	}
+
+	respBB, err := q.client.Get(endpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "request failed")
+	}
+
+	if respBB == nil {
+		return nil, nil
+	}
+
+	var result responses.OfferIndex
+	if err := json.Unmarshal(respBB, &result); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal")
+	}
+
+	return result.Embedded.Records, nil
 }
 
 func (q *Q) References(address string) ([]resources.Reference, error) {

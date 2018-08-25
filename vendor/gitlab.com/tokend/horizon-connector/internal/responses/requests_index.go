@@ -1,9 +1,11 @@
 package responses
 
-import "gitlab.com/tokend/horizon-connector/internal/resources"
+import (
+	"gitlab.com/tokend/regources"
+)
 
 type RequestsIndex struct {
 	Embedded struct {
-		Records []resources.Request `json:"records"`
+		Records []regources.ReviewableRequest `json:"records"`
 	} `json:"_embedded"`
 }

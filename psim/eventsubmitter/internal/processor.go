@@ -12,7 +12,7 @@ type OpData struct {
 	SourceAccount   xdr.AccountId
 	OpLedgerChanges []xdr.LedgerEntryChange
 	OpResult        xdr.OperationResultTr
-	CreatedAt       *time.Time
+	CreatedAt       time.Time
 	PagingToken     string
 }
 
@@ -23,7 +23,7 @@ type MaybeBroadcastedEvent struct {
 }
 
 // AppendedBy returns array of the receiver and new event from arguments.
-func (mbe *MaybeBroadcastedEvent) AppendedBy(Account string, Name BroadcastedEventName, Time *time.Time) (outputEvents []MaybeBroadcastedEvent) {
+func (mbe *MaybeBroadcastedEvent) AppendedBy(Account string, Name BroadcastedEventName, Time time.Time) (outputEvents []MaybeBroadcastedEvent) {
 	outputEvents = append([]MaybeBroadcastedEvent{*mbe}, MaybeBroadcastedEvent{NewBroadcastedEvent(Account, Name, Time), nil})
 	return
 }
@@ -40,7 +40,7 @@ func InvalidBroadcastedEvent(err error) *MaybeBroadcastedEvent {
 }
 
 // ValidBroadcastedEvent constructs MaybeBroadcastedEvent with body
-func ValidBroadcastedEvent(Account string, Name BroadcastedEventName, Time *time.Time) *MaybeBroadcastedEvent {
+func ValidBroadcastedEvent(Account string, Name BroadcastedEventName, Time time.Time) *MaybeBroadcastedEvent {
 	return &MaybeBroadcastedEvent{NewBroadcastedEvent(Account, Name, Time), nil}
 }
 

@@ -58,6 +58,7 @@ const (
 	ServiceWalletCleaner    = "wallet_cleaner"
 
 	ServiceRequestMonitor = "request_monitor"
+	ServiceMarketMaker    = "market_maker"
 )
 
 // Services returns `services` slice from config, which describes, which Services to run.
