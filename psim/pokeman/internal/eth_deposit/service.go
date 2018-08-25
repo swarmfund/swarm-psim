@@ -41,6 +41,7 @@ func NewService(log *logan.Entry, eth TxProvider, slack slack.Client, horizon *h
 // TODO add throttling
 // ensureExternalBinding tries it's best to get you config.Source external system binding data for provided externalSystem
 func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int32) (string, error) {
+	// FIXME: expose running.NewIncrementalTimer
 	timer := running.NewIncrementalTimer(1, 2, 2)
 	externalAddr, err := s.horizon.Accounts().CurrentExternalBindingData(s.config.Source.Address(), externalSystem)
 	if err != nil {
@@ -64,6 +65,7 @@ func (s *Service) ensureExternalBinding(ctx context.Context, externalSystem int3
 				if err != nil {
 					return errors.Wrap(err, "failed to get external binding data")
 				}
+				// FIXME: expose running.IncrementalTimer.Next()
 				<-timer.Next()
 			}
 			return nil

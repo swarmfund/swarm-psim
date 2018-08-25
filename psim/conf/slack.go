@@ -23,7 +23,7 @@ func (c *ViperConfig) Slack() slack.Client {
 
 	err := figure.Out(&config).From(c.GetRequired("slack")).Please()
 	if err != nil {
-		panic(errors.Wrap(err, "Failed to parse bitcoin config entry"))
+		panic(errors.Wrap(err, "Failed to parse slack config entry"))
 	}
 
 	c.slackClient = webhook.New(config.WebhookURL.String())
