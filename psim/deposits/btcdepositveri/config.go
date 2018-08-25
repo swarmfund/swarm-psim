@@ -4,6 +4,7 @@ import (
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
+	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/tokend/keypair"
 )
@@ -29,7 +30,7 @@ func NewConfig(configData map[string]interface{}) (*Config, error) {
 	err := figure.
 		Out(config).
 		From(configData).
-		With(figure.BaseHooks, utils.CommonHooks).
+		With(figure.BaseHooks, utils.CommonHooks, supervisor.DLFigureHooks).
 		Please()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to figure out")

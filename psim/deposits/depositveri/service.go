@@ -2,7 +2,6 @@ package depositveri
 
 import (
 	"context"
-
 	"time"
 
 	"gitlab.com/distributed_lab/logan/v3"
@@ -19,6 +18,8 @@ import (
 const (
 	RequestStatePending int32 = 1
 )
+
+var ErrInvalidRequest = errors.New("request is invalid in some way")
 
 type IssuanceRequestsStreamer interface {
 	StreamIssuanceRequests(ctx context.Context, opts horizon.IssuanceRequestStreamingOpts) <-chan horizon.ReviewableRequestEvent
@@ -108,35 +109,42 @@ func (s *Service) processAllIssuancesOnce(ctx context.Context) error {
 				return errors.Wrap(err, "received error from IssuanceRequest stream")
 			}
 
-			return errors.Wrap(s.processRequest(ctx, *request), "failed to process IssuanceRequest")
+			if err := s.processRequest(request); err != nil {
+				s.log.WithError(err).WithField("request_id", request.ID).Error("failed to process request")
+				continue
+			}
 		}
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request regources.ReviewableRequest) error {
-	issuance := request.Details.IssuanceCreate
-
-	if string(issuance.Asset) != s.offchainHelper.GetAsset() {
+func (s *Service) processRequest(request *regources.ReviewableRequest) error {
+	// check request sanity
+	if !s.isSaneRequest(request) {
+		if err := s.rejectRequest(request, "invalid_in_some_way"); err != nil {
+			return errors.Wrap(err, "failed to reject request")
+		}
 		return nil
 	}
 
-	depositDetails := issuance.DepositDetails
+	issuance := request.Details.IssuanceCreate
+	details := issuance.DepositDetails
 
-	txFindMeta, tx, err := s.offchainHelper.FindTX(ctx, depositDetails.BlockNumber, depositDetails.TXHash)
+	txFindMeta, tx, err := s.offchainHelper.FindTX(context.TODO(), details.BlockNumber, details.TXHash)
 	if err != nil {
 		return errors.Wrap(err, "failed to find the TX")
 	}
 
 	if tx == nil {
 		if txFindMeta.StopWaiting {
-			return errors.Wrap(err, "failed to verify request (TX does not exit in Offchain and we don't expect it to appear)")
-		} else {
-			// No TX in Offchain yet, but there is a hope to find TX in future - ignoring this Request for now
+			if err := s.rejectRequest(request, "invalid_in_some_way"); err != nil {
+				return errors.Wrap(err, "failed to reject request")
+			}
 			return nil
 		}
+		return nil
 	}
 
-	// TX was found
+	// check if we have enough confirmations
 	lastKnownBlock, err := s.offchainHelper.GetLastKnownBlockNumber()
 	if err != nil {
 		return errors.Wrap(err, "failed to get last known Block number")
@@ -146,18 +154,25 @@ func (s *Service) processRequest(ctx context.Context, request regources.Reviewab
 		return nil
 	}
 
-	if len(tx.Outs) <= int(depositDetails.OutIndex) {
-		return errors.Errorf("OutIndex (%d) is invalid, the Offchain TX has only (%d) Outputs.", depositDetails.OutIndex, len(tx.Outs))
+	if len(tx.Outs) <= int(details.OutIndex) {
+		return errors.Wrap(ErrInvalidRequest, "invalid out length", logan.F{
+			"want_index": details.OutIndex,
+			"len(outs)":  len(tx.Outs),
+		})
 	}
-	out := tx.Outs[depositDetails.OutIndex]
 
-	expectedReference := s.offchainHelper.BuildReference(depositDetails.BlockNumber, depositDetails.TXHash,
-		out.Address, depositDetails.OutIndex, 64)
+	out := tx.Outs[details.OutIndex]
+
+	expectedReference := s.offchainHelper.BuildReference(details.BlockNumber, details.TXHash, out.Address, details.OutIndex, 64)
 	if expectedReference != string(*request.Reference) {
-		return errors.Errorf("Invalid reference - from Offchain - (%s), in Core - (%s).", expectedReference, *request.Reference)
+		return errors.Wrap(ErrInvalidRequest, "reference mismatch", logan.F{
+			"got":              *request.Reference,
+			"expected":         expectedReference,
+			"reference_inputs": []interface{}{details.BlockNumber, details.TXHash, out.Address, details.OutIndex, 64},
+		})
 	}
 
-	err = s.checkAddress(ctx, issuance.Receiver, out.Address, txFindMeta.BlockTime)
+	err = s.checkAddress(context.TODO(), issuance.Receiver, out.Address, txFindMeta.BlockTime)
 	if err != nil {
 		return errors.Wrap(err, "Offchain address is invalid or failed to check")
 	}
@@ -167,7 +182,16 @@ func (s *Service) processRequest(ctx context.Context, request regources.Reviewab
 		return errors.Wrap(err, "Deposit value is invalid or failed to check")
 	}
 
+	if err := s.approveRequest(request); err != nil {
+		return errors.Wrap(err, "failed to approve request")
+	}
+
 	return nil
+}
+
+func (s *Service) isSaneRequest(request *regources.ReviewableRequest) bool {
+	details := request.Details.IssuanceCreate.DepositDetails
+	return details.TXHash != ""
 }
 
 func (s *Service) checkAddress(ctx context.Context, balanceID, offchainAddress string, ts time.Time) error {
@@ -184,9 +208,14 @@ func (s *Service) checkAddress(ctx context.Context, balanceID, offchainAddress s
 		return errors.New("No Account was connected with this OffchainAddress at this moment of time.")
 	}
 
-	if accountID != requestAccountID {
-		return errors.Errorf("Invalid Issuance receiver - in Offchain - (%s), in Core - (%s).", accountID, requestAccountID)
+	if *accountID != *requestAccountID {
+		return errors.Wrap(ErrInvalidRequest, "invalid receiver", logan.F{
+			"offchain": *accountID,
+			"core":     *requestAccountID,
+		})
 	}
+
+	s.log.Info("request approved")
 
 	return nil
 }
@@ -205,33 +234,45 @@ func (s *Service) checkValue(out deposit.Out, issuanceAmount regources.Amount) e
 	return nil
 }
 
-func (s *Service) rejectRequest(request regources.ReviewableRequest, rejectReason string) error {
+func (s *Service) rejectRequest(request *regources.ReviewableRequest, rejectReason string) error {
 	envelope, err := s.builder.
 		Transaction(s.source).
 		Op(xdrbuild.ReviewRequestOp{
 			ID:     request.ID,
 			Hash:   request.Hash,
 			Action: xdr.ReviewRequestOpActionReject,
-			// TODO Check that nil is OK
-			Details: nil,
-			Reason:  rejectReason,
+			Reason: rejectReason,
 		}).
 		Sign(s.signer).Marshal()
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal tx")
 	}
 
-	submitDetails, err := s.horizon.Submitter().SubmitE(envelope)
-	if err != nil {
-		return errors.Wrap(err, "failed to submit tx", logan.F{
-			"envelope": envelope,
-		})
+	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
+	if result.Err != nil {
+		return errors.Wrap(result.Err, "failed to submit tx", result.GetLoganFields())
 	}
 
-	if submitDetails.StatusCode < 200 || submitDetails.StatusCode >= 300 {
-		return errors.From(errors.New("Error submitting TX."), logan.F{
-			"envelope":                envelope,
-			"submit_response_details": submitDetails,
+	return nil
+}
+
+func (s *Service) approveRequest(request *regources.ReviewableRequest) error {
+	envelope, err := s.builder.
+		Transaction(s.source).
+		Op(xdrbuild.ReviewRequestOp{
+			ID:     request.ID,
+			Hash:   request.Hash,
+			Action: xdr.ReviewRequestOpActionApprove,
+		}).
+		Sign(s.signer).Marshal()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal tx")
+	}
+
+	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
+	if result.Err != nil {
+		return errors.Wrap(result.Err, "failed to submit tx", logan.F{
+			"envelope": envelope,
 		})
 	}
 
