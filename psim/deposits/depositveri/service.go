@@ -129,7 +129,8 @@ func (s *Service) processRequest(request *regources.ReviewableRequest) error {
 	issuance := request.Details.IssuanceCreate
 	details := issuance.DepositDetails
 
-	txFindMeta, tx, err := s.offchainHelper.FindTX(context.TODO(), details.BlockNumber, details.TXHash)
+	txFindMeta, tx, err := s.offchainHelper.FindTX(
+		context.TODO(), details.BlockNumber, details.TXHash)
 	if err != nil {
 		return errors.Wrap(err, "failed to find the TX")
 	}
@@ -186,6 +187,7 @@ func (s *Service) processRequest(request *regources.ReviewableRequest) error {
 		return errors.Wrap(err, "failed to approve request")
 	}
 
+	s.log.WithField("request_id", request.ID).Info("request approved")
 	return nil
 }
 
@@ -215,8 +217,6 @@ func (s *Service) checkAddress(ctx context.Context, balanceID, offchainAddress s
 		})
 	}
 
-	s.log.Info("request approved")
-
 	return nil
 }
 
@@ -238,10 +238,11 @@ func (s *Service) rejectRequest(request *regources.ReviewableRequest, rejectReas
 	envelope, err := s.builder.
 		Transaction(s.source).
 		Op(xdrbuild.ReviewRequestOp{
-			ID:     request.ID,
-			Hash:   request.Hash,
-			Action: xdr.ReviewRequestOpActionReject,
-			Reason: rejectReason,
+			ID:      request.ID,
+			Hash:    request.Hash,
+			Action:  xdr.ReviewRequestOpActionReject,
+			Reason:  rejectReason,
+			Details: xdrbuild.IssuanceDetails{},
 		}).
 		Sign(s.signer).Marshal()
 	if err != nil {
@@ -260,9 +261,10 @@ func (s *Service) approveRequest(request *regources.ReviewableRequest) error {
 	envelope, err := s.builder.
 		Transaction(s.source).
 		Op(xdrbuild.ReviewRequestOp{
-			ID:     request.ID,
-			Hash:   request.Hash,
-			Action: xdr.ReviewRequestOpActionApprove,
+			ID:      request.ID,
+			Hash:    request.Hash,
+			Action:  xdr.ReviewRequestOpActionApprove,
+			Details: xdrbuild.IssuanceDetails{},
 		}).
 		Sign(s.signer).Marshal()
 	if err != nil {
@@ -271,9 +273,7 @@ func (s *Service) approveRequest(request *regources.ReviewableRequest) error {
 
 	result := s.horizon.Submitter().Submit(context.TODO(), envelope)
 	if result.Err != nil {
-		return errors.Wrap(result.Err, "failed to submit tx", logan.F{
-			"envelope": envelope,
-		})
+		return errors.Wrap(result.Err, "failed to submit tx", result.GetLoganFields())
 	}
 
 	return nil
