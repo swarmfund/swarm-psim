@@ -20,6 +20,7 @@ type Config struct {
 	NetworkType              derive.NetworkType `fig:"network_type,required"`
 	MinBalanceAlarmThreshold float64            `fig:"min_balance_alarm_threshold,required"`
 	MinBalanceAlarmPeriod    time.Duration      `fig:"min_balance_alarm_period,required"`
+	DisableLowBalanceMonitor bool               `fig:"disable_low_balance_monitor"` // optional
 }
 
 func (c Config) GetLoganFields() map[string]interface{} {
@@ -36,5 +37,6 @@ func (c Config) GetLoganFields() map[string]interface{} {
 		"network_type":                c.NetworkType,
 		"min_balance_alarm_threshold": c.MinBalanceAlarmThreshold,
 		"min_balance_alarm_period":    c.MinBalanceAlarmPeriod,
+		"disable_low_balance_monitor": c.DisableLowBalanceMonitor,
 	}
 }

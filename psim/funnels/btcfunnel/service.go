@@ -84,11 +84,13 @@ func (s *Service) Run(ctx context.Context) {
 	s.log.WithField("", s.config).Info("Starting.")
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		s.monitorLowBalance(ctx)
-		wg.Done()
-	}()
+	if !s.config.DisableLowBalanceMonitor {
+		wg.Add(1)
+		go func() {
+			s.monitorLowBalance(ctx)
+			defer wg.Done()
+		}()
+	}
 
 	err := s.deriveKeys()
 	if err != nil {
