@@ -3,6 +3,8 @@ package btcfunnel
 import (
 	"context"
 
+	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
+
 	"encoding/hex"
 
 	"time"
@@ -64,15 +66,13 @@ type Service struct {
 }
 
 // New is constructor for btcfunnel Service.
-func New(config Config, log *logan.Entry, btcClient BTCClient, netParams *chaincfg.Params, notificationSender NotificationSender) *Service {
+func New(config Config, log *logan.Entry, btcClient BTCClient, networkType derive.NetworkType, notificationSender NotificationSender) *Service {
 	return &Service{
-		config: config,
-		log:    log,
-
+		config:             config,
+		log:                log,
 		lastProcessedBlock: config.LastProcessedBlock,
 		addrToPriv:         make(map[string]string),
-		netParams:          netParams,
-
+		netParams:          derive.NetworkParams(networkType),
 		btcClient:          btcClient,
 		notificationSender: notificationSender,
 	}
