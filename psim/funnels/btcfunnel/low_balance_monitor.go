@@ -37,10 +37,10 @@ func (s *Service) sendLowBalanceNotification(currentBalance float64) (bool, erro
 		return false, nil
 	}
 
-	message := fmt.Sprintf("Hey! There is not so much *BTC* left on the *%s* Hot wallet: *%.8f*.\n"+
+	message := fmt.Sprintf("Hey! There is not so much *BTC* left on the Hot wallet: *%.8f*.\n"+
 		"I was asked to notify once Hot wallet balance is not grater than %.8f BTC.\n"+
 		"I was asked to notify every *%s*.",
-		s.config.OffchainBlockchain, currentBalance, s.config.MinBalanceAlarmThreshold, s.config.MinBalanceAlarmPeriod.String())
+		currentBalance, s.config.MinBalanceAlarmThreshold, s.config.MinBalanceAlarmPeriod.String())
 
 	err := s.notificationSender.Send(message)
 	if err != nil {

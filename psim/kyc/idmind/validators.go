@@ -5,6 +5,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -19,7 +20,7 @@ var (
 )
 
 // isInterestingRequest checks if service should process request further
-func isInterestingRequest(request horizon.Request) bool {
+func isInterestingRequest(request regources.ReviewableRequest) bool {
 	// request should be pending
 	if request.State != kyc.RequestStatePending {
 		return false
@@ -43,7 +44,7 @@ func isInterestingRequest(request horizon.Request) bool {
 	return true
 }
 
-func isValidRequest(request horizon.Request) error {
+func isValidRequest(request regources.ReviewableRequest) error {
 	// valid UpdateKYC request has KYC details set
 	if request.Details.KYC == nil {
 		return errMissingDetails

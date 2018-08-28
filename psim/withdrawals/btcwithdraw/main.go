@@ -37,14 +37,13 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	btcHelper, err := NewBTCHelper(
 		log,
 		// TODO Config
-		"BTC",
+		config.DepositAsset,
 		config.MinWithdrawAmount,
 		config.HotWalletAddress,
 		config.HotWalletScriptPubKey,
 		config.HotWalletRedeemScript,
 		config.PrivateKey,
-		config.OffchainCurrency,
-		config.OffchainBlockchain,
+		config.NetworkType,
 		globalConfig.Bitcoin(),
 	)
 	if err != nil {
@@ -60,9 +59,9 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		horizonConnector.Submitter(),
 		builder,
 		withdraw.VerificationConfig{
-			Verify: true,
+			Verify:              true,
 			VerifierServiceName: conf.ServiceBTCWithdrawVerify,
-			Discovery: globalConfig.Discovery(),
+			Discovery:           globalConfig.Discovery(),
 		},
 		btcHelper,
 	), nil

@@ -8,18 +8,20 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
-	"gitlab.com/swarmfund/psim/psim/internal/resources"
+	internal2 "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/tokend/go/amount"
+	"gitlab.com/tokend/regources"
 )
 
 // TODO defer
 func (s *Service) processBlocks(ctx context.Context) {
 	// TODO Listen to both s.blockCh and ctx.Done() in select.
 	for blockNumber := range s.blocksCh {
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			return
 		}
 
@@ -143,7 +145,7 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	entry.Info("Found deposit.")
 
 	receiver := s.state.Balance(ctx, *address, s.config.DepositAsset)
-	if app.IsCanceled(ctx) {
+	if running.IsCancelled(ctx) {
 		return nil
 	}
 
@@ -167,15 +169,17 @@ func (s *Service) processTX(ctx context.Context, tx internal.Transaction) (err e
 	if len(reference) > 64 {
 		reference = reference[len(reference)-64:]
 	}
+
+	details := internal2.MustMarshal(regources.DepositDetails{
+		TXHash: tx.Hash().Hex(),
+	})
+
 	request := s.CraftIssuanceRequest(supervisor.IssuanceRequestOpt{
 		Asset:     s.config.DepositAsset,
 		Reference: reference,
 		Receiver:  *receiver,
 		Amount:    emissionAmount.Uint64(),
-		Details: resources.DepositDetails{
-			TXHash: tx.Hash().Hex(),
-			Price:  amount.One,
-		}.Encode(),
+		Details:   details,
 	})
 
 	entry = entry.WithFields(logan.F{

@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -36,7 +36,7 @@ var (
 // - ErrMissingRequestInDetails
 // - ErrMissingAddress
 // - ErrAddressNotAString.
-func GetWithdrawalAddress(request horizon.Request) (string, error) {
+func GetWithdrawalAddress(request regources.ReviewableRequest) (string, error) {
 	if request.Details.TwoStepWithdraw != nil {
 		return getWithdrawAddress(request.Details.TwoStepWithdraw.ExternalDetails)
 	}
@@ -63,7 +63,7 @@ func getWithdrawAddress(externalDetails map[string]interface{}) (string, error) 
 }
 
 // TODO Comment
-func GetWithdrawAmount(request horizon.Request) (int64, error) {
+func GetWithdrawAmount(request regources.ReviewableRequest) (int64, error) {
 	if request.Details.TwoStepWithdraw != nil {
 		return int64(request.Details.TwoStepWithdraw.DestAssetAmount), nil
 	}
@@ -82,7 +82,7 @@ func GetWithdrawAmount(request horizon.Request) (int64, error) {
 // - ErrMissingWithdraw
 // - ErrMissingTXHex
 // - ErrTXHexNotAString.
-func GetTXHex(request horizon.Request) (string, error) {
+func GetTXHex(request regources.ReviewableRequest) (string, error) {
 	if request.Details.Withdraw == nil {
 		return "", ErrMissingWithdraw
 	}
@@ -106,7 +106,7 @@ func GetTXHex(request horizon.Request) (string, error) {
 // - its DestinationAsset equals `asset`.
 //
 // Otherwise returns string describing the validation error.
-func ProvePendingRequest(request horizon.Request, asset string, neededRequestTypes ...int32) string {
+func ProvePendingRequest(request regources.ReviewableRequest, asset string, neededRequestTypes ...int32) string {
 	if request.State != RequestStatePending {
 		// State is not pending
 		return fmt.Sprintf("Invalid Request State (%d) expected Pending(%d).", request.State, RequestStatePending)

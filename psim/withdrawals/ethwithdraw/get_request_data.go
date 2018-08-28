@@ -9,7 +9,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/tokend/go/xdr"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -33,7 +33,7 @@ const (
 // - Request version is not 3, or
 // - The Request is not of type TwoStepWithdraw
 // in all other cases - nil error means non-nil Transaction and vice versa.
-func getTX1(request horizon.Request) (*types.Transaction, error) {
+func getTX1(request regources.ReviewableRequest) (*types.Transaction, error) {
 	version, err := getPreConfirmationVersion(request)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get version of the Request")
@@ -73,7 +73,7 @@ func getTX1(request horizon.Request) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func getPreConfirmationVersion(request horizon.Request) (float64, error) {
+func getPreConfirmationVersion(request regources.ReviewableRequest) (float64, error) {
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeWithdraw) {
 		// Not a WithdrawRequest - either still TSWRequest or not a WithdrawalRequest at all.
 		return 0, nil
@@ -93,7 +93,7 @@ func getPreConfirmationVersion(request horizon.Request) (float64, error) {
 	return version, nil
 }
 
-func (s *Service) getTSWRejectReason(request horizon.Request, countedAssetAmount *big.Int) string {
+func (s *Service) getTSWRejectReason(request regources.ReviewableRequest, countedAssetAmount *big.Int) string {
 	tswRequest := request.Details.TwoStepWithdraw
 
 	addrI, ok := tswRequest.ExternalDetails[WithdrawAddressExtDetailsKey]
@@ -115,7 +115,7 @@ func (s *Service) getTSWRejectReason(request horizon.Request, countedAssetAmount
 	return ""
 }
 
-func isProcessablePendingRequest(request horizon.Request) bool {
+func isProcessablePendingRequest(request regources.ReviewableRequest) bool {
 	if request.Details.RequestType != int32(xdr.ReviewableRequestTypeTwoStepWithdrawal) {
 		// Withdraw service only approves TwoStepWithdraw Requests, Withdraw Requests will be approved by Verify service.
 		return false

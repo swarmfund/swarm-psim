@@ -4,26 +4,16 @@ import (
 	"context"
 	"time"
 
-	"fmt"
-
-	"strings"
-
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/issuance"
-	"gitlab.com/swarmfund/psim/psim/verification"
-	"gitlab.com/tokend/go/amount"
-	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
-)
-
-var (
-	ErrNoVerifierServices = errors.New("No Deposit Verify services were found.")
+	"gitlab.com/tokend/regources"
 )
 
 // AddressProvider must be implemented by WatchAddress storage to pass into Service constructor.
@@ -37,7 +27,7 @@ type Discovery interface {
 	DiscoverService(service string) ([]discovery.ServiceEntry, error)
 }
 
-// OffchainHelper is the interface for specific Offchain(BTC or ETH)
+// OffchainHelper is the interface for specific Offchain(e.g. BTC or ETH)
 // deposit and deposit-verify services to implement
 // and parametrise the Service.
 type OffchainHelper interface {
@@ -58,17 +48,40 @@ type OffchainHelper interface {
 	// BuildReference must return a unique identifier of the Deposit, build from Offchain data.
 	//
 	// Reference is submitted to core and is used to prevent multiple Deposits about the same Offchain TX.
-	// Be sure for the same arguments - the reference will always be the same, otherwise extra wrong Issuance will appear.
+	// Be sure for the same arguments - the reference will always be the same, otherwise duplicate Issuances can appear.
 	//
 	// You probably won't use all of the provided arguments, but it's no problem
 	// for the abstract deposit service to provide all this values into implementations.
 	BuildReference(blockNumber uint64, txHash, offchainAddress string, outIndex uint, maxLen int) string
+	// GetAddressSynonyms must return all possible representations of the provided Offchain Address
+	// which represent the same Address (for example for Ether - lowercased Address is equal to the initial).
+	//
+	// The returned slice must contain at least 1 element.
+	//
+	// If returned slice contains only 1 element - it must be the one provided as parameter.
+	//
+	// The elements in the returned slice *should* not be duplicated.
+	GetAddressSynonyms(address string) []string
 
 	// GetLastKnownBlockNumber must return the number of last Block currently existing in the Offchain.
 	GetLastKnownBlockNumber() (uint64, error)
 	// GetBlock must retrieve the Block with number `number` from the Offchain and parse it into the type Block.
 	// It's OK to have Outs in a Tx with Addresses equal to empty string (if output failed to parse or definitely not interesting for us).
 	GetBlock(number uint64) (*Block, error)
+	// FindTX looks for the TX with provided `txHash` in the Offchain
+	// starting from the Block with number `blockNumber`.
+	//
+	// `blockNumber` is the number of the Block, where the searched TX
+	// was first seen, so the TX should not be in a Block with lower number.
+	//
+	// If the TX was not found - nil TX without error must be returned
+	FindTX(ctx context.Context, blockNumber uint64, txHash string) (TXFindMeta, *Tx, error)
+}
+
+type TXFindMeta struct {
+	StopWaiting     bool
+	BlockWhereFound uint64
+	BlockTime       time.Time
 }
 
 // Service implements app.Service interface.
@@ -84,17 +97,13 @@ type Service struct {
 	source keypair.Address
 	signer keypair.Full
 
-	serviceName         string
-	verifierServiceName string
-	lastProcessedBlock  uint64
-	lastBlocksNotWatch  uint64 // confirmations
-	externalSystem      int32
-	disableVerify       bool
+	serviceName        string
+	lastProcessedBlock uint64
+	externalSystem     int32
 
 	// TODO Interface
 	horizon         *horizon.Connector
 	addressProvider AddressProvider
-	discovery       Discovery
 	builder         *xdrbuild.Builder
 	offchainHelper  OffchainHelper
 }
@@ -104,38 +113,30 @@ type Service struct {
 // Make sure HorizonConnector provided to constructor is with signer.
 func New(opts *Opts) *Service {
 	return &Service{
-		log:                 opts.Log.WithField("service", opts.ServiceName),
-		source:              opts.Source,
-		signer:              opts.Signer,
-		serviceName:         opts.ServiceName,
-		verifierServiceName: opts.VerifierServiceName,
-		lastProcessedBlock:  opts.LastProcessedBlock,
-		lastBlocksNotWatch:  opts.LastBlocksNotWatch,
-		horizon:             opts.Horizon,
-		addressProvider:     opts.AddressProvider,
-		discovery:           opts.Discovery,
-		builder:             opts.Builder,
-		offchainHelper:      opts.OffchainHelper,
-		externalSystem:      opts.ExternalSystem,
-		disableVerify:       opts.DisableVerify,
+		log:                opts.Log.WithField("service", opts.ServiceName),
+		source:             opts.Source,
+		signer:             opts.Signer,
+		serviceName:        opts.ServiceName,
+		lastProcessedBlock: opts.LastProcessedBlock,
+		horizon:            opts.Horizon,
+		addressProvider:    opts.AddressProvider,
+		builder:            opts.Builder,
+		offchainHelper:     opts.OffchainHelper,
+		externalSystem:     opts.ExternalSystem,
 	}
 }
 
 type Opts struct {
-	Log                 *logan.Entry
-	Source              keypair.Address
-	Signer              keypair.Full
-	ServiceName         string
-	VerifierServiceName string
-	LastProcessedBlock  uint64
-	LastBlocksNotWatch  uint64
-	Horizon             *horizon.Connector
-	ExternalSystem      int32
-	AddressProvider     AddressProvider
-	Discovery           Discovery
-	Builder             *xdrbuild.Builder
-	OffchainHelper      OffchainHelper
-	DisableVerify       bool
+	Log                *logan.Entry
+	Source             keypair.Address
+	Signer             keypair.Full
+	ServiceName        string
+	LastProcessedBlock uint64
+	Horizon            *horizon.Connector
+	ExternalSystem     int32
+	AddressProvider    AddressProvider
+	Builder            *xdrbuild.Builder
+	OffchainHelper     OffchainHelper
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -149,16 +150,8 @@ func (s *Service) processNewBlocks(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to GetBlockCount")
 	}
 
-	// We only consider transactions, which have at least LastBlocksNotWatch + 1 confirmations
-	lastBlockToProcess := lastKnownBlock - s.lastBlocksNotWatch
-
-	if lastBlockToProcess <= s.lastProcessedBlock {
-		// No new blocks to process
-		return nil
-	}
-
-	for i := s.lastProcessedBlock + 1; i <= lastBlockToProcess; i++ {
-		if app.IsCanceled(ctx) {
+	for i := s.lastProcessedBlock + 1; i <= lastKnownBlock; i++ {
+		if running.IsCancelled(ctx) {
 			return nil
 		}
 
@@ -167,7 +160,7 @@ func (s *Service) processNewBlocks(ctx context.Context) error {
 			return errors.Wrap(err, "Failed to process Block", logan.F{"block_index": i})
 		}
 
-		if app.IsCanceled(ctx) {
+		if running.IsCancelled(ctx) {
 			// Don't update lastProcessedBlock, because Block processing was probably not finished - ctx was canceled.
 			return nil
 		}
@@ -183,9 +176,10 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 
 	block, err := s.offchainHelper.GetBlock(blockNumber)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get Block from BTCClient")
+		return errors.Wrap(err, "Failed to get Block from OffchainHelper")
 	}
 
+	// FIXME running on node pool may cause skipped blocks here
 	if block == nil {
 		// helper thinks it's 404, we don't care
 		return nil
@@ -210,27 +204,31 @@ func (s *Service) processBlock(ctx context.Context, blockNumber uint64) error {
 
 func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime time.Time, tx Tx) error {
 	for i, out := range tx.Outs {
+		if running.IsCancelled(ctx) {
+			return nil
+		}
+
 		if out.Address == "" {
 			continue
 		}
 
-		accountAddress := s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, out.Address)
-		if running.IsCancelled(ctx) {
-			return nil
-		}
+		var accountAddress *string
+		addresses := s.offchainHelper.GetAddressSynonyms(out.Address)
+		for _, addr := range addresses {
+			accountAddress = s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, addr)
+			if accountAddress != nil {
+				// Found
+				break
+			}
 
-		if accountAddress == nil {
-			// there is weird case when address is lowercased in core,
-			// it's safe to check that, at least in ether
-			accountAddress = s.addressProvider.ExternalAccountAt(ctx, blockTime, s.externalSystem, strings.ToLower(out.Address))
-			if accountAddress == nil {
-				// external address is not among our watch addresses, ignoring
-				continue
+			if running.IsCancelled(ctx) {
+				return nil
 			}
 		}
 
-		if running.IsCancelled(ctx) {
-			return nil
+		if accountAddress == nil {
+			// No our Account found for this Offchain Address, skipping.
+			continue
 		}
 
 		fields := logan.F{
@@ -252,6 +250,7 @@ func (s *Service) processTX(ctx context.Context, blockNumber uint64, blockTime t
 
 		err := s.processDeposit(ctx, blockNumber, blockTime, tx.Hash, uint(i), out, *accountAddress)
 		// TODO Retry processing Deposit - don't go to following Deposits.
+		// FIXME pp: actually no, buksovat is not a option here. a separate retry queue would be nice
 		if err != nil {
 			return errors.Wrap(err, "Failed to process Deposit", fields)
 		}
@@ -275,28 +274,24 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 	if balanceID == nil {
 		// user does not have target balance
 		// unfortunate, but we don't care
-		s.log.WithFields(fields).Warn("no depost asset balance found")
+		s.log.WithFields(fields).Warn("no deposit asset balance found")
 		return nil
 	}
 
+	// TODO make sure min deposit amount > deposit fee
 	valueWithoutDepositFee := out.Value - s.offchainHelper.GetFixedDepositFee()
 	emissionAmount := s.offchainHelper.ConvertToSystem(valueWithoutDepositFee)
 
+	// TODO why not make it internal?
+	// keep BuildReference optional and use if provided for compatibility, else build it in helper
 	reference := s.offchainHelper.BuildReference(blockNumber, txHash, out.Address, outIndex, 64)
 	// TODO check maxLen
 
-	issuanceOpt := issuance.RequestOpt{
-		Reference: reference,
-		Receiver:  *balanceID,
-		Asset:     s.offchainHelper.GetAsset(),
-		Amount:    emissionAmount,
-		Details: ExternalDetails{
-			BlockNumber: blockNumber,
-			TXHash:      txHash,
-			OutIndex:    outIndex,
-			Price:       amount.One,
-		}.Encode(),
-	}
+	details := internal.MustMarshal(regources.DepositDetails{
+		BlockNumber: blockNumber,
+		TXHash:      txHash,
+		OutIndex:    outIndex,
+	})
 
 	fields = fields.Merge(logan.F{
 		"balance_id":              balanceID,
@@ -304,130 +299,27 @@ func (s *Service) processDeposit(ctx context.Context, blockNumber uint64, blockT
 		"reference":               reference,
 	})
 
-	err := s.processIssuance(ctx, blockNumber, out.Address, accountAddress, issuanceOpt)
+	envelope, err := s.builder.Transaction(s.source).Op(xdrbuild.CreateIssuanceRequestOp{
+		Reference: reference,
+		Receiver:  *balanceID,
+		Asset:     s.offchainHelper.GetAsset(),
+		Amount:    emissionAmount,
+		Details:   details,
+		// TODO consider relying on core for this one
+		AllTasks: &issuance.DefaultIssuanceTasks,
+	}).Sign(s.signer).Marshal()
 	if err != nil {
-		return errors.Wrap(err, "Failed to process Issuance", fields)
+		return errors.Wrap(err, "failed to issuance marshal envelope", fields)
 	}
 
-	return nil
-}
-
-func (s *Service) processIssuance(ctx context.Context, blockNumber uint64, offchainAddress, accountAddress string, issuanceOpt issuance.RequestOpt) error {
-	tx := issuance.CraftIssuanceTX(issuanceOpt, s.builder, s.source, s.signer)
-
-	envelope, err := tx.Marshal()
+	ok, err := issuance.SubmitEnvelope(ctx, envelope, s.horizon.Submitter())
 	if err != nil {
-		return errors.Wrap(err, "Failed to marshal TX into envelope")
+		return errors.Wrap(err, "failed to submit issuance tx", fields)
 	}
-
-	logger := s.log.WithFields(logan.F{
-		"block_number":     blockNumber,
-		"offchain_address": offchainAddress,
-		"account_address":  accountAddress,
-		"issuance":         issuanceOpt,
-	})
-
-	var envelopeBase64 string
-	if !s.disableVerify {
-		readyEnvelope, err := s.verifyIssuance(envelope, issuanceOpt)
-		if err != nil {
-			return errors.Wrap(err, "failed to verify issuance request")
-		}
-		envelopeBase64, err = xdr.MarshalBase64(*readyEnvelope)
-		if err != nil {
-			return errors.Wrap(err, "Failed to marshal fully signed Envelope")
-		}
-	} else {
-		envelopeBase64 = envelope
-	}
-
-	ok, err := issuance.SubmitEnvelope(ctx, envelopeBase64, s.horizon.Submitter())
-	if err != nil {
-		logger.WithError(err).Error("Failed to submit CoinEmissionRequest TX to Horizon.")
-		return nil
-	}
-
 	if ok {
-		logger.Info("CoinEmissionRequest was sent successfully.")
+		s.log.Info("CoinEmissionRequest was sent successfully.")
 	} else {
-		logger.Debug("Reference duplication - already processed Deposit, skipping.")
-	}
-	return nil
-}
-
-func (s *Service) verifyIssuance(envelope string, issuanceOpt issuance.RequestOpt) (*xdr.TransactionEnvelope, error) {
-	readyEnvelope, err := s.sendToVerifier(envelope)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Verify Issuance TX")
-	}
-
-	checkErr := s.checkVerifiedEnvelope(*readyEnvelope, issuanceOpt)
-	if checkErr != nil {
-		return nil, errors.Wrap(err, "Fully signed Envelope from Verifier is invalid")
-	}
-	return readyEnvelope, nil
-}
-
-func (s *Service) sendToVerifier(envelope string) (fullySignedTXEnvelope *xdr.TransactionEnvelope, err error) {
-	url, err := s.getVerifierURL()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get URL of Verify")
-	}
-
-	responseEnvelope, err := verification.Verify(url, envelope)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to send request to Verifier", logan.F{"verifier_url": url})
-	}
-
-	return responseEnvelope, nil
-}
-
-func (s *Service) getVerifierURL() (string, error) {
-	services, err := s.discovery.DiscoverService(s.verifierServiceName)
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Failed to discover %s service.", s.verifierServiceName))
-	}
-	if len(services) == 0 {
-		return "", ErrNoVerifierServices
-	}
-
-	return services[0].Address, nil
-}
-
-func (s *Service) checkVerifiedEnvelope(envelope xdr.TransactionEnvelope, issuanceOpt issuance.RequestOpt) (checkErr error) {
-	if len(envelope.Tx.Operations) != 1 {
-		return errors.New("Must be exactly 1 Operation.")
-	}
-
-	opBody := envelope.Tx.Operations[0].Body
-
-	if opBody.Type != xdr.OperationTypeCreateIssuanceRequest {
-		return errors.Errorf("Expected OperationType to be CreateIssuanceRequest(%d), but got (%d).",
-			xdr.OperationTypeCreateIssuanceRequest, opBody.Type)
-	}
-
-	op := envelope.Tx.Operations[0].Body.CreateIssuanceRequestOp
-
-	if op == nil {
-		return errors.New("CreateIssuanceRequestOp is nil.")
-	}
-
-	if string(op.Reference) != issuanceOpt.Reference {
-		return errors.Errorf("Expected Reference to be (%s), but got (%s).", issuanceOpt.Reference, op.Reference)
-	}
-
-	req := op.Request
-
-	if req.Receiver.AsString() != issuanceOpt.Receiver {
-		return errors.Errorf("Expected Receiver to be (%s), but got (%s).", issuanceOpt.Receiver, req.Receiver)
-	}
-
-	if string(req.Asset) != issuanceOpt.Asset {
-		return errors.Errorf("Expected Asset to be (%s), but got (%s).", issuanceOpt.Asset, req.Asset)
-	}
-
-	if uint64(req.Amount) != issuanceOpt.Amount {
-		return errors.Errorf("Expected Asset to be (%d), but got (%d).", issuanceOpt.Amount, req.Amount)
+		s.log.Debug("Reference duplication - already processed Deposit, skipping.")
 	}
 
 	return nil

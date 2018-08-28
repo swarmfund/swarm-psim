@@ -11,7 +11,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (s *Service) rejectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Service) validateRejectReason(request horizon.Request, reason withdraw.RejectReason) string {
+func (s *Service) validateRejectReason(request regources.ReviewableRequest, reason withdraw.RejectReason) string {
 	var gettingAddressErr withdraw.RejectReason
 	addr, err := withdraw.GetWithdrawalAddress(request)
 	if err != nil {

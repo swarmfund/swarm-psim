@@ -3,21 +3,22 @@ package withdveri
 import (
 	"context"
 	"net"
+	"sync"
 	"time"
 
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/psim/app"
+	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/regources"
 )
 
 type RequestsConnector interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type Service struct {
@@ -81,11 +82,17 @@ func New(
 
 // TODO Comment
 func (s *Service) Run(ctx context.Context) {
-	// TODO Wait for acquireLeadershipEndlessly on shutdown
-	go app.RunOverIncrementalTimer(ctx, s.log, s.serviceName+"_discovery_reregisterer", s.ensureServiceInDiscoveryOnce,
-		s.discoveryRegisterPeriod, s.discoveryRegisterPeriod/2)
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		running.WithBackOff(ctx, s.log, "discovery_reregisterer", s.ensureServiceInDiscoveryOnce,
+			s.discoveryRegisterPeriod, s.discoveryRegisterPeriod/2, s.discoveryRegisterPeriod*10)
+		wg.Done()
+	}()
 
 	s.serveAPI(ctx)
+	wg.Wait()
 }
 
 func (s *Service) ensureServiceInDiscoveryOnce(ctx context.Context) error {

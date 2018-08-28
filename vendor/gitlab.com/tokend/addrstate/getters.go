@@ -3,13 +3,15 @@ package addrstate
 import (
 	"context"
 	"time"
+
+	"gitlab.com/tokend/go/xdr"
 )
 
 func (w *Watcher) ExternalAccountAt(ctx context.Context, ts time.Time, systemType int32, data string) *string {
 	w.ensureReached(ctx, ts)
 
-	w.state.Lock()
-	defer w.state.Unlock()
+	w.state.RLock()
+	defer w.state.RUnlock()
 
 	if _, ok := w.state.external[systemType]; !ok {
 		// external system states doesn't exist (yet)
@@ -44,8 +46,9 @@ func (w *Watcher) ExternalAccountAt(ctx context.Context, ts time.Time, systemTyp
 // BindExternalSystemEntities returns all known external data for systemType
 func (w *Watcher) BindedExternalSystemEntities(ctx context.Context, systemType int32) (result []string) {
 	w.ensureReached(ctx, time.Now())
-	w.state.Lock()
-	defer w.state.Unlock()
+
+	w.state.RLock()
+	defer w.state.RUnlock()
 
 	if _, ok := w.state.external[systemType]; !ok {
 		return result
@@ -58,9 +61,44 @@ func (w *Watcher) BindedExternalSystemEntities(ctx context.Context, systemType i
 	return result
 }
 
+func (w *Watcher) BlockReasons(ctx context.Context, address string) uint32 {
+	w.ensureReached(ctx, time.Now())
+
+	w.state.RLock()
+	defer w.state.RUnlock()
+
+	return w.state.accountBlockReasons[address]
+}
+
+func (w *Watcher) KYCData(ctx context.Context, address string) *string {
+	w.ensureReached(ctx, time.Now())
+
+	w.state.RLock()
+	defer w.state.RUnlock()
+
+	kycData, ok := w.state.accountKYC[address]
+	if !ok {
+		return nil
+	}
+
+	return &kycData
+}
+
+func (w *Watcher) AccountsByType(ctx context.Context, tpe xdr.AccountType) map[string]struct{} {
+	w.ensureReached(ctx, time.Now())
+
+	w.state.RLock()
+	defer w.state.RUnlock()
+
+	addrs, ok := w.state.accountType[tpe]
+	if !ok {
+		return map[string]struct{}{}
+	}
+	return addrs
+}
+
 func (w *Watcher) Balance(ctx context.Context, address string, asset string) *string {
-	w.state.Lock()
-	defer w.state.Unlock()
+	w.state.RLock()
 
 	// let's hope for the best and try to get balance before reaching head
 	if w.state.balances[address] != nil {
@@ -69,8 +107,13 @@ func (w *Watcher) Balance(ctx context.Context, address string, asset string) *st
 		}
 	}
 
+	w.state.RUnlock()
+
 	// if we don't have balance already, let's wait for latest ledger
 	w.ensureReached(ctx, time.Now())
+
+	w.state.RLock()
+	defer w.state.RUnlock()
 
 	// now check again
 	if w.state.balances[address] != nil {

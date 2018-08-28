@@ -10,13 +10,13 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 	"gitlab.com/distributed_lab/figure"
-	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/ethsupervisor/internal"
 	internal2 "gitlab.com/swarmfund/psim/psim/internal"
 	"gitlab.com/swarmfund/psim/psim/supervisor"
 	"gitlab.com/swarmfund/psim/psim/utils"
+	"gitlab.com/tokend/addrstate"
 )
 
 func init() {

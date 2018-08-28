@@ -11,6 +11,7 @@ import (
 	"gitlab.com/swarmfund/psim/psim/kyc"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/regources"
 )
 
 var (
@@ -154,7 +155,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	fields := logan.F{
 		"request": request,
 	}

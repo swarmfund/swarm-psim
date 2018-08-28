@@ -13,8 +13,11 @@ const (
 	ServiceETHDeployer = "external_eth_deployer"
 
 	// deposits
-	ServiceBTCDeposit         = "btc_deposit"
-	ServiceBTCDepositVerify   = "btc_deposit_verify"
+	ServiceBTCDeposit       = "btc_deposit"
+	ServiceBTCDepositVerify = "btc_deposit_verify"
+	ServiceETHDeposit       = "eth_deposit"
+	ServiceETHDepositVerify = "eth_deposit_verify"
+	// DEPRECATED: eth_deposit/eth_deposit_verify is a proper implementation, left just in case
 	ServiceETHSupervisor      = "eth_supervisor"
 	ServiceERC20Deposit       = "erc20_deposit"
 	ServiceERC20DepositVerify = "erc20_deposit_verify"

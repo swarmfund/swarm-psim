@@ -12,12 +12,12 @@ import (
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/go/xdrbuild"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 // ProcessValidPendingRequest knows how to process both TwoStepWithdrawal and Withdraw RequestTypes.
 // TODO Make me smaller
-func (s *Service) processValidPendingRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processValidPendingRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	withdrawAddress, err := GetWithdrawalAddress(request)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get Withdraw Address")
@@ -44,10 +44,10 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 		}
 	}
 
-	var newRequest *horizon.Request
+	var newRequest *regources.ReviewableRequest
 	var unsignedOffchainTX string
 	if s.verification.Verify {
-		newRequest, err = s.requestsConnector.GetRequestByID(request.ID)
+		newRequest, err = s.requestsConnector.GetRequestByID(uint64(request.ID))
 		if err != nil {
 			return errors.Wrap(err, "Failed to obtain Request from Horizon")
 		}
@@ -93,7 +93,7 @@ func (s *Service) processValidPendingRequest(ctx context.Context, request horizo
 	return nil
 }
 
-func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon.Request, offchainTXHex string) error {
+func (s *Service) processPreliminaryApprove(ctx context.Context, request regources.ReviewableRequest, offchainTXHex string) error {
 	var resultEnvelope *xdr.TransactionEnvelope
 	var err error
 
@@ -150,7 +150,7 @@ func (s *Service) processPreliminaryApprove(ctx context.Context, request horizon
 }
 
 // TODO Refactor me
-func (s *Service) processApprove(ctx context.Context, request horizon.Request, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount int64) error {
+func (s *Service) processApprove(ctx context.Context, request regources.ReviewableRequest, partlySignedOffchainTX string, withdrawAddress string, withdrawAmount int64) error {
 	var resultEnvelope *xdr.TransactionEnvelope
 	var fullySignedOffchainTX string
 

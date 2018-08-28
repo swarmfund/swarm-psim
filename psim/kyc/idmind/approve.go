@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 func (s *Service) approveSubmitKYC(ctx context.Context, requestID uint64, requestHash, txID string) error {
@@ -19,6 +19,6 @@ func (s *Service) approveCheckKYC(ctx context.Context, requestID uint64, request
 	return s.requestPerformer.Approve(ctx, requestID, requestHash, 0, kyc.TaskCheckIDMind, nil)
 }
 
-func (s *Service) approveRequest(ctx context.Context, request horizon.Request, externalDetails map[string]string) error {
+func (s *Service) approveRequest(ctx context.Context, request regources.ReviewableRequest, externalDetails map[string]string) error {
 	return s.requestPerformer.Approve(ctx, request.ID, request.Hash, 0, kyc.TaskCheckIDMind|kyc.TaskSubmitIDMind, externalDetails)
 }

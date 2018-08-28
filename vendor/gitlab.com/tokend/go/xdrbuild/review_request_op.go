@@ -11,21 +11,40 @@ type ReviewRequestDetails interface {
 	ReviewRequestDetails() xdr.ReviewRequestOpRequestDetails
 }
 
+// TODO research why does it exist
 type ReviewRequestOpDetails struct {
 	Type       xdr.ReviewableRequestType
 	Withdrawal *ReviewRequestOpWithdrawalDetails
+	Issuance   *ReviewRequestOpIssuanceDetails
 }
 
 type ReviewRequestOpWithdrawalDetails struct {
 	ExternalDetails string
 }
 
+type ReviewRequestOpIssuanceDetails struct{}
+type IssuanceDetails struct{}
+
+func (d IssuanceDetails) ReviewRequestDetails() xdr.ReviewRequestOpRequestDetails {
+	return xdr.ReviewRequestOpRequestDetails{
+		RequestType: xdr.ReviewableRequestTypeIssuanceCreate,
+	}
+}
+
+type ReviewDetails struct {
+	TasksToAdd      uint32
+	TasksToRemove   uint32
+	ExternalDetails string
+}
+
 type ReviewRequestOp struct {
-	ID      uint64
-	Hash    string
-	Action  xdr.ReviewRequestOpAction
-	Details ReviewRequestDetails
-	Reason  string
+	ID uint64
+	// Hash optional, not a pointer for backwards compatibility
+	Hash          string
+	Action        xdr.ReviewRequestOpAction
+	Details       ReviewRequestDetails
+	Reason        string
+	ReviewDetails *ReviewDetails
 }
 
 type WithdrawalDetails struct {
@@ -72,29 +91,38 @@ func (d UpdateKYCDetails) ReviewRequestDetails() xdr.ReviewRequestOpRequestDetai
 }
 
 func (op ReviewRequestOp) XDR() (*xdr.Operation, error) {
-	hash, err := hex.DecodeString(op.Hash)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode hash")
-	}
-	var xdrhash xdr.Hash
-	copy(xdrhash[:], hash[:32])
-
-	var details xdr.ReviewRequestOpRequestDetails
-	if op.Details != nil {
-		details = op.Details.ReviewRequestDetails()
-	}
-
 	xdrop := &xdr.Operation{
 		Body: xdr.OperationBody{
 			Type: xdr.OperationTypeReviewRequest,
 			ReviewRequestOp: &xdr.ReviewRequestOp{
-				RequestId:      xdr.Uint64(op.ID),
-				RequestHash:    xdrhash,
-				Action:         op.Action,
-				RequestDetails: details,
-				Reason:         xdr.Longstring(op.Reason),
+				RequestId: xdr.Uint64(op.ID),
+				Action:    op.Action,
+				Reason:    xdr.Longstring(op.Reason),
 			},
 		},
+	}
+
+	if op.Hash != "" {
+		hash, err := hex.DecodeString(op.Hash)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to decode hash")
+		}
+		copy(xdrop.Body.ReviewRequestOp.RequestHash[:], hash[:32])
+	}
+
+	if op.Details != nil {
+		xdrop.Body.ReviewRequestOp.RequestDetails = op.Details.ReviewRequestDetails()
+	}
+
+	if op.ReviewDetails != nil {
+		xdrop.Body.ReviewRequestOp.Ext = xdr.ReviewRequestOpExt{
+			V: xdr.LedgerVersionAddTasksToReviewableRequest,
+			ReviewDetails: &xdr.ReviewDetails{
+				TasksToAdd:      xdr.Uint32(op.ReviewDetails.TasksToAdd),
+				TasksToRemove:   xdr.Uint32(op.ReviewDetails.TasksToRemove),
+				ExternalDetails: op.ReviewDetails.ExternalDetails,
+			},
+		}
 	}
 
 	return xdrop, nil

@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
+
 	"crypto/sha256"
 
 	"context"
@@ -65,22 +67,13 @@ func NewDashHelper(
 	log *logan.Entry,
 	config Config,
 	btcClient BTCClient,
-	coinSelector CoinSelector) (*CommonDashHelper, error) {
-
-	netParams, err := bitcoin.GetNetParams(config.OffchainCurrency, config.OffchainBlockchain)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
-			"currency":   config.OffchainCurrency,
-			"blockchain": config.OffchainBlockchain,
-		})
-	}
+	coinSelector CoinSelector,
+) (*CommonDashHelper, error) {
 
 	return &CommonDashHelper{
-		log: log.WithField("helper", "dash_offchain_helper"),
-
-		config:    config,
-		netParams: netParams,
-
+		log:          log.WithField("helper", "dash_offchain_helper"),
+		config:       config,
+		netParams:    derive.NetworkParams(config.NetworkType),
 		utxoFetched:  make(chan struct{}),
 		btcClient:    btcClient,
 		coinSelector: coinSelector,
@@ -93,7 +86,7 @@ func (h CommonDashHelper) Run(ctx context.Context) {
 
 // GetAsset is implementation of OffchainHelper interface from package withdraw.
 func (h CommonDashHelper) GetAsset() string {
-	return h.config.OffchainCurrency
+	return h.config.DepositAsset
 }
 
 // GetMinWithdrawAmount is implementation of OffchainHelper interface from package withdraw.

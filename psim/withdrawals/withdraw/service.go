@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/tokend/keypair"
+	"gitlab.com/tokend/regources"
 )
 
 var (
@@ -31,7 +32,7 @@ type RequestListener interface {
 // it allows to obtain Request by ID and is used for fetching Withdraw Request
 // after preliminary approve (TwoStep Request).
 type RequestsConnector interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type TXSubmitter interface {
@@ -186,7 +187,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) error {
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	proveErr := ProvePendingRequest(request, s.offchainHelper.GetAsset(), int32(xdr.ReviewableRequestTypeTwoStepWithdrawal), int32(xdr.ReviewableRequestTypeWithdraw))
 	if proveErr != "" {
 		// Not a pending or asset doesn't match.

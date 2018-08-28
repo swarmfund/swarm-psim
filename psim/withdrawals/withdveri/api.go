@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
 	"gitlab.com/swarmfund/psim/ape"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
+	"gitlab.com/tokend/regources"
 )
 
 // TODO Pprof
@@ -36,7 +36,7 @@ func (s *Service) serveAPI(ctx context.Context) {
 	return
 }
 
-func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, neededRequestType int32) (request *horizon.Request, checkErr string, err error) {
+func (s *Service) obtainAndCheckRequest(requestID uint64, requestHash string, neededRequestType int32) (request *regources.ReviewableRequest, checkErr string, err error) {
 	request, err = s.requestsConnector.GetRequestByID(requestID)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "Failed to Obtain WithdrawRequest from Horizon")

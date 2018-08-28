@@ -3,6 +3,7 @@ package kyc
 import (
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -21,10 +22,10 @@ func IsNotVerified(account horizon.Account) bool {
 	return account.AccountTypeI == int32(xdr.AccountTypeNotVerified)
 }
 
-func IsUpdateToGeneral(request horizon.Request) bool {
+func IsUpdateToGeneral(request regources.ReviewableRequest) bool {
 	return request.Details.KYC.AccountTypeToSet.Int == int(xdr.AccountTypeGeneral)
 }
 
-func IsUpdateToVerified(request horizon.Request) bool {
+func IsUpdateToVerified(request regources.ReviewableRequest) bool {
 	return request.Details.KYC.AccountTypeToSet.Int == int(xdr.AccountTypeVerified)
 }

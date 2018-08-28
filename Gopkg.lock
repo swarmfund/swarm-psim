@@ -684,7 +684,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e4f52b667e14acd85cb2316ac81457c064300a9449fd34c9b5fc58edee933d43"
+  digest = "1:20ae8b449453ed569ab6f93bc3b70cb35024e8d5d090de55a2f50695454c6203"
+  name = "gitlab.com/tokend/addrstate"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "98b67cc1eadcd411dbdab94bf5efbf391144a899"
+
+[[projects]]
+  branch = "master"
+  digest = "1:2c5690f1e89f10311a324b2a5c8f3f3e51cf4e93da191b7c41a5b2d5a5e1004b"
   name = "gitlab.com/tokend/go"
   packages = [
     "amount",
@@ -703,7 +711,7 @@
     "xdrbuild/internal",
   ]
   pruneopts = "NT"
-  revision = "067b0608e1dc847ac78407bd1992df587fbcd46f"
+  revision = "44a5bd512c34c77f70ad42c2da23c1fe6755a567"
 
 [[projects]]
   branch = "master"
@@ -751,11 +759,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1caccf0e8fc43866715dbfb98a21073ca6265adad140d3db81681f1cedc19cc1"
+  digest = "1:445e88c1115bef1b6dbbd79d91d3fa9f00ebab8c5d37f49b737cebfb1c5445ab"
   name = "gitlab.com/tokend/regources"
   packages = ["."]
   pruneopts = "NT"
-  revision = "fb67c13c632496b6166adc68ca65ab5ee7eb44d5"
+  revision = "73ed59a402083d9a1bc394a48e35e333441717bc"
 
 [[projects]]
   branch = "master"
@@ -927,6 +935,7 @@
     "gitlab.com/distributed_lab/notificator-server/client",
     "gitlab.com/distributed_lab/running",
     "gitlab.com/swarmfund/salesforce-connector",
+    "gitlab.com/tokend/addrstate",
     "gitlab.com/tokend/go/amount",
     "gitlab.com/tokend/go/doorman",
     "gitlab.com/tokend/go/hash",

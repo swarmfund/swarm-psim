@@ -49,8 +49,7 @@ func setupFn(ctx context.Context) (app.Service, error) {
 		config.HotWalletScriptPubKey,
 		config.HotWalletRedeemScript,
 		config.PrivateKey,
-		config.OffchainCurrency,
-		config.OffchainBlockchain,
+		config.NetworkType,
 		globalConfig.Bitcoin(),
 	)
 	if err != nil {
@@ -58,8 +57,8 @@ func setupFn(ctx context.Context) (app.Service, error) {
 	}
 
 	return withdveri.New(
-		conf.ServiceBTCWithdrawVerify,
-		log,
+		config.ServiceName,
+		log.WithField("service", config.ServiceName),
 		config.SourceKP,
 		config.SignerKP,
 		horizonConnector.Operations(),

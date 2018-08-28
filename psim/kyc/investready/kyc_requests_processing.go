@@ -10,7 +10,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
 	"gitlab.com/swarmfund/psim/psim/kyc"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -80,7 +80,7 @@ func (s *Service) listenAndProcessRequest(ctx context.Context) (bool, error) {
 	}
 }
 
-func (s *Service) processRequest(ctx context.Context, request horizon.Request) error {
+func (s *Service) processRequest(ctx context.Context, request regources.ReviewableRequest) error {
 	proveErr := proveInterestingRequest(request)
 	if proveErr != nil {
 		// No need to process the Request for now.
@@ -125,7 +125,7 @@ func (s *Service) processRequest(ctx context.Context, request horizon.Request) e
 	return nil
 }
 
-func (s *Service) getBlobKYCData(request horizon.Request) (*kyc.Data, error) {
+func (s *Service) getBlobKYCData(request regources.ReviewableRequest) (*kyc.Data, error) {
 	kycReq := request.Details.KYC
 	if kycReq == nil {
 		return nil, errors.New("KYCRequest in the Request is nil.")
@@ -148,7 +148,7 @@ func (s *Service) getBlobKYCData(request horizon.Request) (*kyc.Data, error) {
 	return kycData, nil
 }
 
-func (s *Service) processInvestReadyUser(ctx context.Context, request horizon.Request, user User, kycData kyc.Data) error {
+func (s *Service) processInvestReadyUser(ctx context.Context, request regources.ReviewableRequest, user User, kycData kyc.Data) error {
 	logger := s.log.WithFields(logan.F{
 		"request":  request,
 		"user":     user,

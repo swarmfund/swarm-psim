@@ -14,7 +14,7 @@ import (
 	res "gitlab.com/swarmfund/psim/psim/template_provider/internal/resources"
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/resources"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 // AccountQ interface for doorman initialization
@@ -27,7 +27,7 @@ type Service struct {
 	uploader   res.TemplateUploader
 	downloader res.TemplateDownloader
 	log        *logan.Entry
-	info       *horizon.Info
+	info       *regources.Info
 
 	infoer  internal.Infoer
 	doorman doorman.Doorman

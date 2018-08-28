@@ -14,6 +14,7 @@ import (
 	"gitlab.com/tokend/go/doorman"
 	"gitlab.com/tokend/go/xdr"
 	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
@@ -21,8 +22,8 @@ const (
 )
 
 type KYCRequestsConnector interface {
-	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]horizon.Request, error)
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	Requests(filters, cursor string, reqType horizon.ReviewableRequestType) ([]regources.ReviewableRequest, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 type AccountsConnector interface {
@@ -122,7 +123,7 @@ func (l *RedirectsListener) processRedirectRequest(ctx context.Context, w http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (l *RedirectsListener) getAndValidateKYCRequest(ctx context.Context, accID string, kycRequestID uint64) (kycRequest *horizon.Request, forbiddenReason error, err error) {
+func (l *RedirectsListener) getAndValidateKYCRequest(ctx context.Context, accID string, kycRequestID uint64) (kycRequest *regources.ReviewableRequest, forbiddenReason error, err error) {
 	if vErr, err := l.validateAccount(accID); err != nil || vErr != nil {
 		return nil, vErr, errors.Wrap(err, "failed to validate Account")
 	}
@@ -158,7 +159,7 @@ func (l *RedirectsListener) validateAccount(accID string) (forbiddenReason error
 	return nil, nil
 }
 
-func (l *RedirectsListener) validateKYCRequest(kycRequest horizon.Request) (validationErr error) {
+func (l *RedirectsListener) validateKYCRequest(kycRequest regources.ReviewableRequest) (validationErr error) {
 	if kycRequest.State != kyc.RequestStatePending {
 		return errors.Errorf("Expected KYCRequest State to be Pending(%d), but got (%d).", kyc.RequestStatePending, kycRequest.State)
 	}
@@ -181,7 +182,7 @@ func (l *RedirectsListener) validateKYCRequest(kycRequest horizon.Request) (vali
 	return nil
 }
 
-func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, oauthCode string, kycRequest horizon.Request, accID string) error {
+func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, oauthCode string, kycRequest regources.ReviewableRequest, accID string) error {
 	userToken, err := l.investReady.ObtainUserToken(oauthCode)
 	if err != nil {
 		return errors.Wrap(err, "Failed to obtain User's AccessToken in InvestReady")
@@ -203,7 +204,7 @@ func (l *RedirectsListener) obtainAndSaveUserHash(ctx context.Context, oauthCode
 	return nil
 }
 
-func (l *RedirectsListener) approveRequestAddUserHash(ctx context.Context, kycRequest horizon.Request, accID, userHash string) error {
+func (l *RedirectsListener) approveRequestAddUserHash(ctx context.Context, kycRequest regources.ReviewableRequest, accID, userHash string) error {
 	err := l.requestPerformer.Approve(ctx, kycRequest.ID, kycRequest.Hash, kyc.TaskCheckInvestReady, kyc.TaskUSA, map[string]string{
 		UserHashExtDetailsKey: userHash,
 	})

@@ -10,6 +10,7 @@ import (
 	horizon "gitlab.com/tokend/horizon-connector"
 
 	"gitlab.com/tokend/go/xdr"
+	"gitlab.com/tokend/regources"
 )
 
 // AccountProvider is responsible for account lookup by address
@@ -19,7 +20,7 @@ type AccountProvider interface {
 
 // RequestProvider is responsible for request lookup by address
 type RequestProvider interface {
-	GetRequestByID(requestID uint64) (*horizon.Request, error)
+	GetRequestByID(requestID uint64) (*regources.ReviewableRequest, error)
 }
 
 // Event names sent to analytics services
@@ -213,7 +214,7 @@ func findRemoval(ledgerChanges []xdr.LedgerEntryChange) *xdr.LedgerKeyReviewable
 	return nil
 }
 
-func getRequestKYCDetailsByID(id xdr.Uint64, requestsProvider RequestProvider) (*horizon.RequestKYCDetails, error) {
+func getRequestKYCDetailsByID(id xdr.Uint64, requestsProvider RequestProvider) (*regources.UpdateKYCRequest, error) {
 	request, err := requestsProvider.GetRequestByID(uint64(id))
 
 	if err != nil {
@@ -227,7 +228,7 @@ func getRequestKYCDetailsByID(id xdr.Uint64, requestsProvider RequestProvider) (
 	return request.Details.KYC, nil
 }
 
-func findReferrer(accountsProvider AccountProvider, kycRequestDetails *horizon.RequestKYCDetails) (string, error) {
+func findReferrer(accountsProvider AccountProvider, kycRequestDetails *regources.UpdateKYCRequest) (string, error) {
 	account, err := accountsProvider.ByAddress(kycRequestDetails.AccountToUpdateKYC)
 
 	if err != nil {

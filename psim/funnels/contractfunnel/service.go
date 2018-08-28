@@ -14,8 +14,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 	"gitlab.com/distributed_lab/running"
-	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
+	"gitlab.com/tokend/addrstate"
 )
 
 type ETHClient bind.ContractBackend

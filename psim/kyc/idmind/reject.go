@@ -6,14 +6,14 @@ import (
 	"strconv"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/tokend/horizon-connector"
+	"gitlab.com/tokend/regources"
 )
 
 const (
 	RejectorName = "id_mind"
 )
 
-func (s *Service) rejectInvalidKYCData(ctx context.Context, request horizon.Request, validationErr error) error {
+func (s *Service) rejectInvalidKYCData(ctx context.Context, request regources.ReviewableRequest, validationErr error) error {
 	extDetails := map[string]string{
 		"validation_error": validationErr.Error(),
 	}
@@ -22,13 +22,13 @@ func (s *Service) rejectInvalidKYCData(ctx context.Context, request horizon.Requ
 	return err
 }
 
-func (s *Service) rejectRequest(ctx context.Context, request horizon.Request, rejectReason string, externalDetails map[string]string) error {
+func (s *Service) rejectRequest(ctx context.Context, request regources.ReviewableRequest, rejectReason string, externalDetails map[string]string) error {
 	return s.requestPerformer.Reject(ctx, request.ID, request.Hash, 0, externalDetails, rejectReason, RejectorName)
 }
 
 // idMindResp can be nil (in this case blobID in return will be empty)
 // extDetails can be nil
-func (s *Service) reject(ctx context.Context, request horizon.Request, idMindResp interface{}, rejectReason string, extDetails map[string]string) (blobID string, err error) {
+func (s *Service) reject(ctx context.Context, request regources.ReviewableRequest, idMindResp interface{}, rejectReason string, extDetails map[string]string) (blobID string, err error) {
 	if extDetails == nil {
 		extDetails = make(map[string]string)
 	}

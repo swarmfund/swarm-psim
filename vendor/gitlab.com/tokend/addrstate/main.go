@@ -74,38 +74,6 @@ func (w *Watcher) ensureReached(ctx context.Context, ts time.Time) {
 	}
 }
 
-// StateUpdate is a connector between LedgerEntryChange and Watcher state for specific consumers
-type StateUpdate struct {
-	//AssetPrice      *int64
-	ExternalAccount *StateExternalAccountUpdate
-	//Address         *StateAddressUpdate
-	Balance *StateBalanceUpdate
-}
-
-type ExternalAccountBindingState int32
-
-const (
-	ExternalAccountBindingStateCreated ExternalAccountBindingState = iota + 1
-	ExternalAccountBindingStateDeleted
-)
-
-type StateExternalAccountUpdate struct {
-	// ExternalType external system accound id type
-	ExternalType int32
-	// Data external system pool entity data
-	Data string
-	// Address is a TokenD account address
-	Address string
-	// State shows current external pool entity binding state
-	State ExternalAccountBindingState
-}
-
-type StateBalanceUpdate struct {
-	Address string
-	Balance string
-	Asset   string
-}
-
 func (w *Watcher) run(ctx context.Context) {
 	var entryTypes []int
 	var effects []int

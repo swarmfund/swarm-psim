@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"gitlab.com/swarmfund/psim/addrstate"
 	"gitlab.com/swarmfund/psim/psim/app"
 	"gitlab.com/swarmfund/psim/psim/conf"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
+	"gitlab.com/tokend/addrstate"
 )
 
 func init() {

@@ -6,6 +6,7 @@ import (
 
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/tokend/go/xdr"
 )
 
 type Price struct {
@@ -20,9 +21,7 @@ type externalState struct {
 }
 
 type State struct {
-	*sync.Mutex
-	//prices   []Price
-	//addrs	 sync.Map
+	*sync.RWMutex
 
 	// address -> asset -> balance
 	balances map[string]map[string]string
@@ -30,20 +29,42 @@ type State struct {
 	external map[int32]map[string][]externalState
 	// helper variable for reverse find on external
 	internalExternal map[int32]map[string]string
+	// mapping from account address to its current KYC data
+	accountKYC          map[string]string
+	accountType         map[xdr.AccountType]map[string]struct{}
+	accountBlockReasons map[string]uint32
 }
 
 func newState() *State {
 	return &State{
-		Mutex:            &sync.Mutex{},
-		external:         map[int32]map[string][]externalState{},
-		internalExternal: map[int32]map[string]string{},
-		balances:         map[string]map[string]string{},
+		RWMutex:             &sync.RWMutex{},
+		external:            map[int32]map[string][]externalState{},
+		internalExternal:    map[int32]map[string]string{},
+		balances:            map[string]map[string]string{},
+		accountKYC:          map[string]string{},
+		accountType:         map[xdr.AccountType]map[string]struct{}{},
+		accountBlockReasons: map[string]uint32{},
 	}
 }
 
 func (s *State) Mutate(ts time.Time, update StateUpdate) {
 	s.Lock()
 	defer s.Unlock()
+
+	if update.AccountBlockReasons != nil {
+		s.accountBlockReasons[update.AccountBlockReasons.Address] = update.AccountBlockReasons.BlockReasons
+	}
+
+	if update.AccountType != nil {
+		if _, ok := s.accountType[update.AccountType.AccountType]; !ok {
+			s.accountType[update.AccountType.AccountType] = map[string]struct{}{}
+		}
+		s.accountType[update.AccountType.AccountType][update.AccountType.Address] = struct{}{}
+	}
+
+	if update.AccountKYC != nil {
+		s.accountKYC[update.AccountKYC.Address] = update.AccountKYC.KYCData
+	}
 
 	if update.ExternalAccount != nil {
 		data := update.ExternalAccount
