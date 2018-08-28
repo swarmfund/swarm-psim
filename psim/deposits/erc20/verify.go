@@ -61,7 +61,7 @@ func init() {
 			IssuanceStreamer:   horizon.Listener(),
 			AddressProvider:    addrProvider,
 			Builder:            builder,
-			OffchainHelper:     internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
+			OffchainHelper:     internal.NewERC20Helper(eth, config.DepositAsset, config.Token, config.BlocksToSearchForTX),
 		}), nil
 	})
 }

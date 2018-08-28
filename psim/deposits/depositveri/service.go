@@ -123,6 +123,7 @@ func (s *Service) processRequest(request *regources.ReviewableRequest) error {
 		if err := s.rejectRequest(request, "invalid_in_some_way"); err != nil {
 			return errors.Wrap(err, "failed to reject request")
 		}
+		s.log.WithField("request_id", request.ID).Info("request rejected due to request sanity")
 		return nil
 	}
 
@@ -140,6 +141,7 @@ func (s *Service) processRequest(request *regources.ReviewableRequest) error {
 			if err := s.rejectRequest(request, "invalid_in_some_way"); err != nil {
 				return errors.Wrap(err, "failed to reject request")
 			}
+			s.log.WithField("request_id", request.ID).Info("request rejected since tx is not found")
 			return nil
 		}
 		return nil
@@ -240,7 +242,7 @@ func (s *Service) rejectRequest(request *regources.ReviewableRequest, rejectReas
 		Op(xdrbuild.ReviewRequestOp{
 			ID:      request.ID,
 			Hash:    request.Hash,
-			Action:  xdr.ReviewRequestOpActionReject,
+			Action:  xdr.ReviewRequestOpActionPermanentReject,
 			Reason:  rejectReason,
 			Details: xdrbuild.IssuanceDetails{},
 		}).

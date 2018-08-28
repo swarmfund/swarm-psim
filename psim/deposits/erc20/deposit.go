@@ -60,7 +60,7 @@ func init() {
 			ExternalSystem:     config.ExternalSystem,
 			AddressProvider:    addrProvider,
 			Builder:            builder,
-			OffchainHelper:     internal.NewERC20Helper(eth, config.DepositAsset, config.Token),
+			OffchainHelper:     internal.NewERC20Helper(eth, config.DepositAsset, config.Token, 0),
 		}), nil
 	})
 }

@@ -9,7 +9,7 @@ type DepositConfig struct {
 	Source keypair.Address `fig:"source,required"`
 	Signer keypair.Full    `fig:"signer,required"`
 
-	Cursor uint64          `fig:"cursor,required"`
+	Cursor uint64 `fig:"cursor,required"`
 	// DepositAsset TokenD asset to deposit
 	DepositAsset string `fig:"deposit_asset,required"`
 	// Token deposit token contract address
@@ -39,5 +39,6 @@ type VerifyConfig struct {
 	DepositAsset   string `fig:"deposit_asset,required"`
 	ExternalSystem int32  `fig:"external_system"`
 	// Token deposit token contract address
-	Token common.Address `fig:"token,required"`
+	Token               common.Address `fig:"token,required"`
+	BlocksToSearchForTX uint64         `fig:"blocks_to_search_for_tx,required"`
 }
