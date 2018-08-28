@@ -1,6 +1,8 @@
 package eth_deposit
 
 import (
+	"time"
+
 	"gitlab.com/distributed_lab/figure"
 	"gitlab.com/swarmfund/psim/psim/internal/eth"
 	"gitlab.com/swarmfund/psim/psim/utils"
@@ -14,6 +16,7 @@ type Config struct {
 	Asset           string          `fig:"asset,required"`
 	DisableDeposit  bool            `fig:"disable_deposit"`
 	DisableWithdraw bool            `fig:"disable_withdraw"`
+	PollingTimeout  time.Duration   `fig:"polling_timeout"`
 }
 
 func NewConfig(raw map[string]interface{}) (config Config, err error) {

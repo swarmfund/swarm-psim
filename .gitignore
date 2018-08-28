@@ -3,3 +3,4 @@ bin/
 vendor.orig
 local*
 config.local.yaml
+psim/.vscode/settings.json

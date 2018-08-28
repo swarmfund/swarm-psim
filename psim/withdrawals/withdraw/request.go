@@ -124,16 +124,16 @@ func ProvePendingRequest(request regources.ReviewableRequest, asset string, need
 
 	var destAsset string
 	if request.Details.TwoStepWithdraw != nil {
-		destAsset = request.Details.TwoStepWithdraw.DestAssetAmount.String()
+		destAsset = request.Details.TwoStepWithdraw.DestAssetCode
 	}
 	if request.Details.Withdraw != nil {
-		destAsset = request.Details.Withdraw.DestAssetAmount.String()
+		destAsset = request.Details.Withdraw.DestAssetCode
 	}
 	// TODO If not Withdraw and not TSW - consider returning specific error (switch request.Details.RequestType)
 
 	if destAsset != asset {
 		// Withdraw not to BTC.
-		return fmt.Sprintf("Wrong DestintationAsset (%s) expected BTC(%s).", destAsset, asset)
+		return fmt.Sprintf("Wrong DestintationAsset (%s) expected (%s).", destAsset, asset)
 	}
 
 	return ""

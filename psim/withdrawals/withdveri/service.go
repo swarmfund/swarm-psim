@@ -3,17 +3,18 @@ package withdveri
 import (
 	"context"
 	"net"
+	"sync"
 	"time"
 
 	"gitlab.com/distributed_lab/discovery-go"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
+	"gitlab.com/distributed_lab/running"
+	"gitlab.com/swarmfund/psim/psim/utils"
 	"gitlab.com/swarmfund/psim/psim/withdrawals/withdraw"
 	"gitlab.com/tokend/go/xdrbuild"
 	"gitlab.com/tokend/keypair"
 	"gitlab.com/tokend/regources"
-	"sync"
-	"gitlab.com/distributed_lab/running"
 )
 
 type RequestsConnector interface {
@@ -68,7 +69,7 @@ func New(
 		discovery:               discoveryClient,
 		discoveryService: discoveryClient.Service(&discovery.ServiceRegistration{
 			Name:            serviceName,
-			ID:              "my_awesome_super_duper_random_id",
+			ID:              utils.GenerateToken(),
 			TTL:             2 * discoveryRegisterPeriod,
 			DeregisterAfter: 3 * discoveryRegisterPeriod,
 

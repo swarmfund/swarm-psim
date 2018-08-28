@@ -17,11 +17,10 @@ type Config struct {
 	// NetworkType will be used to configure chain params
 	NetworkType derive.NetworkType `fig:"network_type,required"`
 	// ExternalSystem is optional and if provided will override value from deposit asset details
-	ExternalSystem      int32  `fig:"external_system"`
-	BlocksToSearchForTX uint64 `fig:"blocks_to_search_for_tx,required"`
-
-	Source keypair.Address `fig:"source,required"`
-	Signer keypair.Full    `fig:"signer,required"`
+	ExternalSystem      int32           `fig:"external_system"`
+	BlocksToSearchForTX uint64          `fig:"blocks_to_search_for_tx,required"`
+	Source              keypair.Address `fig:"source,required"`
+	Signer              keypair.Full    `fig:"signer,required"`
 }
 
 func NewConfig(configData map[string]interface{}) (*Config, error) {
