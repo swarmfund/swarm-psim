@@ -15,13 +15,17 @@ import (
 type Config struct {
 	//DefaultTimeout present the period after which the request is considered stale
 	//Add individual timeouts in Requests.
-	DefaultTimeout time.Duration `fig:"request_timeout,required"`
+	DefaultTimeout time.Duration `fig:"default_timeout,required"`
 	//SleepPeriod is frequency with which the service checks the requests.
 	SleepPeriod time.Duration `fig:"sleep_period"`
-	Signer      keypair.Full  `fig:"signer,required"`
+	//NotifyPeriod is frequency with which the service notifies certain request.
+	NotifyPeriod time.Duration `fig:"notify_period"`
+	Signer       keypair.Full  `fig:"signer,required"`
 	//String - name of request
 	//Requests contain individual timeouts for requests.
 	Requests map[string]RequestConfig `fig:"requests"`
+
+	EnableSlack bool `fig:"enable_slack"`
 }
 type RequestConfig struct {
 	Timeout time.Duration
