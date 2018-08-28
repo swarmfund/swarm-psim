@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"gitlab.com/swarmfund/psim/psim/externalsystems/derive"
+
 	"crypto/sha256"
 
 	"context"
@@ -30,7 +32,7 @@ type BTCClient interface {
 type CommonBTCHelper struct {
 	log *logan.Entry
 
-	tokendAsset string
+	tokendAsset           string
 	minWithdrawAmount     int64
 	hotWalletAddress      string
 	hotWalletScriptPubKey string
@@ -50,22 +52,16 @@ func NewBTCHelper(
 	hotWalletScriptPubKey,
 	hotWalletRedeemScript string,
 	privateKey string,
-	currency, blockchain string,
+	networkType derive.NetworkType,
 	btcClient BTCClient) (*CommonBTCHelper, error) {
 
-	netParams, err := bitcoin.GetNetParams(currency, blockchain)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build NetParams by currency and blockchain", logan.F{
-			"currency":   currency,
-			"blockchain": blockchain,
-		})
-	}
+	netParams := derive.NetworkParams(networkType)
 
 	return &CommonBTCHelper{
 		// TODO Not actually a helper, but if you suggest a better name - tell me.
 		log: log.WithField("service", "btc_helper"),
 
-		tokendAsset: tokendAsset,
+		tokendAsset:           tokendAsset,
 		minWithdrawAmount:     minWithdrawAmount,
 		hotWalletAddress:      hotWalletAddress,
 		hotWalletScriptPubKey: hotWalletScriptPubKey,
