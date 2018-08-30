@@ -104,6 +104,7 @@ services:
 #  - template_provider
 #  - wallet_cleaner
 #  - market_maker
+#  - request_monitor
 
 balance_reporter:
   signer: SX
@@ -247,11 +248,12 @@ btc_funnel:
   dust_output_limit: 0.005 # (float in BTC)
   max_fee_per_kb: 0.00024 # 24000 satoshi (float in BTC)
   blocks_to_be_included: 4 # from 2 to 25
-  offchain_currency: BTC # is used to build network params (version bytes)
-  offchain_blockchain: testnet # you usually can only use 'testnet' or 'mainnet'
+  network_type: 1
 
   min_balance_alarm_threshold: 100 # (float in BTC)
   min_balance_alarm_period: 1h
+
+  disable_low_balance_monitor: true
 
 eth_funnel:
   seed: "some_valid_eth_seed"
@@ -579,3 +581,13 @@ market_maker:
      base_asset_volume: 500000000 # integer in stroops # set to zero if no sell Offer must be managed (if don't sell the Base asset)
      quote_asset_volume: 75000000000 # integer in stroops # set to zero if no buy Offer must be managed (if don't sell the Quote asset)
      price_margin: "0.007" # 0.7% # from 0 to 1 as type Amount - string; the sell and buy prices will be price+price_margin and price-price_margin
+
+request_monitor:
+  default_timeout: 10s
+  sleep_period: 1m
+  notify_period: 1h
+  signer: S_SOME_VALID_PRIVATE_KEY
+  enable_slack: true
+  requests:
+    invoice: 1m
+    contract: 1m
