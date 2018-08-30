@@ -47,6 +47,7 @@ const (
 	ServicePriceSetterVerify = "price_setter_verify"
 
 	// airdrops
+	ServiceAirdropMasternode     = "airdrop_masternode"
 	ServiceAirdropEarlybird      = "airdrop_earlybird"
 	ServiceAirdropKYC            = "airdrop_kyc"
 	ServiceAirdropMarchReferrals = "airdrop_march_referrals"
