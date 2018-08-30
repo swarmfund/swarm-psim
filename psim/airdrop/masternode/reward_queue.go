@@ -11,16 +11,26 @@ type RewardQueue struct {
 	all          []string
 	candidates   []*candidate
 	promoteAfter int64
+	blacklist    []string
 }
 
 func (q *RewardQueue) Add(address string) {
-	if q.isKnown(address) {
+	if q.isKnown(address) || q.isBlacklisted(address) {
 		return
 	}
 	q.candidates = append(q.candidates, &candidate{
 		address:      address,
 		promoteAfter: q.promoteAfter,
 	})
+}
+
+func (q *RewardQueue) isBlacklisted(address string) bool {
+	for _, v := range q.blacklist {
+		if v == address {
+			return true
+		}
+	}
+	return false
 }
 
 func (q *RewardQueue) isKnown(address string) bool {

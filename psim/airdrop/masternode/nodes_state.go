@@ -2,7 +2,6 @@ package masternode
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -18,17 +17,17 @@ type NodesState struct {
 	furnace       common.Address
 	firstBlock    time.Time
 	blockDuration time.Duration
-
-	currentBlock uint64
+	currentBlock  uint64
 }
 
-// TODO confirmations
-func (s *NodesState) Payout(ctx context.Context) error {
+type PayoutMeta struct {
+	Block     uint64
+	BlockTime time.Time
+}
+
+func (s *NodesState) Payout(ctx context.Context) (common.Address, *PayoutMeta, error) {
 	blockTime := s.firstBlock.Add(time.Duration(s.currentBlock+1) * s.blockDuration)
 	lastBlock := blockTime.Add(-1 * s.blockDuration)
-
-	fmt.Println("lastBlock", lastBlock.String())
-	fmt.Println("blockTime", blockTime.String())
 
 	ethlowerblock, err := s.blockByTime(ctx, lastBlock)
 	if err != nil {
@@ -44,7 +43,6 @@ func (s *NodesState) Payout(ctx context.Context) error {
 		panic(err)
 	}
 
-	fmt.Println("found txs", len(txs))
 	for _, txinfo := range txs {
 		tx, isPending, err := s.eth.TransactionByHash(ctx, txinfo.Hash)
 		if err != nil {
@@ -59,16 +57,21 @@ func (s *NodesState) Payout(ctx context.Context) error {
 		}
 
 		s.rq.Add(sender.Hex())
-		fmt.Println("adding", sender.Hex())
 	}
 
 	// TODO go through whole reward queue and remove nodes w/o enough balance
 
 	address := s.rq.Next()
-	fmt.Println("payout to", address)
 
+	meta := PayoutMeta{
+		Block:     s.currentBlock,
+		BlockTime: blockTime,
+	}
 	s.currentBlock += 1
-	return nil
+	if address == nil {
+		return s.furnace, &meta, nil
+	}
+	return common.HexToAddress(*address), &meta, nil
 }
 
 func (s *NodesState) blockByTime(ctx context.Context, ts time.Time) (uint64, error) {
@@ -78,7 +81,6 @@ func (s *NodesState) blockByTime(ctx context.Context, ts time.Time) (uint64, err
 	}
 	// check if highest block reached desired timestamp
 	if !ts.Before(time.Unix(height.Time().Int64(), 0)) {
-		fmt.Println("not yet")
 		// wait until we are there
 		ticker := time.NewTicker(5 * time.Second)
 		cursor := height.NumberU64()
@@ -92,7 +94,6 @@ func (s *NodesState) blockByTime(ctx context.Context, ts time.Time) (uint64, err
 				return 0, err
 			}
 			cursor = block.NumberU64()
-			fmt.Println("trying", cursor)
 			if ts.Before(time.Unix(block.Time().Int64(), 0)) {
 				return block.NumberU64(), nil
 			}
@@ -119,7 +120,6 @@ func (s *NodesState) blockByTime(ctx context.Context, ts time.Time) (uint64, err
 			upper = middle
 		}
 		i += 1
-		//fmt.Println(i, lower, upper, time.Unix(block.Time().Int64(), 0))
 	}
 	return lower, nil
 }
