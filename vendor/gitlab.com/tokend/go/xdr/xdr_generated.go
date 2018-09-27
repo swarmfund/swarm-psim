@@ -25,6 +25,7 @@
 //  xdr/raw/Stellar-ledger-entries.x
 //  xdr/raw/Stellar-ledger.x
 //  xdr/raw/Stellar-operation-bind-external-system-id.x
+//  xdr/raw/Stellar-operation-cancel-sale-creation-request.x
 //  xdr/raw/Stellar-operation-check-sale-state.x
 //  xdr/raw/Stellar-operation-create-AML-alert-request.x
 //  xdr/raw/Stellar-operation-create-KYC-request.x
@@ -49,6 +50,7 @@
 //  xdr/raw/Stellar-operation-manage-sale.x
 //  xdr/raw/Stellar-operation-payment-v2.x
 //  xdr/raw/Stellar-operation-payment.x
+//  xdr/raw/Stellar-operation-payout.x
 //  xdr/raw/Stellar-operation-review-request.x
 //  xdr/raw/Stellar-operation-set-fees.x
 //  xdr/raw/Stellar-operation-set-options.x
@@ -2589,17 +2591,23 @@ type ExternalSystemAccountId struct {
 //    	OFFER_FEE = 1,
 //        WITHDRAWAL_FEE = 2,
 //        ISSUANCE_FEE = 3,
-//        INVEST_FEE = 4 // fee to be taken while creating sale participation
+//        INVEST_FEE = 4, // fee to be taken while creating sale participation
+//        CAPITAL_DEPLOYMENT_FEE = 5, // fee to be taken when sale close
+//        OPERATION_FEE = 6,
+//        PAYOUT_FEE = 7
 //    };
 //
 type FeeType int32
 
 const (
-	FeeTypePaymentFee    FeeType = 0
-	FeeTypeOfferFee      FeeType = 1
-	FeeTypeWithdrawalFee FeeType = 2
-	FeeTypeIssuanceFee   FeeType = 3
-	FeeTypeInvestFee     FeeType = 4
+	FeeTypePaymentFee           FeeType = 0
+	FeeTypeOfferFee             FeeType = 1
+	FeeTypeWithdrawalFee        FeeType = 2
+	FeeTypeIssuanceFee          FeeType = 3
+	FeeTypeInvestFee            FeeType = 4
+	FeeTypeCapitalDeploymentFee FeeType = 5
+	FeeTypeOperationFee         FeeType = 6
+	FeeTypePayoutFee            FeeType = 7
 )
 
 var FeeTypeAll = []FeeType{
@@ -2608,6 +2616,9 @@ var FeeTypeAll = []FeeType{
 	FeeTypeWithdrawalFee,
 	FeeTypeIssuanceFee,
 	FeeTypeInvestFee,
+	FeeTypeCapitalDeploymentFee,
+	FeeTypeOperationFee,
+	FeeTypePayoutFee,
 }
 
 var feeTypeMap = map[int32]string{
@@ -2616,6 +2627,9 @@ var feeTypeMap = map[int32]string{
 	2: "FeeTypeWithdrawalFee",
 	3: "FeeTypeIssuanceFee",
 	4: "FeeTypeInvestFee",
+	5: "FeeTypeCapitalDeploymentFee",
+	6: "FeeTypeOperationFee",
+	7: "FeeTypePayoutFee",
 }
 
 var feeTypeShortMap = map[int32]string{
@@ -2624,14 +2638,20 @@ var feeTypeShortMap = map[int32]string{
 	2: "withdrawal_fee",
 	3: "issuance_fee",
 	4: "invest_fee",
+	5: "capital_deployment_fee",
+	6: "operation_fee",
+	7: "payout_fee",
 }
 
 var feeTypeRevMap = map[string]int32{
-	"FeeTypePaymentFee":    0,
-	"FeeTypeOfferFee":      1,
-	"FeeTypeWithdrawalFee": 2,
-	"FeeTypeIssuanceFee":   3,
-	"FeeTypeInvestFee":     4,
+	"FeeTypePaymentFee":           0,
+	"FeeTypeOfferFee":             1,
+	"FeeTypeWithdrawalFee":        2,
+	"FeeTypeIssuanceFee":          3,
+	"FeeTypeInvestFee":            4,
+	"FeeTypeCapitalDeploymentFee": 5,
+	"FeeTypeOperationFee":         6,
+	"FeeTypePayoutFee":            7,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -3010,7 +3030,8 @@ type FeeEntry struct {
 //   enum KeyValueEntryType
 //        {
 //            UINT32 = 1,
-//            STRING = 2
+//            STRING = 2,
+//            UINT64 = 3
 //        };
 //
 type KeyValueEntryType int32
@@ -3018,26 +3039,31 @@ type KeyValueEntryType int32
 const (
 	KeyValueEntryTypeUint32 KeyValueEntryType = 1
 	KeyValueEntryTypeString KeyValueEntryType = 2
+	KeyValueEntryTypeUint64 KeyValueEntryType = 3
 )
 
 var KeyValueEntryTypeAll = []KeyValueEntryType{
 	KeyValueEntryTypeUint32,
 	KeyValueEntryTypeString,
+	KeyValueEntryTypeUint64,
 }
 
 var keyValueEntryTypeMap = map[int32]string{
 	1: "KeyValueEntryTypeUint32",
 	2: "KeyValueEntryTypeString",
+	3: "KeyValueEntryTypeUint64",
 }
 
 var keyValueEntryTypeShortMap = map[int32]string{
 	1: "uint32",
 	2: "string",
+	3: "uint64",
 }
 
 var keyValueEntryTypeRevMap = map[string]int32{
 	"KeyValueEntryTypeUint32": 1,
 	"KeyValueEntryTypeString": 2,
+	"KeyValueEntryTypeUint64": 3,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -3109,12 +3135,15 @@ func (e *KeyValueEntryType) UnmarshalJSON(data []byte) error {
 //                    uint32 ui32Value;
 //                 case STRING:
 //                    string stringValue<>;
+//                case UINT64:
+//                    uint64 ui64Value;
 //            }
 //
 type KeyValueEntryValue struct {
 	Type        KeyValueEntryType `json:"type,omitempty"`
 	Ui32Value   *Uint32           `json:"ui32Value,omitempty"`
 	StringValue *string           `json:"stringValue,omitempty"`
+	Ui64Value   *Uint64           `json:"ui64Value,omitempty"`
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -3131,6 +3160,8 @@ func (u KeyValueEntryValue) ArmForSwitch(sw int32) (string, bool) {
 		return "Ui32Value", true
 	case KeyValueEntryTypeString:
 		return "StringValue", true
+	case KeyValueEntryTypeUint64:
+		return "Ui64Value", true
 	}
 	return "-", false
 }
@@ -3153,6 +3184,13 @@ func NewKeyValueEntryValue(aType KeyValueEntryType, value interface{}) (result K
 			return
 		}
 		result.StringValue = &tv
+	case KeyValueEntryTypeUint64:
+		tv, ok := value.(Uint64)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint64")
+			return
+		}
+		result.Ui64Value = &tv
 	}
 	return
 }
@@ -3201,6 +3239,31 @@ func (u KeyValueEntryValue) GetStringValue() (result string, ok bool) {
 
 	if armName == "StringValue" {
 		result = *u.StringValue
+		ok = true
+	}
+
+	return
+}
+
+// MustUi64Value retrieves the Ui64Value value from the union,
+// panicing if the value is not set.
+func (u KeyValueEntryValue) MustUi64Value() Uint64 {
+	val, ok := u.GetUi64Value()
+
+	if !ok {
+		panic("arm Ui64Value is not set")
+	}
+
+	return val
+}
+
+// GetUi64Value retrieves the Ui64Value value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u KeyValueEntryValue) GetUi64Value() (result Uint64, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "Ui64Value" {
+		result = *u.Ui64Value
 		ok = true
 	}
 
@@ -3257,6 +3320,8 @@ func NewKeyValueEntryExt(v LedgerVersion, value interface{}) (result KeyValueEnt
 //                    uint32 ui32Value;
 //                 case STRING:
 //                    string stringValue<>;
+//                case UINT64:
+//                    uint64 ui64Value;
 //            }
 //            value;
 //
@@ -3282,7 +3347,8 @@ type KeyValueEntry struct {
 //        PAYMENT_OUT = 1,
 //        WITHDRAW = 2,
 //        SPEND = 3,
-//        DEPOSIT = 4
+//        DEPOSIT = 4,
+//        PAYOUT = 5
 //    };
 //
 type StatsOpType int32
@@ -3292,6 +3358,7 @@ const (
 	StatsOpTypeWithdraw   StatsOpType = 2
 	StatsOpTypeSpend      StatsOpType = 3
 	StatsOpTypeDeposit    StatsOpType = 4
+	StatsOpTypePayout     StatsOpType = 5
 )
 
 var StatsOpTypeAll = []StatsOpType{
@@ -3299,6 +3366,7 @@ var StatsOpTypeAll = []StatsOpType{
 	StatsOpTypeWithdraw,
 	StatsOpTypeSpend,
 	StatsOpTypeDeposit,
+	StatsOpTypePayout,
 }
 
 var statsOpTypeMap = map[int32]string{
@@ -3306,6 +3374,7 @@ var statsOpTypeMap = map[int32]string{
 	2: "StatsOpTypeWithdraw",
 	3: "StatsOpTypeSpend",
 	4: "StatsOpTypeDeposit",
+	5: "StatsOpTypePayout",
 }
 
 var statsOpTypeShortMap = map[int32]string{
@@ -3313,6 +3382,7 @@ var statsOpTypeShortMap = map[int32]string{
 	2: "withdraw",
 	3: "spend",
 	4: "deposit",
+	5: "payout",
 }
 
 var statsOpTypeRevMap = map[string]int32{
@@ -3320,6 +3390,7 @@ var statsOpTypeRevMap = map[string]int32{
 	"StatsOpTypeWithdraw":   2,
 	"StatsOpTypeSpend":      3,
 	"StatsOpTypeDeposit":    4,
+	"StatsOpTypePayout":     5,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -4808,8 +4879,9 @@ func (e *SaleState) UnmarshalJSON(data []byte) error {
 //
 //   enum SaleType {
 //    	BASIC_SALE = 1, // sale creator specifies price for each quote asset
-//    	CROWD_FUNDING = 2 // sale creator does not specify price,
+//    	CROWD_FUNDING = 2, // sale creator does not specify price,
 //    	                  // price is defined on sale close based on amount of base asset to be sold and amount of quote assets collected
+//        FIXED_PRICE=3
 //    };
 //
 type SaleType int32
@@ -4817,26 +4889,31 @@ type SaleType int32
 const (
 	SaleTypeBasicSale    SaleType = 1
 	SaleTypeCrowdFunding SaleType = 2
+	SaleTypeFixedPrice   SaleType = 3
 )
 
 var SaleTypeAll = []SaleType{
 	SaleTypeBasicSale,
 	SaleTypeCrowdFunding,
+	SaleTypeFixedPrice,
 }
 
 var saleTypeMap = map[int32]string{
 	1: "SaleTypeBasicSale",
 	2: "SaleTypeCrowdFunding",
+	3: "SaleTypeFixedPrice",
 }
 
 var saleTypeShortMap = map[int32]string{
 	1: "basic_sale",
 	2: "crowd_funding",
+	3: "fixed_price",
 }
 
 var saleTypeRevMap = map[string]int32{
 	"SaleTypeBasicSale":    1,
 	"SaleTypeCrowdFunding": 2,
+	"SaleTypeFixedPrice":   3,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -4898,6 +4975,59 @@ func (e *SaleType) UnmarshalJSON(data []byte) error {
 	}
 	*e = SaleType(t.Value)
 	return nil
+}
+
+// FixedPriceSaleExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type FixedPriceSaleExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u FixedPriceSaleExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of FixedPriceSaleExt
+func (u FixedPriceSaleExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewFixedPriceSaleExt creates a new  FixedPriceSaleExt.
+func NewFixedPriceSaleExt(v LedgerVersion, value interface{}) (result FixedPriceSaleExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// FixedPriceSale is an XDR Struct defines as:
+//
+//   struct FixedPriceSale {
+//    	union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type FixedPriceSale struct {
+	Ext FixedPriceSaleExt `json:"ext,omitempty"`
 }
 
 // CrowdFundingSaleExt is an XDR NestedUnion defines as:
@@ -5014,12 +5144,15 @@ type BasicSale struct {
 //    		BasicSale basicSale;
 //        case CROWD_FUNDING:
 //            CrowdFundingSale crowdFundingSale;
+//        case FIXED_PRICE:
+//            FixedPriceSale fixedPriceSale;
 //        }
 //
 type SaleTypeExtTypedSale struct {
 	SaleType         SaleType          `json:"saleType,omitempty"`
 	BasicSale        *BasicSale        `json:"basicSale,omitempty"`
 	CrowdFundingSale *CrowdFundingSale `json:"crowdFundingSale,omitempty"`
+	FixedPriceSale   *FixedPriceSale   `json:"fixedPriceSale,omitempty"`
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -5036,6 +5169,8 @@ func (u SaleTypeExtTypedSale) ArmForSwitch(sw int32) (string, bool) {
 		return "BasicSale", true
 	case SaleTypeCrowdFunding:
 		return "CrowdFundingSale", true
+	case SaleTypeFixedPrice:
+		return "FixedPriceSale", true
 	}
 	return "-", false
 }
@@ -5058,6 +5193,13 @@ func NewSaleTypeExtTypedSale(saleType SaleType, value interface{}) (result SaleT
 			return
 		}
 		result.CrowdFundingSale = &tv
+	case SaleTypeFixedPrice:
+		tv, ok := value.(FixedPriceSale)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be FixedPriceSale")
+			return
+		}
+		result.FixedPriceSale = &tv
 	}
 	return
 }
@@ -5112,6 +5254,31 @@ func (u SaleTypeExtTypedSale) GetCrowdFundingSale() (result CrowdFundingSale, ok
 	return
 }
 
+// MustFixedPriceSale retrieves the FixedPriceSale value from the union,
+// panicing if the value is not set.
+func (u SaleTypeExtTypedSale) MustFixedPriceSale() FixedPriceSale {
+	val, ok := u.GetFixedPriceSale()
+
+	if !ok {
+		panic("arm FixedPriceSale is not set")
+	}
+
+	return val
+}
+
+// GetFixedPriceSale retrieves the FixedPriceSale value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u SaleTypeExtTypedSale) GetFixedPriceSale() (result FixedPriceSale, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.SaleType))
+
+	if armName == "FixedPriceSale" {
+		result = *u.FixedPriceSale
+		ok = true
+	}
+
+	return
+}
+
 // SaleTypeExt is an XDR Struct defines as:
 //
 //   struct SaleTypeExt {
@@ -5121,6 +5288,8 @@ func (u SaleTypeExtTypedSale) GetCrowdFundingSale() (result CrowdFundingSale, ok
 //    		BasicSale basicSale;
 //        case CROWD_FUNDING:
 //            CrowdFundingSale crowdFundingSale;
+//        case FIXED_PRICE:
+//            FixedPriceSale fixedPriceSale;
 //        }
 //        typedSale;
 //    };
@@ -10856,6 +11025,297 @@ func (u BindExternalSystemAccountIdResult) GetSuccess() (result BindExternalSyst
 	return
 }
 
+// CancelSaleCreationRequestOpExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type CancelSaleCreationRequestOpExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u CancelSaleCreationRequestOpExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of CancelSaleCreationRequestOpExt
+func (u CancelSaleCreationRequestOpExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewCancelSaleCreationRequestOpExt creates a new  CancelSaleCreationRequestOpExt.
+func NewCancelSaleCreationRequestOpExt(v LedgerVersion, value interface{}) (result CancelSaleCreationRequestOpExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// CancelSaleCreationRequestOp is an XDR Struct defines as:
+//
+//   struct CancelSaleCreationRequestOp
+//    {
+//        uint64 requestID;
+//
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//
+//    };
+//
+type CancelSaleCreationRequestOp struct {
+	RequestId Uint64                         `json:"requestID,omitempty"`
+	Ext       CancelSaleCreationRequestOpExt `json:"ext,omitempty"`
+}
+
+// CancelSaleCreationRequestResultCode is an XDR Enum defines as:
+//
+//   enum CancelSaleCreationRequestResultCode
+//    {
+//        // codes considered as "success" for the operation
+//        SUCCESS = 0,
+//
+//        // codes considered as "failure" for the operation
+//        REQUEST_ID_INVALID = -1, // request id can not be equal zero
+//        REQUEST_NOT_FOUND = -2 // trying to cancel not existing reviewable request
+//    };
+//
+type CancelSaleCreationRequestResultCode int32
+
+const (
+	CancelSaleCreationRequestResultCodeSuccess          CancelSaleCreationRequestResultCode = 0
+	CancelSaleCreationRequestResultCodeRequestIdInvalid CancelSaleCreationRequestResultCode = -1
+	CancelSaleCreationRequestResultCodeRequestNotFound  CancelSaleCreationRequestResultCode = -2
+)
+
+var CancelSaleCreationRequestResultCodeAll = []CancelSaleCreationRequestResultCode{
+	CancelSaleCreationRequestResultCodeSuccess,
+	CancelSaleCreationRequestResultCodeRequestIdInvalid,
+	CancelSaleCreationRequestResultCodeRequestNotFound,
+}
+
+var cancelSaleCreationRequestResultCodeMap = map[int32]string{
+	0:  "CancelSaleCreationRequestResultCodeSuccess",
+	-1: "CancelSaleCreationRequestResultCodeRequestIdInvalid",
+	-2: "CancelSaleCreationRequestResultCodeRequestNotFound",
+}
+
+var cancelSaleCreationRequestResultCodeShortMap = map[int32]string{
+	0:  "success",
+	-1: "request_id_invalid",
+	-2: "request_not_found",
+}
+
+var cancelSaleCreationRequestResultCodeRevMap = map[string]int32{
+	"CancelSaleCreationRequestResultCodeSuccess":          0,
+	"CancelSaleCreationRequestResultCodeRequestIdInvalid": -1,
+	"CancelSaleCreationRequestResultCodeRequestNotFound":  -2,
+}
+
+// ValidEnum validates a proposed value for this enum.  Implements
+// the Enum interface for CancelSaleCreationRequestResultCode
+func (e CancelSaleCreationRequestResultCode) ValidEnum(v int32) bool {
+	_, ok := cancelSaleCreationRequestResultCodeMap[v]
+	return ok
+}
+func (e CancelSaleCreationRequestResultCode) isFlag() bool {
+	for i := len(CancelSaleCreationRequestResultCodeAll) - 1; i >= 0; i-- {
+		expected := CancelSaleCreationRequestResultCode(2) << uint64(len(CancelSaleCreationRequestResultCodeAll)-1) >> uint64(len(CancelSaleCreationRequestResultCodeAll)-i)
+		if expected != CancelSaleCreationRequestResultCodeAll[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// String returns the name of `e`
+func (e CancelSaleCreationRequestResultCode) String() string {
+	name, _ := cancelSaleCreationRequestResultCodeMap[int32(e)]
+	return name
+}
+
+func (e CancelSaleCreationRequestResultCode) ShortString() string {
+	name, _ := cancelSaleCreationRequestResultCodeShortMap[int32(e)]
+	return name
+}
+
+func (e CancelSaleCreationRequestResultCode) MarshalJSON() ([]byte, error) {
+	if e.isFlag() {
+		// marshal as mask
+		result := flag{
+			Value: int32(e),
+		}
+		for _, value := range CancelSaleCreationRequestResultCodeAll {
+			if (value & e) == value {
+				result.Flags = append(result.Flags, flagValue{
+					Value: int32(value),
+					Name:  value.ShortString(),
+				})
+			}
+		}
+		return json.Marshal(&result)
+	} else {
+		// marshal as enum
+		result := enum{
+			Value:  int32(e),
+			String: e.ShortString(),
+		}
+		return json.Marshal(&result)
+	}
+}
+
+func (e *CancelSaleCreationRequestResultCode) UnmarshalJSON(data []byte) error {
+	var t value
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	*e = CancelSaleCreationRequestResultCode(t.Value)
+	return nil
+}
+
+// CancelSaleCreationSuccessExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type CancelSaleCreationSuccessExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u CancelSaleCreationSuccessExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of CancelSaleCreationSuccessExt
+func (u CancelSaleCreationSuccessExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewCancelSaleCreationSuccessExt creates a new  CancelSaleCreationSuccessExt.
+func NewCancelSaleCreationSuccessExt(v LedgerVersion, value interface{}) (result CancelSaleCreationSuccessExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// CancelSaleCreationSuccess is an XDR Struct defines as:
+//
+//   struct CancelSaleCreationSuccess {
+//
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type CancelSaleCreationSuccess struct {
+	Ext CancelSaleCreationSuccessExt `json:"ext,omitempty"`
+}
+
+// CancelSaleCreationRequestResult is an XDR Union defines as:
+//
+//   union CancelSaleCreationRequestResult switch (CancelSaleCreationRequestResultCode code)
+//    {
+//        case SUCCESS:
+//            CancelSaleCreationSuccess success;
+//        default:
+//            void;
+//    };
+//
+type CancelSaleCreationRequestResult struct {
+	Code    CancelSaleCreationRequestResultCode `json:"code,omitempty"`
+	Success *CancelSaleCreationSuccess          `json:"success,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u CancelSaleCreationRequestResult) SwitchFieldName() string {
+	return "Code"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of CancelSaleCreationRequestResult
+func (u CancelSaleCreationRequestResult) ArmForSwitch(sw int32) (string, bool) {
+	switch CancelSaleCreationRequestResultCode(sw) {
+	case CancelSaleCreationRequestResultCodeSuccess:
+		return "Success", true
+	default:
+		return "", true
+	}
+}
+
+// NewCancelSaleCreationRequestResult creates a new  CancelSaleCreationRequestResult.
+func NewCancelSaleCreationRequestResult(code CancelSaleCreationRequestResultCode, value interface{}) (result CancelSaleCreationRequestResult, err error) {
+	result.Code = code
+	switch CancelSaleCreationRequestResultCode(code) {
+	case CancelSaleCreationRequestResultCodeSuccess:
+		tv, ok := value.(CancelSaleCreationSuccess)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be CancelSaleCreationSuccess")
+			return
+		}
+		result.Success = &tv
+	default:
+		// void
+	}
+	return
+}
+
+// MustSuccess retrieves the Success value from the union,
+// panicing if the value is not set.
+func (u CancelSaleCreationRequestResult) MustSuccess() CancelSaleCreationSuccess {
+	val, ok := u.GetSuccess()
+
+	if !ok {
+		panic("arm Success is not set")
+	}
+
+	return val
+}
+
+// GetSuccess retrieves the Success value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u CancelSaleCreationRequestResult) GetSuccess() (result CancelSaleCreationSuccess, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Code))
+
+	if armName == "Success" {
+		result = *u.Success
+		ok = true
+	}
+
+	return
+}
+
 // CheckSaleStateOpExt is an XDR NestedUnion defines as:
 //
 //   union switch (LedgerVersion v)
@@ -14193,10 +14653,10 @@ func (u CreateSaleCreationRequestResult) GetSuccess() (result CreateSaleCreation
 // CreateWithdrawalRequestOpExt is an XDR NestedUnion defines as:
 //
 //   union switch (LedgerVersion v)
-//        {
-//        case EMPTY_VERSION:
-//            void;
-//        }
+//    	{
+//    	case EMPTY_VERSION:
+//    		void;
+//    	}
 //
 type CreateWithdrawalRequestOpExt struct {
 	V LedgerVersion `json:"v,omitempty"`
@@ -14232,14 +14692,14 @@ func NewCreateWithdrawalRequestOpExt(v LedgerVersion, value interface{}) (result
 //
 //   struct CreateWithdrawalRequestOp
 //    {
-//        WithdrawalRequest request;
+//    	WithdrawalRequest request;
 //
 //    	union switch (LedgerVersion v)
-//        {
-//        case EMPTY_VERSION:
-//            void;
-//        }
-//        ext;
+//    	{
+//    	case EMPTY_VERSION:
+//    		void;
+//    	}
+//    	ext;
 //
 //    };
 //
@@ -14252,12 +14712,12 @@ type CreateWithdrawalRequestOp struct {
 //
 //   enum CreateWithdrawalRequestResultCode
 //    {
-//        // codes considered as "success" for the operation
-//        SUCCESS = 0,
+//    	// codes considered as "success" for the operation
+//    	SUCCESS = 0,
 //
-//        // codes considered as "failure" for the operation
+//    	// codes considered as "failure" for the operation
 //    	INVALID_AMOUNT = -1, // amount is 0
-//        INVALID_EXTERNAL_DETAILS = -2, // external details size exceeds max allowed
+//    	INVALID_EXTERNAL_DETAILS = -2, // external details size exceeds max allowed
 //    	BALANCE_NOT_FOUND = -3, // balance not found
 //    	ASSET_IS_NOT_WITHDRAWABLE = -4, // asset is not withdrawable
 //    	CONVERSION_PRICE_IS_NOT_AVAILABLE = -5, // failed to find conversion price - conversion is not allowed
@@ -14268,8 +14728,9 @@ type CreateWithdrawalRequestOp struct {
 //    	UNDERFUNDED = -10, // insufficient balance to perform operation
 //    	INVALID_UNIVERSAL_AMOUNT = -11, // non-zero universal amount
 //    	STATS_OVERFLOW = -12, // statistics overflowed by the operation
-//        LIMITS_EXCEEDED = -13, // withdraw exceeds limits for source account
-//    	INVALID_PRE_CONFIRMATION_DETAILS = -14 // it's not allowed to pass pre confirmation details
+//    	LIMITS_EXCEEDED = -13, // withdraw exceeds limits for source account
+//    	INVALID_PRE_CONFIRMATION_DETAILS = -14, // it's not allowed to pass pre confirmation details
+//    	LOWER_BOUND_NOT_EXCEEDED = -15
 //    };
 //
 type CreateWithdrawalRequestResultCode int32
@@ -14290,6 +14751,7 @@ const (
 	CreateWithdrawalRequestResultCodeStatsOverflow                 CreateWithdrawalRequestResultCode = -12
 	CreateWithdrawalRequestResultCodeLimitsExceeded                CreateWithdrawalRequestResultCode = -13
 	CreateWithdrawalRequestResultCodeInvalidPreConfirmationDetails CreateWithdrawalRequestResultCode = -14
+	CreateWithdrawalRequestResultCodeLowerBoundNotExceeded         CreateWithdrawalRequestResultCode = -15
 )
 
 var CreateWithdrawalRequestResultCodeAll = []CreateWithdrawalRequestResultCode{
@@ -14308,6 +14770,7 @@ var CreateWithdrawalRequestResultCodeAll = []CreateWithdrawalRequestResultCode{
 	CreateWithdrawalRequestResultCodeStatsOverflow,
 	CreateWithdrawalRequestResultCodeLimitsExceeded,
 	CreateWithdrawalRequestResultCodeInvalidPreConfirmationDetails,
+	CreateWithdrawalRequestResultCodeLowerBoundNotExceeded,
 }
 
 var createWithdrawalRequestResultCodeMap = map[int32]string{
@@ -14326,6 +14789,7 @@ var createWithdrawalRequestResultCodeMap = map[int32]string{
 	-12: "CreateWithdrawalRequestResultCodeStatsOverflow",
 	-13: "CreateWithdrawalRequestResultCodeLimitsExceeded",
 	-14: "CreateWithdrawalRequestResultCodeInvalidPreConfirmationDetails",
+	-15: "CreateWithdrawalRequestResultCodeLowerBoundNotExceeded",
 }
 
 var createWithdrawalRequestResultCodeShortMap = map[int32]string{
@@ -14344,6 +14808,7 @@ var createWithdrawalRequestResultCodeShortMap = map[int32]string{
 	-12: "stats_overflow",
 	-13: "limits_exceeded",
 	-14: "invalid_pre_confirmation_details",
+	-15: "lower_bound_not_exceeded",
 }
 
 var createWithdrawalRequestResultCodeRevMap = map[string]int32{
@@ -14362,6 +14827,7 @@ var createWithdrawalRequestResultCodeRevMap = map[string]int32{
 	"CreateWithdrawalRequestResultCodeStatsOverflow":                 -12,
 	"CreateWithdrawalRequestResultCodeLimitsExceeded":                -13,
 	"CreateWithdrawalRequestResultCodeInvalidPreConfirmationDetails": -14,
+	"CreateWithdrawalRequestResultCodeLowerBoundNotExceeded":         -15,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -14428,10 +14894,10 @@ func (e *CreateWithdrawalRequestResultCode) UnmarshalJSON(data []byte) error {
 // CreateWithdrawalSuccessExt is an XDR NestedUnion defines as:
 //
 //   union switch (LedgerVersion v)
-//        {
-//        case EMPTY_VERSION:
-//            void;
-//        }
+//    	{
+//    	case EMPTY_VERSION:
+//    		void;
+//    	}
 //
 type CreateWithdrawalSuccessExt struct {
 	V LedgerVersion `json:"v,omitempty"`
@@ -14469,11 +14935,11 @@ func NewCreateWithdrawalSuccessExt(v LedgerVersion, value interface{}) (result C
 //    	uint64 requestID;
 //
 //    	union switch (LedgerVersion v)
-//        {
-//        case EMPTY_VERSION:
-//            void;
-//        }
-//        ext;
+//    	{
+//    	case EMPTY_VERSION:
+//    		void;
+//    	}
+//    	ext;
 //    };
 //
 type CreateWithdrawalSuccess struct {
@@ -14485,10 +14951,10 @@ type CreateWithdrawalSuccess struct {
 //
 //   union CreateWithdrawalRequestResult switch (CreateWithdrawalRequestResultCode code)
 //    {
-//        case SUCCESS:
-//            CreateWithdrawalSuccess success;
-//        default:
-//            void;
+//    	case SUCCESS:
+//    		CreateWithdrawalSuccess success;
+//    	default:
+//    		void;
 //    };
 //
 type CreateWithdrawalRequestResult struct {
@@ -24114,6 +24580,451 @@ func (u PaymentResult) GetPaymentResponse() (result PaymentResponse, ok bool) {
 	return
 }
 
+// PayoutOpExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type PayoutOpExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u PayoutOpExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of PayoutOpExt
+func (u PayoutOpExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewPayoutOpExt creates a new  PayoutOpExt.
+func NewPayoutOpExt(v LedgerVersion, value interface{}) (result PayoutOpExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// PayoutOp is an XDR Struct defines as:
+//
+//   struct PayoutOp
+//    {
+//        AssetCode asset; // asset, which holders will receive dividends
+//        BalanceID sourceBalanceID; // balance, from which payout will be performed
+//
+//        uint64 maxPayoutAmount; // max amount of asset, that owner wants to pay out
+//        uint64 minPayoutAmount; // min tokens amount which will be payed for one balance;
+//        uint64 minAssetHolderAmount; // min tokens amount for which holder will received dividends
+//
+//        Fee fee;
+//
+//        // reserved for future use
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type PayoutOp struct {
+	Asset                AssetCode   `json:"asset,omitempty"`
+	SourceBalanceId      BalanceId   `json:"sourceBalanceID,omitempty"`
+	MaxPayoutAmount      Uint64      `json:"maxPayoutAmount,omitempty"`
+	MinPayoutAmount      Uint64      `json:"minPayoutAmount,omitempty"`
+	MinAssetHolderAmount Uint64      `json:"minAssetHolderAmount,omitempty"`
+	Fee                  Fee         `json:"fee,omitempty"`
+	Ext                  PayoutOpExt `json:"ext,omitempty"`
+}
+
+// PayoutResultCode is an XDR Enum defines as:
+//
+//   enum PayoutResultCode
+//    {
+//        // codes considered as "success" for the operation
+//        SUCCESS = 0,    // payout successfully completed
+//
+//        // codes considered as "failure" for the operation
+//        INVALID_AMOUNT = -1, // max payout amount can not be zero
+//        INVALID_ASSET = -2,
+//        ASSET_NOT_FOUND = -3,
+//        ASSET_NOT_TRANSFERABLE = -4, // asset must have policy transferable
+//        BALANCE_NOT_FOUND = -5,
+//        INSUFFICIENT_FEE_AMOUNT = -6,
+//        FEE_EXCEEDS_ACTUAL_AMOUNT = -7,
+//        TOTAL_FEE_OVERFLOW = -8,
+//        UNDERFUNDED = -9, // not enough amount on source balance
+//        HOLDERS_NOT_FOUND = -10, // there is no holders of such asset
+//        MIN_AMOUNT_TOO_BIG = -11, // there is no appropriate holders balances
+//        LINE_FULL = -12, // destination balance amount overflows
+//        STATS_OVERFLOW = -13, // source statistics overflow
+//        LIMITS_EXCEEDED = -14 // source account limit exceeded
+//    };
+//
+type PayoutResultCode int32
+
+const (
+	PayoutResultCodeSuccess                PayoutResultCode = 0
+	PayoutResultCodeInvalidAmount          PayoutResultCode = -1
+	PayoutResultCodeInvalidAsset           PayoutResultCode = -2
+	PayoutResultCodeAssetNotFound          PayoutResultCode = -3
+	PayoutResultCodeAssetNotTransferable   PayoutResultCode = -4
+	PayoutResultCodeBalanceNotFound        PayoutResultCode = -5
+	PayoutResultCodeInsufficientFeeAmount  PayoutResultCode = -6
+	PayoutResultCodeFeeExceedsActualAmount PayoutResultCode = -7
+	PayoutResultCodeTotalFeeOverflow       PayoutResultCode = -8
+	PayoutResultCodeUnderfunded            PayoutResultCode = -9
+	PayoutResultCodeHoldersNotFound        PayoutResultCode = -10
+	PayoutResultCodeMinAmountTooBig        PayoutResultCode = -11
+	PayoutResultCodeLineFull               PayoutResultCode = -12
+	PayoutResultCodeStatsOverflow          PayoutResultCode = -13
+	PayoutResultCodeLimitsExceeded         PayoutResultCode = -14
+)
+
+var PayoutResultCodeAll = []PayoutResultCode{
+	PayoutResultCodeSuccess,
+	PayoutResultCodeInvalidAmount,
+	PayoutResultCodeInvalidAsset,
+	PayoutResultCodeAssetNotFound,
+	PayoutResultCodeAssetNotTransferable,
+	PayoutResultCodeBalanceNotFound,
+	PayoutResultCodeInsufficientFeeAmount,
+	PayoutResultCodeFeeExceedsActualAmount,
+	PayoutResultCodeTotalFeeOverflow,
+	PayoutResultCodeUnderfunded,
+	PayoutResultCodeHoldersNotFound,
+	PayoutResultCodeMinAmountTooBig,
+	PayoutResultCodeLineFull,
+	PayoutResultCodeStatsOverflow,
+	PayoutResultCodeLimitsExceeded,
+}
+
+var payoutResultCodeMap = map[int32]string{
+	0:   "PayoutResultCodeSuccess",
+	-1:  "PayoutResultCodeInvalidAmount",
+	-2:  "PayoutResultCodeInvalidAsset",
+	-3:  "PayoutResultCodeAssetNotFound",
+	-4:  "PayoutResultCodeAssetNotTransferable",
+	-5:  "PayoutResultCodeBalanceNotFound",
+	-6:  "PayoutResultCodeInsufficientFeeAmount",
+	-7:  "PayoutResultCodeFeeExceedsActualAmount",
+	-8:  "PayoutResultCodeTotalFeeOverflow",
+	-9:  "PayoutResultCodeUnderfunded",
+	-10: "PayoutResultCodeHoldersNotFound",
+	-11: "PayoutResultCodeMinAmountTooBig",
+	-12: "PayoutResultCodeLineFull",
+	-13: "PayoutResultCodeStatsOverflow",
+	-14: "PayoutResultCodeLimitsExceeded",
+}
+
+var payoutResultCodeShortMap = map[int32]string{
+	0:   "success",
+	-1:  "invalid_amount",
+	-2:  "invalid_asset",
+	-3:  "asset_not_found",
+	-4:  "asset_not_transferable",
+	-5:  "balance_not_found",
+	-6:  "insufficient_fee_amount",
+	-7:  "fee_exceeds_actual_amount",
+	-8:  "total_fee_overflow",
+	-9:  "underfunded",
+	-10: "holders_not_found",
+	-11: "min_amount_too_big",
+	-12: "line_full",
+	-13: "stats_overflow",
+	-14: "limits_exceeded",
+}
+
+var payoutResultCodeRevMap = map[string]int32{
+	"PayoutResultCodeSuccess":                0,
+	"PayoutResultCodeInvalidAmount":          -1,
+	"PayoutResultCodeInvalidAsset":           -2,
+	"PayoutResultCodeAssetNotFound":          -3,
+	"PayoutResultCodeAssetNotTransferable":   -4,
+	"PayoutResultCodeBalanceNotFound":        -5,
+	"PayoutResultCodeInsufficientFeeAmount":  -6,
+	"PayoutResultCodeFeeExceedsActualAmount": -7,
+	"PayoutResultCodeTotalFeeOverflow":       -8,
+	"PayoutResultCodeUnderfunded":            -9,
+	"PayoutResultCodeHoldersNotFound":        -10,
+	"PayoutResultCodeMinAmountTooBig":        -11,
+	"PayoutResultCodeLineFull":               -12,
+	"PayoutResultCodeStatsOverflow":          -13,
+	"PayoutResultCodeLimitsExceeded":         -14,
+}
+
+// ValidEnum validates a proposed value for this enum.  Implements
+// the Enum interface for PayoutResultCode
+func (e PayoutResultCode) ValidEnum(v int32) bool {
+	_, ok := payoutResultCodeMap[v]
+	return ok
+}
+func (e PayoutResultCode) isFlag() bool {
+	for i := len(PayoutResultCodeAll) - 1; i >= 0; i-- {
+		expected := PayoutResultCode(2) << uint64(len(PayoutResultCodeAll)-1) >> uint64(len(PayoutResultCodeAll)-i)
+		if expected != PayoutResultCodeAll[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// String returns the name of `e`
+func (e PayoutResultCode) String() string {
+	name, _ := payoutResultCodeMap[int32(e)]
+	return name
+}
+
+func (e PayoutResultCode) ShortString() string {
+	name, _ := payoutResultCodeShortMap[int32(e)]
+	return name
+}
+
+func (e PayoutResultCode) MarshalJSON() ([]byte, error) {
+	if e.isFlag() {
+		// marshal as mask
+		result := flag{
+			Value: int32(e),
+		}
+		for _, value := range PayoutResultCodeAll {
+			if (value & e) == value {
+				result.Flags = append(result.Flags, flagValue{
+					Value: int32(value),
+					Name:  value.ShortString(),
+				})
+			}
+		}
+		return json.Marshal(&result)
+	} else {
+		// marshal as enum
+		result := enum{
+			Value:  int32(e),
+			String: e.ShortString(),
+		}
+		return json.Marshal(&result)
+	}
+}
+
+func (e *PayoutResultCode) UnmarshalJSON(data []byte) error {
+	var t value
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	*e = PayoutResultCode(t.Value)
+	return nil
+}
+
+// PayoutResponseExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type PayoutResponseExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u PayoutResponseExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of PayoutResponseExt
+func (u PayoutResponseExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewPayoutResponseExt creates a new  PayoutResponseExt.
+func NewPayoutResponseExt(v LedgerVersion, value interface{}) (result PayoutResponseExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// PayoutResponse is an XDR Struct defines as:
+//
+//   struct PayoutResponse
+//    {
+//        AccountID receiverID;
+//        BalanceID receiverBalanceID;
+//        uint64 receivedAmount;
+//
+//        // reserved for future use
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type PayoutResponse struct {
+	ReceiverId        AccountId         `json:"receiverID,omitempty"`
+	ReceiverBalanceId BalanceId         `json:"receiverBalanceID,omitempty"`
+	ReceivedAmount    Uint64            `json:"receivedAmount,omitempty"`
+	Ext               PayoutResponseExt `json:"ext,omitempty"`
+}
+
+// PayoutSuccessResultExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type PayoutSuccessResultExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u PayoutSuccessResultExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of PayoutSuccessResultExt
+func (u PayoutSuccessResultExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewPayoutSuccessResultExt creates a new  PayoutSuccessResultExt.
+func NewPayoutSuccessResultExt(v LedgerVersion, value interface{}) (result PayoutSuccessResultExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// PayoutSuccessResult is an XDR Struct defines as:
+//
+//   struct PayoutSuccessResult
+//    {
+//        PayoutResponse payoutResponses<>;
+//        uint64 actualPayoutAmount;
+//        Fee actualFee;
+//
+//        // reserved for future use
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type PayoutSuccessResult struct {
+	PayoutResponses    []PayoutResponse       `json:"payoutResponses,omitempty"`
+	ActualPayoutAmount Uint64                 `json:"actualPayoutAmount,omitempty"`
+	ActualFee          Fee                    `json:"actualFee,omitempty"`
+	Ext                PayoutSuccessResultExt `json:"ext,omitempty"`
+}
+
+// PayoutResult is an XDR Union defines as:
+//
+//   union PayoutResult switch (PayoutResultCode code)
+//    {
+//        case SUCCESS:
+//            PayoutSuccessResult success;
+//        default:
+//            void;
+//    };
+//
+type PayoutResult struct {
+	Code    PayoutResultCode     `json:"code,omitempty"`
+	Success *PayoutSuccessResult `json:"success,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u PayoutResult) SwitchFieldName() string {
+	return "Code"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of PayoutResult
+func (u PayoutResult) ArmForSwitch(sw int32) (string, bool) {
+	switch PayoutResultCode(sw) {
+	case PayoutResultCodeSuccess:
+		return "Success", true
+	default:
+		return "", true
+	}
+}
+
+// NewPayoutResult creates a new  PayoutResult.
+func NewPayoutResult(code PayoutResultCode, value interface{}) (result PayoutResult, err error) {
+	result.Code = code
+	switch PayoutResultCode(code) {
+	case PayoutResultCodeSuccess:
+		tv, ok := value.(PayoutSuccessResult)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be PayoutSuccessResult")
+			return
+		}
+		result.Success = &tv
+	default:
+		// void
+	}
+	return
+}
+
+// MustSuccess retrieves the Success value from the union,
+// panicing if the value is not set.
+func (u PayoutResult) MustSuccess() PayoutSuccessResult {
+	val, ok := u.GetSuccess()
+
+	if !ok {
+		panic("arm Success is not set")
+	}
+
+	return val
+}
+
+// GetSuccess retrieves the Success value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u PayoutResult) GetSuccess() (result PayoutSuccessResult, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Code))
+
+	if armName == "Success" {
+		result = *u.Success
+		ok = true
+	}
+
+	return
+}
+
 // ReviewRequestOpAction is an XDR Enum defines as:
 //
 //   enum ReviewRequestOpAction {
@@ -29527,6 +30438,8 @@ type WithdrawalRequest struct {
 //    		CreateSaleCreationRequestOp createSaleCreationRequestOp;
 //    	case CHECK_SALE_STATE:
 //    		CheckSaleStateOp checkSaleStateOp;
+//    	case PAYOUT:
+//    	    PayoutOp payoutOp;
 //    	case CREATE_AML_ALERT:
 //    	    CreateAMLAlertRequestOp createAMLAlertRequestOp;
 //    	case MANAGE_KEY_VALUE:
@@ -29547,6 +30460,8 @@ type WithdrawalRequest struct {
 //            ManageContractRequestOp manageContractRequestOp;
 //        case MANAGE_CONTRACT:
 //            ManageContractOp manageContractOp;
+//        case CANCEL_SALE_REQUEST:
+//            CancelSaleCreationRequestOp cancelSaleCreationRequestOp;
 //        }
 //
 type OperationBody struct {
@@ -29569,6 +30484,7 @@ type OperationBody struct {
 	ReviewRequestOp                          *ReviewRequestOp                          `json:"reviewRequestOp,omitempty"`
 	CreateSaleCreationRequestOp              *CreateSaleCreationRequestOp              `json:"createSaleCreationRequestOp,omitempty"`
 	CheckSaleStateOp                         *CheckSaleStateOp                         `json:"checkSaleStateOp,omitempty"`
+	PayoutOp                                 *PayoutOp                                 `json:"payoutOp,omitempty"`
 	CreateAmlAlertRequestOp                  *CreateAmlAlertRequestOp                  `json:"createAMLAlertRequestOp,omitempty"`
 	ManageKeyValueOp                         *ManageKeyValueOp                         `json:"manageKeyValueOp,omitempty"`
 	CreateUpdateKycRequestOp                 *CreateUpdateKycRequestOp                 `json:"createUpdateKYCRequestOp,omitempty"`
@@ -29579,6 +30495,7 @@ type OperationBody struct {
 	CreateManageLimitsRequestOp              *CreateManageLimitsRequestOp              `json:"createManageLimitsRequestOp,omitempty"`
 	ManageContractRequestOp                  *ManageContractRequestOp                  `json:"manageContractRequestOp,omitempty"`
 	ManageContractOp                         *ManageContractOp                         `json:"manageContractOp,omitempty"`
+	CancelSaleCreationRequestOp              *CancelSaleCreationRequestOp              `json:"cancelSaleCreationRequestOp,omitempty"`
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -29627,6 +30544,8 @@ func (u OperationBody) ArmForSwitch(sw int32) (string, bool) {
 		return "CreateSaleCreationRequestOp", true
 	case OperationTypeCheckSaleState:
 		return "CheckSaleStateOp", true
+	case OperationTypePayout:
+		return "PayoutOp", true
 	case OperationTypeCreateAmlAlert:
 		return "CreateAmlAlertRequestOp", true
 	case OperationTypeManageKeyValue:
@@ -29647,6 +30566,8 @@ func (u OperationBody) ArmForSwitch(sw int32) (string, bool) {
 		return "ManageContractRequestOp", true
 	case OperationTypeManageContract:
 		return "ManageContractOp", true
+	case OperationTypeCancelSaleRequest:
+		return "CancelSaleCreationRequestOp", true
 	}
 	return "-", false
 }
@@ -29781,6 +30702,13 @@ func NewOperationBody(aType OperationType, value interface{}) (result OperationB
 			return
 		}
 		result.CheckSaleStateOp = &tv
+	case OperationTypePayout:
+		tv, ok := value.(PayoutOp)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be PayoutOp")
+			return
+		}
+		result.PayoutOp = &tv
 	case OperationTypeCreateAmlAlert:
 		tv, ok := value.(CreateAmlAlertRequestOp)
 		if !ok {
@@ -29851,6 +30779,13 @@ func NewOperationBody(aType OperationType, value interface{}) (result OperationB
 			return
 		}
 		result.ManageContractOp = &tv
+	case OperationTypeCancelSaleRequest:
+		tv, ok := value.(CancelSaleCreationRequestOp)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be CancelSaleCreationRequestOp")
+			return
+		}
+		result.CancelSaleCreationRequestOp = &tv
 	}
 	return
 }
@@ -30305,6 +31240,31 @@ func (u OperationBody) GetCheckSaleStateOp() (result CheckSaleStateOp, ok bool) 
 	return
 }
 
+// MustPayoutOp retrieves the PayoutOp value from the union,
+// panicing if the value is not set.
+func (u OperationBody) MustPayoutOp() PayoutOp {
+	val, ok := u.GetPayoutOp()
+
+	if !ok {
+		panic("arm PayoutOp is not set")
+	}
+
+	return val
+}
+
+// GetPayoutOp retrieves the PayoutOp value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u OperationBody) GetPayoutOp() (result PayoutOp, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "PayoutOp" {
+		result = *u.PayoutOp
+		ok = true
+	}
+
+	return
+}
+
 // MustCreateAmlAlertRequestOp retrieves the CreateAmlAlertRequestOp value from the union,
 // panicing if the value is not set.
 func (u OperationBody) MustCreateAmlAlertRequestOp() CreateAmlAlertRequestOp {
@@ -30555,6 +31515,31 @@ func (u OperationBody) GetManageContractOp() (result ManageContractOp, ok bool) 
 	return
 }
 
+// MustCancelSaleCreationRequestOp retrieves the CancelSaleCreationRequestOp value from the union,
+// panicing if the value is not set.
+func (u OperationBody) MustCancelSaleCreationRequestOp() CancelSaleCreationRequestOp {
+	val, ok := u.GetCancelSaleCreationRequestOp()
+
+	if !ok {
+		panic("arm CancelSaleCreationRequestOp is not set")
+	}
+
+	return val
+}
+
+// GetCancelSaleCreationRequestOp retrieves the CancelSaleCreationRequestOp value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u OperationBody) GetCancelSaleCreationRequestOp() (result CancelSaleCreationRequestOp, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "CancelSaleCreationRequestOp" {
+		result = *u.CancelSaleCreationRequestOp
+		ok = true
+	}
+
+	return
+}
+
 // Operation is an XDR Struct defines as:
 //
 //   struct Operation
@@ -30602,6 +31587,8 @@ func (u OperationBody) GetManageContractOp() (result ManageContractOp, ok bool) 
 //    		CreateSaleCreationRequestOp createSaleCreationRequestOp;
 //    	case CHECK_SALE_STATE:
 //    		CheckSaleStateOp checkSaleStateOp;
+//    	case PAYOUT:
+//    	    PayoutOp payoutOp;
 //    	case CREATE_AML_ALERT:
 //    	    CreateAMLAlertRequestOp createAMLAlertRequestOp;
 //    	case MANAGE_KEY_VALUE:
@@ -30622,6 +31609,8 @@ func (u OperationBody) GetManageContractOp() (result ManageContractOp, ok bool) 
 //            ManageContractRequestOp manageContractRequestOp;
 //        case MANAGE_CONTRACT:
 //            ManageContractOp manageContractOp;
+//        case CANCEL_SALE_REQUEST:
+//            CancelSaleCreationRequestOp cancelSaleCreationRequestOp;
 //        }
 //        body;
 //    };
@@ -30950,10 +31939,13 @@ type TimeBounds struct {
 //        {
 //        case EMPTY_VERSION:
 //            void;
+//        case ADD_TRANSACTION_FEE:
+//            uint64 maxTotalFee;
 //        }
 //
 type TransactionExt struct {
-	V LedgerVersion `json:"v,omitempty"`
+	V           LedgerVersion `json:"v,omitempty"`
+	MaxTotalFee *Uint64       `json:"maxTotalFee,omitempty"`
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -30968,6 +31960,8 @@ func (u TransactionExt) ArmForSwitch(sw int32) (string, bool) {
 	switch LedgerVersion(sw) {
 	case LedgerVersionEmptyVersion:
 		return "", true
+	case LedgerVersionAddTransactionFee:
+		return "MaxTotalFee", true
 	}
 	return "-", false
 }
@@ -30978,7 +31972,39 @@ func NewTransactionExt(v LedgerVersion, value interface{}) (result TransactionEx
 	switch LedgerVersion(v) {
 	case LedgerVersionEmptyVersion:
 		// void
+	case LedgerVersionAddTransactionFee:
+		tv, ok := value.(Uint64)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be Uint64")
+			return
+		}
+		result.MaxTotalFee = &tv
 	}
+	return
+}
+
+// MustMaxTotalFee retrieves the MaxTotalFee value from the union,
+// panicing if the value is not set.
+func (u TransactionExt) MustMaxTotalFee() Uint64 {
+	val, ok := u.GetMaxTotalFee()
+
+	if !ok {
+		panic("arm MaxTotalFee is not set")
+	}
+
+	return val
+}
+
+// GetMaxTotalFee retrieves the MaxTotalFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u TransactionExt) GetMaxTotalFee() (result Uint64, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "MaxTotalFee" {
+		result = *u.MaxTotalFee
+		ok = true
+	}
+
 	return
 }
 
@@ -31003,6 +32029,8 @@ func NewTransactionExt(v LedgerVersion, value interface{}) (result TransactionEx
 //        {
 //        case EMPTY_VERSION:
 //            void;
+//        case ADD_TRANSACTION_FEE:
+//            uint64 maxTotalFee;
 //        }
 //        ext;
 //    };
@@ -31208,6 +32236,8 @@ func (e *OperationResultCode) UnmarshalJSON(data []byte) error {
 //    		CreateSaleCreationRequestResult createSaleCreationRequestResult;
 //    	case CHECK_SALE_STATE:
 //    		CheckSaleStateResult checkSaleStateResult;
+//    	case PAYOUT:
+//    	    PayoutResult payoutResult;
 //    	case CREATE_AML_ALERT:
 //    	    CreateAMLAlertRequestResult createAMLAlertRequestResult;
 //    	case MANAGE_KEY_VALUE:
@@ -31228,6 +32258,8 @@ func (e *OperationResultCode) UnmarshalJSON(data []byte) error {
 //            ManageContractRequestResult manageContractRequestResult;
 //        case MANAGE_CONTRACT:
 //            ManageContractResult manageContractResult;
+//        case CANCEL_SALE_REQUEST:
+//            CancelSaleCreationRequestResult cancelSaleCreationRequestResult;
 //        }
 //
 type OperationResultTr struct {
@@ -31250,6 +32282,7 @@ type OperationResultTr struct {
 	ReviewRequestResult                          *ReviewRequestResult                          `json:"reviewRequestResult,omitempty"`
 	CreateSaleCreationRequestResult              *CreateSaleCreationRequestResult              `json:"createSaleCreationRequestResult,omitempty"`
 	CheckSaleStateResult                         *CheckSaleStateResult                         `json:"checkSaleStateResult,omitempty"`
+	PayoutResult                                 *PayoutResult                                 `json:"payoutResult,omitempty"`
 	CreateAmlAlertRequestResult                  *CreateAmlAlertRequestResult                  `json:"createAMLAlertRequestResult,omitempty"`
 	ManageKeyValueResult                         *ManageKeyValueResult                         `json:"manageKeyValueResult,omitempty"`
 	CreateUpdateKycRequestResult                 *CreateUpdateKycRequestResult                 `json:"createUpdateKYCRequestResult,omitempty"`
@@ -31260,6 +32293,7 @@ type OperationResultTr struct {
 	CreateManageLimitsRequestResult              *CreateManageLimitsRequestResult              `json:"createManageLimitsRequestResult,omitempty"`
 	ManageContractRequestResult                  *ManageContractRequestResult                  `json:"manageContractRequestResult,omitempty"`
 	ManageContractResult                         *ManageContractResult                         `json:"manageContractResult,omitempty"`
+	CancelSaleCreationRequestResult              *CancelSaleCreationRequestResult              `json:"cancelSaleCreationRequestResult,omitempty"`
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -31308,6 +32342,8 @@ func (u OperationResultTr) ArmForSwitch(sw int32) (string, bool) {
 		return "CreateSaleCreationRequestResult", true
 	case OperationTypeCheckSaleState:
 		return "CheckSaleStateResult", true
+	case OperationTypePayout:
+		return "PayoutResult", true
 	case OperationTypeCreateAmlAlert:
 		return "CreateAmlAlertRequestResult", true
 	case OperationTypeManageKeyValue:
@@ -31328,6 +32364,8 @@ func (u OperationResultTr) ArmForSwitch(sw int32) (string, bool) {
 		return "ManageContractRequestResult", true
 	case OperationTypeManageContract:
 		return "ManageContractResult", true
+	case OperationTypeCancelSaleRequest:
+		return "CancelSaleCreationRequestResult", true
 	}
 	return "-", false
 }
@@ -31462,6 +32500,13 @@ func NewOperationResultTr(aType OperationType, value interface{}) (result Operat
 			return
 		}
 		result.CheckSaleStateResult = &tv
+	case OperationTypePayout:
+		tv, ok := value.(PayoutResult)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be PayoutResult")
+			return
+		}
+		result.PayoutResult = &tv
 	case OperationTypeCreateAmlAlert:
 		tv, ok := value.(CreateAmlAlertRequestResult)
 		if !ok {
@@ -31532,6 +32577,13 @@ func NewOperationResultTr(aType OperationType, value interface{}) (result Operat
 			return
 		}
 		result.ManageContractResult = &tv
+	case OperationTypeCancelSaleRequest:
+		tv, ok := value.(CancelSaleCreationRequestResult)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be CancelSaleCreationRequestResult")
+			return
+		}
+		result.CancelSaleCreationRequestResult = &tv
 	}
 	return
 }
@@ -31986,6 +33038,31 @@ func (u OperationResultTr) GetCheckSaleStateResult() (result CheckSaleStateResul
 	return
 }
 
+// MustPayoutResult retrieves the PayoutResult value from the union,
+// panicing if the value is not set.
+func (u OperationResultTr) MustPayoutResult() PayoutResult {
+	val, ok := u.GetPayoutResult()
+
+	if !ok {
+		panic("arm PayoutResult is not set")
+	}
+
+	return val
+}
+
+// GetPayoutResult retrieves the PayoutResult value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u OperationResultTr) GetPayoutResult() (result PayoutResult, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "PayoutResult" {
+		result = *u.PayoutResult
+		ok = true
+	}
+
+	return
+}
+
 // MustCreateAmlAlertRequestResult retrieves the CreateAmlAlertRequestResult value from the union,
 // panicing if the value is not set.
 func (u OperationResultTr) MustCreateAmlAlertRequestResult() CreateAmlAlertRequestResult {
@@ -32236,6 +33313,31 @@ func (u OperationResultTr) GetManageContractResult() (result ManageContractResul
 	return
 }
 
+// MustCancelSaleCreationRequestResult retrieves the CancelSaleCreationRequestResult value from the union,
+// panicing if the value is not set.
+func (u OperationResultTr) MustCancelSaleCreationRequestResult() CancelSaleCreationRequestResult {
+	val, ok := u.GetCancelSaleCreationRequestResult()
+
+	if !ok {
+		panic("arm CancelSaleCreationRequestResult is not set")
+	}
+
+	return val
+}
+
+// GetCancelSaleCreationRequestResult retrieves the CancelSaleCreationRequestResult value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u OperationResultTr) GetCancelSaleCreationRequestResult() (result CancelSaleCreationRequestResult, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.Type))
+
+	if armName == "CancelSaleCreationRequestResult" {
+		result = *u.CancelSaleCreationRequestResult
+		ok = true
+	}
+
+	return
+}
+
 // OperationResult is an XDR Union defines as:
 //
 //   union OperationResult switch (OperationResultCode code)
@@ -32279,6 +33381,8 @@ func (u OperationResultTr) GetManageContractResult() (result ManageContractResul
 //    		CreateSaleCreationRequestResult createSaleCreationRequestResult;
 //    	case CHECK_SALE_STATE:
 //    		CheckSaleStateResult checkSaleStateResult;
+//    	case PAYOUT:
+//    	    PayoutResult payoutResult;
 //    	case CREATE_AML_ALERT:
 //    	    CreateAMLAlertRequestResult createAMLAlertRequestResult;
 //    	case MANAGE_KEY_VALUE:
@@ -32299,6 +33403,8 @@ func (u OperationResultTr) GetManageContractResult() (result ManageContractResul
 //            ManageContractRequestResult manageContractRequestResult;
 //        case MANAGE_CONTRACT:
 //            ManageContractResult manageContractResult;
+//        case CANCEL_SALE_REQUEST:
+//            CancelSaleCreationRequestResult cancelSaleCreationRequestResult;
 //        }
 //        tr;
 //    default:
@@ -32383,26 +33489,32 @@ func (u OperationResult) GetTr() (result OperationResultTr, ok bool) {
 //
 //        txBAD_AUTH = -5,             // too few valid signatures / wrong network
 //        txNO_ACCOUNT = -6,           // source account not found
-//        txBAD_AUTH_EXTRA = -7,      // unused signatures attached to transaction
-//        txINTERNAL_ERROR = -8,      // an unknown error occured
-//    	txACCOUNT_BLOCKED = -9,     // account is blocked and cannot be source of tx
-//        txDUPLICATION = -10         // if timing is stored
+//        txBAD_AUTH_EXTRA = -7,       // unused signatures attached to transaction
+//        txINTERNAL_ERROR = -8,       // an unknown error occured
+//    	txACCOUNT_BLOCKED = -9,      // account is blocked and cannot be source of tx
+//        txDUPLICATION = -10,         // if timing is stored
+//        txINSUFFICIENT_FEE = -11,    // the actual total fee amount is greater than the max total fee amount, provided by the source
+//        txSOURCE_UNDERFUNDED = -12,  // not enough tx fee asset on source balance
+//        txCOMMISSION_LINE_FULL = -13 // commission tx fee asset balance amount overflow
 //    };
 //
 type TransactionResultCode int32
 
 const (
-	TransactionResultCodeTxSuccess          TransactionResultCode = 0
-	TransactionResultCodeTxFailed           TransactionResultCode = -1
-	TransactionResultCodeTxTooEarly         TransactionResultCode = -2
-	TransactionResultCodeTxTooLate          TransactionResultCode = -3
-	TransactionResultCodeTxMissingOperation TransactionResultCode = -4
-	TransactionResultCodeTxBadAuth          TransactionResultCode = -5
-	TransactionResultCodeTxNoAccount        TransactionResultCode = -6
-	TransactionResultCodeTxBadAuthExtra     TransactionResultCode = -7
-	TransactionResultCodeTxInternalError    TransactionResultCode = -8
-	TransactionResultCodeTxAccountBlocked   TransactionResultCode = -9
-	TransactionResultCodeTxDuplication      TransactionResultCode = -10
+	TransactionResultCodeTxSuccess            TransactionResultCode = 0
+	TransactionResultCodeTxFailed             TransactionResultCode = -1
+	TransactionResultCodeTxTooEarly           TransactionResultCode = -2
+	TransactionResultCodeTxTooLate            TransactionResultCode = -3
+	TransactionResultCodeTxMissingOperation   TransactionResultCode = -4
+	TransactionResultCodeTxBadAuth            TransactionResultCode = -5
+	TransactionResultCodeTxNoAccount          TransactionResultCode = -6
+	TransactionResultCodeTxBadAuthExtra       TransactionResultCode = -7
+	TransactionResultCodeTxInternalError      TransactionResultCode = -8
+	TransactionResultCodeTxAccountBlocked     TransactionResultCode = -9
+	TransactionResultCodeTxDuplication        TransactionResultCode = -10
+	TransactionResultCodeTxInsufficientFee    TransactionResultCode = -11
+	TransactionResultCodeTxSourceUnderfunded  TransactionResultCode = -12
+	TransactionResultCodeTxCommissionLineFull TransactionResultCode = -13
 )
 
 var TransactionResultCodeAll = []TransactionResultCode{
@@ -32417,6 +33529,9 @@ var TransactionResultCodeAll = []TransactionResultCode{
 	TransactionResultCodeTxInternalError,
 	TransactionResultCodeTxAccountBlocked,
 	TransactionResultCodeTxDuplication,
+	TransactionResultCodeTxInsufficientFee,
+	TransactionResultCodeTxSourceUnderfunded,
+	TransactionResultCodeTxCommissionLineFull,
 }
 
 var transactionResultCodeMap = map[int32]string{
@@ -32431,6 +33546,9 @@ var transactionResultCodeMap = map[int32]string{
 	-8:  "TransactionResultCodeTxInternalError",
 	-9:  "TransactionResultCodeTxAccountBlocked",
 	-10: "TransactionResultCodeTxDuplication",
+	-11: "TransactionResultCodeTxInsufficientFee",
+	-12: "TransactionResultCodeTxSourceUnderfunded",
+	-13: "TransactionResultCodeTxCommissionLineFull",
 }
 
 var transactionResultCodeShortMap = map[int32]string{
@@ -32445,20 +33563,26 @@ var transactionResultCodeShortMap = map[int32]string{
 	-8:  "tx_internal_error",
 	-9:  "tx_account_blocked",
 	-10: "tx_duplication",
+	-11: "tx_insufficient_fee",
+	-12: "tx_source_underfunded",
+	-13: "tx_commission_line_full",
 }
 
 var transactionResultCodeRevMap = map[string]int32{
-	"TransactionResultCodeTxSuccess":          0,
-	"TransactionResultCodeTxFailed":           -1,
-	"TransactionResultCodeTxTooEarly":         -2,
-	"TransactionResultCodeTxTooLate":          -3,
-	"TransactionResultCodeTxMissingOperation": -4,
-	"TransactionResultCodeTxBadAuth":          -5,
-	"TransactionResultCodeTxNoAccount":        -6,
-	"TransactionResultCodeTxBadAuthExtra":     -7,
-	"TransactionResultCodeTxInternalError":    -8,
-	"TransactionResultCodeTxAccountBlocked":   -9,
-	"TransactionResultCodeTxDuplication":      -10,
+	"TransactionResultCodeTxSuccess":            0,
+	"TransactionResultCodeTxFailed":             -1,
+	"TransactionResultCodeTxTooEarly":           -2,
+	"TransactionResultCodeTxTooLate":            -3,
+	"TransactionResultCodeTxMissingOperation":   -4,
+	"TransactionResultCodeTxBadAuth":            -5,
+	"TransactionResultCodeTxNoAccount":          -6,
+	"TransactionResultCodeTxBadAuthExtra":       -7,
+	"TransactionResultCodeTxInternalError":      -8,
+	"TransactionResultCodeTxAccountBlocked":     -9,
+	"TransactionResultCodeTxDuplication":        -10,
+	"TransactionResultCodeTxInsufficientFee":    -11,
+	"TransactionResultCodeTxSourceUnderfunded":  -12,
+	"TransactionResultCodeTxCommissionLineFull": -13,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -32520,6 +33644,126 @@ func (e *TransactionResultCode) UnmarshalJSON(data []byte) error {
 	}
 	*e = TransactionResultCode(t.Value)
 	return nil
+}
+
+// OperationFeeExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type OperationFeeExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u OperationFeeExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of OperationFeeExt
+func (u OperationFeeExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewOperationFeeExt creates a new  OperationFeeExt.
+func NewOperationFeeExt(v LedgerVersion, value interface{}) (result OperationFeeExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// OperationFee is an XDR Struct defines as:
+//
+//   struct OperationFee
+//    {
+//        OperationType operationType;
+//        uint64 amount;
+//
+//        // reserved for future use
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type OperationFee struct {
+	OperationType OperationType   `json:"operationType,omitempty"`
+	Amount        Uint64          `json:"amount,omitempty"`
+	Ext           OperationFeeExt `json:"ext,omitempty"`
+}
+
+// TransactionFeeExt is an XDR NestedUnion defines as:
+//
+//   union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//
+type TransactionFeeExt struct {
+	V LedgerVersion `json:"v,omitempty"`
+}
+
+// SwitchFieldName returns the field name in which this union's
+// discriminant is stored
+func (u TransactionFeeExt) SwitchFieldName() string {
+	return "V"
+}
+
+// ArmForSwitch returns which field name should be used for storing
+// the value for an instance of TransactionFeeExt
+func (u TransactionFeeExt) ArmForSwitch(sw int32) (string, bool) {
+	switch LedgerVersion(sw) {
+	case LedgerVersionEmptyVersion:
+		return "", true
+	}
+	return "-", false
+}
+
+// NewTransactionFeeExt creates a new  TransactionFeeExt.
+func NewTransactionFeeExt(v LedgerVersion, value interface{}) (result TransactionFeeExt, err error) {
+	result.V = v
+	switch LedgerVersion(v) {
+	case LedgerVersionEmptyVersion:
+		// void
+	}
+	return
+}
+
+// TransactionFee is an XDR Struct defines as:
+//
+//   struct TransactionFee
+//    {
+//        AssetCode assetCode;
+//        OperationFee operationFees<100>;
+//
+//        // reserved for future use
+//        union switch (LedgerVersion v)
+//        {
+//        case EMPTY_VERSION:
+//            void;
+//        }
+//        ext;
+//    };
+//
+type TransactionFee struct {
+	AssetCode     AssetCode         `json:"assetCode,omitempty"`
+	OperationFees []OperationFee    `json:"operationFees,omitempty" xdrmaxsize:"100"`
+	Ext           TransactionFeeExt `json:"ext,omitempty"`
 }
 
 // TransactionResultResult is an XDR NestedUnion defines as:
@@ -32612,10 +33856,13 @@ func (u TransactionResultResult) GetResults() (result []OperationResult, ok bool
 //        {
 //        case EMPTY_VERSION:
 //            void;
+//        case ADD_TRANSACTION_FEE:
+//            TransactionFee transactionFee;
 //        }
 //
 type TransactionResultExt struct {
-	V LedgerVersion `json:"v,omitempty"`
+	V              LedgerVersion   `json:"v,omitempty"`
+	TransactionFee *TransactionFee `json:"transactionFee,omitempty"`
 }
 
 // SwitchFieldName returns the field name in which this union's
@@ -32630,6 +33877,8 @@ func (u TransactionResultExt) ArmForSwitch(sw int32) (string, bool) {
 	switch LedgerVersion(sw) {
 	case LedgerVersionEmptyVersion:
 		return "", true
+	case LedgerVersionAddTransactionFee:
+		return "TransactionFee", true
 	}
 	return "-", false
 }
@@ -32640,7 +33889,39 @@ func NewTransactionResultExt(v LedgerVersion, value interface{}) (result Transac
 	switch LedgerVersion(v) {
 	case LedgerVersionEmptyVersion:
 		// void
+	case LedgerVersionAddTransactionFee:
+		tv, ok := value.(TransactionFee)
+		if !ok {
+			err = fmt.Errorf("invalid value, must be TransactionFee")
+			return
+		}
+		result.TransactionFee = &tv
 	}
+	return
+}
+
+// MustTransactionFee retrieves the TransactionFee value from the union,
+// panicing if the value is not set.
+func (u TransactionResultExt) MustTransactionFee() TransactionFee {
+	val, ok := u.GetTransactionFee()
+
+	if !ok {
+		panic("arm TransactionFee is not set")
+	}
+
+	return val
+}
+
+// GetTransactionFee retrieves the TransactionFee value from the union,
+// returning ok if the union's switch indicated the value is valid.
+func (u TransactionResultExt) GetTransactionFee() (result TransactionFee, ok bool) {
+	armName, _ := u.ArmForSwitch(int32(u.V))
+
+	if armName == "TransactionFee" {
+		result = *u.TransactionFee
+		ok = true
+	}
+
 	return
 }
 
@@ -32665,6 +33946,8 @@ func NewTransactionResultExt(v LedgerVersion, value interface{}) (result Transac
 //        {
 //        case EMPTY_VERSION:
 //            void;
+//        case ADD_TRANSACTION_FEE:
+//            TransactionFee transactionFee;
 //        }
 //        ext;
 //    };
@@ -33010,7 +34293,9 @@ func (u PublicKey) GetEd25519() (result Uint256, ok bool) {
 //        ADD_REVIEW_INVOICE_REQUEST_PAYMENT_RESPONSE = 44,
 //        ADD_CONTRACT_ID_REVIEW_REQUEST_RESULT = 45,
 //        ALLOW_TO_UPDATE_AND_REJECT_LIMITS_UPDATE_REQUESTS = 46,
-//        ADD_CUSTOMER_DETAILS_TO_CONTRACT = 47
+//        ADD_CUSTOMER_DETAILS_TO_CONTRACT = 47,
+//        ADD_CAPITAL_DEPLOYMENT_FEE_TYPE = 48,
+//        ADD_TRANSACTION_FEE = 49
 //    };
 //
 type LedgerVersion int32
@@ -33064,6 +34349,8 @@ const (
 	LedgerVersionAddContractIdReviewRequestResult                 LedgerVersion = 45
 	LedgerVersionAllowToUpdateAndRejectLimitsUpdateRequests       LedgerVersion = 46
 	LedgerVersionAddCustomerDetailsToContract                     LedgerVersion = 47
+	LedgerVersionAddCapitalDeploymentFeeType                      LedgerVersion = 48
+	LedgerVersionAddTransactionFee                                LedgerVersion = 49
 )
 
 var LedgerVersionAll = []LedgerVersion{
@@ -33115,6 +34402,8 @@ var LedgerVersionAll = []LedgerVersion{
 	LedgerVersionAddContractIdReviewRequestResult,
 	LedgerVersionAllowToUpdateAndRejectLimitsUpdateRequests,
 	LedgerVersionAddCustomerDetailsToContract,
+	LedgerVersionAddCapitalDeploymentFeeType,
+	LedgerVersionAddTransactionFee,
 }
 
 var ledgerVersionMap = map[int32]string{
@@ -33166,6 +34455,8 @@ var ledgerVersionMap = map[int32]string{
 	45: "LedgerVersionAddContractIdReviewRequestResult",
 	46: "LedgerVersionAllowToUpdateAndRejectLimitsUpdateRequests",
 	47: "LedgerVersionAddCustomerDetailsToContract",
+	48: "LedgerVersionAddCapitalDeploymentFeeType",
+	49: "LedgerVersionAddTransactionFee",
 }
 
 var ledgerVersionShortMap = map[int32]string{
@@ -33217,6 +34508,8 @@ var ledgerVersionShortMap = map[int32]string{
 	45: "add_contract_id_review_request_result",
 	46: "allow_to_update_and_reject_limits_update_requests",
 	47: "add_customer_details_to_contract",
+	48: "add_capital_deployment_fee_type",
+	49: "add_transaction_fee",
 }
 
 var ledgerVersionRevMap = map[string]int32{
@@ -33268,6 +34561,8 @@ var ledgerVersionRevMap = map[string]int32{
 	"LedgerVersionAddContractIdReviewRequestResult":                 45,
 	"LedgerVersionAllowToUpdateAndRejectLimitsUpdateRequests":       46,
 	"LedgerVersionAddCustomerDetailsToContract":                     47,
+	"LedgerVersionAddCapitalDeploymentFeeType":                      48,
+	"LedgerVersionAddTransactionFee":                                49,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
@@ -33656,7 +34951,9 @@ type Fee struct {
 //        MANAGE_KEY_VALUE = 27,
 //        CREATE_MANAGE_LIMITS_REQUEST = 28,
 //        MANAGE_CONTRACT_REQUEST = 29,
-//        MANAGE_CONTRACT = 30
+//        MANAGE_CONTRACT = 30,
+//        CANCEL_SALE_REQUEST = 31,
+//        PAYOUT = 32
 //    };
 //
 type OperationType int32
@@ -33690,6 +34987,8 @@ const (
 	OperationTypeCreateManageLimitsRequest              OperationType = 28
 	OperationTypeManageContractRequest                  OperationType = 29
 	OperationTypeManageContract                         OperationType = 30
+	OperationTypeCancelSaleRequest                      OperationType = 31
+	OperationTypePayout                                 OperationType = 32
 )
 
 var OperationTypeAll = []OperationType{
@@ -33721,6 +35020,8 @@ var OperationTypeAll = []OperationType{
 	OperationTypeCreateManageLimitsRequest,
 	OperationTypeManageContractRequest,
 	OperationTypeManageContract,
+	OperationTypeCancelSaleRequest,
+	OperationTypePayout,
 }
 
 var operationTypeMap = map[int32]string{
@@ -33752,6 +35053,8 @@ var operationTypeMap = map[int32]string{
 	28: "OperationTypeCreateManageLimitsRequest",
 	29: "OperationTypeManageContractRequest",
 	30: "OperationTypeManageContract",
+	31: "OperationTypeCancelSaleRequest",
+	32: "OperationTypePayout",
 }
 
 var operationTypeShortMap = map[int32]string{
@@ -33783,6 +35086,8 @@ var operationTypeShortMap = map[int32]string{
 	28: "create_manage_limits_request",
 	29: "manage_contract_request",
 	30: "manage_contract",
+	31: "cancel_sale_request",
+	32: "payout",
 }
 
 var operationTypeRevMap = map[string]int32{
@@ -33814,6 +35119,8 @@ var operationTypeRevMap = map[string]int32{
 	"OperationTypeCreateManageLimitsRequest":              28,
 	"OperationTypeManageContractRequest":                  29,
 	"OperationTypeManageContract":                         30,
+	"OperationTypeCancelSaleRequest":                      31,
+	"OperationTypePayout":                                 32,
 }
 
 // ValidEnum validates a proposed value for this enum.  Implements
