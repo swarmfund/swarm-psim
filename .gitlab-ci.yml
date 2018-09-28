@@ -59,5 +59,5 @@ publish-gh:
     - mkdir -p ~/.ssh
     - echo "$GH_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - echo "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
     - GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa" git push -f git@github.com:swarmfund/swarm-psim.git master
