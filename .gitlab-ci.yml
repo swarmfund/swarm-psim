@@ -19,6 +19,7 @@ stages:
   # TODO enable tests
   #- test
   - deploy
+  - publish-gh
 
 # build and publish docker image to the registry
 build:
@@ -46,3 +47,17 @@ deploy:
   script:
     # TODO add host fingerprint
     - ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i $DEPLOYMENT_INV -e @$DEPLOYMENT_SECRETS -e psim_revison=$CI_COMMIT_SHA $DEPLOYMENT_DIR/psim.yml
+
+publish-gh:
+  image: ubuntu
+  stage: publish-gh
+  only:
+    - master
+  script:
+    - apt update
+    - apt install -y --no-install-recommends git openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$GH_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+    - GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa" git push -f git@github.com:swarmfund/swarm-psim.git master
