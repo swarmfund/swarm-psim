@@ -50,7 +50,7 @@ deploy:
 
 publish-gh:
   image: ubuntu
-  stage: publish-sh
+  stage: publish-gh
   only:
     - feature/gh-publish
   script:
