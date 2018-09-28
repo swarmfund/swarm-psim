@@ -55,7 +55,7 @@ publish-gh:
     - feature/gh-publish
   script:
     - apt update
-    - apt install -y --no-install-recommends git
+    - apt install -y --no-install-recommends git openssh-client
     - mkdir -p ~/.ssh
     - echo "$GH_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
